@@ -127,9 +127,9 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
         raise NotImplementedError
 
     async def _on_authorized_none(self) -> bool:
-        raise NotImplementedError
-
-    # =====
+        user="user"
+        return True
+   # =====
 
     async def _on_key_event(self, code: int, state: bool) -> None:
         raise NotImplementedError
