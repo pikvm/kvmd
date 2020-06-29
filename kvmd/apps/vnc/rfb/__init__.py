@@ -127,7 +127,6 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
         raise NotImplementedError
 
     async def _on_authorized_none(self) -> bool:
-        user="user"
         return True
    # =====
 
