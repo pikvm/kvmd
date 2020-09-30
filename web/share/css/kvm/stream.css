@@ -18,8 +18,23 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 *****************************************************************************/
+div.alert-box {
+	white-space: normal;
+	text-align: justify;
 
+	border: var(--border-window-thin);
+	border-radius: 8px;
+	box-sizing: border-box;
+	padding: 5px 5px 5px 5px;
+	background-color: var(--cs-window-default-bg);
+	visibility: hidden;
 
+	position: fixed;
+	top: 20%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 10000;
+}
 div#stream-info {
 	display: none;
 }

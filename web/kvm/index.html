@@ -413,10 +413,19 @@
           <div class="window-header" id="stream-window-header">
             <div class="window-grab">Stream</div>
             <button class="window-button-close">&times;</button>            
+            <button class="window-button-full-screen">&#10530;</button>         
           </div>
           <div id="stream-info"></div>
           
-          <div class="stream-box-inactive" id="stream-box"><img class="stream-image-inactive" id="stream-image" src="/share/png/blank-stream.png"></div>
+          <div class="stream-box-inactive" id="stream-box">
+            <div class="alert-box" id="keyboard-lock-alert">
+              <p>Failed to acquire keyboard lock. Shortcuts like Alt+Tab, Ctrl+W, Ctrl+N might not be captured.</p>
+              For best keyboard handling use a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Keyboard_API#Browser_compatibility">browser with keyboard lock support api</a>.
+              In Chrome use https and enable system-keyboard-lock by putting at URL chrome://flags/#system-keyboard-lock.
+              More details on keyboard lock API are <a href="https://wicg.github.io/keyboard-lock/" target="_blank">here.</a>
+            </div>
+            <img class="stream-image-inactive" id="stream-image" src="/share/png/blank-stream.png">
+          </div>
           
           <div class="keypad" id="stream-mouse-buttons" align="center">
             <div class="keypad-block">

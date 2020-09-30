@@ -70,18 +70,30 @@ div.window div.window-header-grabbed {
 	border-bottom: var(--border-intensive-thin);
 }
 
+.window-full-screen{
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%; 
+	height: 100%;
+}
+div.window div.window-header button.window-button-full-screen,
 div.window div.window-header button.window-button-close {
 	border: none;
 	position: absolute;
-	top: -2px;
-	right: -6px;
+	top: -2px;	
 	width: 44px;
 	height: 24px;
 	padding-left: 0;
 	color: var(--cs-window-closer-default-fg);
 	display: inline-block;
 }
-
+div.window div.window-header button.window-button-full-screen{
+	right: 25px;
+}
+div.window div.window-header button.window-button-close {
+	right: -6px;
+}
 @media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
 	/* iPad */
 	div.window {
@@ -93,7 +105,8 @@ div.window div.window-header button.window-button-close {
 	div.window div.window-header div.window-grab {
 		height: 35px !important;
 	}
-	div.window div.window-header button.window-button-close {
+	div.window div.window-header button.window-button-full-screen,
+	div.window div.window-header button.window-button-close{
 		height: 40px !important;
 	}
 }
