@@ -57,11 +57,9 @@ export function Streamer() {
 			wm.switchEnabled($("stream-resolution-selector"), false);
 			__sendParam("resolution", $("stream-resolution-selector").value);
 		});
-
-		tools.sliderSetParams($("stream-size-slider"), 20, 200, 5, 100);
-		$("stream-size-slider").oninput = () => __resize();
-		$("stream-size-slider").onchange = () => __resize();
-
+		
+		new ResizeObserver(__resize).observe($("stream-window"))
+		
 		tools.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.setOnClick($("stream-reset-button"), __clickResetButton);
 
@@ -268,41 +266,23 @@ export function Streamer() {
 		});
 	};
 
-	var __resize = function() {
-		let size = $("stream-size-slider").value;
-		$("stream-size-value").innerHTML = `${size}%`;
-		__size_factor = size / 100;
-		__applySizeFactor();
+	var __resize = function() {		
+		window.streamImageLocation= __calculateImageRelativePosition();		
+		wm.showWindow($("stream-window"), false);		
 	};
 
-	var __adjustSizeFactor = function() {
-		let el_window = $("stream-window");
-		let el_slider = $("stream-size-slider");
-		let view = wm.getViewGeometry();
-
-		for (let size = 100; size >= el_slider.min; size -= el_slider.step) {
-			tools.info("Stream: adjusting size:", size);
-			$("stream-size-slider").value = size;
-			__resize();
-
-			let rect = el_window.getBoundingClientRect();
-			if (
-				rect.bottom <= view.bottom
-				&& rect.top >= view.top
-				&& rect.left >= view.left
-				&& rect.right <= view.right
-			) {
-				break;
-			}
-		}
-	};
-
-	var __applySizeFactor = function() {
-		let el = $("stream-image");
-		el.style.width = __resolution.width * __size_factor + "px";
-		el.style.height = __resolution.height * __size_factor + "px";
-		wm.showWindow($("stream-window"), false);
-	};
+	var __calculateImageRelativePosition = function(){
+		let imageBoundingRect = $("stream-image").getBoundingClientRect()
+		let ratio = Math.min(imageBoundingRect.width/$("stream-image").naturalWidth, imageBoundingRect.height/$("stream-image").naturalHeight);
+		
+		return {
+			x: Math.round((imageBoundingRect.width - ratio*$("stream-image").naturalWidth)/2), 
+			y: Math.round((imageBoundingRect.height - ratio*$("stream-image").naturalHeight)/2),
+			width: Math.round(ratio*$("stream-image").naturalWidth),
+			height: Math.round(ratio*$("stream-image").naturalHeight),
+			ratio: ratio
+		};
+	}
 
 	__init__();
 }

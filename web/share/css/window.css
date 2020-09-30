@@ -33,6 +33,8 @@ div.window {
 	color: var(--cs-window-default-fg);
 	background-color: var(--cs-window-default-bg);
 	padding: 30px 9px 9px 9px;
+	resize: both;
+
 }
 div.window-active {
 	border: var(--border-intensive-2px) !important;

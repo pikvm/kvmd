@@ -25,9 +25,11 @@ div#stream-info {
 }
 
 div#stream-box {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
 	position: relative;
 	display: inline-block;
-	border: var(--border-window-thin);
 }
 div.stream-box-inactive::after {
 	cursor: wait;
@@ -45,8 +47,9 @@ div.stream-box-mouse-enabled {
 }
 
 img#stream-image {
-	width: 640px;
-	height: 480px;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
 	display: block;
 	background-color: black;
 }

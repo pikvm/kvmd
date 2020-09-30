@@ -136,13 +136,6 @@
               <input class="slider" disabled type="range" id="stream-desired-fps-slider">
             </div>
           </div>
-          <hr>
-          <div class="text">Stream size: <span id="stream-size-value">100%</span>
-            <div class="stream-param-box">
-              <input class="slider" type="range" id="stream-size-slider">
-            </div>
-          </div>
-          <hr>
           <div class="text">
             <table class="one-line-switch">
               <td>Auto-resize stream:</td>
@@ -419,10 +412,12 @@
         <div class="window" id="stream-window">
           <div class="window-header" id="stream-window-header">
             <div class="window-grab">Stream</div>
-            <button class="window-button-close">&times;</button>
+            <button class="window-button-close">&times;</button>            
           </div>
           <div id="stream-info"></div>
+          
           <div class="stream-box-inactive" id="stream-box"><img class="stream-image-inactive" id="stream-image" src="/share/png/blank-stream.png"></div>
+          
           <div class="keypad" id="stream-mouse-buttons" align="center">
             <div class="keypad-block">
               <div class="keypad-row">
