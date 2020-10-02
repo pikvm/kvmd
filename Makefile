@@ -12,6 +12,8 @@ USTREAMER_MIN_VERSION ?= $(shell grep -o 'ustreamer>=[^"]\+' PKGBUILD | sed 's/u
 
 DEFAULT_PLATFORM ?= v2-hdmi-rpi4
 
+TEST_ENV_SSL_DIR = $(shell pwd)/configs/nginx/ssl
+
 
 # =====
 define optbool
@@ -42,8 +44,15 @@ all:
 	@ echo
 	@ echo "Also you can add option NC=1 to rebuild docker test environment"
 
-
-testenv:
+testenvssl:
+	mkdir -p $(TEST_ENV_SSL_DIR)
+	openssl ecparam -out $(TEST_ENV_SSL_DIR)/server.key -name prime256v1 -genkey
+	openssl req -new -x509 -sha256 -nodes -key $(TEST_ENV_SSL_DIR)/server.key -out $(TEST_ENV_SSL_DIR)/server.crt -days 3650 \
+		-subj "/C=RU/ST=Moscow/L=Moscow/O=Pi-KVM/OU=Pi-KVM/CN=localhost"
+	chmod 400 $(TEST_ENV_SSL_DIR)/server.key
+	chmod 444 $(TEST_ENV_SSL_DIR)/server.crt
+	chmod 750 $(TEST_ENV_SSL_DIR)
+testenv: testenvssl
 	docker build \
 			$(if $(call optbool,$(NC)),--no-cache,) \
 			--rm \
@@ -92,6 +101,7 @@ run: testenv $(TESTENV_GPIO)
 			--env KVMD_GPIO_DEVICE_PATH=$(TESTENV_GPIO) \
 			$(if $(TESTENV_RELAY),--device $(TESTENV_RELAY):$(TESTENV_RELAY),) \
 			--publish 8080:80/tcp \
+			--publish 8443:443/tcp \
 		-it $(TESTENV_IMAGE) /bin/bash -c " \
 			mount -t debugfs none /sys/kernel/debug \
 			&& test -d /sys/kernel/debug/gpio-mockup/`basename $(TESTENV_GPIO)`/ \
