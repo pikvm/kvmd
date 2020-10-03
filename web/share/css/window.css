@@ -78,6 +78,7 @@ div.window div.window-header-grabbed {
 	height: 100%;
 }
 div.window div.window-header button.window-button-full-screen,
+div.window div.window-header button.window-button-maximize,
 div.window div.window-header button.window-button-close {
 	border: none;
 	position: absolute;
@@ -89,11 +90,15 @@ div.window div.window-header button.window-button-close {
 	display: inline-block;
 }
 div.window div.window-header button.window-button-full-screen{
-	right: 25px;
+	right: 60px;
 }
 div.window div.window-header button.window-button-close {
 	right: -6px;
 }
+div.window div.window-header button.window-button-maximize {
+	right: 25px;
+}
+
 @media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
 	/* iPad */
 	div.window {

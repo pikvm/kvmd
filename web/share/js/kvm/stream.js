@@ -57,6 +57,9 @@ export function Streamer() {
 			wm.switchEnabled($("stream-resolution-selector"), false);
 			__sendParam("resolution", $("stream-resolution-selector").value);
 		});
+		$("maximize-stream-window").onclick = (() => {
+			wm.maximizeWindow($("stream-window"));
+		})
 		
 		new ResizeObserver(__resize).observe($("stream-window"))
 		
@@ -114,11 +117,6 @@ export function Streamer() {
 			) {
 				__resolution = state.streamer.source.resolution;
 				__resolution_str = `${__resolution.width}x${__resolution.height}`;
-				if ($("stream-auto-resize-checkbox").checked) {
-					__adjustSizeFactor();
-				} else {
-					__applySizeFactor();
-				}
 			}
 
 			if (state.features.resolution) {

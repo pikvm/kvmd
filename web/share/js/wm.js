@@ -66,6 +66,13 @@ function __WindowManager() {
 					__activateLastWindow(el_window);
 				});
 			}
+			let el_maximize_button = el_window.querySelector(".window-header .window-button-maximize");
+			if (el_maximize_button) {
+				tools.setOnClick(el_maximize_button, function() {
+					__maximizeWindow(el_window);
+					__activateLastWindow(el_window);
+				});
+			}
 			let el_full_screen_button = el_window.querySelector(".window-header .window-button-full-screen");
 			if (el_full_screen_button) {
 				tools.setOnClick(el_full_screen_button, function() {
@@ -183,6 +190,8 @@ function __WindowManager() {
 		}
 		el.disabled = !enabled;
 	};
+	
+	self.maximizeWindow = __maximizeWindow;
 
 	self.switchRadioEnabled = function(name, enabled) {
 		for (let el of $$$(`input[type="radio"][name="${name}"]`)) {
@@ -250,6 +259,16 @@ function __WindowManager() {
 		}
 
 	};
+
+	//window maximized but not full screen
+	function __maximizeWindow(el_window) {			
+			let verticalOffset = $("navbar").offsetHeight;
+			el_window.style.left = "0px";
+			el_window.style.top = verticalOffset + "px";
+			el_window.style.width = window.innerWidth + "px";
+			el_window.style.height = window.innerHeight - verticalOffset + "px";
+		};
+	
 
 	var __toggleMenu = function(el_a) {
 		let all_hidden = true;
