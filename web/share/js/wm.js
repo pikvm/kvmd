@@ -246,10 +246,11 @@ function __WindowManager() {
 		}else{
 			el_window.style.padding = "0px 0px 0px 0px";			
 		}
-	}
+	};
+
 	var __fullScreenWindow = function(el_window) {
 		el_window.requestFullscreen();
-		if ('keyboard' in navigator && 'lock' in navigator.keyboard) {
+		if ("keyboard" in navigator && "lock" in navigator.keyboard) {
 			navigator.keyboard.lock();
 		}else{
 			$("keyboard-lock-alert").style.visibility="visible";
@@ -262,12 +263,12 @@ function __WindowManager() {
 
 	//window maximized but not full screen
 	function __maximizeWindow(el_window) {			
-			let verticalOffset = $("navbar").offsetHeight;
-			el_window.style.left = "0px";
-			el_window.style.top = verticalOffset + "px";
-			el_window.style.width = window.innerWidth + "px";
-			el_window.style.height = window.innerHeight - verticalOffset + "px";
-		};
+		let verticalOffset = $("navbar").offsetHeight;
+		el_window.style.left = "0px";
+		el_window.style.top = verticalOffset + "px";
+		el_window.style.width = window.innerWidth + "px";
+		el_window.style.height = window.innerHeight - verticalOffset + "px";
+	}
 	
 
 	var __toggleMenu = function(el_a) {

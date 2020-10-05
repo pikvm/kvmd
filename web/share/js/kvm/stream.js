@@ -36,8 +36,6 @@ export function Streamer() {
 	var __resolution_str = "640x480";
 	var __available_resolutions = [];
 
-	var __size_factor = 1;
-
 	var __client_key = tools.makeId();
 	var __client_id = "";
 	var __client_fps = -1;
@@ -59,9 +57,9 @@ export function Streamer() {
 		});
 		$("maximize-stream-window").onclick = (() => {
 			wm.maximizeWindow($("stream-window"));
-		})
+		});
 		
-		new ResizeObserver(__resize).observe($("stream-window"))
+		new ResizeObserver(__resize).observe($("stream-window"));
 		
 		tools.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.setOnClick($("stream-reset-button"), __clickResetButton);
@@ -270,7 +268,7 @@ export function Streamer() {
 	};
 
 	var __calculateImageRelativePosition = function(){
-		let imageBoundingRect = $("stream-image").getBoundingClientRect()
+		let imageBoundingRect = $("stream-image").getBoundingClientRect();
 		let ratio = Math.min(imageBoundingRect.width/$("stream-image").naturalWidth, imageBoundingRect.height/$("stream-image").naturalHeight);
 		
 		return {
@@ -278,9 +276,8 @@ export function Streamer() {
 			y: Math.round((imageBoundingRect.height - ratio*$("stream-image").naturalHeight)/2),
 			width: Math.round(ratio*$("stream-image").naturalWidth),
 			height: Math.round(ratio*$("stream-image").naturalHeight),
-			ratio: ratio
-		};
-	}
+			ratio: ratio};
+	};
 
 	__init__();
 }
