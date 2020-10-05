@@ -190,9 +190,7 @@ function __WindowManager() {
 		}
 		el.disabled = !enabled;
 	};
-	
 	self.maximizeWindow = __maximizeWindow;
-
 	self.switchRadioEnabled = function(name, enabled) {
 		for (let el of $$$(`input[type="radio"][name="${name}"]`)) {
 			self.switchEnabled(el, enabled);
@@ -244,7 +242,7 @@ function __WindowManager() {
 			//TODO: this is a bit specific to stream window
 			$("keyboard-lock-alert").style.visibility="hidden";
 		}else{
-			el_window.style.padding = "0px 0px 0px 0px";			
+			el_window.style.padding = "0px 0px 0px 0px";
 		}
 	};
 
@@ -262,14 +260,13 @@ function __WindowManager() {
 	};
 
 	//window maximized but not full screen
-	function __maximizeWindow(el_window) {			
+	function __maximizeWindow(el_window) {
 		let verticalOffset = $("navbar").offsetHeight;
 		el_window.style.left = "0px";
 		el_window.style.top = verticalOffset + "px";
 		el_window.style.width = window.innerWidth + "px";
 		el_window.style.height = window.innerHeight - verticalOffset + "px";
 	}
-	
 
 	var __toggleMenu = function(el_a) {
 		let all_hidden = true;

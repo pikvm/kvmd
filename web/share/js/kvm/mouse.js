@@ -154,7 +154,7 @@ export function Mouse(record_callback) {
 
 	var __sendMove = function() {
 		let pos = __current_pos;
-		if (pos.x !== __sent_pos.x || pos.y !== __sent_pos.y) {			
+		if (pos.x !== __sent_pos.x || pos.y !== __sent_pos.y) {
 			let to = {
 				x: __translate(pos.x, window.streamImageLocation.x, window.streamImageLocation.width, -32768, 32767),
 				y: __translate(pos.y, window.streamImageLocation.y, window.streamImageLocation.height, -32768, 32767),

@@ -58,9 +58,7 @@ export function Streamer() {
 		$("maximize-stream-window").onclick = (() => {
 			wm.maximizeWindow($("stream-window"));
 		});
-		
 		new ResizeObserver(__resize).observe($("stream-window"));
-		
 		tools.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.setOnClick($("stream-reset-button"), __clickResetButton);
 
@@ -262,15 +260,14 @@ export function Streamer() {
 		});
 	};
 
-	var __resize = function() {		
-		window.streamImageLocation= __calculateImageRelativePosition();		
-		wm.showWindow($("stream-window"), false);		
+	var __resize = function() {
+		window.streamImageLocation= __calculateImageRelativePosition();
+		wm.showWindow($("stream-window"), false);
 	};
 
 	var __calculateImageRelativePosition = function(){
 		let imageBoundingRect = $("stream-image").getBoundingClientRect();
 		let ratio = Math.min(imageBoundingRect.width/$("stream-image").naturalWidth, imageBoundingRect.height/$("stream-image").naturalHeight);
-		
 		return {
 			x: Math.round((imageBoundingRect.width - ratio*$("stream-image").naturalWidth)/2), 
 			y: Math.round((imageBoundingRect.height - ratio*$("stream-image").naturalHeight)/2),
