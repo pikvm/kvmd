@@ -43,7 +43,7 @@ export function Mouse(record_callback) {
 	var __sent_pos = {x: 0, y:0};
 	var __wheel_delta = {x: 0, y: 0};
 
-	var __stream_hovered = false;
+	var __captured = false;
 
 	var __init__ = function() {
 		__keypad = new Keypad("div#stream-mouse-buttons", __sendButton);
@@ -80,32 +80,32 @@ export function Mouse(record_callback) {
 	};
 
 	var __hoverStream = function() {
-		__stream_hovered = true;
+		__captured = true;
 		__updateOnlineLeds();
 	};
 
 	var __leaveStream = function() {
-		__stream_hovered = false;
+		__captured = false;
 		__updateOnlineLeds();
 	};
 
 	var __updateOnlineLeds = function() {
-		let is_captured = (__stream_hovered || tools.browser.is_ios);
+		let captured = (__captured || tools.browser.is_ios);
 		let led = "led-gray";
 		let title = "Mouse free";
 
 		if (__ws) {
 			if (__online) {
-				if (is_captured) {
+				if (captured) {
 					led = "led-green";
 					title = "Mouse captured";
 				}
 			} else {
 				led = "led-yellow";
-				title = (is_captured ? "Mouse captured, HID offline" : "Mouse free, HID offline");
+				title = (captured ? "Mouse captured, HID offline" : "Mouse free, HID offline");
 			}
 		} else {
-			if (is_captured) {
+			if (captured) {
 				title = "Mouse captured, Pi-KVM offline";
 			}
 		}
