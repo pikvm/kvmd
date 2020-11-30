@@ -16,6 +16,7 @@ _variants=(
 	v2-hdmi:rpi4
 
 	v2-hdmiusb:rpi4
+	v2-hdmiusb:rock64
 )
 
 
@@ -29,7 +30,7 @@ pkgbase=kvmd
 pkgver=2.4
 pkgrel=1
 pkgdesc="The main Pi-KVM daemon"
-url="https://github.com/pikvm/kvmd"
+url="https://github.com/Yura80/kvmd"
 license=(GPL)
 arch=(any)
 depends=(
