@@ -16,7 +16,7 @@ _variants=(
 	v2-hdmi:rpi4
 
 	v2-hdmiusb:rpi4
-	v2-hdmiusb:rock64
+	v2-hdmiusb:generic
 )
 
 
