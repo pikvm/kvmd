@@ -21,6 +21,10 @@ kvmd:
 
     atx:
         type: disabled
+        power_led_pin: 6
+        hdd_led_pin: 4
+        power_switch_pin: 5
+        reset_switch_pin: 7
 
     msd:
         type: otg
