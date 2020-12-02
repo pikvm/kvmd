@@ -139,6 +139,7 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
         self.__notifier = aiomulti.AioProcessNotifier()
         self.__state_flags = aiomulti.AioSharedFlags({
             "online": 0,
+            "busy": 0,
             "status": 0,
         }, self.__notifier, type=int)
 
@@ -174,18 +175,17 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
         if online and active_mouse in ["usb_rel", "ps2"]:
             absolute = False
 
-        keyboard_outputs: Dict = {"available": {}, "active": ""}
-        mouse_outputs: Dict = {"available": {}, "active": ""}
+        keyboard_outputs: Dict = {"available": [], "active": ""}
+        mouse_outputs: Dict = {"available": [], "active": ""}
 
         if outputs & 0b10000000:  # Dynamic
             if features & 0b00000001:  # USB
-                keyboard_outputs["available"]["usb"] = {"name": "USB"}
-                mouse_outputs["available"]["usb"] = {"name": "USB", "absolute": True}
-                mouse_outputs["available"]["usb_rel"] = {"name": "USB Relative", "absolute": False}
+                keyboard_outputs["available"].extend(["usb"])
+                mouse_outputs["available"].extend(["usb", "usb_rel"])
 
             if features & 0b00000010:  # PS/2
-                keyboard_outputs["available"]["ps2"] = {"name": "PS/2"}
-                mouse_outputs["available"]["ps2"] = {"name": "PS/2"}
+                keyboard_outputs["available"].extend(["ps2"])
+                mouse_outputs["available"].extend(["ps2"])
 
             active_keyboard = get_active_keyboard(outputs)
             if active_keyboard in keyboard_outputs["available"]:
@@ -196,6 +196,7 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
 
         return {
             "online": online,
+            "busy": bool(state["busy"]),
             "keyboard": {
                 "online": (online and not (pong & 0b00001000)),
                 "leds": {
@@ -307,9 +308,13 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
                             self.__process_request(conn, REQUEST_PING)
                         else:
                             if isinstance(event, _HardResetEvent):
+                                self.__set_state_busy(True)
                                 self.__gpio.reset()
-                            elif not self.__process_request(conn, event.make_request()):
-                                self.clear_events()
+                            else:
+                                if isinstance(event, (SetKeyboardOutputEvent, SetMouseOutputEvent)):
+                                    self.__set_state_busy(True)
+                                if not self.__process_request(conn, event.make_request()):
+                                    self.clear_events()
             except Exception:
                 self.clear_events()
                 logger.exception("Unexpected error in the HID loop")
@@ -383,10 +388,14 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
     def __set_state_online(self, online: bool) -> None:
         self.__state_flags.update(online=int(online))
 
+    def __set_state_busy(self, busy: bool) -> None:
+        self.__state_flags.update(busy=int(busy))
+
     def __set_state_pong(self, response: bytes) -> None:
         status = response[1] << 16
         if len(response) > 4:
             status |= (response[2] << 8) | response[3]
-        self.__state_flags.update(online=1, status=status)
-        if response[1] & 0b01000000:  # Reset required
+        reset_required = (1 if response[1] & 0b01000000 else 0)
+        self.__state_flags.update(online=1, busy=reset_required, status=status)
+        if reset_required:
             self.__gpio.reset()
