@@ -67,7 +67,7 @@ def main() -> None:
 
     setup(
         name="kvmd",
-        version="2.4",
+        version="2.5",
         url="https://github.com/pikvm/kvmd",
         license="GPLv3",
         author="Maxim Devaev",
@@ -141,6 +141,7 @@ def main() -> None:
             "Development Status :: 4 - Beta",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
             "Topic :: System :: Systems Administration",
             "Operating System :: POSIX :: Linux",
             "Intended Audience :: System Administrators",

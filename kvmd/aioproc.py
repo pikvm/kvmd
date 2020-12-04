@@ -20,15 +20,17 @@
 # ========================================================================== #
 
 
+import os
 import asyncio
 import asyncio.subprocess
-import signal
 import logging
 
 from typing import Tuple
 from typing import List
 
 import setproctitle
+
+from .logging import get_logger
 
 
 # =====
@@ -37,7 +39,7 @@ async def run_process(cmd: List[str], err_to_null: bool=False) -> asyncio.subpro
         *cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=(asyncio.subprocess.DEVNULL if err_to_null else asyncio.subprocess.STDOUT),
-        preexec_fn=ignore_sigint,
+        preexec_fn=os.setpgrp,
     ))
 
 
@@ -69,9 +71,13 @@ async def log_stdout_infinite(proc: asyncio.subprocess.Process, logger: logging.
                 raise RuntimeError("asyncio process: too many empty lines")
 
 
-def ignore_sigint() -> None:
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-
 def rename_process(suffix: str, prefix: str="kvmd") -> None:
     setproctitle.setproctitle(f"{prefix}/{suffix}: {setproctitle.getproctitle()}")
+
+
+def settle(name: str, suffix: str, prefix: str="kvmd") -> logging.Logger:
+    logger = get_logger(1)
+    logger.info("Started %s pid=%d", name, os.getpid())
+    os.setpgrp()
+    rename_process(suffix, prefix)
+    return logger
