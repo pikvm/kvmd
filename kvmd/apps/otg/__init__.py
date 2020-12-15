@@ -25,6 +25,7 @@ import re
 import shutil
 import time
 import argparse
+import stat
 
 from os.path import join  # pylint: disable=ungrouped-imports
 
@@ -221,6 +222,12 @@ def _cmd_start(config: Section) -> None:
     logger.info("Enabling the gadget ...")
     _write(join(gadget_path, "UDC"), udc)
     time.sleep(config.otg.init_delay)
+
+    logger.info("Setting driver bind permissions ...")
+
+    driver_path = os.path.join(f"{env.SYSFS_PREFIX}/sys/class/udc", udc, "device", "driver")
+    os.chmod(os.path.join(driver_path, "bind"), stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+    os.chmod(os.path.join(driver_path, "unbind"), stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
 
     logger.info("Ready to work")
 

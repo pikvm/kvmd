@@ -115,6 +115,7 @@ class Plugin(BaseHid):
             await self.__notifier.wait()
 
     async def reset(self) -> None:
+        self.__udc.reset()
         self.__keyboard_proc.send_reset_event()
         self.__mouse_proc.send_reset_event()
 

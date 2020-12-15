@@ -21,6 +21,7 @@
 
 
 import os
+import time
 
 from ....logging import get_logger
 
@@ -39,6 +40,8 @@ class UsbDeviceController:
     def __init__(self, udc: str) -> None:
         self.__udc = udc
         self.__state_path = ""
+        self.__selected_udc = ""
+        self.__driver_path = ""
 
     def find(self) -> None:
         logger = get_logger()
@@ -64,6 +67,8 @@ class UsbDeviceController:
         if udc:
             get_logger().info("Using UDC %s", udc)
             self.__state_path = os.path.join(path, udc, "state")
+            self.__selected_udc = udc
+            self.__driver_path = os.path.realpath(os.path.join(path, udc, "device", "driver"))
 
     def can_operate(self) -> bool:
         if self.__state_path:
@@ -74,3 +79,14 @@ class UsbDeviceController:
             except Exception:
                 pass
         return True  # При ошибке лучше прикинуться работающим, мало ли что
+
+    def reset(self) -> None:
+        if self.__driver_path and self.__selected_udc:
+            try:
+                with open(os.path.join(self.__driver_path, "unbind"), "w") as unbind_file:
+                    unbind_file.write(self.__selected_udc)
+                time.sleep(1)
+                with open(os.path.join(self.__driver_path, "bind"), "w") as bind_file:
+                    bind_file.write(self.__selected_udc)
+            except Exception:
+                pass
