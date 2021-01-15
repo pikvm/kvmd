@@ -106,9 +106,7 @@ run: testenv $(TESTENV_GPIO)
 			--publish 8080:80/tcp \
 			--publish 4430:443/tcp \
 		-it $(TESTENV_IMAGE) /bin/bash -c " \
-			mount -t debugfs none /sys/kernel/debug \
-			&& test -d /sys/kernel/debug/gpio-mockup/`basename $(TESTENV_GPIO)`/ \
-			&& (socat PTY,link=$(TESTENV_HID) PTY,link=/dev/ttyS11 &) \
+			(socat PTY,link=$(TESTENV_HID) PTY,link=/dev/ttyS11 &) \
 			&& cp -r /usr/share/kvmd/configs.default/nginx/* /etc/kvmd/nginx \
 			&& sed -i '$$ s/.$$//' /etc/kvmd/nginx/nginx.conf \
 			&& cat testenv/nginx.append.conf >> /etc/kvmd/nginx/nginx.conf \
