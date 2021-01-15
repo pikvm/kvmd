@@ -99,7 +99,6 @@ run: testenv $(TESTENV_GPIO)
 			--volume `pwd`/extras:/usr/share/kvmd/extras:ro \
 			--volume `pwd`/configs:/usr/share/kvmd/configs.default:ro \
 			--volume `pwd`/contrib/keymaps:/usr/share/kvmd/keymaps:ro \
-			--device $(TESTENV_VIDEO):$(TESTENV_VIDEO) \
 			--device $(TESTENV_GPIO):$(TESTENV_GPIO) \
 			--env KVMD_SYSFS_PREFIX=/fake_sysfs \
 			--env KVMD_PROCFS_PREFIX=/fake_procfs \
@@ -119,7 +118,6 @@ run: testenv $(TESTENV_GPIO)
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /etc/kvmd/main.yaml \
 			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
 			&& nginx -c /etc/kvmd/nginx/nginx.conf -g 'user http; error_log stderr;' \
-			&& ln -s $(TESTENV_VIDEO) /dev/kvmd-video \
 			&& ln -s $(TESTENV_GPIO) /dev/kvmd-gpio \
 			&& $(if $(CMD),$(CMD),python -m kvmd.apps.kvmd --run) \
 		"
