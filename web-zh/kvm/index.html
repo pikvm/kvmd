@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<!--
+==============================================================================
+#                                                                            #
+#    KVMD - The main Pi-KVM daemon.                                          #
+#                                                                            #
+#    Copyright (C) 2018-2021  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+==============================================================================
+
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Pi-KVM Session</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/share/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/share/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/share/favicon-16x16.png">
+    <link rel="manifest" href="/share/site.webmanifest">
+    <link rel="mask-icon" href="/share/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#2b5797">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="/share/css/vars.css">
+    <link rel="stylesheet" href="/share/css/main.css">
+    <link rel="stylesheet" href="/share/css/navbar.css">
+    <link rel="stylesheet" href="/share/css/window.css">
+    <link rel="stylesheet" href="/share/css/modal.css">
+    <link rel="stylesheet" href="/share/css/led.css">
+    <link rel="stylesheet" href="/share/css/slider.css">
+    <link rel="stylesheet" href="/share/css/switch.css">
+    <link rel="stylesheet" href="/share/css/radio.css">
+    <link rel="stylesheet" href="/share/css/progress.css">
+    <link rel="stylesheet" href="/share/css/keypad.css">
+    <link rel="stylesheet" href="/share/css/tabs.css">
+    <link rel="stylesheet" href="/share/css/kvm/stream.css">
+    <link rel="stylesheet" href="/share/css/kvm/hid.css">
+    <link rel="stylesheet" href="/share/css/kvm/msd.css">
+    <link rel="stylesheet" href="/share/css/kvm/keyboard.css">
+    <link rel="stylesheet" href="/share/css/kvm/about.css">
+    <script type="module">import {main} from "/share/js/kvm/main.js";
+      main();
+    </script>
+  </head>
+  <body class="body-no-select">
+    <ul id="navbar">
+      <li class="left"><a id="logo" href="/">&larr;&nbsp;&nbsp;<img class="svg-gray" src="/share/svg/logo.svg" alt="&amp;pi;-kvm"></a></li>
+      <div class="hidden" id="hw-health-dropdown">
+        <li class="left"><a class="menu-button" href="#"><img class="hidden" data-dont-hide-menu id="hw-health-undervoltage-led" src="/share/svg/led-undervoltage.svg"><img class="hidden" data-dont-hide-menu id="hw-health-overheating-led" src="/share/svg/led-overheating.svg"></a>
+          <div class="menu" data-dont-hide-menu>
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="/share/svg/warning.svg"></td>
+                      <td style="line-height:1.5"><b>树莓派状态异常</b></td>
+                    </tr>
+                    <tr>
+                      <td><sup style="line-height:1">请注意！ 此红色图标表示当前问题非常严重，<br>
+                        黄色提示为设备启动后检测到的异常情况</sup></td>
+                    </tr>
+                  </table>
+                </div>
+            <div class="hidden" id="hw-health-message-undervoltage">
+              <hr>
+                  <div class="text">
+                    <table>
+                      <tr>
+                        <td rowspan="2"><img class="sign led-gray" src="/share/svg/led-undervoltage.svg"></td>
+                        <td style="line-height:1.5"><b>检测到欠压</b></td>
+                      </tr>
+                      <tr>
+                        <td><sup style="line-height:1">确保您的电源和电缆连接正常，<br>
+                          为Raspberry Pi供电（最低需求3A）</sup></td>
+                      </tr>
+                    </table>
+                  </div>
+            </div>
+            <div class="hidden" id="hw-health-message-overheating">
+              <hr>
+                  <div class="text">
+                    <table>
+                      <tr>
+                        <td rowspan="2"><img class="sign led-gray" src="/share/svg/led-overheating.svg"></td>
+                        <td style="line-height:1.5"><b>检测到过热</b></td>
+                      </tr>
+                      <tr>
+                        <td><sup style="line-height:1">处理器会因为过热导致降频，造成卡顿。<br>
+                            请改善树莓派的散热状况（关闭超频或使用主动散热）</sup></td>
+                      </tr>
+                    </table>
+                  </div>
+            </div>
+          </div>
+        </li>
+      </div>
+      <li class="right"><a class="menu-button" href="#"><img class="led-gray" data-dont-hide-menu id="link-led" src="/share/svg/led-link.svg"><img class="led-gray" data-dont-hide-menu id="stream-led" src="/share/svg/led-stream.svg"><img class="led-gray" data-dont-hide-menu id="hid-keyboard-led" src="/share/svg/led-hid-keyboard.svg"><img class="led-gray" data-dont-hide-menu id="hid-mouse-led" src="/share/svg/led-hid-mouse.svg">系统</a>
+        <div class="menu" data-dont-hide-menu>
+          <div class="text"><b>当前运行设置 &amp; 功能<br></b><sub>在较差的网络中，较低的推流参数可能会提高流畅度</sub></div>
+          <hr>
+          <table class="kv" style="width: calc(100% - 20px)">
+            <tr class="feature-disabled" id="stream-resolution">
+              <td>解析度:</td>
+              <td>
+                <select disabled data-dont-hide-menu id="stream-resolution-selector"></select>
+              </td>
+            </tr>
+            <tr class="feature-disabled" id="stream-quality">
+              <td>画面质量:</td>
+              <td>
+                <input class="slider" disabled type="range" id="stream-quality-slider">
+              </td>
+              <td class="value" id="stream-quality-value">80%</td>
+            </tr>
+            <tr>
+              <td>最大帧率:</td>
+              <td>
+                <input class="slider" disabled type="range" id="stream-desired-fps-slider">
+              </td>
+              <td class="value" id="stream-desired-fps-value">0</td>
+            </tr>
+            <tr>
+              <td>推流窗口大小:</td>
+              <td>
+                <input class="slider" type="range" id="stream-size-slider">
+              </td>
+              <td class="value" id="stream-size-value" style="width: 4em">100%</td>
+            </tr>
+          </table>
+          <hr>
+              <table class="kv">
+                <td>自动调整窗口大小:</td>
+                <td align="right">
+                  <div class="switch-box">
+                    <input checked type="checkbox" id="stream-auto-resize-switch">
+                    <label for="stream-auto-resize-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                  </div>
+                </td>
+              </table>
+          <hr>
+          <div class="buttons buttons-row">
+            <button class="row33" data-force-hide-menu id="show-stream-button">&bull; 显示窗口</button>
+            <button class="row33" disabled data-force-hide-menu id="stream-screenshot-button">&bull; 截屏</button>
+            <button class="row33" disabled id="stream-reset-button">重置推流</button>
+          </div>
+          <div class="feature-disabled" id="hid-outputs">
+            <hr>
+            <table class="kv">
+              <tr>
+                <td>键盘:</td>
+                <td>
+                  <div class="radio-box" id="hid-outputs-keyboard"></div>
+                </td>
+              </tr>
+              <tr>
+                <td>鼠标:</td>
+                <td>
+                  <div class="radio-box" id="hid-outputs-mouse"></div>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="feature-disabled" id="hid-mouse-squash">
+            <hr>
+                <table class="kv">
+                  <td>相对鼠标模式:</td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input checked type="checkbox" id="hid-mouse-squash-switch">
+                      <label for="hid-mouse-squash-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+                </table>
+          </div>
+          <div class="feature-disabled" id="hid-connect">
+            <hr>
+                <table class="kv">
+                  <td>将虚拟设备连接到服务器:</td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input checked type="checkbox" id="hid-connect-switch">
+                      <label for="hid-connect-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+                </table>
+          </div>
+          <hr>
+          <div class="feature-disabled" id="v3-usb-breaker">
+            <table class="kv">
+              <td>将主USB设备连接到服务器:</td>
+              <td align="right">
+                <div class="switch-box">
+                  <input class="gpio-switch" disabled type="checkbox" id="gpio-switch-__v3_usb_breaker__" data-channel="__v3_usb_breaker__" data-confirm-off="Turning off this switch will disconnect the main USB&lt;br&gt;from the server. Are you sure you want to continue?">
+                  <label for="gpio-switch-__v3_usb_breaker__"><span class="switch-inner"></span><span class="switch"></span></label>
+                </div>
+              </td>
+            </table>
+            <hr>
+          </div>
+          <div class="buttons buttons-row">
+            <button class="row50" data-force-hide-menu id="show-keyboard-button">&bull; 显示虚拟键盘</button>
+            <button class="row50" disabled id="hid-reset-button">重置虚拟设备</button>
+          </div>
+          <hr>
+          <div class="buttons buttons-row">
+            <button class="row50" data-force-hide-menu id="show-about-button">&bull; 关于</button>
+            <button class="row50" data-force-hide-menu id="open-log-button">&bull; 打开日志</button>
+          </div>
+          <div class="buttons feature-disabled" id="wol">
+            <hr>
+            <button disabled id="wol-wakeup-button">&bull; 网络唤醒服务器</button>
+          </div>
+        </div>
+      </li>
+      <li class="right feature-disabled" id="atx-dropdown"><a class="menu-button" href="#"><img class="led-gray" data-dont-hide-menu id="atx-power-led" src="/share/svg/led-atx-power.svg"><img class="led-gray" data-dont-hide-menu id="atx-hdd-led" src="/share/svg/led-atx-hdd.svg">ATX</a>
+        <div class="menu">
+          <div class="text"><b>控制服务器电源<br></b><sub>使用快捷键实现高级电源配置功能</sub></div>
+          <hr>
+          <div class="buttons">
+            <button disabled id="atx-power-button">&bull; 短按 <sup><i>电源键</i></sup></button>
+            <button disabled id="atx-power-button-long">&bull; 长按 <sup><i>电源键</i></sup></button>
+            <hr>
+            <button disabled id="atx-reset-button">&bull; 重启</button>
+          </div>
+        </div>
+      </li>
+      <li class="right feature-disabled" id="msd-dropdown"><a class="menu-button" href="#"><img class="led-gray" data-dont-hide-menu id="msd-led" src="/share/svg/led-msd.svg">驱动器</a>
+        <div class="menu" data-dont-hide-menu id="msd-menu">
+          <div class="text"><b>模拟大容量存储设备<br></b></div>
+          <hr>
+          <div class="hidden" id="msd-message-offline">
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="/share/svg/warning.svg"></td>
+                      <td style="line-height:1.5"><b>大容量存储设备已断开</b></td>
+                    </tr>
+                  </table>
+                </div>
+            <hr>
+          </div>
+          <div class="hidden" id="msd-message-image-broken">
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="/share/svg/warning.svg"></td>
+                      <td style="line-height:1.5"><b>镜像已损坏</b></td>
+                    </tr>
+                    <tr>
+                      <td><sup style="line-height:1">上传可能已中断<br></sup></td>
+                    </tr>
+                  </table>
+                </div>
+            <hr>
+          </div>
+          <div class="hidden" id="msd-message-too-big-for-cdrom">
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="/share/svg/warning.svg"></td>
+                      <td style="line-height:1.5"><b>当前镜像大小超过了CD-ROM协议容量</b></td>
+                    </tr>
+                    <tr>
+                      <td><sup style="line-height:1">设备文件系统将被截断，仅会显示2.2GiB文件</sup></td>
+                    </tr>
+                  </table>
+                </div>
+            <hr>
+          </div>
+          <div class="hidden" id="msd-message-out-of-storage">
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="/share/svg/warning.svg"></td>
+                      <td style="line-height:1.5"><b>当前镜像超过了存储范围</b></td>
+                    </tr>
+                    <tr>
+                      <td><sup style="line-height:1">请使用kvmd-otgmsd方式 <b>将镜像连接到服务器</b></sup></td>
+                    </tr>
+                  </table>
+                </div>
+            <hr>
+          </div>
+          <div class="hidden" id="msd-message-another-user-uploads">
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="/share/svg/info.svg"></td>
+                      <td style="line-height:1.5"><b>另一个用户在上传镜像</b></td>
+                    </tr>
+                  </table>
+                </div>
+            <hr>
+          </div>
+          <table class="kv">
+            <tr>
+              <td>状态:</td>
+              <td class="value" id="msd-status"></td>
+            </tr>
+          </table>
+          <hr>
+          <table class="kv msd-single-storage feature-disabled">
+            <tr>
+              <td>当前镜像:</td>
+              <td class="value" id="msd-image-name"></td>
+            </tr>
+            <tr>
+              <td>镜像大小:</td>
+              <td class="value" id="msd-image-size"></td>
+            </tr>
+            <tr>
+              <td>存储空间:</td>
+              <td class="value" id="msd-storage-size"></td>
+            </tr>
+          </table>
+          <table class="kv msd-multi-storage feature-disabled">
+            <tr>
+              <td>镜像:</td>
+              <td width="100%">
+                <select disabled id="msd-image-selector"></select>
+              </td>
+              <td>
+                <button disabled id="msd-remove-image">清除</button>
+              </td>
+            </tr>
+          </table>
+          <table class="kv msd-multi-storage feature-disabled">
+            <tr class="msd-cdrom-emulation feature-disabled">
+              <td>驱动模式:</td>
+              <td>
+                <div class="radio-box">
+                  <input checked type="radio" id="msd-mode-radio-cdrom" name="msd-mode-radio" value="1">
+                  <label for="msd-mode-radio-cdrom">CD-ROM</label>
+                  <input type="radio" id="msd-mode-radio-flash" name="msd-mode-radio" value="0">
+                  <label for="msd-mode-radio-flash">闪存</label>
+                </div>
+              </td>
+            </tr>
+          </table>
+          <div class="msd-multi-storage feature-disabled">
+            <hr>
+            <div class="text">
+              <div class="progress" id="msd-storage-progress"><span class="progress-value" id="msd-storage-progress-value"></span></div>
+            </div>
+          </div>
+          <hr>
+          <input class="hidden" type="file" id="msd-select-new-image-file">
+          <div class="buttons buttons-row">
+            <button class="row50" disabled id="msd-select-new-image-button">选择需要上传的镜像</button>
+            <button class="row25" disabled id="msd-upload-new-image-button">上传</button>
+            <button class="row25" disabled id="msd-abort-uploading-button">中止</button>
+          </div>
+          <hr>
+          <div class="hidden" id="msd-submenu-new-image">
+            <table class="kv">
+              <tr>
+                <td>新镜像名称:</td>
+                <td class="value" id="msd-new-image-name"></td>
+              </tr>
+              <tr>
+                <td>需上传大小:</td>
+                <td class="value" id="msd-new-image-size"></td>
+              </tr>
+            </table>
+            <hr>
+            <div class="text">
+              <div class="progress" id="msd-uploading-progress"><span class="progress-value" id="msd-uploading-progress-value"></span></div>
+            </div>
+            <hr>
+          </div>
+          <div class="buttons buttons-row">
+            <button class="row50" disabled id="msd-connect-button">将驱动器连接到服务器</button>
+            <button class="row25" disabled id="msd-disconnect-button">断开</button>
+            <button class="row25" disabled id="msd-reset-button">重置</button>
+          </div>
+        </div>
+      </li>
+      <li class="right feature-disabled" id="gpio-dropdown"><a class="menu-button" id="gpio-menu-button" href="#">GPIO</a>
+        <div class="menu" data-dont-hide-menu id="gpio-menu"></div>
+      </li>
+      <li class="right"><a class="menu-button" href="#"><img class="led-gray" data-dont-hide-menu id="hid-recorder-led" src="/share/svg/led-gear.svg">宏</a>
+        <div class="menu" data-dont-hide-menu>
+          <div class="text"><b>记录键盘 &amp; 与鼠标操作<br></b><sub>出于安全性考虑，此操作不会储存在PI-KVM设备内</sub></div>
+          <hr>
+          <div class="buttons buttons-row">
+            <button class="row25" disabled data-force-hide-menu id="hid-recorder-record">&bull; 录制</button>
+            <button class="row25" disabled id="hid-recorder-stop">停止</button>
+            <button class="row25" disabled id="hid-recorder-play">执行</button>
+            <button class="row25" disabled id="hid-recorder-clear">清除</button>
+          </div>
+          <hr>
+          <table class="kv">
+            <tr>
+              <td>脚本时长:</td>
+              <td class="value" colspan="2" id="hid-recorder-time">00:00:00.0</td>
+            </tr>
+            <tr>
+              <td>脚本事件:</td>
+              <td class="value" id="hid-recorder-events-count">0</td>
+              <td><sup><i>包括延时</i></sup></td>
+            </tr>
+          </table>
+          <hr>
+              <table class="kv">
+                <td>无限循环播放:</td>
+                <td align="right">
+                  <div class="switch-box">
+                    <input disabled type="checkbox" id="hid-recorder-loop-switch">
+                    <label for="hid-recorder-loop-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                  </div>
+                </td>
+              </table>
+          <hr>
+          <input type="file" id="hid-recorder-new-script-file">
+          <div class="buttons buttons-row">
+            <button class="row50" disabled id="hid-recorder-upload">上传脚本</button>
+            <button class="row50" disabled id="hid-recorder-download">下载脚本</button>
+          </div>
+        </div>
+      </li>
+      <li class="right"><a class="menu-button" href="#">快捷键</a>
+        <div class="menu" data-dont-hide-menu>
+          <div class="buttons">
+            <textarea id="hid-pak-text" placeholder="Paste your text here"></textarea>
+            <hr>
+            <button disabled data-force-hide-menu id="hid-pak-button">&bull; &#x21b3; 输入剪切板中内容 <sup><i>只支持ascii</i></sup></button>
+            <hr>
+            <div class="buttons-row">
+              <button class="row50" data-force-hide-menu data-shortcut="CapsLock">&bull; 大写锁定 &nbsp;<img class="inline-lamp hid-keyboard-caps-led led-gray" src="/share/svg/led-square.svg"></button>
+              <button class="row50" data-force-hide-menu data-shortcut="MetaLeft">&bull; 左 Win键</button>
+            </div>
+            <hr>
+            <button data-force-hide-menu data-shortcut="AltLeft ShiftLeft">&bull; Alt+Shift</button>
+            <button data-force-hide-menu data-shortcut="ControlLeft ShiftLeft">&bull; Ctrl+Shift</button>
+            <button data-force-hide-menu data-shortcut="ShiftLeft ShiftRight">&bull; Shift+Shift</button>
+            <button data-force-hide-menu data-shortcut="MetaLeft Space">&bull; Win+Space</button>
+            <hr>
+            <button data-force-hide-menu data-shortcut="ControlLeft KeyW">&bull; Ctrl+W</button>
+            <button data-force-hide-menu data-shortcut="AltLeft Tab">&bull; Alt+Tab</button>
+            <button data-force-hide-menu data-shortcut="AltLeft Enter">&bull; Alt+Enter</button>
+            <button data-force-hide-menu data-shortcut="AltLeft F4">&bull; Alt+F4</button>
+            <hr>
+            <button data-force-hide-menu data-shortcut="ControlLeft AltLeft Delete">&bull; Ctrl+Alt+Del</button>
+          </div>
+          <hr>
+          <div class="text">
+            &darr; Alt+SysRq+... <sup><i>linux快捷键
+            <a target="_blank" href="https://www.kernel.org/doc/html/latest/admin-guide/sysrq.html">帮助</a></i></sup>
+          </div>
+          <hr>
+          <div class="buttons">
+            <div class="buttons-row">
+              <button class="row16" data-shortcut="AltLeft PrintScreen KeyR">R</button>
+              <button class="row16" data-shortcut="AltLeft PrintScreen KeyE">E</button>
+              <button class="row16" data-shortcut="AltLeft PrintScreen KeyI">I</button>
+              <button class="row16" data-shortcut="AltLeft PrintScreen KeyS">S</button>
+              <button class="row16" data-shortcut="AltLeft PrintScreen KeyU">U</button>
+              <button class="row16" data-shortcut="AltLeft PrintScreen KeyB">B</button>
+            </div>
+          </div>
+        </div>
+      </li>
+    </ul>
+        <div class="window" id="stream-window" data-close-confirm="您要关闭推流窗口吗？ 此操作将暂时停止&lt;br&gt;视频传输，直到您再次打开。&lt;br&gt;这对于节省流量很有用。">
+          <div class="window-header" id="stream-window-header">
+            <div class="window-grab">推流</div>
+            <button class="window-button-close">&times;</button>
+          </div>
+          <div id="stream-info"></div>
+          <div class="stream-box-inactive" id="stream-box"><img class="stream-image-inactive" id="stream-image" src="/share/png/blank-stream.png"></div>
+          <div class="keypad" id="stream-mouse-buttons" align="center">
+            <div class="keypad-block">
+              <div class="keypad-row">
+                <div class="key wide-4 left small" data-code="left"><span>Mouse<br>Left</span></div>
+                <div class="modifier wide-2 left small" data-code="left"><span><b>&bull;</b><br>&larr; Hold</span></div>
+                <div class="empty-key" style="width:10px"></div>
+                <div class="key wide-2 left small" data-code="middle"><span>Mouse<br>Middle</span></div>
+                <div class="modifier wide-2 left small" data-code="middle"><span><b>&bull;</b><br>&larr; Hold</span></div>
+                <div class="empty-key" style="width:10px"></div>
+                <div class="modifier wide-2 right small" data-code="right"><span><b>&bull;</b><br>Hold &rarr;</span></div>
+                <div class="key wide-4 right small" data-code="right"><span>Mouse<br>Right</span></div>
+              </div>
+              <div class="keypad-row" style="display:none">
+                <div class="key wide-4 left small" data-code="up"><span>Mouse<br>Up/Back</span></div>
+                <div class="modifier wide-2 left small" data-code="up"><span><b>&bull;</b><br>&larr; Hold</span></div>
+                <div class="empty-key" style="width:10px"></div>
+                <div class="modifier wide-2 right small" data-code="down"><span><b>&bull;</b><br>Hold &rarr;</span></div>
+                <div class="key wide-4 right small" data-code="down"><span>Mouse<br>Down/Fw</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="window" id="keyboard-window" data-close-confirm="">
+          <div class="window-header" id="keyboard-window-header">
+            <div class="window-grab">虚拟键盘</div>
+            <button class="window-button-close">&times;</button>
+          </div>
+          <div class="keypad" id="keyboard-desktop" align="center">
+            <div class="keypad-block">
+              <div class="keypad-row">
+                    <div class="key small" data-code="Escape">
+                      <div class="label">Esc
+                      </div>
+                    </div>
+                    <div class="empty-key" style="width:24px"></div>
+                    <div class="key small" data-code="F1">
+                      <div class="label">F1
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F2">
+                      <div class="label">F2
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F3">
+                      <div class="label">F3
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F4">
+                      <div class="label">F4
+                      </div>
+                    </div>
+                    <div class="empty-key" style="width:10px"></div>
+                    <div class="key small" data-code="F5">
+                      <div class="label">F5
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F6">
+                      <div class="label">F6
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F7">
+                      <div class="label">F7
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F8">
+                      <div class="label">F8
+                      </div>
+                    </div>
+                    <div class="empty-key" style="width:10px"></div>
+                    <div class="key small" data-code="F9">
+                      <div class="label">F9
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F10">
+                      <div class="label">F10
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F11">
+                      <div class="label">F11
+                      </div>
+                    </div>
+                    <div class="key small" data-code="F12">
+                      <div class="label">F12
+                      </div>
+                    </div>
+              </div>
+              <hr>
+              <div class="keypad-row">
+                    <div class="key " data-code="Backquote">
+                      <div class="label">~<br>`
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit1">
+                      <div class="label">!<br>1
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit2">
+                      <div class="label">@<br>2
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit3">
+                      <div class="label">#<br>3
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit4">
+                      <div class="label">$<br>4
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit5">
+                      <div class="label">%<br>5
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit6">
+                      <div class="label">^<br>6
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit7">
+                      <div class="label">&amp;<br>7
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit8">
+                      <div class="label">*<br>8
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit9">
+                      <div class="label">(<br>9
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit0">
+                      <div class="label">)<br>0
+                      </div>
+                    </div>
+                    <div class="key " data-code="Minus">
+                      <div class="label">_<br>-
+                      </div>
+                    </div>
+                    <div class="key " data-code="Equal">
+                      <div class="label">+<br>=
+                      </div>
+                    </div>
+                    <div class="key wide-2 right" data-code="Backspace">
+                      <div class="label">&#8612;
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key wide-2 left" data-code="Tab">
+                      <div class="label">&#8676;<br>&#8677;
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyQ">
+                      <div class="label">Q
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyW">
+                      <div class="label">W
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyE">
+                      <div class="label">E
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyR">
+                      <div class="label">R
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyT">
+                      <div class="label">T
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyY">
+                      <div class="label">Y
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyU">
+                      <div class="label">U
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyI">
+                      <div class="label">I
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyO">
+                      <div class="label">O
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyP">
+                      <div class="label">P
+                      </div>
+                    </div>
+                    <div class="key " data-code="BracketLeft">
+                      <div class="label">{<br>[
+                      </div>
+                    </div>
+                    <div class="key " data-code="BracketRight">
+                      <div class="label">}<br>]
+                      </div>
+                    </div>
+                    <div class="key " data-code="Backslash">
+                      <div class="label">|<br>&bsol;
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key wide-3 left small" data-code="CapsLock">
+                      <div class="label"><img class="inline-lamp hid-keyboard-caps-led led-gray" src="/share/svg/led-square.svg"><br> Caps Lock
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyA">
+                      <div class="label">A
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyS">
+                      <div class="label">S
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyD">
+                      <div class="label">D
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyF">
+                      <div class="label">F
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyG">
+                      <div class="label">G
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyH">
+                      <div class="label">H
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyJ">
+                      <div class="label">J
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyK">
+                      <div class="label">K
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyL">
+                      <div class="label">L
+                      </div>
+                    </div>
+                    <div class="key " data-code="Semicolon">
+                      <div class="label">:<br>;
+                      </div>
+                    </div>
+                    <div class="key " data-code="Quote">
+                      <div class="label">"<br>'
+                      </div>
+                    </div>
+                    <div class="key wide-3 right small" data-code="Enter">
+                      <div class="label">Enter<br>&crarr;
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="modifier wide-4 left small" data-code="ShiftLeft">
+                      <div class="label"><b>&bull;</b><br>Shift
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyZ">
+                      <div class="label">Z
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyX">
+                      <div class="label">X
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyC">
+                      <div class="label">C
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyV">
+                      <div class="label">V
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyB">
+                      <div class="label">B
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyN">
+                      <div class="label">N
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyM">
+                      <div class="label">M
+                      </div>
+                    </div>
+                    <div class="key " data-code="Comma">
+                      <div class="label">&lt;<br>,
+                      </div>
+                    </div>
+                    <div class="key " data-code="Period">
+                      <div class="label">&gt;<br>.
+                      </div>
+                    </div>
+                    <div class="key " data-code="Slash">
+                      <div class="label">?<br>/
+                      </div>
+                    </div>
+                    <div class="modifier wide-4 right small" data-code="ShiftRight">
+                      <div class="label"><b>&bull;</b><br>Shift
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="modifier wide-1 left small" data-code="ControlLeft">
+                      <div class="label"><b>&bull;</b><br>Ctrl
+                      </div>
+                    </div>
+                    <div class="modifier wide-1 left small" data-code="MetaLeft">
+                      <div class="label"><b>&bull;</b><br>Win
+                      </div>
+                    </div>
+                    <div class="modifier wide-1 left small" data-code="AltLeft">
+                      <div class="label"><b>&bull;</b><br>Alt
+                      </div>
+                    </div>
+                    <div class="key wide-5" data-code="Space">
+                      <div class="label">
+                      </div>
+                    </div>
+                    <div class="modifier wide-1 right small" data-code="AltRight">
+                      <div class="label"><b>&bull;</b><br>Alt
+                      </div>
+                    </div>
+                    <div class="modifier wide-1 right small" data-code="MetaRight">
+                      <div class="label"><b>&bull;</b><br>Win
+                      </div>
+                    </div>
+                    <div class="modifier wide-1 right small" data-code="ControlRight">
+                      <div class="label"><b>&bull;</b><br>Ctrl
+                      </div>
+                    </div>
+              </div>
+            </div>
+            <div class="keypad-block">
+              <div class="keypad-row">
+                    <div class="modifier small" data-code="PrintScreen">
+                      <div class="label"><b>&bull;</b><br>Pt/Sq
+                      </div>
+                    </div>
+                    <div class="key small" data-code="ScrollLock">
+                      <div class="label"><img class="inline-lamp hid-keyboard-scroll-led led-gray" src="/share/svg/led-square.svg"><br> ScrLk
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Pause">
+                      <div class="label">P/Brk
+                      </div>
+                    </div>
+              </div>
+              <hr>
+              <div class="keypad-row">
+                    <div class="key small" data-code="Insert">
+                      <div class="label">Ins
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Home">
+                      <div class="label">Home
+                      </div>
+                    </div>
+                    <div class="key small" data-code="PageUp">
+                      <div class="label">PgUp
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key small" data-code="Delete">
+                      <div class="label">Del
+                      </div>
+                    </div>
+                    <div class="key small" data-code="End">
+                      <div class="label">End
+                      </div>
+                    </div>
+                    <div class="key small" data-code="PageDown">
+                      <div class="label">PgDn
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row"></div>
+              <div class="keypad-row">
+                    <div class="empty-key"></div>
+                    <div class="key " data-code="ArrowUp">
+                      <div class="label">&uarr;
+                      </div>
+                    </div>
+                    <div class="empty-key"></div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key " data-code="ArrowLeft">
+                      <div class="label">&larr;
+                      </div>
+                    </div>
+                    <div class="key " data-code="ArrowDown">
+                      <div class="label">&darr;
+                      </div>
+                    </div>
+                    <div class="key " data-code="ArrowRight">
+                      <div class="label">&rarr;
+                      </div>
+                    </div>
+              </div>
+            </div>
+            <div class="keypad-block">
+              <div class="keypad-row">
+                    <div class="empty-key"></div>
+                    <div class="empty-key"></div>
+                    <div class="key small" data-code="IntlBackslash">
+                      <div class="label">N/US
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Power">
+                      <div class="label">PWR
+                      </div>
+                    </div>
+              </div>
+              <hr>
+              <div class="keypad-row">
+                    <div class="key small" data-code="NumLock">
+                      <div class="label"><img class="inline-lamp hid-keyboard-num-led led-gray" src="/share/svg/led-square.svg"><br> NmLk
+                      </div>
+                    </div>
+                    <div class="key " data-code="NumpadDivide">
+                      <div class="label">/
+                      </div>
+                    </div>
+                    <div class="key " data-code="NumpadMultiply">
+                      <div class="label">*
+                      </div>
+                    </div>
+                    <div class="key " data-code="NumpadSubtract">
+                      <div class="label">-
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key small" data-code="Numpad7">
+                      <div class="label">7<br>Home
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Numpad8">
+                      <div class="label">8<br>&uarr;
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Numpad9">
+                      <div class="label">9<br>PgUp
+                      </div>
+                    </div>
+                    <div class="empty-key"></div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key small" data-code="Numpad4">
+                      <div class="label">4<br>&larr;
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Numpad5">
+                      <div class="label">5<br><br>
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Numpad6">
+                      <div class="label">6<br>&rarr;
+                      </div>
+                    </div>
+                    <div class="key " data-code="NumpadAdd">
+                      <div class="label">+
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key small" data-code="Numpad1">
+                      <div class="label">1<br>End
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Numpad2">
+                      <div class="label">2<br>&darr;
+                      </div>
+                    </div>
+                    <div class="key small" data-code="Numpad3">
+                      <div class="label">3<br>PgDn
+                      </div>
+                    </div>
+                    <div class="empty-key"></div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key small" data-code="Numpad0">
+                      <div class="label">0<br>Ins
+                      </div>
+                    </div>
+                    <div class="empty-key"></div>
+                    <div class="key small" data-code="NumpadDecimal">
+                      <div class="label">.<br>Del
+                      </div>
+                    </div>
+                    <div class="key small" data-code="NumpadEnter">
+                      <div class="label">Ent
+                      </div>
+                    </div>
+              </div>
+            </div>
+          </div>
+          <div class="keypad" id="keyboard-mobile" align="center">
+            <div class="keypad-block">
+              <div class="keypad-row">
+                    <div class="key margin-0 small" data-code="Escape">
+                      <div class="label">Esc
+                      </div>
+                    </div>
+                    <div class="empty-key" style="width:1px"></div>
+                    <div class="key wide-0 margin-0 small" data-code="F1">
+                      <div class="label">F1
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F2">
+                      <div class="label">F2
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F3">
+                      <div class="label">F3
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F4">
+                      <div class="label">F4
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F5">
+                      <div class="label">F5
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F6">
+                      <div class="label">F6
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F7">
+                      <div class="label">F7
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F8">
+                      <div class="label">F8
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F9">
+                      <div class="label">F9
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F10">
+                      <div class="label">F10
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F11">
+                      <div class="label">F11
+                      </div>
+                    </div>
+                    <div class="key wide-0 margin-0 small" data-code="F12">
+                      <div class="label">F12
+                      </div>
+                    </div>
+                    <div class="empty-key" style="width:2px"></div>
+                    <div class="modifier margin-0 small" data-code="PrintScreen">
+                      <div class="label"><b>&bull;</b><br>Pt/Sq
+                      </div>
+                    </div>
+                    <div class="key margin-0 small" data-code="ScrollLock">
+                      <div class="label"><img class="inline-lamp hid-keyboard-scroll-led led-gray" src="/share/svg/led-square.svg"><br> ScrLk
+                      </div>
+                    </div>
+                    <div class="key margin-0 small" data-code="Pause">
+                      <div class="label">P/Brk
+                      </div>
+                    </div>
+                    <div class="key margin-0 small" data-code="Insert">
+                      <div class="label">Ins
+                      </div>
+                    </div>
+                    <div class="key margin-0 small" data-code="Home">
+                      <div class="label">Home
+                      </div>
+                    </div>
+                    <div class="key margin-0 small" data-code="End">
+                      <div class="label">End
+                      </div>
+                    </div>
+                    <div class="key margin-0 small" data-code="Delete">
+                      <div class="label">Del
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key " data-code="Backquote">
+                      <div class="label">~<br>`
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit1">
+                      <div class="label">!<br>1
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit2">
+                      <div class="label">@<br>2
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit3">
+                      <div class="label">#<br>3
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit4">
+                      <div class="label">$<br>4
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit5">
+                      <div class="label">%<br>5
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit6">
+                      <div class="label">^<br>6
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit7">
+                      <div class="label">&amp;<br>7
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit8">
+                      <div class="label">*<br>8
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit9">
+                      <div class="label">(<br>9
+                      </div>
+                    </div>
+                    <div class="key " data-code="Digit0">
+                      <div class="label">)<br>0
+                      </div>
+                    </div>
+                    <div class="key " data-code="Minus">
+                      <div class="label">_<br>-
+                      </div>
+                    </div>
+                    <div class="key " data-code="Equal">
+                      <div class="label">+<br>=
+                      </div>
+                    </div>
+                    <div class="key wide-3 right" data-code="Backspace" style="width:101px">
+                      <div class="label">&#8612;
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key wide-2 left" data-code="Tab">
+                      <div class="label">&#8676;<br>&#8677;
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyQ">
+                      <div class="label">Q
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyW">
+                      <div class="label">W
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyE">
+                      <div class="label">E
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyR">
+                      <div class="label">R
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyT">
+                      <div class="label">T
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyY">
+                      <div class="label">Y
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyU">
+                      <div class="label">U
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyI">
+                      <div class="label">I
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyO">
+                      <div class="label">O
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyP">
+                      <div class="label">P
+                      </div>
+                    </div>
+                    <div class="key " data-code="BracketLeft">
+                      <div class="label">{<br>[
+                      </div>
+                    </div>
+                    <div class="key " data-code="BracketRight">
+                      <div class="label">}<br>]
+                      </div>
+                    </div>
+                    <div class="key wide-2 left" data-code="Backslash" style="width:78px">
+                      <div class="label">|<br>&bsol;
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="key wide-3 left small" data-code="CapsLock">
+                      <div class="label"><img class="inline-lamp hid-keyboard-caps-led led-gray" src="/share/svg/led-square.svg"><br> Caps Lock
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyA">
+                      <div class="label">A
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyS">
+                      <div class="label">S
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyD">
+                      <div class="label">D
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyF">
+                      <div class="label">F
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyG">
+                      <div class="label">G
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyH">
+                      <div class="label">H
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyJ">
+                      <div class="label">J
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyK">
+                      <div class="label">K
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyL">
+                      <div class="label">L
+                      </div>
+                    </div>
+                    <div class="key " data-code="Semicolon">
+                      <div class="label">:<br>;
+                      </div>
+                    </div>
+                    <div class="key " data-code="Quote">
+                      <div class="label">`<br>'
+                      </div>
+                    </div>
+                    <div class="key wide-4 right small" data-code="Enter" style="width:116px">
+                      <div class="label">Enter<br>&crarr;
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="modifier wide-4 left small" data-code="ShiftLeft">
+                      <div class="label"><b>&bull;</b><br>Shift
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyZ">
+                      <div class="label">Z
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyX">
+                      <div class="label">X
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyC">
+                      <div class="label">C
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyV">
+                      <div class="label">V
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyB">
+                      <div class="label">B
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyN">
+                      <div class="label">N
+                      </div>
+                    </div>
+                    <div class="key single" data-code="KeyM">
+                      <div class="label">M
+                      </div>
+                    </div>
+                    <div class="key " data-code="Comma">
+                      <div class="label">lt;<br>,
+                      </div>
+                    </div>
+                    <div class="key " data-code="Period">
+                      <div class="label">&gt;<br>.
+                      </div>
+                    </div>
+                    <div class="key " data-code="Slash">
+                      <div class="label">?<br>/
+                      </div>
+                    </div>
+                    <div class="key small" data-code="PageUp">
+                      <div class="label">PgUp
+                      </div>
+                    </div>
+                    <div class="key " data-code="ArrowUp">
+                      <div class="label">&uarr;
+                      </div>
+                    </div>
+                    <div class="key small" data-code="PageDown">
+                      <div class="label">PgDn
+                      </div>
+                    </div>
+              </div>
+              <div class="keypad-row">
+                    <div class="modifier wide-1 left small" data-code="ControlLeft">
+                      <div class="label"><b>&bull;</b><br>Ctrl
+                      </div>
+                    </div>
+                    <div class="modifier wide-1 left small" data-code="MetaLeft">
+                      <div class="label"><b>&bull;</b><br>Win
+                      </div>
+                    </div>
+                    <div class="modifier wide-1 left small" data-code="AltLeft">
+                      <div class="label"><b>&bull;</b><br>Alt
+                      </div>
+                    </div>
+                    <div class="key " data-code="Space" style="width:190px">
+                      <div class="label">
+                      </div>
+                    </div>
+                    <div class="modifier right small" data-code="AltRight">
+                      <div class="label"><b>&bull;</b><br>Alt
+                      </div>
+                    </div>
+                    <div class="modifier right small" data-code="MetaRight">
+                      <div class="label"><b>&bull;</b><br>Win
+                      </div>
+                    </div>
+                    <div class="modifier right small" data-code="ShiftRight">
+                      <div class="label"><b>&bull;</b><br>Shift
+                      </div>
+                    </div>
+                    <div class="modifier right small" data-code="ControlRight">
+                      <div class="label"><b>&bull;</b><br>Ctrl
+                      </div>
+                    </div>
+                    <div class="key " data-code="ArrowLeft">
+                      <div class="label">&larr;
+                      </div>
+                    </div>
+                    <div class="key " data-code="ArrowDown">
+                      <div class="label">&darr;
+                      </div>
+                    </div>
+                    <div class="key " data-code="ArrowRight">
+                      <div class="label">&rarr;
+                      </div>
+                    </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="window" id="about-window" data-close-confirm="">
+          <div class="window-header" id="">
+            <div class="window-grab">关于</div>
+            <button class="window-button-close">&times;</button>
+          </div>
+          <div id="about">
+            <table>
+              <tr>
+                <td class="logo" valign="top"><img class="svg-gray" src="../share/svg/logo.svg" alt="Pi-KVM" height="40"></td>
+                <td valign="top">
+                  <table>
+                    <tr>
+                      <td class="title" colspan="2">开源的IP-KVM</td>
+                    </tr>
+                    <tr>
+                      <td class="copyright" colspan="2">Copyright &copy; 2018-2021 <a target="_blank" href="mailto:mdevaev@gmail.com">Maxim Devaev</a></td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table><br>
+            <div class="tabs-box">
+                  <input checked type="radio" name="about-tab-button" id="about-tab-meta-button">
+                  <label for="about-tab-meta-button">元数据</label>
+                  <div class="tab">
+                    <div class="code" id="about-meta"><span class="code-comment">无数据</span>
+                    </div>
+                  </div>
+                  <input type="radio" name="about-tab-button" id="about-tab-hw-button">
+                  <label for="about-tab-hw-button">硬件</label>
+                  <div class="tab">
+                    <div class="code" id="about-hw"><span class="code-comment">无数据</span>
+                    </div>
+                  </div>
+                  <input type="radio" name="about-tab-button" id="about-tab-version-button">
+                  <label for="about-tab-version-button">版本</label>
+                  <div class="tab">
+                    <div class="code" id="about-version"><span class="code-comment">无数据</span>
+                    </div>
+                  </div>
+                  <input type="radio" name="about-tab-button" id="about-tab-thanks-button">
+                  <label for="about-tab-thanks-button">致谢</label>
+                  <div class="tab">
+                    <div class="code" id="about-thanks"><span class="code-comment">// 以下好心人给Pi-KVM项目捐款<br>
+                        // 并支持这项工作。我们非常感激<br>
+                        // 他们的帮助，记住他们的名字<br>
+                        // 是我们能做的最起码的感谢方式。<br>
+                        // 如果您也想支持这个项目，<br>
+                        // 您可以使用以下方式:
+                        <a target="_blank" href="https://www.patreon.com/pikvm">Patreon</a>
+                        or <a target="_blank" href="https://www.paypal.me/mdevaev">PayPal</a>.</span>
+                      <ul>
+                        <li>A. Isenring</li>
+                        <li>Aaron Heise</li>
+                        <li>Accalia</li>
+                        <li>adipisicing</li>
+                        <li>Adrian Basham</li>
+                        <li>Alberto Bassi</li>
+                        <li>Aleksei Brusianskii</li>
+                        <li>Alessio Curri</li>
+                        <li>Alexandre Jablonski</li>
+                        <li>Alucard</li>
+                        <li>Andreas Marufke</li>
+                        <li>Andrew Reusch</li>
+                        <li>Andrew Ruan</li>
+                        <li>Andrzej V</li>
+                        <li>Anish Patel</li>
+                        <li>Anix</li>
+                        <li>anonymous</li>
+                        <li>Anton Kovalenko</li>
+                        <li>Aron Green</li>
+                        <li>Aron Perelman</li>
+                        <li>Arthur Woimbée</li>
+                        <li>Ashlesh Chaudhari</li>
+                        <li>Augusto Becciu</li>
+                        <li>AVS Computer</li>
+                        <li>baddog</li>
+                        <li>Bao Tin Hoang</li>
+                        <li>Belf Igor</li>
+                        <li>Ben Gordon</li>
+                        <li>Ben Scott</li>
+                        <li>Benedikt Heine</li>
+                        <li>Benjamin Melancon</li>
+                        <li>Benni Stauder</li>
+                        <li>Bernhard Fitzke</li>
+                        <li>bitjoe</li>
+                        <li>Bits and Bytes Computers LLC</li>
+                        <li>Bootstrapper - Programmierung erklärt</li>
+                        <li>Bradford King</li>
+                        <li>Brainspore Networks</li>
+                        <li>Branden Shaulis</li>
+                        <li>Brian Moses</li>
+                        <li>Brian Vecchiarelli</li>
+                        <li>Brian White</li>
+                        <li>Bruno Gomes</li>
+                        <li>Bryan Adams</li>
+                        <li>C P ELSE</li>
+                        <li>Cameron Tacklind</li>
+                        <li>Carl Mercier</li>
+                        <li>Carl-Fredrik Johansson</li>
+                        <li>cbad536</li>
+                        <li>Chris Burton</li>
+                        <li>Chris Rizio</li>
+                        <li>Christian Schlögl</li>
+                        <li>Christian Svensson</li>
+                        <li>Christof Maluck</li>
+                        <li>Christoph Dette</li>
+                        <li>Christoffer Lund</li>
+                        <li>Chucktastic</li>
+                        <li>Clifford Coleman</li>
+                        <li>Clinton Lee Taylor</li>
+                        <li>Cole Imhoff</li>
+                        <li>Corey Layton</li>
+                        <li>Corey Lista</li>
+                        <li>Crossfactor</li>
+                        <li>ctag</li>
+                        <li>CyB0rgg</li>
+                        <li>DeMentor</li>
+                        <li>Desmond Whitt</li>
+                        <li>Damon Meledones</li>
+                        <li>Dan Berkowitz</li>
+                        <li>Dan Brakeley</li>
+                        <li>David</li>
+                        <li>David Godibadze</li>
+                        <li>David Howell</li>
+                        <li>David Ye</li>
+                        <li>David York</li>
+                        <li>Denis</li>
+                        <li>Denis Andreev</li>
+                        <li>Denis Yatsenko</li>
+                        <li>Dennis Becker</li>
+                        <li>Derek Yap</li>
+                        <li>dixon wong</li>
+                        <li>dizztrukshin</li>
+                        <li>Dmitry Shilov</li>
+                        <li>Egan Ford</li>
+                        <li>Elliot Woo</li>
+                        <li>Eric Phenix</li>
+                        <li>ewook</li>
+                        <li>eye-catcher.com</li>
+                        <li>Fabiano Sidler</li>
+                        <li>Far Pin Solutions, LLC</li>
+                        <li>Felyx Gabryel</li>
+                        <li>Fergus McKay</li>
+                        <li>fo0bar</li>
+                        <li>Foamy</li>
+                        <li>Francisco Pavon</li>
+                        <li>Frank</li>
+                        <li>Fredrik Idréus</li>
+                        <li>Ge Men</li>
+                        <li>Genkinger Andreas</li>
+                        <li>Georgy Brodsky</li>
+                        <li>Gernot Neuschröer</li>
+                        <li>Glen Dragon</li>
+                        <li>Gregory Smith</li>
+                        <li>Gregory Treantos</li>
+                        <li>Grey Cynic</li>
+                        <li>Guido Bernacchi</li>
+                        <li>Gustin Johnson</li>
+                        <li>Heikki Tiittanen</li>
+                        <li>Helio Leonardo Pinheiro e Mota</li>
+                        <li>Henrik Ählström</li>
+                        <li>Henry Hood</li>
+                        <li>HimKo</li>
+                        <li>HouseFPV</li>
+                        <li>Icculus</li>
+                        <li>iks</li>
+                        <li>IT Lifesaver</li>
+                        <li>Ivan Shapovalov</li>
+                        <li>J L</li>
+                        <li>Jaanus</li>
+                        <li>Jackson Wyatt</li>
+                        <li>Jacob Morgan</li>
+                        <li>James Cadd</li>
+                        <li>James Cobb</li>
+                        <li>James Edwards</li>
+                        <li>James Kocher</li>
+                        <li>Jamie Murphy</li>
+                        <li>Jan Niehusmann</li>
+                        <li>Jari Hiltunen</li>
+                        <li>Jason Downey</li>
+                        <li>Jason Toland</li>
+                        <li>Jay Davis</li>
+                        <li>Jay Isaacs</li>
+                        <li>Jean-Philippe Guilbault</li>
+                        <li>Jeff Bowman</li>
+                        <li>Jeff Urlwin</li>
+                        <li>Jennifer Rowlett</li>
+                        <li>Jerremy Holland</li>
+                        <li>Joachim Bruening</li>
+                        <li>Joe Ventura</li>
+                        <li>Joel Jacobs</li>
+                        <li>John Andersen</li>
+                        <li>John F Glenn</li>
+                        <li>John Kelley</li>
+                        <li>John McGovern</li>
+                        <li>Johnny Henson</li>
+                        <li>Jonathan Vaughn</li>
+                        <li>Jordi Pakey-Rodriguez</li>
+                        <li>Joris van Embden</li>
+                        <li>Josh Ricker</li>
+                        <li>Joshua Futterer</li>
+                        <li>Jozef Riha</li>
+                        <li>Julian Forero</li>
+                        <li>Justin Waters</li>
+                        <li>Karl Dunne</li>
+                        <li>Keith Muggleton</li>
+                        <li>Ken Lee</li>
+                        <li>Kenny Hui</li>
+                        <li>Kevin Bajohr</li>
+                        <li>Kevin Schwartz</li>
+                        <li>Krzysztof Żelaśkiewicz</li>
+                        <li>Lars</li>
+                        <li>Lee Wilkinson</li>
+                        <li>LeeNX</li>
+                        <li>Lordbob75</li>
+                        <li>Lothar Schweikle-Droll</li>
+                        <li>Louis Müller</li>
+                        <li>Lukas Söder</li>
+                        <li>Malcolm Cameron</li>
+                        <li>Marcos Wolf</li>
+                        <li>Mark Gilbert</li>
+                        <li>Mark Robinson</li>
+                        <li>Markrosoft</li>
+                        <li>Markus Halm</li>
+                        <li>Markus Schicker</li>
+                        <li>Markus Sobczack</li>
+                        <li>Marten Hermans</li>
+                        <li>Martin Gasser</li>
+                        <li>Mateusz Grabowski</li>
+                        <li>Matthew Cameron</li>
+                        <li>Mauricio Allende</li>
+                        <li>Mehmet Aydoğdu</li>
+                        <li>Michael Kovacs</li>
+                        <li>Michael Lynch</li>
+                        <li>Michael Pennington</li>
+                        <li>Michael Sage</li>
+                        <li>MichaelZ</li>
+                        <li>Milan Múčka</li>
+                        <li>Miles Davis</li>
+                        <li>Moez Tharani</li>
+                        <li>Morgan Helton</li>
+                        <li>Nelson Lee</li>
+                        <li>Nicholas Jeppson</li>
+                        <li>Nicholas Kopas</li>
+                        <li>Nick Leffler</li>
+                        <li>Nick Roethemeier</li>
+                        <li>Nicolai Kragh-Hansen</li>
+                        <li>Nils Orbat</li>
+                        <li>Nithin Philips</li>
+                        <li>Nod Swal</li>
+                        <li>nybble</li>
+                        <li>Oh Be</li>
+                        <li>Oliver Schwarz</li>
+                        <li>Oliver Zimmer</li>
+                        <li>Patrick McDowell</li>
+                        <li>Paul Bishop</li>
+                        <li>Pawel Trofimiuk</li>
+                        <li>Peder Madsen</li>
+                        <li>Peter Farrelly</li>
+                        <li>Petri Heiskanen</li>
+                        <li>Philip Merricks</li>
+                        <li>posicat</li>
+                        <li>pozitron03</li>
+                        <li>Qteal</li>
+                        <li>Quentin Peten</li>
+                        <li>Ralph Borchers</li>
+                        <li>Ranc1d</li>
+                        <li>Richard Bernarts</li>
+                        <li>Richard Fancher</li>
+                        <li>Richard Freemantle</li>
+                        <li>Richard Michael</li>
+                        <li>Rob Tongue</li>
+                        <li>Robin Gfatter</li>
+                        <li>Rodion DENISYUK</li>
+                        <li>Rolfs 3D UG</li>
+                        <li>Ronald LeBaron</li>
+                        <li>rotx</li>
+                        <li>Russell Scott</li>
+                        <li>Samed Ozoglu</li>
+                        <li>Sameul Davies</li>
+                        <li>Samuel Vetsch</li>
+                        <li>Satish Alwani</li>
+                        <li>Scott</li>
+                        <li>Scott Spicola</li>
+                        <li>Scott Tusing</li>
+                        <li>Sean</li>
+                        <li>Seonwoo Lee</li>
+                        <li>Sergey Lukjanov</li>
+                        <li>Shichun Chen</li>
+                        <li>Simon Evans</li>
+                        <li>Simplistic Realities</li>
+                        <li>srepac</li>
+                        <li>Stefan Bautz</li>
+                        <li>Stefan Müller</li>
+                        <li>Stefan Stemmer</li>
+                        <li>Steve Kerr</li>
+                        <li>Steve Ovens</li>
+                        <li>Steven Richter</li>
+                        <li>sudo34</li>
+                        <li>Tarlak Desaydrone</li>
+                        <li>Ted</li>
+                        <li>Tejun Heo</li>
+                        <li>TheTechGiant</li>
+                        <li>Thomas Price</li>
+                        <li>Thomas Søfteland</li>
+                        <li>Tim Wilkinson</li>
+                        <li>Timo Brinkmann</li>
+                        <li>Timothee Besset</li>
+                        <li>Tobias Schafferhans</li>
+                        <li>Tom Lawson</li>
+                        <li>Tom York</li>
+                        <li>Tomas Kuchta</li>
+                        <li>Tomáš hrubý</li>
+                        <li>Tristan Schoening</li>
+                        <li>Truman Kilen</li>
+                        <li>turbochris</li>
+                        <li>Tyler</li>
+                        <li>Udo Schroeter</li>
+                        <li>Uli Fahrer</li>
+                        <li>Vasily Lazarev</li>
+                        <li>Vicente Salvador Cubedo</li>
+                        <li>Viktor Aschenbrenner</li>
+                        <li>Viktor Ekmark</li>
+                        <li>Walter_Ego</li>
+                        <li>William Hooper</li>
+                        <li>William Stearns</li>
+                        <li>Yethal</li>
+                        <li>Yevgeniy Kuksenko</li>
+                        <li>Yigal Dar</li>
+                        <li>Yogi</li>
+                        <li>YURI LEE</li>
+                        <li>Yurii Ostapchuk</li>
+                        <li>zgen</li>
+                        <li>Zsombor Vari</li>
+                      </ul>
+                    </div>
+                  </div>
+            </div><br>
+            <p class="text">
+              完整的文档，源代码，硬件原理图和法律信息
+              可以访问我们的 <a target="_blank" href="https://pikvm.org">官方网站</a>.
+            </p>
+          </div>
+        </div>
+    <ul class="footer">
+      <li class="footer-left" id="kvmd-meta-server-host"></li>
+      <li class="footer-right"><a target="_blank" href="https://pikvm.org">Pi-KVM 项目</a></li>
+    </ul>
+  </body>
+</html>

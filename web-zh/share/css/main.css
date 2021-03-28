@@ -1,0 +1,275 @@
+/*****************************************************************************
+#                                                                            #
+#    KVMD - The main Pi-KVM daemon.                                          #
+#                                                                            #
+#    Copyright (C) 2018-2021  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+*****************************************************************************/
+
+
+body {
+	margin: 0;
+	overflow: hidden;
+	color: var(--cs-page-default-fg);
+	background-color: var(--cs-page-default-bg);
+	font-family: arial, sans-serif !important;
+}
+body.body-no-select {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	user-select: none;
+	touch-action: manipulation;
+}
+
+a {
+	color: var(--cs-page-default-fg);
+}
+
+hr {
+	border: none;
+	border-top: var(--border-default-thin);
+}
+
+p.text {
+	text-align: justify;
+}
+p:not(:first-child).text {
+	margin-top: 0;
+}
+p:last-child.text {
+	margin-bottom: 0;
+}
+
+div.code {
+	white-space: nowrap;
+	overflow-x: auto;
+	font-family: monospace;
+	border-radius: 4px;
+	color: var(--cs-code-default-fg);
+	background-color: var(--cs-code-default-bg);
+	padding: 10px;
+}
+div.code::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+div.code::-webkit-scrollbar-thumb {
+	border-radius: 4px;
+	background: var(--cs-scroll-default-bg);
+}
+@-moz-document url-prefix() {
+	div.code {
+		scrollbar-width: thin;
+		scrollbar-color: var(--cs-scroll-default-bg) var(--cs-code-default-bg);
+	}
+}
+
+div.code span.code-comment {
+	color: var(--cs-code-comment-fg);
+}
+
+img.svg-gray {
+	-webkit-filter: invert(0.7);
+	filter: invert(0.7);
+	vertical-align: middle;
+}
+
+img.inline-lamp {
+	vertical-align: middle;
+	height: 8px;
+	margin-left: 2px;
+	margin-right: 2px;
+}
+
+img.inline-lamp-big {
+	vertical-align: middle;
+	height: 20px;
+	margin-left: 2px;
+	margin-right: 2px;
+}
+
+button,
+select {
+	border: none;
+	border-radius: 4px;
+	color: var(--cs-control-default-fg);
+	background-color: var(--cs-control-default-bg);
+	display: block;
+	width: 100%;
+	height: 30px;
+	font-family: inherit;
+	font-size: 16px;
+	outline: none;
+	cursor: pointer;
+}
+select {
+	padding-left: 5px;
+	padding-right: 25px;
+}
+button.key,
+select.key {
+	border: var(--border-key-thin);
+	box-shadow: var(--shadow-micro);
+}
+@media (hover: hover), (min--moz-device-pixel-ratio: 0) {
+	/* If we have a mouse cursor */
+	button:enabled:hover,
+	select:enabled:hover {
+		color: var(--cs-control-hovered-fg);
+		background-color: var(--cs-control-hovered-bg);
+	}
+	button:active,
+	select:active {
+		color: var(--cs-control-pressed-fg) !important;
+		background-color: var(--cs-control-pressed-bg) !important;
+	}
+	button.key:active,
+	select.key:active {
+		box-shadow: none;
+	}
+	select:enabled:hover {
+		background-image: url("../svg/select-arrow-intensive.svg") !important;
+	}
+}
+@media (hover: none) {
+	/* If we DON'T have a mouse cursor */
+	button:active,
+	select:active {
+		color: var(--cs-control-hovered-fg);
+		background-color: var(--cs-control-hovered-bg);
+	}
+}
+button:disabled,
+select:disabled {
+	color: var(--cs-control-disabled-fg);
+	cursor: default;
+}
+
+select {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	user-select: none;
+	background-image: url("../svg/select-arrow-normal.svg");
+	background-position: center right;
+	background-repeat: no-repeat;
+}
+select:disabled {
+	background-image: url("../svg/select-arrow-inactive.svg") !important;
+}
+select:active {
+	color: var(--cs-control-intensive-fg) !important;
+	background-image: url("../svg/select-arrow-intensive.svg") !important;
+}
+select option {
+	color: var(--cs-control-default-fg);
+	background-color: var(--cs-control-default-bg);
+}
+select option.comment {
+	color: var(--cs-control-disabled-fg);
+	font-style: italic;
+}
+
+input[type=text], input[type=password] {
+	overflow-x: auto;
+	font-family: monospace;
+	border: thin;
+	border-radius: 4px;
+	color: var(--cs-code-default-fg);
+	background-color: var(--cs-code-default-bg);
+	padding: 2px;
+	height: 30px;
+}
+
+@media only screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+	button,
+	select,
+	input[type=text],
+	input[type=password] {
+		height: 45px !important;
+	}
+}
+
+div.buttons-row {
+	margin: 0;
+	padding: 0;
+	font-size: 0;
+}
+
+.row50 {
+	display: inline-block;
+	width: 50%;
+}
+.row33 {
+	display: inline-block;
+	width: 33.33%;
+}
+.row25 {
+	display: inline-block;
+	width: 25%;
+}
+.row16 {
+	display: inline-block;
+	width: 16.66%;
+}
+.row50:not(:first-child),
+.row33:not(:first-child),
+.row25:not(:first-child),
+.row16:not(:first-child) {
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+	border-left: var(--border-control-thin) !important;
+}
+.row50:not(:last-child),
+.row33:not(:last-child),
+.row25:not(:last-child),
+.row16:not(:last-child) {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+ul.footer {
+	list-style-type: none;
+	bottom: 0;
+	position: fixed;
+	width: 100%;
+	padding: 0;
+	font-size: 0.7em;
+	color: var(--cs-page-obscure-fg);
+	z-index: -10;
+}
+ul.footer li {
+	padding: 0 10px;
+}
+ul.footer li.footer-left {
+	float: left;
+}
+ul.footer li.footer-right {
+	float: right;
+}
+ul.footer li a {
+	color: var(--cs-page-obscure-fg);
+}
+
+.feature-disabled {
+	display: none;
+}
+
+.hidden {
+	display: none;
+}

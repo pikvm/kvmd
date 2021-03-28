@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+==============================================================================
+#                                                                            #
+#    KVMD - The main Pi-KVM daemon.                                          #
+#                                                                            #
+#    Copyright (C) 2018-2021  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+==============================================================================
+
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Pi-KVM VNC 信息</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/share/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/share/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/share/favicon-16x16.png">
+    <link rel="manifest" href="/share/site.webmanifest">
+    <link rel="mask-icon" href="/share/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#2b5797">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="/share/css/vars.css">
+    <link rel="stylesheet" href="/share/css/main.css">
+    <link rel="stylesheet" href="/share/css/start.css">
+    <script type="module">import {main} from "/share/js/vnc/main.js";
+      main();
+    </script>
+  </head>
+  <body>
+    <div class="start-box">
+      <div class="start"><a style="display:inline-block; margin-top:4px; color:#5c90bc; text-decoration:none" href="/">&nbsp;&nbsp;&larr;&nbsp;&nbsp; [ Pi-KVM Index ]</a>
+        <hr>
+        <p class="text">这个Pi-KVM设备已经运行 <b>kvmd-vnc</b> 守护进程，并提供对服务器的VNC访问。</p>
+        <p class="text"><b>警告!</b> 我们强烈建议您不要在没启用X.509或TLS加密同时
+          在不受信任的网络中使用VNC。否则，您的密码将在互联网上
+          以明文方式传输
+        </p>
+        <p class="text">
+          您的VNC客户机必须支持高级JPEG压缩和密码身份验证。
+          <a href="https://tigervnc.org">TigerVNC</a> 是一个好的选择。
+          在Linux上，这个客户机或许可以从存储库中安装。
+          vncviewer也可以使用。
+        </p>
+        <div class="code" id="vnc-text" style="max-height:200px"></div>
+      </div>
+    </div>
+  </body>
+</html>

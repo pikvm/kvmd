@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!--
+==============================================================================
+#                                                                            #
+#    KVMD - The main Pi-KVM daemon.                                          #
+#                                                                            #
+#    Copyright (C) 2018-2021  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+==============================================================================
+
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Pi-KVM 索引</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/share/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/share/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/share/favicon-16x16.png">
+    <link rel="manifest" href="/share/site.webmanifest">
+    <link rel="mask-icon" href="/share/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#2b5797">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="/share/css/vars.css">
+    <link rel="stylesheet" href="/share/css/main.css">
+    <link rel="stylesheet" href="/share/css/start.css">
+    <link rel="stylesheet" href="/share/css/window.css">
+    <link rel="stylesheet" href="/share/css/modal.css">
+    <link rel="stylesheet" href="/share/css/index/index.css">
+    <script type="module">import {main} from "/share/js/index/main.js";
+      main();
+    </script>
+  </head>
+  <body>
+    <div class="start-box">
+      <div class="start">
+        <table>
+          <tr>
+            <td class="logo" valign="top"><img class="svg-gray" src="/share/svg/logo.svg" alt="Pi-KVM" height="40"></td>
+            <td valign="top">
+              <table>
+                <tr>
+                  <td class="title" colspan="2">开源的IP-KVM</td>
+                </tr>
+                <tr>
+                  <td class="copyright" colspan="2">Copyright &copy; 2018-2021 <a target="_blank" href="mdevaev@gmail.com">Maxim Devaev</a></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <hr>
+        <table>
+          <td class="server">
+            <td>服务器:</td>
+            <td><a id="kvmd-meta-server-host" target="_blank" href="/api/info"></a></td>
+          </td>
+        </table>
+        <hr>
+        <div id="apps-box">
+          <h4>载入中 ...</h4>
+        </div>
+        <hr>
+        <p class="text">
+          请注意，当您使用KVM会话或其他捕获键盘的应用程序时，
+          您不能使用某些键盘快捷键，例如Ctrl + Alt + Del（此操作会被您的操作系统捕获）或Ctrl + W（此操作会被您的浏览器捕获）。
+        </p>
+        <p class="text">要取消此限制，您可以将 <a target="_blank" href="https://google.com/chrome">Google Chrome</a>
+          or <a target="_blank" href="https://chromium.org/Home">Chromium</a> 设置成应用程序的模式.
+        </p>
+        <div class="code" id="app-text"></div>
+        <hr>
+        <p class="text">
+          完整的文档，源代码，硬件原理图和法律信息
+          可以在我们的 <a target="_blank" href="https://pikvm.org">官方网站浏览</a>.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

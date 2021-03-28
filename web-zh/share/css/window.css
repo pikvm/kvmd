@@ -1,0 +1,97 @@
+/*****************************************************************************
+#                                                                            #
+#    KVMD - The main Pi-KVM daemon.                                          #
+#                                                                            #
+#    Copyright (C) 2018-2021  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+*****************************************************************************/
+
+
+div.window {
+	visibility: hidden;
+	outline: none;
+	overflow: hidden;
+	position: fixed;
+	border: var(--border-window-thin);
+	border-radius: 8px;
+	box-sizing: border-box;
+	box-shadow: var(--shadow-big);
+	white-space: nowrap;
+	color: var(--cs-window-default-fg);
+	background-color: var(--cs-window-default-bg);
+	padding: 30px 9px 9px 9px;
+}
+div.window-active {
+	border: var(--border-intensive-2px) !important;
+}
+
+div.window div.window-header {
+	overflow: hidden;
+	top: 0;
+	left: 0;
+	position: absolute;
+	width: 100%;
+	padding: 0;
+	height: 20px;
+	font-size: 0.8em;
+	color: var(--cs-window-header-default-fg);
+	border-bottom: var(--border-default-thin);
+}
+
+div.window div.window-header div.window-grab {
+	overflow: hidden;
+	top: 0;
+	left: 0;
+	position: absolute;
+	width: 100%;
+	height: 20px;
+	cursor: move;
+	padding: 3px 0 2px 20px;
+}
+
+div.window div.window-header-grabbed {
+	color: var(--cs-window-header-grabbed-fg);
+	background-color: var(--cs-window-header-grabbed-bg);
+	border-bottom: var(--border-intensive-thin);
+}
+
+div.window div.window-header button.window-button-close {
+	border: none;
+	position: absolute;
+	top: -2px;
+	right: -6px;
+	width: 44px;
+	height: 24px;
+	padding-left: 0;
+	color: var(--cs-window-closer-default-fg);
+	display: inline-block;
+}
+
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
+	/* iPad */
+	div.window {
+		padding-top: 45px !important;
+	}
+	div.window div.window-header {
+		height: 35px !important;
+	}
+	div.window div.window-header div.window-grab {
+		height: 35px !important;
+	}
+	div.window div.window-header button.window-button-close {
+		height: 40px !important;
+	}
+}

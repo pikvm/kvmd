@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+==============================================================================
+#                                                                            #
+#    KVMD - The main Pi-KVM daemon.                                          #
+#                                                                            #
+#    Copyright (C) 2018-2021  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+==============================================================================
+
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Pi-KVM IPMI Info</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/share/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/share/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/share/favicon-16x16.png">
+    <link rel="manifest" href="/share/site.webmanifest">
+    <link rel="mask-icon" href="/share/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#2b5797">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="/share/css/vars.css">
+    <link rel="stylesheet" href="/share/css/main.css">
+    <link rel="stylesheet" href="/share/css/start.css">
+    <script type="module">import {main} from "/share/js/ipmi/main.js";
+      main();
+    </script>
+  </head>
+  <body>
+    <div class="start-box">
+      <div class="start"><a style="display:inline-block; margin-top:4px; color:#5c90bc; text-decoration:none" href="/">&nbsp;&nbsp;&larr;&nbsp;&nbsp; [ Pi-KVM Index ]</a>
+        <hr>
+        <p class="text">这个Pi-KVM设备已经运行 <b>kvmd-ipmi</b> 守护进程，并为一些基本的基板管理控制器操作(如打开/关闭/重置服务器)提供IPMI 2.0接口。
+          基板管理控制器操作(如打开/关闭/重置服务器)提供IPMI 2.0接口。
+        </p>
+        <p class="text"><b>WARNING!</b> 我们强烈建议您不要在不可信的网络中使用IPMI，因为
+          从设计上看，这个协议是完全不安全的。简而言之，IPMI的身份验证过程
+          要求服务器在对客户端进行身份验证之前，
+          向客户端发送请求用户密码的加密SHA1或MD5散列。
+        </p>
+        <p class="text"><b>一定不要</b> KVMD和IPMI用户的密码保持一致。 并且最好不要使用IPMI。
+          相反，您可以通过curl直接使用KVMD API。一些例子:
+        </p>
+        <div class="code" id="ipmi-text" style="max-height:200px"></div>
+      </div>
+    </div>
+  </body>
+</html>
