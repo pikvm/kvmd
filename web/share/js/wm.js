@@ -78,6 +78,21 @@ function __WindowManager() {
 					}
 				});
 			}
+			let el_maximize_button = el_window.querySelector(".window-header .window-button-maximize");
+			if (el_maximize_button) {
+				tools.setOnClick(el_maximize_button, function() {
+					__maximizeWindow(el_window);
+					__activateLastWindow(el_window);
+				});
+			}
+			let el_full_screen_button = el_window.querySelector(".window-header .window-button-full-screen");
+			if (el_full_screen_button) {
+				tools.setOnClick(el_full_screen_button, function() {
+					__fullScreenWindow(el_window);
+					__activateLastWindow(el_window);
+				});
+			}
+			document.onfullscreenchange = __onFullScreenChange;
 		}
 
 		window.onmouseup = __globalMouseButtonHandler;
@@ -231,7 +246,37 @@ function __WindowManager() {
 		el_window.blur();
 		el_window.style.visibility = "hidden";
 	};
+	var __onFullScreenChange = function(event){
+		let el_window = event.target;
+		if(!document.fullscreenElement){
+			el_window.style.padding = "";
+			//TODO: this is a bit specific to stream window
+			$("keyboard-lock-alert").style.visibility="hidden";
+		}else{
+			el_window.style.padding = "0px 0px 0px 0px";
+		}
+	}
+	var __fullScreenWindow = function(el_window) {
+		el_window.requestFullscreen();
+		if ('keyboard' in navigator && 'lock' in navigator.keyboard) {
+			navigator.keyboard.lock();
+		}else{
+			$("keyboard-lock-alert").style.visibility="visible";
+			setTimeout(function(){
+				$("keyboard-lock-alert").style.visibility="hidden";
+			}, 7000);
+		}
 
+	};
+	//window maximized but not full screen
+	var __maximizeWindow = function(el_window) {
+		let verticalOffset = $("navbar").offsetHeight;
+		el_window.style.left = "0px";
+		el_window.style.top = verticalOffset + "px";
+		el_window.style.width = window.innerWidth + "px";
+		el_window.style.height = window.innerHeight - verticalOffset + "px";
+	};
+	self.maximizeWindow = __maximizeWindow;
 	var __toggleMenu = function(el_a) {
 		let all_hidden = true;
 
@@ -468,7 +513,7 @@ function __WindowManager() {
 		}
 
 		el_window.setAttribute("data-centered", "");
-		el_window.onmousedown = el_window.ontouchstart = () => __activateWindow(el_window);
+		el_window.onclick = el_window.ontouchend = () => __activateWindow(el_window);
 
 		el_grab.onmousedown = startMoving;
 		el_grab.ontouchstart = startMoving;

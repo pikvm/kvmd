@@ -212,9 +212,8 @@ export function Mouse(record_callback) {
 			if (pos.x !== __sent_pos.x || pos.y !== __sent_pos.y) {
 				let el_stream_image = $("stream-image");
 				let to = {
-					x: __translate(pos.x, 0, el_stream_image.clientWidth, -32768, 32767),
-					y: __translate(pos.y, 0, el_stream_image.clientHeight, -32768, 32767),
-				};
+					x: __translate(pos.x, window.streamImageLocation.x, window.streamImageLocation.width, -32768, 32767),
+					y: __translate(pos.y, window.streamImageLocation.y, window.streamImageLocation.height, -32768, 32767),				};
 
 				tools.debug("Mouse: moved:", to);
 				__sendEvent("mouse_move", {"to": to});
@@ -228,8 +227,10 @@ export function Mouse(record_callback) {
 	};
 
 	var __translate = function(x, a, b, c, d) {
-		return Math.round((x - a) / (b - a) * (d - c) + c);
-	};
+		let translated = Math.round((x - a) / b * (d - c) + c);
+		if(translated < c)return c;
+		else if(translated > d)return d;
+		else return translated;	};
 
 	var __streamWheelHandler = function(event) {
 		// https://learn.javascript.ru/mousewheel

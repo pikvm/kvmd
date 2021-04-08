@@ -34,6 +34,7 @@ export function Streamer() {
 
 	var __resolution = {width: 640, height: 480};
 
+
 	var __size_factor = 1;
 
 	var __mjpeg_key = tools.makeId();
@@ -53,9 +54,14 @@ export function Streamer() {
 
 		$("stream-resolution-selector").onchange = (() => __sendParam("resolution", $("stream-resolution-selector").value));
 
-		tools.sliderSetParams($("stream-size-slider"), 20, 200, 5, 100);
-		$("stream-size-slider").oninput = () => __resize();
-		$("stream-size-slider").onchange = () => __resize();
+		tools.setOnClick($("maximize-stream-window"),() => {
+			wm.maximizeWindow($("stream-window"));
+		});
+		try{
+			new ResizeObserver(__resize).observe($("stream-window"));
+		}catch(err){
+			console.log("ResizeObserver not supported");
+		}
 
 		tools.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.setOnClick($("stream-reset-button"), __clickResetButton);
@@ -88,6 +94,10 @@ export function Streamer() {
 		}
 
 		if (state && state.streamer) {
+			if (!window.ResizeObserver){
+				//browsers that don't support this API(on lower versions of iOS for example).
+				__resize();
+			}
 			if (!$("stream-quality-slider").activated) {
 				wm.setElementEnabled($("stream-quality-slider"), true);
 				if ($("stream-quality-slider").value !== state.streamer.encoder.quality) {
@@ -109,11 +119,6 @@ export function Streamer() {
 			let resolution_str = __makeStringResolution(state.streamer.source.resolution);
 			if (__makeStringResolution(__resolution) != resolution_str) {
 				__resolution = state.streamer.source.resolution;
-				if ($("stream-auto-resize-switch").checked) {
-					__adjustSizeFactor();
-				} else {
-					__applySizeFactor();
-				}
 			}
 
 			if (state.features.resolution) {
@@ -261,44 +266,28 @@ export function Streamer() {
 	};
 
 	var __resize = function() {
-		let size = $("stream-size-slider").value;
-		$("stream-size-value").innerHTML = `${size}%`;
-		__size_factor = size / 100;
-		__applySizeFactor();
-	};
-
-	var __adjustSizeFactor = function() {
-		let el_window = $("stream-window");
-		let el_slider = $("stream-size-slider");
-		let view = wm.getViewGeometry();
-
-		for (let size = 100; size >= el_slider.min; size -= el_slider.step) {
-			tools.info("Stream: adjusting size:", size);
-			$("stream-size-slider").value = size;
-			__resize();
-
-			let rect = el_window.getBoundingClientRect();
-			if (
-				rect.bottom <= view.bottom
-				&& rect.top >= view.top
-				&& rect.left >= view.left
-				&& rect.right <= view.right
-			) {
-				break;
-			}
-		}
-	};
-
-	var __applySizeFactor = function() {
-		let el = $("stream-image");
-		el.style.width = __resolution.width * __size_factor + "px";
-		el.style.height = __resolution.height * __size_factor + "px";
+		window.streamImageLocation = __calculateImageRelativePosition();
 		wm.showWindow($("stream-window"), false);
-	};
+	}
+
+	var __calculateImageRelativePosition = function(){
+		let imageBoundingRect = $("stream-image").getBoundingClientRect()
+		let height = imageBoundingRect.height
+		let ratio = Math.min(imageBoundingRect.width/$("stream-image").naturalWidth, height/$("stream-image").naturalHeight);
+
+		return {
+			x: Math.round((imageBoundingRect.width - ratio*$("stream-image").naturalWidth)/2),
+			y: Math.round((imageBoundingRect.height - ratio*$("stream-image").naturalHeight)/2),
+			width: Math.round(ratio*$("stream-image").naturalWidth),
+			height: Math.round(ratio*$("stream-image").naturalHeight),
+			ratio: ratio
+		};
+	}
 
 	var __makeStringResolution = function(resolution) {
 		return `${resolution.width}x${resolution.height}`;
 	};
+
 
 	__init__();
 }
