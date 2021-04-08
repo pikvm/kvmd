@@ -264,7 +264,7 @@ export function Streamer() {
 	var __resize = function() {
 		window.streamImageLocation = __calculateImageRelativePosition();
 		wm.showWindow($("stream-window"), false);
-	}
+	};
 
 	var __calculateImageRelativePosition = function(){
 		let imageBoundingRect = $("stream-image").getBoundingClientRect();		
@@ -274,9 +274,9 @@ export function Streamer() {
 			y: Math.round((imageBoundingRect.height - ratio*$("stream-image").naturalHeight)/2),
 			width: Math.round(ratio*$("stream-image").naturalWidth),
 			height: Math.round(ratio*$("stream-image").naturalHeight),
-			ratio: ratio
+			ratio: ratio,
 		};
-	}
+	};
 
 	var __makeStringResolution = function(resolution) {
 		return `${resolution.width}x${resolution.height}`;
