@@ -33,10 +33,6 @@ export function Streamer() {
 	/************************************************************************/
 
 	var __resolution = {width: 640, height: 480};
-
-
-	var __size_factor = 1;
-
 	var __mjpeg_key = tools.makeId();
 	var __mjpeg_id = "";
 	var __mjpeg_fps = -1;
@@ -271,10 +267,8 @@ export function Streamer() {
 	}
 
 	var __calculateImageRelativePosition = function(){
-		let imageBoundingRect = $("stream-image").getBoundingClientRect()
-		let height = imageBoundingRect.height
-		let ratio = Math.min(imageBoundingRect.width/$("stream-image").naturalWidth, height/$("stream-image").naturalHeight);
-
+		let imageBoundingRect = $("stream-image").getBoundingClientRect();		
+		let ratio = Math.min(imageBoundingRect.width/$("stream-image").naturalWidth, imageBoundingRect.height/$("stream-image").naturalHeight);
 		return {
 			x: Math.round((imageBoundingRect.width - ratio*$("stream-image").naturalWidth)/2),
 			y: Math.round((imageBoundingRect.height - ratio*$("stream-image").naturalHeight)/2),

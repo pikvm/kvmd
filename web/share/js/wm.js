@@ -255,10 +255,10 @@ function __WindowManager() {
 		}else{
 			el_window.style.padding = "0px 0px 0px 0px";
 		}
-	}
+	};
 	var __fullScreenWindow = function(el_window) {
 		el_window.requestFullscreen();
-		if ('keyboard' in navigator && 'lock' in navigator.keyboard) {
+		if ("keyboard" in navigator && "lock" in navigator.keyboard) {
 			navigator.keyboard.lock();
 		}else{
 			$("keyboard-lock-alert").style.visibility="visible";
