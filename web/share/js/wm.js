@@ -59,9 +59,9 @@ function __WindowManager() {
 			__makeWindowMovable(el_window);
 			__windows.push(el_window);
 
-			let el_button = el_window.querySelector(".window-header .window-button-close");
-			if (el_button) {
-				tools.setOnClick(el_button, function() {
+			let el_close_button = el_window.querySelector(".window-header .window-button-close");
+			if (el_close_button) {
+				tools.setOnClick(el_close_button, function() {
 					let close_window = function() {
 						__closeWindow(el_window);
 						__activateLastWindow(el_window);
@@ -78,6 +78,22 @@ function __WindowManager() {
 					}
 				});
 			}
+
+			let el_maximize_button = el_window.querySelector(".window-header .window-button-maximize");
+			if (el_maximize_button) {
+				tools.setOnClick(el_maximize_button, function() {
+					__maximizeWindow(el_window);
+					__activateLastWindow(el_window);
+				});
+			}
+
+			let el_full_screen_button = el_window.querySelector(".window-header .window-button-full-screen");
+			if (el_full_screen_button) {
+				tools.setOnClick(el_full_screen_button, function() {
+					__fullScreenWindow(el_window);
+					__activateLastWindow(el_window);
+				});
+			}
 		}
 
 		window.onmouseup = __globalMouseButtonHandler;
@@ -88,6 +104,8 @@ function __WindowManager() {
 
 		window.addEventListener("resize", __organizeWindowsOnResize);
 		window.addEventListener("orientationchange", __organizeWindowsOnResize);
+
+		document.onfullscreenchange = __onFullScreenChange;
 	};
 
 	/************************************************************************/
@@ -472,6 +490,38 @@ function __WindowManager() {
 
 		el_grab.onmousedown = startMoving;
 		el_grab.ontouchstart = startMoving;
+	};
+
+	var __onFullScreenChange = function(event) {
+		let el_window = event.target;
+		if (!document.fullscreenElement) {
+			el_window.style.padding = "";
+		} else {
+			el_window.style.padding = "0px 0px 0px 0px";
+		}
+	};
+
+	var __fullScreenWindow = function(el_window) {
+		el_window.requestFullscreen();
+		if ("keyboard" in navigator && "lock" in navigator.keyboard) {
+			navigator.keyboard.lock();
+		} else {
+			let el_lock_alert = el_window.querySelector(".window-lock-alert");
+			if (el_lock_alert) {
+				tools.hiddenSetVisible(el_lock_alert, true);
+				setTimeout(function() {
+					tools.hiddenSetVisible(el_lock_alert, false);
+				}, 7000);
+			}
+		}
+	};
+
+	var __maximizeWindow = function(el_window) {
+		let vertical_offset = $("navbar").offsetHeight;
+		el_window.style.left = "0px";
+		el_window.style.top = vertical_offset + "px";
+		el_window.style.width = window.innerWidth + "px";
+		el_window.style.height = window.innerHeight - vertical_offset + "px";
 	};
 
 	__init__();

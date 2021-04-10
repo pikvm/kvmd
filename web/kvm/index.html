@@ -131,24 +131,7 @@
               </td>
               <td class="value" id="stream-desired-fps-value">0</td>
             </tr>
-            <tr>
-              <td>Stream size:</td>
-              <td>
-                <input class="slider" type="range" id="stream-size-slider">
-              </td>
-              <td class="value" id="stream-size-value" style="width: 4em">100%</td>
-            </tr>
           </table>
-          <hr>
-              <table class="kv">
-                <td>Auto-resize stream window:</td>
-                <td align="right">
-                  <div class="switch-box">
-                    <input checked type="checkbox" id="stream-auto-resize-switch">
-                    <label for="stream-auto-resize-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                  </div>
-                </td>
-              </table>
           <hr>
           <div class="buttons buttons-row">
             <button class="row33" data-force-hide-menu id="show-stream-button">&bull; Show stream</button>
@@ -473,35 +456,44 @@
         </div>
       </li>
     </ul>
-        <div class="window" id="stream-window" data-close-confirm="Do you want to close the stream? This action will temporarily stop&lt;br&gt;the video transmission until you open the broadcast again.&lt;br&gt;This can be useful for saving traffic.">
-          <div class="window-header" id="stream-window-header">
-            <div class="window-grab">Stream</div>
-            <button class="window-button-close">&times;</button>
+    <div class="window window-resizable" id="stream-window" data-close-confirm="Do you want to close the stream? This action will temporarily stop&lt;br&gt;the video transmission until you open the broadcast again.&lt;br&gt;This can be useful for saving traffic.">
+      <div class="window-header" id="stream-window-header">
+        <div class="window-grab">Stream</div>
+        <button class="window-button-close">&times;</button>
+        <button class="window-button-maximize">&#9744;</button>
+        <button class="window-button-full-screen">&#10530;</button>
+      </div>
+      <div id="stream-info"></div>
+      <div class="stream-box-inactive" id="stream-box">
+        <div class="window-lock-alert hidden"><b>Failed to acquire keyboard lock.<br>Shortcuts like Alt+Tab, Ctrl+W, Ctrl+N might not be captured.</b><br>
+          <br>
+          For best keyboard handling use a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Keyboard_API#Browser_compatibility">browser with keyboard lock support API</a>.<br>
+          In Chrome use HTTPS and enable <i>system-keyboard-lock</i> by putting at URL <i>chrome://flags/#system-keyboard-lock</i>.<br>
+          More details on keyboard lock API are <a href="https://wicg.github.io/keyboard-lock/" target="_blank">here</a>.
+        </div><img class="stream-image-inactive" id="stream-image" src="/share/png/blank-stream.png">
+      </div>
+      <div class="keypad" id="stream-mouse-buttons" align="center">
+        <div class="keypad-block">
+          <div class="keypad-row">
+            <div class="key wide-4 left small" data-code="left"><span>Mouse<br>Left</span></div>
+            <div class="modifier wide-2 left small" data-code="left"><span><b>&bull;</b><br>&larr; Hold</span></div>
+            <div class="empty-key" style="width:10px"></div>
+            <div class="key wide-2 left small" data-code="middle"><span>Mouse<br>Middle</span></div>
+            <div class="modifier wide-2 left small" data-code="middle"><span><b>&bull;</b><br>&larr; Hold</span></div>
+            <div class="empty-key" style="width:10px"></div>
+            <div class="modifier wide-2 right small" data-code="right"><span><b>&bull;</b><br>Hold &rarr;</span></div>
+            <div class="key wide-4 right small" data-code="right"><span>Mouse<br>Right</span></div>
           </div>
-          <div id="stream-info"></div>
-          <div class="stream-box-inactive" id="stream-box"><img class="stream-image-inactive" id="stream-image" src="/share/png/blank-stream.png"></div>
-          <div class="keypad" id="stream-mouse-buttons" align="center">
-            <div class="keypad-block">
-              <div class="keypad-row">
-                <div class="key wide-4 left small" data-code="left"><span>Mouse<br>Left</span></div>
-                <div class="modifier wide-2 left small" data-code="left"><span><b>&bull;</b><br>&larr; Hold</span></div>
-                <div class="empty-key" style="width:10px"></div>
-                <div class="key wide-2 left small" data-code="middle"><span>Mouse<br>Middle</span></div>
-                <div class="modifier wide-2 left small" data-code="middle"><span><b>&bull;</b><br>&larr; Hold</span></div>
-                <div class="empty-key" style="width:10px"></div>
-                <div class="modifier wide-2 right small" data-code="right"><span><b>&bull;</b><br>Hold &rarr;</span></div>
-                <div class="key wide-4 right small" data-code="right"><span>Mouse<br>Right</span></div>
-              </div>
-              <div class="keypad-row" style="display:none">
-                <div class="key wide-4 left small" data-code="up"><span>Mouse<br>Up/Back</span></div>
-                <div class="modifier wide-2 left small" data-code="up"><span><b>&bull;</b><br>&larr; Hold</span></div>
-                <div class="empty-key" style="width:10px"></div>
-                <div class="modifier wide-2 right small" data-code="down"><span><b>&bull;</b><br>Hold &rarr;</span></div>
-                <div class="key wide-4 right small" data-code="down"><span>Mouse<br>Down/Fw</span></div>
-              </div>
-            </div>
+          <div class="keypad-row" style="display:none">
+            <div class="key wide-4 left small" data-code="up"><span>Mouse<br>Up/Back</span></div>
+            <div class="modifier wide-2 left small" data-code="up"><span><b>&bull;</b><br>&larr; Hold</span></div>
+            <div class="empty-key" style="width:10px"></div>
+            <div class="modifier wide-2 right small" data-code="down"><span><b>&bull;</b><br>Hold &rarr;</span></div>
+            <div class="key wide-4 right small" data-code="down"><span>Mouse<br>Down/Fw</span></div>
           </div>
         </div>
+      </div>
+    </div>
         <div class="window" id="keyboard-window" data-close-confirm="">
           <div class="window-header" id="keyboard-window-header">
             <div class="window-grab">Virtual Keyboard</div>

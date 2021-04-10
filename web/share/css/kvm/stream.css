@@ -20,11 +20,19 @@
 *****************************************************************************/
 
 
+div#stream-window {
+	min-width: 400px;
+	min-height: 200px;
+}
+
 div#stream-info {
 	display: none;
 }
 
 div#stream-box {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
 	position: relative;
 	display: inline-block;
 	border: var(--border-window-thin);
@@ -45,8 +53,9 @@ div.stream-box-mouse-enabled {
 }
 
 img#stream-image {
-	width: 640px;
-	height: 480px;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
 	display: block;
 	background-color: black;
 }
