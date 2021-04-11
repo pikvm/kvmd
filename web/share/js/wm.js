@@ -501,12 +501,20 @@ function __WindowManager() {
 		let el_window = event.target;
 		if (!document.fullscreenElement) {
 			el_window.style.padding = "";
+			let rect = el_window.before_full_screen;
+			if (rect) {
+				el_window.style.width = rect.width + "px";
+				el_window.style.height = rect.height + "px";
+				el_window.style.top = rect.top + "px";
+				el_window.style.left = rect.left + "px";
+			}
 		} else {
 			el_window.style.padding = "0px 0px 0px 0px";
 		}
 	};
 
 	var __fullScreenWindow = function(el_window) {
+		el_window.before_full_screen = el_window.getBoundingClientRect();
 		el_window.requestFullscreen();
 		if ("keyboard" in navigator && "lock" in navigator.keyboard) {
 			navigator.keyboard.lock();
