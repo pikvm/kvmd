@@ -346,6 +346,11 @@ function __WindowManager() {
 	};
 
 	var __organizeWindow = function(el_window, center=false) {
+		// При перетаскивании resizable-окна за правый кран экрана оно ужимается.
+		// Этот костыль фиксит это.
+		el_window.style.width = el_window.offsetWidth + "px";
+		el_window.style.width = el_window.offsetWidth + "px";
+
 		let view = self.getViewGeometry();
 		let rect = el_window.getBoundingClientRect();
 
