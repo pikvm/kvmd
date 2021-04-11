@@ -271,7 +271,6 @@ export function Streamer() {
 			"width": Math.round(ratio * width),
 			"height": Math.round(ratio * height),
 		};
-		wm.showWindow($("stream-window"), false);
 	};
 
 	var __makeStringResolution = function(resolution) {
