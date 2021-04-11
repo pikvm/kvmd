@@ -354,6 +354,12 @@ function __WindowManager() {
 		let view = self.getViewGeometry();
 		let rect = el_window.getBoundingClientRect();
 
+		if (el_window.classList.contains("window-resizable") && rect.bottom > view.bottom) {
+			// При переполнении рабочей области сократить окно снизу
+			el_window.style.height = el_window.offsetHeight - (rect.bottom - view.bottom) + "px";
+			rect = el_window.getBoundingClientRect();
+		}
+
 		if (el_window.hasAttribute("data-centered") || center) {
 			el_window.style.top = Math.max(view.top, Math.round((view.bottom - rect.height) / 2)) + "px";
 			el_window.style.left = Math.round((view.right - rect.width) / 2) + "px";

@@ -114,6 +114,7 @@ export function Streamer() {
 			let resolution_str = __makeStringResolution(state.streamer.source.resolution);
 			if (__makeStringResolution(__resolution) != resolution_str) {
 				__resolution = state.streamer.source.resolution;
+				wm.showWindow($("stream-window"), false);
 			}
 
 			if (state.features.resolution) {
