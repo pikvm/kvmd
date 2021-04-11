@@ -40,6 +40,18 @@ div.window-resizable {
 div.window-active {
 	border: var(--border-intensive-2px) !important;
 }
+div.window-resizable.window-active::-webkit-resizer {
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 0 0 20px 20px;
+	border-color: transparent transparent var(--cs-corner-bg) transparent;
+	/* border-bottom-right-radius: 8px; */
+	/* Size does not work */
+	display:block;
+	width: 20px !important;
+	height: 20px !important;
+}
 div.window-full-screen {
 	position: absolute;
 	top: 0;
