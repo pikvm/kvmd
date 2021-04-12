@@ -78,9 +78,12 @@ div#stream-mouse-buttons {
 	div#stream-window {
 		padding-top: 3px !important;
 		border-top: 0 !important;
-		border-radius: 0 0 8px 8px !important;
+		border-left: 0 !important;
+		border-right: 0 !important;
+		border-radius: 0 !important;
 		top: 50px !important;
 		left: 50% !important;
+		width: 100% !important;
 		-webkit-transform: translateX(-50%) !important;
 		transform: translateX(-50%) !important;
 	}
