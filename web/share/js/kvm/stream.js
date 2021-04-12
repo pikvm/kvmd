@@ -54,17 +54,12 @@ export function Streamer() {
 		tools.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.setOnClick($("stream-reset-button"), __clickResetButton);
 
-		try {
-			new ResizeObserver(__resize).observe($("stream-window"));
-		} catch (err) {
-			tools.info("ResizeObserver not supported");
-		}
-
 		$("stream-window").show_hook = function() {
 			if (__state_for_invisible !== null) {
 				self.setState(__state_for_invisible);
 			}
 		};
+		$("stream-window").resize_hook = __resizeHook;
 	};
 
 	/************************************************************************/
@@ -90,7 +85,7 @@ export function Streamer() {
 		if (state && state.streamer) {
 			if (!window.ResizeObserver) {
 				// Browsers that don't support this API(on lower versions of iOS for example)
-				__resize();
+				__resizeHook();
 			}
 
 			if (!$("stream-quality-slider").activated) {
@@ -112,9 +107,8 @@ export function Streamer() {
 			}
 
 			let resolution_str = __makeStringResolution(state.streamer.source.resolution);
-			if (__makeStringResolution(__resolution) != resolution_str) {
+			if (__makeStringResolution(__resolution) !== resolution_str) {
 				__resolution = state.streamer.source.resolution;
-				wm.showWindow($("stream-window"), false);
 			}
 
 			if (state.features.resolution) {
@@ -261,7 +255,7 @@ export function Streamer() {
 		});
 	};
 
-	var __resize = function() {
+	var __resizeHook = function() {
 		let rect = $("stream-image").getBoundingClientRect();
 		let width = $("stream-image").naturalWidth;
 		let height = $("stream-image").naturalHeight;
