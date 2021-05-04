@@ -31,17 +31,17 @@ for _variant in "${_variants[@]}"; do
 	pkgname+=(kvmd-platform-$_platform-$_board)
 done
 pkgbase=kvmd
-pkgver=2.37
+pkgver=2.62
 pkgrel=1
 pkgdesc="The main Pi-KVM daemon"
 url="https://github.com/pikvm/kvmd"
 license=(GPL)
 arch=(any)
 depends=(
-	"python>=3.9"
+	"python>=3.9.3-1.1"
 	"python<3.10"
 	python-yaml
-	python-aiohttp
+	"python-aiohttp>=3.7.4.post0-1.1"
 	python-aiofiles
 	python-passlib
 	python-pyserial
@@ -63,18 +63,27 @@ depends=(
 	openssl
 	platformio
 	avrdude-svn
+	wiringpi
 	make
 	patch
 	sudo
 	iptables
 	iproute2
 	dnsmasq
+	ipmitool
 	"raspberrypi-io-access>=0.5"
 	"ustreamer>=3.20"
 
 	# Avoid dhcpcd stack trace
 	dhclient
 	netctl
+
+	# Broken pillow dependency
+	libraqm
+)
+conflicts=(
+	python-pikvm
+	python-aiohttp-pikvm
 )
 makedepends=(python-setuptools)
 source=("$url/archive/v$pkgver.tar.gz")
@@ -121,8 +130,8 @@ package_kvmd() {
 	chmod 750 "$_cfg_default/os/sudoers"
 	chmod 400 "$_cfg_default/os/sudoers"/*
 
-	mkdir -p "$pkgdir/etc/kvmd/{nginx,vnc}/ssl"
-	chmod 755 "$pkgdir/etc/kvmd/{nginx,vnc}/ssl"
+	mkdir -p "$pkgdir/etc/kvmd/"{nginx,vnc}"/ssl"
+	chmod 755 "$pkgdir/etc/kvmd/"{nginx,vnc}"/ssl"
 	install -Dm444 -t "$pkgdir/etc/kvmd/nginx" "$_cfg_default/nginx"/*.conf
 	chmod 644 "$pkgdir/etc/kvmd/nginx/nginx.conf"
 

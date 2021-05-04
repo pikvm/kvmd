@@ -20,35 +20,37 @@
 # ========================================================================== #
 
 
-import os
+import contextlib
 
-from typing import IO
-from typing import Any
+from typing import Tuple
+from typing import Optional
 
-import yaml
-import yaml.nodes
+import dbus  # pylint: disable=import-error
+import dbus.exceptions
 
-from .. import tools
+from ...logging import get_logger
+
+from ... import tools
 
 
 # =====
-def load_yaml_file(path: str) -> Any:
-    with open(path) as yaml_file:
-        try:
-            return yaml.load(yaml_file, _YamlLoader)
-        except Exception as err:
-            # Reraise internal exception as standard ValueError and show the incorrect file
-            raise ValueError(f"Invalid YAML in the file {path!r}:\n{tools.efmt(err)}") from None
-
-
-class _YamlLoader(yaml.SafeLoader):
-    def __init__(self, yaml_file: IO) -> None:
-        super().__init__(yaml_file)
-        self.__root = os.path.dirname(yaml_file.name)
-
-    def include(self, node: yaml.nodes.Node) -> Any:
-        path = os.path.join(self.__root, self.construct_scalar(node))
-        return load_yaml_file(path)
-
-
-_YamlLoader.add_constructor("!include", _YamlLoader.include)
+def get_service_status(name: str) -> Optional[Tuple[bool, bool]]:
+    if not name.endswith(".service"):
+        name += ".service"
+    try:
+        with contextlib.closing(dbus.SystemBus()) as bus:
+            systemd = bus.get_object("org.freedesktop.systemd1", "/org/freedesktop/systemd1")  # pylint: disable=no-member
+            manager = dbus.Interface(systemd, dbus_interface="org.freedesktop.systemd1.Manager")
+            try:
+                unit_proxy = bus.get_object("org.freedesktop.systemd1", manager.GetUnit(name))  # pylint: disable=no-member
+                unit_properties = dbus.Interface(unit_proxy, dbus_interface="org.freedesktop.DBus.Properties")
+                started = (unit_properties.Get("org.freedesktop.systemd1.Unit", "ActiveState") == "active")
+            except dbus.exceptions.DBusException as err:
+                if "NoSuchUnit" not in str(err):
+                    raise
+                started = False
+            enabled = (manager.GetUnitFileState(name) in ["enabled", "enabled-runtime", "static", "indirect", "generated"])
+            return (enabled, started)
+    except Exception as err:
+        get_logger(0).error("Can't get info about the service %r: %s", name, tools.efmt(err))
+        return None

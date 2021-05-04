@@ -9,7 +9,11 @@ mixin about_tab(name, title, checked=false)
 			else
 				span(class="code-comment") No data
 
-+window("about-window", "About", false)
+div(id="about-window" class="window" data-show-by-button="show-about-button")
+	div(class="window-header")
+		div(class="window-grab") About
+		button(class="window-button-close") &times;
+
 	div(id="about")
 		table
 			tr
@@ -41,14 +45,18 @@ mixin about_tab(name, title, checked=false)
 					li A. Isenring
 					li Aaron Heise
 					li Accalia
+					li Adam Goodbar
 					li adipisicing
 					li Adrian Basham
 					li Alberto Bassi
 					li Aleksei Brusianskii
 					li Alessio Curri
+					li Alex T
+					li Alexander Pankov
 					li Alexandre Jablonski
 					li Alucard
 					li Andreas Marufke
+					li Andreas Schmid
 					li Andrew Reusch
 					li Andrew Ruan
 					li Andrzej V
@@ -68,15 +76,19 @@ mixin about_tab(name, title, checked=false)
 					li Ben Gordon
 					li Ben Scott
 					li Benedikt Heine
+					li Benedikt Meier
 					li Benjamin Melancon
 					li Benni Stauder
 					li Bernhard Fitzke
 					li bitjoe
 					li Bits and Bytes Computers LLC
+					li Blue Frog LLC
 					li Bootstrapper - Programmierung erklärt
+					li Bosco
 					li Bradford King
 					li Brainspore Networks
 					li Branden Shaulis
+					li Brandon Daniels
 					li Brian Moses
 					li Brian Vecchiarelli
 					li Brian White
@@ -88,17 +100,20 @@ mixin about_tab(name, title, checked=false)
 					li Carl-Fredrik Johansson
 					li cbad536
 					li Chris Burton
+					li Chris Lewis
 					li Chris Rizio
 					li Christian Schlögl
 					li Christian Svensson
 					li Christof Maluck
 					li Christoph Dette
 					li Christoffer Lund
+					li Christopher Hearn
 					li Christopher Mandlbaur
 					li Chucktastic
 					li Clifford Coleman
 					li Clinton Lee Taylor
 					li Cole Imhoff
+					li Colin Goodman
 					li Corey Layton
 					li Corey Lista
 					li Crossfactor
@@ -112,13 +127,16 @@ mixin about_tab(name, title, checked=false)
 					li David
 					li David Godibadze
 					li David Howell
+					li David Niemann
 					li David Ye
 					li David York
 					li Denis
 					li Denis Andreev
 					li Denis Yatsenko
 					li Dennis Becker
+					li Dennis Lomet
 					li Derek Yap
+					li Didrik
 					li dixon wong
 					li dizztrukshin
 					li Dmitry Shilov
@@ -131,6 +149,7 @@ mixin about_tab(name, title, checked=false)
 					li Far Pin Solutions, LLC
 					li Felyx Gabryel
 					li Fergus McKay
+					li Finn Ebenritter
 					li fo0bar
 					li Foamy
 					li Francisco Pavon
@@ -141,7 +160,9 @@ mixin about_tab(name, title, checked=false)
 					li Genkinger Andreas
 					li Georgy Brodsky
 					li Gernot Neuschröer
+					li GK
 					li Glen Dragon
+					li Greg Winterstein
 					li Gregory Smith
 					li Gregory Treantos
 					li Grey Cynic
@@ -165,6 +186,7 @@ mixin about_tab(name, title, checked=false)
 					li James Cobb
 					li James Edwards
 					li James Kocher
+					li James Mayhugh
 					li Jamie Murphy
 					li Jan Niehusmann
 					li Jari Hiltunen
@@ -177,10 +199,13 @@ mixin about_tab(name, title, checked=false)
 					li Jeff Urlwin
 					li Jennifer Rowlett
 					li Jerremy Holland
+					li Jim Harbin
+					li Jimmy Stanley
 					li Joachim Bruening
 					li Joe Ventura
 					li Joel Jacobs
 					li John Andersen
+					li John Copeland
 					li John F Glenn
 					li John Kelley
 					li John McGovern
@@ -192,6 +217,7 @@ mixin about_tab(name, title, checked=false)
 					li Joshua Futterer
 					li Jozef Riha
 					li Julian Forero
+					li Julian Schneider
 					li Justin Waters
 					li Karl Dunne
 					li Keith Muggleton
@@ -199,16 +225,25 @@ mixin about_tab(name, title, checked=false)
 					li Kenny Hui
 					li Kevin Bajohr
 					li Kevin Schwartz
+					li Kiran Schuler
+					li Koloman
 					li Krzysztof Żelaśkiewicz
+					li Larry Meaney
 					li Lars
 					li Lee Wilkinson
 					li LeeNX
+					li Leonard Feineis
 					li Lordbob75
 					li Lothar Schweikle-Droll
 					li Louis Müller
+					li Luca Di Diomede
+					li Lucio De Carli
 					li Lukas Söder
 					li Malcolm Cameron
+					li Marcio Zimbres
 					li Marcos Wolf
+					li Marius
+					li Mar. Balske
 					li Mark Gilbert
 					li Mark Robinson
 					li Markrosoft
@@ -217,15 +252,22 @@ mixin about_tab(name, title, checked=false)
 					li Markus Sobczack
 					li Marten Hermans
 					li Martin Gasser
+					li Martin Suelmann
+					li Marvin Honderboom
 					li Mateusz Grabowski
 					li Matthew Cameron
 					li Mauricio Allende
+					li Mecky
 					li Mehmet Aydoğdu
+					li Michael Bombe
+					li Michael Collins
+					li Michael Copeland
 					li Michael Kovacs
 					li Michael Lynch
 					li Michael Pennington
 					li Michael Sage
 					li MichaelZ
+					li Michel Bissonnette
 					li Milan Múčka
 					li Miles Davis
 					li Moez Tharani
@@ -233,10 +275,13 @@ mixin about_tab(name, title, checked=false)
 					li Nelson Lee
 					li Nicholas Jeppson
 					li Nicholas Kopas
+					li Nicholas Walczak
 					li Nick Leffler
 					li Nick Roethemeier
 					li Nicolai Kragh-Hansen
+					li Nihal Fernando
 					li Nils Orbat
+					li Nis Wechselberg
 					li Nithin Philips
 					li Nod Swal
 					li nubbn
@@ -244,12 +289,16 @@ mixin about_tab(name, title, checked=false)
 					li Oh Be
 					li Oliver Schwarz
 					li Oliver Zimmer
+					li Omar El-Domeiri
 					li Patrick McDowell
+					li Patrick Wagstrom
 					li Paul Bishop
 					li Pawel Trofimiuk
 					li Peder Madsen
+					li Peter Drayton
 					li Peter Farrelly
 					li Petri Heiskanen
+					li Philip Edwards
 					li Philip Merricks
 					li posicat
 					li pozitron03
@@ -257,13 +306,16 @@ mixin about_tab(name, title, checked=false)
 					li Quentin Peten
 					li Ralph Borchers
 					li Ranc1d
+					li Raphael Schitz
 					li Richard Bernarts
 					li Richard Fancher
 					li Richard Freemantle
 					li Richard Michael
 					li Rob Tongue
+					li Robert Klauco
 					li Robin Gfatter
 					li Rodion DENISYUK
+					li Rohit Priyadarshi
 					li Rolfs 3D UG
 					li Ronald LeBaron
 					li rotx
@@ -273,6 +325,7 @@ mixin about_tab(name, title, checked=false)
 					li Samuel Vetsch
 					li Satish Alwani
 					li Scott
+					li Scott Gagon
 					li Scott Spicola
 					li Scott Tusing
 					li Sean
@@ -280,6 +333,7 @@ mixin about_tab(name, title, checked=false)
 					li Sergey Lukjanov
 					li Shichun Chen
 					li Simon Evans
+					li Simon Sundgaard
 					li Simplistic Realities
 					li srepac
 					li Stefan Bautz
@@ -288,12 +342,15 @@ mixin about_tab(name, title, checked=false)
 					li Stephan Schmidt
 					li Steve Kerr
 					li Steve Ovens
+					li Steve Stringham
 					li Steven Richter
 					li sudo34
 					li Tarlak Desaydrone
+					li TechBear
 					li Ted
 					li Tejun Heo
 					li TheTechGiant
+					li Thomas Hagenmaier
 					li Thomas Price
 					li Thomas Søfteland
 					li Tim Wilkinson

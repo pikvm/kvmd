@@ -47,7 +47,7 @@ export function Session() {
 	var __hid = new Hid();
 	var __atx = new Atx();
 	var __msd = new Msd();
-	var __streamer = new Streamer();
+	var __streamer = new Streamer(__hid);
 	var __wol = new WakeOnLan();
 	var __gpio = new Gpio();
 
@@ -105,6 +105,26 @@ export function Session() {
 			tools.hiddenSetVisible($("hw-health-message-undervoltage"), undervoltage);
 			tools.hiddenSetVisible($("hw-health-message-overheating"), freq_capped);
 		}
+	};
+
+	var __setExtras = function(state) {
+		let show_hook = null;
+		let close_hook = null;
+		let has_webterm = (state.webterm && state.webterm.started);
+		if (has_webterm) {
+			let path = "/" + state.webterm.path;
+			show_hook = function() {
+				tools.info("Terminal opened: ", path);
+				$("webterm-iframe").src = path;
+			};
+			close_hook = function() {
+				tools.info("Terminal closed");
+				$("webterm-iframe").src = "";
+			};
+		}
+		tools.featureSetEnabled($("webterm"), has_webterm);
+		$("webterm-window").show_hook = show_hook;
+		$("webterm-window").close_hook = close_hook;
 	};
 
 	var __formatTemp = function(temp) {
@@ -218,9 +238,11 @@ export function Session() {
 			case "info_meta_state": __setAboutInfoMeta(data.event); break;
 			case "info_hw_state": __setAboutInfoHw(data.event); break;
 			case "info_system_state": __setAboutInfoSystem(data.event); break;
+			case "info_extras_state": __setExtras(data.event); break;
 			case "wol_state": __wol.setState(data.event); break;
 			case "gpio_model_state": __gpio.setModel(data.event); break;
 			case "gpio_state": __gpio.setState(data.event); break;
+			case "hid_keymaps_state": __hid.setKeymaps(data.event); break;
 			case "hid_state": __hid.setState(data.event); break;
 			case "atx_state": __atx.setState(data.event); break;
 			case "msd_state": __msd.setState(data.event); break;

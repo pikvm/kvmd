@@ -54,28 +54,73 @@ function __WindowManager() {
 			__menu_buttons.push(el_button);
 		}
 
+		if (!window.ResizeObserver) {
+			tools.error("ResizeObserver not supported");
+		}
+
 		for (let el_window of $$("window")) {
 			el_window.setAttribute("tabindex", "-1");
 			__makeWindowMovable(el_window);
 			__windows.push(el_window);
 
-			let el_button = el_window.querySelector(".window-header .window-button-close");
-			if (el_button) {
-				tools.setOnClick(el_button, function() {
-					let close_window = function() {
-						__closeWindow(el_window);
-						__activateLastWindow(el_window);
-					};
-					let confirm_msg = el_window.getAttribute("data-close-confirm");
-					if (confirm_msg) {
-						self.confirm(confirm_msg).then(function(ok) {
-							if (ok) {
-								close_window();
-							}
-						});
-					} else {
-						close_window();
+			if (el_window.hasAttribute("data-show-by-button")) {
+				let el_show_button = $(el_window.getAttribute("data-show-by-button"));
+				tools.setOnClick(el_show_button, () => self.showWindow(el_window));
+			}
+
+			if (el_window.classList.contains("window-resizable") && window.ResizeObserver) {
+				new ResizeObserver(function() {
+					// При переполнении рабочей области сократить размер окна по высоте.
+					// По ширине оно настраивается само в CSS.
+					let view = self.getViewGeometry();
+					let rect = el_window.getBoundingClientRect();
+					if ((rect.bottom - rect.top) > (view.bottom - view.top)) {
+						let ratio = (rect.bottom - rect.top) / (view.bottom - view.top);
+						el_window.style.height = view.bottom - view.top + "px";
+						el_window.style.width = Math.round((rect.right - rect.left) / ratio) + "px";
 					}
+
+					if (el_window.hasAttribute("data-centered")) {
+						__centerWindow(el_window);
+					}
+				}).observe(el_window);
+			}
+
+			let el_close_button = el_window.querySelector(".window-header .window-button-close");
+			if (el_close_button) {
+				el_close_button.title = "Close window";
+				tools.setOnClick(el_close_button, function() {
+					__closeWindow(el_window);
+					__activateLastWindow(el_window);
+				});
+			}
+
+			let el_maximize_button = el_window.querySelector(".window-header .window-button-maximize");
+			if (el_maximize_button) {
+				el_maximize_button.title = "Maximize window";
+				tools.setOnClick(el_maximize_button, function() {
+					__maximizeWindow(el_window);
+					__activateLastWindow(el_window);
+				});
+			}
+
+			let el_orig_button = el_window.querySelector(".window-header .window-button-original");
+			if (el_orig_button) {
+				el_orig_button.title = "Reduce window to its original size and center it";
+				tools.setOnClick(el_orig_button, function() {
+					el_window.style.width = "";
+					el_window.style.height = "";
+					__centerWindow(el_window);
+					__activateLastWindow(el_window);
+				});
+			}
+
+			let el_full_screen_button = el_window.querySelector(".window-header .window-button-full-screen");
+			if (el_full_screen_button && __getFullScreenFunction(el_window)) {
+				el_full_screen_button.title = "Go to full-screen mode";
+				tools.setOnClick(el_full_screen_button, function() {
+					__fullScreenWindow(el_window);
+					__activateLastWindow(el_window);
 				});
 			}
 		}
@@ -86,16 +131,18 @@ function __WindowManager() {
 		window.addEventListener("focusin", __focusIn);
 		window.addEventListener("focusout", __focusOut);
 
-		window.addEventListener("resize", __organizeWindowsOnResize);
-		window.addEventListener("orientationchange", __organizeWindowsOnResize);
+		window.addEventListener("resize", __organizeWindowsOnBrowserResize);
+		window.addEventListener("orientationchange", __organizeWindowsOnBrowserResize);
+
+		document.onfullscreenchange = __onFullScreenChange;
 	};
 
 	/************************************************************************/
 
-	self.error = (...args) => __modalDialog("Error", args.join(" "), true, false);
-	self.confirm = (...args) => __modalDialog("Question", args.join(" "), true, true);
+	self.error = (...args) => __modalDialog("Error", args.join(" "), true, false, null);
+	self.confirm = (...args) => __modalDialog("Question", args.join(" "), true, true, null);
 
-	var __modalDialog = function(header, text, ok, cancel) {
+	var __modalDialog = function(header, text, ok, cancel, parent) {
 		let el_active_menu = (document.activeElement && document.activeElement.closest(".menu"));
 
 		let el_modal = document.createElement("div");
@@ -168,7 +215,7 @@ function __WindowManager() {
 		}
 
 		__windows.push(el_modal);
-		document.body.appendChild(el_modal);
+		(parent || document.fullscreenElement || document.body).appendChild(el_modal);
 		__activateWindow(el_modal);
 
 		return promise;
@@ -196,7 +243,7 @@ function __WindowManager() {
 
 	self.showWindow = function(el_window, activate=true, center=false) {
 		let showed = false;
-		if (el_window.style.visibility === "hidden") {
+		if (!self.isWindowVisible(el_window)) {
 			center = true;
 			showed = true;
 		}
@@ -205,7 +252,7 @@ function __WindowManager() {
 		if (activate) {
 			__activateWindow(el_window);
 		}
-		if (Object.prototype.hasOwnProperty.call(el_window, "show_hook")) {
+		if (el_window.show_hook) {
 			if (showed) {
 				el_window.show_hook();
 			}
@@ -230,6 +277,9 @@ function __WindowManager() {
 		el_window.focus();
 		el_window.blur();
 		el_window.style.visibility = "hidden";
+		if (el_window.close_hook) {
+			el_window.close_hook();
+		}
 	};
 
 	var __toggleMenu = function(el_a) {
@@ -239,7 +289,7 @@ function __WindowManager() {
 			let el_menu = el_button.parentElement.querySelector(".menu");
 			if (el_button === el_a && window.getComputedStyle(el_menu, null).visibility === "hidden") {
 				let rect = el_menu.getBoundingClientRect();
-				let offset = self.getViewGeometry().right - (rect.x + el_menu.clientWidth + 2); // + 2 is ugly hack
+				let offset = self.getViewGeometry().right - (rect.left + el_menu.clientWidth + 2); // + 2 is ugly hack
 				if (offset < 0) {
 					el_menu.style.right = "0px";
 				} else {
@@ -319,7 +369,7 @@ function __WindowManager() {
 		}
 	};
 
-	var __organizeWindowsOnResize = function() {
+	var __organizeWindowsOnBrowserResize = function() {
 		for (let el_window of $$("window")) {
 			if (el_window.style.visibility === "visible") {
 				__organizeWindow(el_window);
@@ -331,10 +381,21 @@ function __WindowManager() {
 		let view = self.getViewGeometry();
 		let rect = el_window.getBoundingClientRect();
 
+		if (el_window.classList.contains("window-resizable")) {
+			// При переполнении рабочей области сократить размер окна
+			if ((rect.bottom - rect.top) > (view.bottom - view.top)) {
+				let ratio = (rect.bottom - rect.top) / (view.bottom - view.top);
+				el_window.style.height = view.bottom - view.top + "px";
+				el_window.style.width = Math.round((rect.right - rect.left) / ratio) + "px";
+			}
+			if ((rect.right - rect.left) > (view.right - view.left)) {
+				el_window.style.width = view.right - view.left + "px";
+			}
+			rect = el_window.getBoundingClientRect();
+		}
+
 		if (el_window.hasAttribute("data-centered") || center) {
-			el_window.style.top = Math.max(view.top, Math.round((view.bottom - rect.height) / 2)) + "px";
-			el_window.style.left = Math.round((view.right - rect.width) / 2) + "px";
-			el_window.setAttribute("data-centered", "");
+			__centerWindow(el_window);
 		} else {
 			if (rect.top <= view.top) {
 				el_window.style.top = view.top + "px";
@@ -348,6 +409,14 @@ function __WindowManager() {
 				el_window.style.left = view.right - rect.width + "px";
 			}
 		}
+	};
+
+	var __centerWindow = function(el_window) {
+		let view = self.getViewGeometry();
+		let rect = el_window.getBoundingClientRect();
+		el_window.style.top = Math.max(view.top, Math.round((view.bottom - rect.height) / 2)) + "px";
+		el_window.style.left = Math.round((view.right - rect.width) / 2) + "px";
+		el_window.setAttribute("data-centered", "");
 	};
 
 	var __activateLastWindow = function(el_except_window=null) {
@@ -415,6 +484,10 @@ function __WindowManager() {
 		let prev_pos = {x: 0, y: 0};
 
 		function startMoving(event) {
+			// При перетаскивании resizable-окна за правый кран экрана оно ужимается.
+			// Этот костыль фиксит это.
+			el_window.style.width = el_window.offsetWidth + "px";
+
 			__closeAllMenues();
 			__activateWindow(el_window);
 			event = (event || window.event);
@@ -472,6 +545,56 @@ function __WindowManager() {
 
 		el_grab.onmousedown = startMoving;
 		el_grab.ontouchstart = startMoving;
+	};
+
+	var __onFullScreenChange = function(event) {
+		let el_window = event.target;
+		if (!document.fullscreenElement) {
+			let rect = el_window.before_full_screen;
+			if (rect) {
+				el_window.style.width = rect.width + "px";
+				el_window.style.height = rect.height + "px";
+				el_window.style.top = rect.top + "px";
+				el_window.style.left = rect.left + "px";
+			}
+		}
+	};
+
+	var __fullScreenWindow = function(el_window) {
+		el_window.before_full_screen = el_window.getBoundingClientRect();
+		__getFullScreenFunction(el_window).call(el_window);
+		if (navigator.keyboard && navigator.keyboard.lock) {
+			navigator.keyboard.lock();
+		} else {
+			let msg = (
+				"Shortcuts like Alt+Tab, Ctrl+W, Ctrl+N might not be captured.<br>"
+				+ "For best keyboard handling use any browser with<br><a target=\"_blank\""
+				+ " href=\"https://developer.mozilla.org/en-US/docs/Web"
+				+ "/API/Keyboard_API#Browser_compatibility\">keyboard lock support from this list</a>.<br><br>"
+				+ "In Chrome use HTTPS and enable <i>system-keyboard-lock</i><br>"
+				+ "by putting at URL <i>chrome://flags/#system-keyboard-lock</i>"
+			);
+			__modalDialog("Keyboard lock is unsupported", msg, true, false, el_window);
+		}
+	};
+
+	var __maximizeWindow = function(el_window) {
+		let vertical_offset = $("navbar").offsetHeight;
+		el_window.style.left = "0px";
+		el_window.style.top = vertical_offset + "px";
+		el_window.style.width = window.innerWidth + "px";
+		el_window.style.height = window.innerHeight - vertical_offset + "px";
+	};
+
+	var __getFullScreenFunction = function(el_window) {
+		if (el_window.requestFullscreen) {
+			return el_window.requestFullscreen;
+		} else if (el_window.webkitRequestFullscreen) {
+			return el_window.webkitRequestFullscreen;
+		} else if (el_window.mozRequestFullscreen) {
+			return el_window.mozRequestFullscreen;
+		}
+		return null;
 	};
 
 	__init__();

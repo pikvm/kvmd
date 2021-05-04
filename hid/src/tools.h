@@ -1,4 +1,4 @@
-# ========================================================================== #
+/*****************************************************************************
 #                                                                            #
 #    KVMD - The main Pi-KVM daemon.                                          #
 #                                                                            #
@@ -17,38 +17,16 @@
 #    You should have received a copy of the GNU General Public License       #
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
-# ========================================================================== #
+*****************************************************************************/
 
 
-import os
-
-from typing import IO
-from typing import Any
-
-import yaml
-import yaml.nodes
-
-from .. import tools
+#pragma once
 
 
-# =====
-def load_yaml_file(path: str) -> Any:
-    with open(path) as yaml_file:
-        try:
-            return yaml.load(yaml_file, _YamlLoader)
-        except Exception as err:
-            # Reraise internal exception as standard ValueError and show the incorrect file
-            raise ValueError(f"Invalid YAML in the file {path!r}:\n{tools.efmt(err)}") from None
-
-
-class _YamlLoader(yaml.SafeLoader):
-    def __init__(self, yaml_file: IO) -> None:
-        super().__init__(yaml_file)
-        self.__root = os.path.dirname(yaml_file.name)
-
-    def include(self, node: yaml.nodes.Node) -> Any:
-        path = os.path.join(self.__root, self.construct_scalar(node))
-        return load_yaml_file(path)
-
-
-_YamlLoader.add_constructor("!include", _YamlLoader.include)
+bool is_micros_timed_out(unsigned long start_ts, unsigned long timeout) {
+	unsigned long now = micros();
+	return (
+		(now >= start_ts && now - start_ts > timeout)
+		|| (now < start_ts && ((unsigned long)-1) - start_ts + now > timeout)
+	);
+}
