@@ -20,31 +20,19 @@
 # ========================================================================== #
 
 
-import re
 import functools
-import errno
-import time
 
-from typing import Tuple
 from typing import Dict
 from typing import Optional
 
-import serial
 import socket
 import binascii
 
-from ...logging import get_logger
-
 from ... import aiotools
-from ... import aiomulti
-from ... import aioproc
 
 from ...yamlconf import Option
 
 from ...validators.basic import valid_number
-from ...validators.basic import valid_float_f01
-from ...validators.os import valid_abs_path
-from ...validators.hw import valid_tty_speed
 from ...validators.net import valid_ip_or_host
 from ...validators.net import valid_port
 
@@ -70,7 +58,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__tesmart_port = tesmart_port
         self.__max_ports = max_ports
         self.__switch_state: Dict[int, bool] = {}
-        self.__tes_socket: socket
+        self.__tes_socket = socket.socket()
 
     @classmethod
     def get_plugin_options(cls) -> Dict:
@@ -84,12 +72,15 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         _ = pin
         _ = debounce
 
-    def register_output(self, port: int, initial: Optional[bool]) -> None:
-        if port <= self.__max_ports:
-            self.__switch_state[port] = initial
+    def register_output(self, pin: int, initial: Optional[bool]) -> None:
+        state = False
+        if pin <= self.__max_ports:
+            if initial is not None:
+                state = initial
+            self.__switch_state[pin] = state
 
     def prepare(self) -> None:
-        self.__tes_socket = socket.create_connection((self.__tesmart_host,self.__tesmart_port))
+        self.__tes_socket = socket.create_connection((self.__tesmart_host, self.__tesmart_port))
         self.__update_state()
 
     def __update_state(self) -> None:
@@ -101,13 +92,13 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     def __get_selected_port(self) -> int:
         retint = self.__send_tesmart_command("1000")
-        return retint+1
+        return retint + 1
 
-    def __send_tesmart_command(self,tes_cmd: str) -> int:
-        full_cmd="AABB03"+tes_cmd+"EE"
+    def __send_tesmart_command(self, tes_cmd: str) -> int:
+        full_cmd = "AABB03" + tes_cmd + "EE"
         binstr = binascii.unhexlify(full_cmd)
         self.__tes_socket.sendall(binstr)
-        retstr=self.__tes_socket.recv(6)
+        retstr = self.__tes_socket.recv(6)
         return int(bytearray(retstr)[4])
 
     async def run(self) -> None:
@@ -122,10 +113,10 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return False
 
     async def write(self, pin: int, state: bool) -> None:
-        if state == False:
+        if state is False:
             return
-        part_cmd="01"+format(pin,"#04x")[2:4]
-        writeret = self.__send_tesmart_command(part_cmd)
+        part_cmd = "01" + format(pin, "#04x")[2:4]
+        self.__send_tesmart_command(part_cmd)
         self.__update_state()
 
     # =====
