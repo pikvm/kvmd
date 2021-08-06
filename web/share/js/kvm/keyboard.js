@@ -59,6 +59,18 @@ export function Keyboard(__recordWsEvent) {
 			tools.info("Keyboard: enabled Fix-Mac-CMD");
 			__fix_mac_cmd = true;
 		}
+
+		/*restore state of checkboxex and function to save theirs state*/
+		$$$('table.kv tr:not(.feature-disabled) input[type=checkbox]').forEach(function (i) {
+			let cookie = tools.getCookie(i.id);
+			if (cookie) {
+				i.checked = cookie == 1 ? true : false;
+			}
+			i.onchange = function () {
+				let state = i.checked == true ? 1 : 0;
+				document.cookie = i.id + "=" + state;
+			}
+		})
 	};
 
 	/************************************************************************/
@@ -137,6 +149,9 @@ export function Keyboard(__recordWsEvent) {
 		if (!event.repeat) {
 			// https://bugs.chromium.org/p/chromium/issues/detail?id=28089
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=1299553
+			if($("hid-ctrl-combinations-switch").checked && event.ctrlKey){
+			    __keypad.emit("ControlLeft", true, __fix_mac_cmd);
+			}
 			__keypad.emit(event.code, state, __fix_mac_cmd);
 		}
 	};
