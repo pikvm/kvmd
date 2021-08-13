@@ -589,7 +589,7 @@ export function Streamer() {
 	};
 
 	var __setIfChanged = function(el, value, callback) {
-		if (el.value !== value) {
+		if (!el.activated && el.value !== value) {
 			el.value = value;
 			callback(value);
 		}
