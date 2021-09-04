@@ -56,7 +56,6 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__ip = ip
         self.__username = username
         self.__device = device
-        self.__channel: Optional[int] = -1
 
     @classmethod
     def get_plugin_options(cls) -> Dict:
@@ -90,10 +89,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
            r = requests.get(url_status, timeout=5)
            data = r.json()
            state = data['state']['on']
-           if state == True:
-              return True
-           else:
-              return False
+           return state
         except:
            return False
 
@@ -122,7 +118,6 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         except Exception:
             get_logger(0).exception("Can't send to HUE Api on IP: %s", self.__ip)
             raise GpioDriverOfflineError(self)
-
 
     def __str__(self) -> str:
         return f"Hue({self._instance_name})"
