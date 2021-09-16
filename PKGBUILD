@@ -54,6 +54,7 @@ depends=(
 	python-dbus
 	python-pygments
 	python-pyghmi
+	python-pytesseract
 	python-pam
 	"python-pillow>=8.3.1-1"
 	python-xlib

@@ -27,6 +27,7 @@ RUN pacman -Syu --noconfirm \
 		python-passlib \
 		python-pyserial \
 		python-setproctitle \
+		python-pytesseract \
 		python-psutil \
 		python-netifaces \
 		python-systemd \

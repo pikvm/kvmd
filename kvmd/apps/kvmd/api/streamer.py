@@ -31,15 +31,18 @@ from PIL import Image
 from ....validators.basic import valid_bool
 from ....validators.basic import valid_int_f0
 from ....validators.kvm import valid_stream_quality
+from ....validators import check_string_in_list
 
 from .... import aiotools
 
-from ..http import UnavailableError
+from ..http import HttpError, UnavailableError
 from ..http import exposed_http
 from ..http import make_json_response
 
 from ..streamer import StreamerSnapshot
 from ..streamer import Streamer
+
+import pytesseract
 
 
 # =====
@@ -77,12 +80,36 @@ class StreamerApi:
             )
         raise UnavailableError()
 
+    @exposed_http("GET", "/streamer/ocrsnapshot")
+    async def __take_snapshot_ocr_handler(self, request: Request) -> Response:
+        snapshot = await self.__streamer.take_snapshot(
+            save=valid_bool(request.query.get("save", "false")),
+            load=valid_bool(request.query.get("load", "false")),
+            allow_offline=valid_bool(request.query.get("allow_offline", "false")),
+        )
+        if snapshot:
+            language = request.query.get("language", "eng")
+            available_languages = pytesseract.get_languages(config="")
+            if check_string_in_list(language, "OCR Language", available_languages):
+                data = await self.__run_ocr(snapshot=snapshot, language=language)
+                return Response(
+                    body=data,
+                    headers=dict(snapshot.headers),
+                    content_type="text/plain",
+                )
+            else:
+                raise HttpError(f"Requested language ${language} not installed. Available languages : ${available_languages}", 500)
+        raise UnavailableError()
+
     @exposed_http("DELETE", "/streamer/snapshot")
     async def __remove_snapshot_handler(self, _: Request) -> Response:
         self.__streamer.remove_snapshot()
         return make_json_response()
 
     # =====
+
+    async def __run_ocr(self, snapshot: StreamerSnapshot, language: str) -> str:
+        return pytesseract.image_to_string(Image.open(io.BytesIO(snapshot.data)), lang=language)
 
     async def __make_preview(self, snapshot: StreamerSnapshot, max_width: int, max_height: int, quality: int) -> bytes:
         if max_width == 0 and max_height == 0:
