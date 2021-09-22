@@ -163,6 +163,7 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
         cmd: List[str],
         cmd_remove: List[str],
         cmd_append: List[str],
+        use_shell: bool,
 
         **params_kwargs: Any,
     ) -> None:
@@ -180,6 +181,7 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
         self.__process_name_prefix = process_name_prefix
 
         self.__cmd = tools.build_cmd(cmd, cmd_remove, cmd_append)
+        self.__use_shell = use_shell
 
         self.__params = _StreamerParams(**params_kwargs)
 
@@ -431,7 +433,7 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
             )
             for part in self.__cmd
         ]
-        self.__streamer_proc = await aioproc.run_process(cmd)
+        self.__streamer_proc = await aioproc.run_process(cmd, use_shell = self.__use_shell)
         get_logger(0).info("Started streamer pid=%d: %s", self.__streamer_proc.pid, cmd)
 
     async def __kill_streamer_proc(self) -> None:

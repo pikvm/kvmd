@@ -21,6 +21,7 @@
 
 
 import os
+import signal
 import asyncio
 import asyncio.subprocess
 import logging
@@ -39,25 +40,35 @@ from .logging import get_logger
 async def run_process(
     cmd: List[str],
     err_to_null: bool=False,
+    use_shell: bool=False,
     env: Optional[Dict[str, str]]=None,
 ) -> asyncio.subprocess.Process:  # pylint: disable=no-member
-
-    return (await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=(asyncio.subprocess.DEVNULL if err_to_null else asyncio.subprocess.STDOUT),
-        preexec_fn=os.setpgrp,
-        env=env,
-    ))
+    if use_shell:
+        return (await asyncio.create_subprocess_shell(
+            ' '.join(cmd),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=(asyncio.subprocess.DEVNULL if err_to_null else asyncio.subprocess.STDOUT),
+            preexec_fn=os.setpgrp,
+            env=env,
+        ))
+    else:
+        return (await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=(asyncio.subprocess.DEVNULL if err_to_null else asyncio.subprocess.STDOUT),
+            preexec_fn=os.setpgrp,
+            env=env,
+        ))
 
 
 async def read_process(
     cmd: List[str],
     err_to_null: bool=False,
+    use_shell: bool=False,
     env: Optional[Dict[str, str]]=None,
 ) -> Tuple[asyncio.subprocess.Process, str]:  # pylint: disable=no-member
 
-    proc = await run_process(cmd, err_to_null, env)
+    proc = await run_process(cmd, err_to_null, use_shell, env)
     (stdout, _) = await proc.communicate()
     return (proc, stdout.decode(errors="ignore").strip())
 
@@ -92,14 +103,17 @@ async def log_stdout_infinite(proc: asyncio.subprocess.Process, logger: logging.
 async def kill_process(proc: asyncio.subprocess.Process, wait: float, logger: logging.Logger) -> None:  # pylint: disable=no-member
     if proc.returncode is None:
         try:
-            proc.terminate()
+            #We use killpg to kill any processes spawned by the top-level process;
+            #This is needed for processes created with use_shell/create_subprocess_shell
+            pgid = os.getpgid(proc.pid)
+            os.killpg(pgid,signal.SIGTERM)
             await asyncio.sleep(wait)
-            if proc.returncode is None:
-                try:
-                    proc.kill()
-                except Exception:
-                    if proc.returncode is not None:
-                        raise
+            process_exited_by_sigterm = proc.returncode is not None
+            try:
+                os.killpg(pgid,signal.SIGKILL)
+            except Exception:
+                if not process_exited_by_sigterm and proc.returncode is not None:
+                    raise
             await proc.wait()
             logger.info("Process killed: pid=%d; retcode=%d", proc.pid, proc.returncode)
         except asyncio.CancelledError:

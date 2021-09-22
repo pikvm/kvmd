@@ -445,6 +445,7 @@ def _get_config_scheme() -> Dict:
                 "cmd":        Option(["/bin/true"], type=valid_command),
                 "cmd_remove": Option([], type=valid_options),
                 "cmd_append": Option([], type=valid_options),
+                "use_shell":  Option(False, type=valid_bool),
             },
 
             "snapshot": {
