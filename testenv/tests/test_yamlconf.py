@@ -20,4 +20,23 @@
 # ========================================================================== #
 
 
-__version__ = "3.26"
+import pathlib
+import textwrap
+
+from kvmd.yamlconf.loader import load_yaml_file
+
+
+# =====
+def test_load_yaml_file__bools(tmp_path: pathlib.Path) -> None:  # type: ignore
+    pobj = tmp_path / "test.yaml"
+    pobj.write_text(textwrap.dedent("""
+        a: true
+        b: false
+        c: yes
+        d: no
+    """))
+    data = load_yaml_file(str(pobj))
+    assert data["a"] is True
+    assert data["b"] is False
+    assert data["c"] == "yes"
+    assert data["d"] == "no"

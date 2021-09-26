@@ -67,7 +67,7 @@ def main() -> None:
 
     setup(
         name="kvmd",
-        version="3.23",
+        version="3.26",
         url="https://github.com/pikvm/kvmd",
         license="GPLv3",
         author="Maxim Devaev",
@@ -106,6 +106,7 @@ def main() -> None:
             "kvmd.apps.vnc",
             "kvmd.apps.vnc.rfb",
             "kvmd.apps.janus",
+            "kvmd.apps.watchdog",
             "kvmd.helpers",
             "kvmd.helpers.otgmsd",
             "kvmd.helpers.otgmsd.unlock",
@@ -133,6 +134,7 @@ def main() -> None:
                 "kvmd-ipmi = kvmd.apps.ipmi:main",
                 "kvmd-vnc = kvmd.apps.vnc:main",
                 "kvmd-janus = kvmd.apps.janus:main",
+                "kvmd-watchdog = kvmd.apps.watchdog:main",
                 "kvmd-helper-otgmsd-unlock = kvmd.helpers.otgmsd.unlock:main",
                 "kvmd-helper-otgmsd-remount = kvmd.helpers.otgmsd.remount:main",
             ],
@@ -140,7 +142,7 @@ def main() -> None:
 
         classifiers=[
             "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-            "Development Status :: 4 - Beta",
+            "Development Status :: 5 - Production/Stable",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
