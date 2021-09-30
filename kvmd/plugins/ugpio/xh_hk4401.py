@@ -4,7 +4,7 @@
 #                                                                            #
 #    Copyright (C) 2018-2021  Maxim Devaev <mdevaev@gmail.com>               #
 #                  2021-2021  Sebastian Goscik <sebastian.goscik@live.co.uk> #
-#                                                                            # 
+#                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
 #    the Free Software Foundation, either version 3 of the License, or       #
@@ -176,7 +176,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                 try:
                     channel = int(found[-1][2:4])
                 except Exception:
-                    return (None, data) 
+                    return (None, data)
                 assert 1 <= channel <= 4
         return (channel, data)
 
