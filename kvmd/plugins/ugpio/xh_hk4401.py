@@ -87,7 +87,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return functools.partial(valid_number, min=1, max=4, name="XH-HK4401 channel")
+        return functools.partial(valid_number, min=0, max=3, name="XH-HK4401 channel")
 
     def prepare(self) -> None:
         assert self.__proc is None
@@ -174,15 +174,15 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
             if found:
                 try:
-                    channel = int(found[-1][2:4])
+                    channel = int(found[-1][2:4])-1
                 except Exception:
                     return (None, data)
-                assert 1 <= channel <= 4
+                assert 0 <= channel <= 3
         return (channel, data)
 
     def __send_channel(self, tty: serial.Serial, channel: int) -> None:
-        assert 1 <= channel <= 4
-        cmd = "SW{port}\r\nAG{port:02d}gA".format(port=channel).encode()
+        assert 0 <= channel <= 3
+        cmd = "SW{port}\r\nAG{port:02d}gA".format(port=channel+1).encode()
         tty.write(cmd)
         tty.flush()
 
