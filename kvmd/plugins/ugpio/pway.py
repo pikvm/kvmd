@@ -178,25 +178,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             # When you switch ports you see something like "VGA_SWITCH_CONTROL=[0-15]" for ports 1-16
             found = re.findall(b"VGA_SWITCH_CONTROL=[0-9]*", data)
             if found:
-                channel = {
-                    # This is a mess yes I'm sure someone can optimize this lookup table; I may if I ever learn to code...
-                    b"VGA_SWITCH_CONTROL=0": 1,
-                    b"VGA_SWITCH_CONTROL=1": 2,
-                    b"VGA_SWITCH_CONTROL=2": 3,
-                    b"VGA_SWITCH_CONTROL=3": 4,
-                    b"VGA_SWITCH_CONTROL=4": 5,
-                    b"VGA_SWITCH_CONTROL=5": 6,
-                    b"VGA_SWITCH_CONTROL=6": 7,
-                    b"VGA_SWITCH_CONTROL=7": 8,
-                    b"VGA_SWITCH_CONTROL=8": 9,
-                    b"VGA_SWITCH_CONTROL=9": 10,
-                    b"VGA_SWITCH_CONTROL=10": 11,
-                    b"VGA_SWITCH_CONTROL=11": 12,
-                    b"VGA_SWITCH_CONTROL=12": 13,
-                    b"VGA_SWITCH_CONTROL=13": 14,
-                    b"VGA_SWITCH_CONTROL=14": 15,
-                    b"VGA_SWITCH_CONTROL=15": 16,
-                }.get(found[-1], -1)
+            	channel = int(found[0].decode().split('=')[1]) + 1
             data = data[-8:]
         return (channel, data)
 
