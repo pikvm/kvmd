@@ -178,7 +178,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             # When you switch ports you see something like "VGA_SWITCH_CONTROL=[0-15]" for ports 1-16
             found = re.findall(b"VGA_SWITCH_CONTROL=[0-9]*", data)
             if found:
-            	channel = int(found[0].decode().split('=')[1]) + 1
+            	   channel = int(found[0].decode().split('=')[1]) + 1
             data = data[-8:]
         return (channel, data)
 
