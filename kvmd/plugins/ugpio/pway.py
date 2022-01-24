@@ -91,7 +91,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return functools.partial(valid_number, min=1, max=16, name="PWAY channel")
+        return functools.partial(valid_number, min=0, max=15, name="PWAY channel")
 
     def prepare(self) -> None:
         assert self.__proc is None
@@ -172,18 +172,18 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         if tty.in_waiting:
             data += tty.read_all()
             # When you switch ports you see something like "VGA_SWITCH_CONTROL=[0-15]" for ports 1-16
-            # Note that the recv is 0-based index, while send is 1-based. We add 1 to the value to 
-            # normalize with the 1-based index for the defined pins
             found = re.findall(b"VGA_SWITCH_CONTROL=[0-9]*", data)
             if found:
-                channel = int(found[0].decode().split("=")[1]) + 1
+                channel = int(found[0].decode().split("=")[1])
             data = data[-8:]
         return (channel, data)
 
     def __send_channel(self, tty: serial.Serial, channel: int) -> None:
         # Set a channel by sending PS [1-16]
+        # Note that the recv is 0-based index, while send is 1-based. We add 1 to the "channel" to 
+        # normalize for the 1-based index on send
         cmd = (b"PS")
-        tty.write(b"%s %d\r" % (cmd, channel))
+        tty.write(b"%s %d\r" % (cmd, channel + 1))
         tty.flush()
 
     def __reset(self, tty: serial.Serial) -> None:
