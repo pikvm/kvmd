@@ -146,9 +146,11 @@ class TesseractOcr:
                         right = (image.width if right < 0 else min(image.width, right))
                         bottom = (image.height if bottom < 0 else min(image.height, bottom))
                         if left < right and top < bottom:
-                            image.crop((left, top, right, bottom))
+                            image_cropped = image.crop((left, top, right, bottom))
+                            _libtess.TessBaseAPISetImage(api, image_cropped.tobytes("raw", "RGB"), image_cropped.width, image_cropped.height , 3, image_cropped.width * 3)
+                        else:
+                            _libtess.TessBaseAPISetImage(api, image.tobytes("raw", "RGB"), image.width, image.height , 3, image.width * 3)
 
-                    _libtess.TessBaseAPISetImage(api, image.tobytes("raw", "RGB"), image.width, image.height, 3, image.width * 3)
                     text_ptr = None
                     try:
                         text_ptr = _libtess.TessBaseAPIGetUTF8Text(api)
