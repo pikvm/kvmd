@@ -39,7 +39,7 @@ class Plugin(BaseAuthService):
         secret: str,
         user: str,
         passwd: str,
-        timeout: float,
+        timeout: int,
     ) -> None:
 
         self.__hostsrv = hostsrv
@@ -57,14 +57,13 @@ class Plugin(BaseAuthService):
             "secret":  Option(""),
             "user":    Option(""),
             "passwd":  Option(""),
-            "timeout": Option(5.0),
+            "timeout": Option(5),
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        assert user == user.strip()
-        assert user
+        user = user.strip()
         try:
-            r = radius.Radius(self.__secret, host=self.__hostsrv, port=self.__port)
+            r = radius.Radius(self.__secret, host=self.__hostsrv, port=self.__port, timeout=self.__timeout)
             return r.authenticate(user,  passwd)
         except:
             return False
