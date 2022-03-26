@@ -61,5 +61,8 @@ class Plugin(BaseAuthService):
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        r = radius.Radius(self.__secret, self.__hostsrv, self.__port)
-        return r.authenticate(self.__user,  self.__passwd)
+        try:
+            r = radius.Radius(self.__secret, host=self.__hostsrv, port=self.__port)
+            return r.authenticate(self.__user,  self.__passwd)
+        except:
+            return False
