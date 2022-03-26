@@ -34,7 +34,7 @@ import radius
 class Plugin(BaseAuthService):
     def __init__(  # pylint: disable=super-init-not-called
         self,
-        hostsrv: str,
+        host: str,
         port: int,
         secret: str,
         user: str,
@@ -42,7 +42,7 @@ class Plugin(BaseAuthService):
         timeout: int,
     ) -> None:
 
-        self.__hostsrv = hostsrv
+        self.__host = host
         self.__port = port
         self.__secret = secret
         self.__user = user
@@ -52,18 +52,18 @@ class Plugin(BaseAuthService):
     @classmethod
     def get_plugin_options(cls) -> Dict:
         return {
-            "hostsrv":     Option("localhost"),
-            "port":  Option(1812),
+            "host":     Option("localhost",type=valid_ip_or_host),
+            "port":  Option(1812,type=valid_port),
             "secret":  Option(""),
             "user":    Option(""),
             "passwd":  Option(""),
-            "timeout": Option(5),
+            "timeout": Option(5,type=valid_int_f1),
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
         user = user.strip()
         try:
-            r = radius.Radius(self.__secret, host=self.__hostsrv, port=self.__port, timeout=self.__timeout)
+            r = radius.Radius(self.__secret, host=self.__host, port=self.__port, timeout=self.__timeout)
             return r.authenticate(user,  passwd)
         except:
             return False
