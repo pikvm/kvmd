@@ -22,6 +22,7 @@
 
 import importlib
 import functools
+import os
 
 from typing import Dict
 from typing import Type
@@ -56,6 +57,10 @@ def get_plugin_class(sub: str, name: str) -> Type[BasePlugin]:
         raise UnknownPluginError(f"Unknown plugin '{sub}/{name}'")
     try:
         print(f"kvmd.plugins.{sub}.{name}")
+        cwd = os.getcwd()
+
+        # Print the current working directory
+        print("Current working directory: {0}".format(cwd))
         module = importlib.import_module(f"kvmd.plugins.{sub}.{name}")
     except ModuleNotFoundError:
         raise UnknownPluginError(f"Unknown plugin '{sub}/{name}'")
