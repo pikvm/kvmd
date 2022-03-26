@@ -19,16 +19,26 @@
 #                                                                            #
 # ========================================================================== #
 
+#
+# For some reason this needs the two following files in /
+#  https://raw.githubusercontent.com/AndrewAubury/kvmd/master/kvmd/plugins/auth/radius.py
+#  https://github.com/pyradius/pyrad/raw/master/example/dictionary.freeradius
+#
 
 from typing import Dict
 
 from ...yamlconf import Option
 
 from ...validators.os import valid_abs_file
+from ...validators.net import valid_port
+from ...validators.net import valid_ip_or_host
+from ...validators.basic import valid_int_f1
 
 from . import BaseAuthService
 
-import radius
+from pyrad.client import Client
+from pyrad.dictionary import Dictionary
+import pyrad.packet 
 
 # =====
 class Plugin(BaseAuthService):
@@ -63,7 +73,11 @@ class Plugin(BaseAuthService):
     async def authorize(self, user: str, passwd: str) -> bool:
         user = user.strip()
         try:
-            r = radius.Radius(self.__secret, host=self.__host, port=self.__port, timeout=self.__timeout)
-            return r.authenticate(user,  passwd)
+            srv = Client(server=self.__host, secret=self.__secret.encode('ascii'), timeout=self.__timeout, dict=Dictionary("dictionary"))
+            req = srv.CreateAuthPacket(code=pyrad.packet.AccessRequest, User_Name=user)
+            req["User-Password"] = req.PwCrypt(passwd)
+            # send request
+            reply = srv.SendPacket(req)
+            return (reply.code == pyrad.packet.AccessAccept)
         except:
             return False
