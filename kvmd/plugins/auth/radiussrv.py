@@ -57,7 +57,7 @@ class Plugin(BaseAuthService):
             "secret":  Option(""),
             "user":    Option(""),
             "passwd":  Option(""),
-            "timeout": Option(5.0, type=valid_float_f01),
+            "timeout": Option(5.0),
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
