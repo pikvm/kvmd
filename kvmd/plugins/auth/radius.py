@@ -52,7 +52,7 @@ _FREERADUIS_DICT = textwrap.dedent("""
     ATTRIBUTE	FreeRADIUS-Statistics-Type		127	integer
     ATTRIBUTE   User-Name       1   string
     ATTRIBUTE   User-Password       2   string
-    
+
     VALUE	FreeRADIUS-Statistics-Type	None					0
     VALUE	FreeRADIUS-Statistics-Type	Authentication			1
     VALUE	FreeRADIUS-Statistics-Type	Accounting				2
