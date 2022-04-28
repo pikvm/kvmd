@@ -53,8 +53,8 @@ div.window-resizable.window-active::-webkit-resizer {
 	height: 20px !important;
 }
 div.window:fullscreen {
-	border: 0px; /* prevents fullscreen focus-loss jiggling */
-	border-radius: 0px; /* fix full-screen focus-loss rounded corner cutoff */
+	border: 0px;
+	border-radius: 0px;
 	resize: none !important;
 	position: absolute !important;
 	top: 0px !important;
