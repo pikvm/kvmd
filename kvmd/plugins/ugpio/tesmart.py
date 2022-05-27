@@ -85,7 +85,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return functools.partial(valid_number, min=0, max=15, name="Tesmart channel")
+        return functools.partial(valid_number, min=0, max=15, name="TESmart channel")
 
     async def run(self) -> None:
         prev_active = -2
@@ -123,7 +123,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             await asyncio.wait_for(writer.drain(), timeout=self.__timeout)
             return (await asyncio.wait_for(reader.readexactly(6), timeout=self.__timeout))[4]
         except Exception as err:
-            get_logger(0).error("Can't send command to Tesmart KVM [%s]:%d: %s",
+            get_logger(0).error("Can't send command to TESmart KVM [%s]:%d: %s",
                                 self.__host, self.__port, tools.efmt(err))
             await self.__close_device()
             raise GpioDriverOfflineError(self)
@@ -136,7 +136,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                     timeout=self.__timeout,
                 )
             except Exception as err:
-                get_logger(0).error("Can't connect to Tesmart KVM [%s]:%d: %s",
+                get_logger(0).error("Can't connect to TESmart KVM [%s]:%d: %s",
                                     self.__host, self.__port, tools.efmt(err))
                 raise GpioDriverOfflineError(self)
             else:
@@ -154,6 +154,6 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     # =====
 
     def __str__(self) -> str:
-        return f"Tesmart({self._instance_name})"
+        return f"TESmart({self._instance_name})"
 
     __repr__ = __str__
