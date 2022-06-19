@@ -33,7 +33,11 @@
 
 #include <Arduino.h>
 #ifdef HID_DYNAMIC
-#	include <avr/eeprom.h>
+#ifdef ARDUINO_ARCH_AVR
+#include <avr/eeprom.h>
+#else
+#include <stm32f1_rtc.h>
+#endif
 #endif
 
 #include "tools.h"
@@ -45,7 +49,9 @@
 #	include "aum.h"
 #endif
 #include "usb/hid.h"
+#ifdef HID_WITH_PS2
 #include "ps2/hid.h"
+#endif
 
 
 // -----------------------------------------------------------------------------
@@ -53,17 +59,31 @@ static UsbKeyboard *_usb_kbd = NULL;
 static UsbMouseAbsolute *_usb_mouse_abs = NULL;
 static UsbMouseRelative *_usb_mouse_rel = NULL;
 
+#	ifdef HID_WITH_PS2
 static Ps2Keyboard *_ps2_kbd = NULL;
+#endif
 
 #ifdef HID_DYNAMIC
 static bool _reset_required = false;
 
+#ifndef ARDUINO_ARCH_AVR
+STM32F1_RTC rtc;
+#define BACKUP_REGISTRY_INDEX 1
+#endif
+
 static int _readOutputs(void) {
 	uint8_t data[8];
+#ifdef ARDUINO_ARCH_AVR
 	eeprom_read_block(data, 0, 8);
 	if (data[0] != PROTO::MAGIC || PROTO::crc16(data, 6) != PROTO::merge8(data[6], data[7])) {
 		return -1;
 	}
+#else
+	PROTO::split16(rtc.getBackupRegister(BACKUP_REGISTRY_INDEX), &data[0], &data[1]);
+	if (data[0] != PROTO::MAGIC) {
+		return -1;
+	}
+#endif
 	return data[1];
 }
 
@@ -78,8 +98,14 @@ static void _writeOutputs(uint8_t mask, uint8_t outputs, bool force) {
 	uint8_t data[8] = {0};
 	data[0] = PROTO::MAGIC;
 	data[1] = (old & ~mask) | outputs;
+#ifdef ARDUINO_ARCH_AVR
 	PROTO::split16(PROTO::crc16(data, 6), &data[6], &data[7]);
 	eeprom_update_block(data, 0, 8);
+#else
+	rtc.enableBackupWrites();
+	rtc.setBackupRegister(BACKUP_REGISTRY_INDEX, PROTO::merge8(data[0], data[1]));
+	rtc.disableBackupWrites();
+#endif
 }
 #endif
 
@@ -129,9 +155,9 @@ static void _initOutputs() {
 		case PROTO::OUTPUTS1::MOUSE::USB_REL: _usb_mouse_rel = new UsbMouseRelative(); break;
 #	endif
 	}
-
+#	ifdef ARDUINO_ARCH_AVR
 	USBDevice.attach();
-
+#	endif
 	switch (kbd) {
 #	ifdef HID_WITH_USB
 		case PROTO::OUTPUTS1::KEYBOARD::USB: _usb_kbd->begin(); break;
@@ -190,9 +216,12 @@ static void _cmdClearHid(const uint8_t *_) { // 0 bytes
 static void _cmdKeyEvent(const uint8_t *data) { // 2 bytes
 	if (_usb_kbd) {
 		_usb_kbd->sendKey(data[0], data[1]);
-	} else if (_ps2_kbd) {
+	} 
+#	ifdef HID_WITH_PS2
+	else if (_ps2_kbd) {
 		_ps2_kbd->sendKey(data[0], data[1]);
 	}
+#endif
 }
 
 static void _cmdMouseButtonEvent(const uint8_t *data) { // 2 bytes
@@ -287,11 +316,14 @@ static void _sendResponse(uint8_t code) {
 			response[1] |= _usb_kbd->getOfflineAs(PROTO::PONG::KEYBOARD_OFFLINE);
 			response[1] |= _usb_kbd->getLedsAs(PROTO::PONG::CAPS, PROTO::PONG::SCROLL, PROTO::PONG::NUM);
 			response[2] |= PROTO::OUTPUTS1::KEYBOARD::USB;
-		} else if (_ps2_kbd) {
+		}
+#	ifdef HID_WITH_PS2
+		 else if (_ps2_kbd) {
 			response[1] |= _ps2_kbd->getOfflineAs(PROTO::PONG::KEYBOARD_OFFLINE);
 			response[1] |= _ps2_kbd->getLedsAs(PROTO::PONG::CAPS, PROTO::PONG::SCROLL, PROTO::PONG::NUM);
 			response[2] |= PROTO::OUTPUTS1::KEYBOARD::PS2;
 		}
+#endif
 		if (_usb_mouse_abs) {
 			response[1] |= _usb_mouse_abs->getOfflineAs(PROTO::PONG::MOUSE_OFFLINE);
 			if (_usb_mouse_abs->isWin98FixEnabled()) {
@@ -330,9 +362,14 @@ static void _sendResponse(uint8_t code) {
 #	endif
 }
 
+#ifdef ARDUINO_ARCH_AVR
 int main() {
 	init(); // Embedded
 	initVariant(); // Arduino
+#else
+void setup(){
+	rtc.enableClockInterface();
+#endif
 	_initOutputs();
 
 #	ifdef AUM
@@ -386,5 +423,12 @@ int main() {
 		}
 #		endif
 	}
+#ifdef ARDUINO_ARCH_AVR
 	return 0;
+#endif
 }
+
+
+#ifndef ARDUINO_ARCH_AVR
+void loop(){}
+#endif

@@ -4,6 +4,9 @@ spi:
 	make _build E=spi
 aum:
 	make _build E=aum
+stm32:
+	make _build E=stm32
+all: stm32 aum spi serial
 _build:
 	rm -f .current
 	platformio run --environment $(E)

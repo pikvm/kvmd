@@ -25,9 +25,9 @@
 #include <Arduino.h>
 #include <HID-Project.h>
 
-#include "../tools.h"
+#include "tools.h"
 #ifdef AUM
-#	include "../aum.h"
+#	include "aum.h"
 #endif
 #include "keymap.h"
 
