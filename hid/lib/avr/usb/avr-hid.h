@@ -104,12 +104,12 @@ class UsbKeyboard {
 
 		CLS_GET_OFFLINE_AS(_kbd)
 
-		uint8_t getLedsAs(uint8_t caps, uint8_t scroll, uint8_t num) {
+		uint8_t getLedsAs() {
 			uint8_t leds = _kbd.getLeds();
 			uint8_t result = 0;
-			if (leds & LED_CAPS_LOCK) result |= caps;
-			if (leds & LED_SCROLL_LOCK) result |= scroll;
-			if (leds & LED_NUM_LOCK) result |= num;
+			if (leds & LED_CAPS_LOCK) result |= PROTO::PONG::CAPS;
+			if (leds & LED_SCROLL_LOCK) result |= PROTO::PONG::SCROLL;
+			if (leds & LED_NUM_LOCK) result |= PROTO::PONG::NUM;
 			return result;
 		}
 

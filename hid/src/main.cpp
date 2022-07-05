@@ -251,7 +251,7 @@ static void _sendResponse(uint8_t code) {
 #		endif
 		if (_kbd->getType()) {
 			response[1] |= _kbd->isOffline() ? PROTO::PONG::KEYBOARD_OFFLINE : 0;
-			response[1] |= _kbd->getLedsAs(PROTO::PONG::CAPS, PROTO::PONG::SCROLL, PROTO::PONG::NUM);
+			response[1] |= _kbd->getLedsAs();
 			response[2] |= _kbd->getType();
 		}
 		

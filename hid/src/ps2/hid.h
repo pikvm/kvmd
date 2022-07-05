@@ -78,13 +78,14 @@ class Ps2Keyboard {
 			return false;
 		}
 
-		uint8_t getLedsAs(uint8_t caps, uint8_t scroll, uint8_t num) {
+		uint8_t getLedsAs() {
 			uint8_t result = 0;
 
 			periodic();
-			if (_leds & 0b00000100) result |= caps;
-			if (_leds & 0b00000001) result |= scroll;
-			if (_leds & 0b00000010) result |= num;
+
+			if (_leds & 0b00000100) result |= PROTO::PONG::CAPS;
+			if (_leds & 0b00000001) result |= PROTO::PONG::SCROLL;
+			if (_leds & 0b00000010) result |= PROTO::PONG::NUM;
 			return result;
 		}
 
