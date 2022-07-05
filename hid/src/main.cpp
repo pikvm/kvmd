@@ -132,11 +132,9 @@ static void _initOutputs() {
 	}
 #	endif
 
-	uint8_t kbd = outputs & PROTO::OUTPUTS1::KEYBOARD::MASK;
-	_kbd = kvmd::Factory::makeKeyboard(kbd);
+	_kbd = kvmd::Factory::makeKeyboard(outputs & PROTO::OUTPUTS1::KEYBOARD::MASK);
 
-	uint8_t mouse = outputs & PROTO::OUTPUTS1::MOUSE::MASK;
-	_usb_mouse = kvmd::Factory::makeMouse(mouse);
+	_usb_mouse = kvmd::Factory::makeMouse(outputs & PROTO::OUTPUTS1::MOUSE::MASK);
 
 #	ifdef ARDUINO_ARCH_AVR
 	USBDevice.attach();
