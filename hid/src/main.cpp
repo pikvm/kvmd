@@ -30,6 +30,7 @@
 #	error CMD phy is not defined
 #endif
 
+#include "factory.h"
 
 #include <Arduino.h>
 #ifdef HID_DYNAMIC
@@ -53,15 +54,9 @@
 #include "ps2/hid.h"
 #endif
 
-
 // -----------------------------------------------------------------------------
-static UsbKeyboard *_usb_kbd = NULL;
-static UsbMouseAbsolute *_usb_mouse_abs = NULL;
-static UsbMouseRelative *_usb_mouse_rel = NULL;
-
-#	ifdef HID_WITH_PS2
-static Ps2Keyboard *_ps2_kbd = NULL;
-#endif
+static kvmd::Keyboard *_kbd = nullptr;
+static kvmd::UsbMouse *_usb_mouse = nullptr;
 
 #ifdef HID_DYNAMIC
 static bool _reset_required = false;
@@ -138,48 +133,18 @@ static void _initOutputs() {
 #	endif
 
 	uint8_t kbd = outputs & PROTO::OUTPUTS1::KEYBOARD::MASK;
-	switch (kbd) {
-#	ifdef HID_WITH_USB
-		case PROTO::OUTPUTS1::KEYBOARD::USB: _usb_kbd = new UsbKeyboard(); break;
-#	endif
-#	ifdef HID_WITH_PS2
-		case PROTO::OUTPUTS1::KEYBOARD::PS2: _ps2_kbd = new Ps2Keyboard(); break;
-#	endif
-	}
+	_kbd = kvmd::Factory::makeKeyboard(kbd);
 
 	uint8_t mouse = outputs & PROTO::OUTPUTS1::MOUSE::MASK;
-	switch (mouse) {
-#	ifdef HID_WITH_USB
-		case PROTO::OUTPUTS1::MOUSE::USB_ABS:
-		case PROTO::OUTPUTS1::MOUSE::USB_WIN98: _usb_mouse_abs = new UsbMouseAbsolute(); break;
-		case PROTO::OUTPUTS1::MOUSE::USB_REL: _usb_mouse_rel = new UsbMouseRelative(); break;
-#	endif
-	}
+	_usb_mouse = kvmd::Factory::makeMouse(mouse);
+
 #	ifdef ARDUINO_ARCH_AVR
 	USBDevice.attach();
 #	endif
-	switch (kbd) {
-#	ifdef HID_WITH_USB
-		case PROTO::OUTPUTS1::KEYBOARD::USB: _usb_kbd->begin(); break;
-#	endif
-#	ifdef HID_WITH_PS2
-		case PROTO::OUTPUTS1::KEYBOARD::PS2: _ps2_kbd->begin(); break;
-#	endif
-	}
 
-	switch (mouse) {
-#	ifdef HID_WITH_USB
-		case PROTO::OUTPUTS1::MOUSE::USB_ABS:
-#		ifdef HID_WITH_USB_WIN98
-		case PROTO::OUTPUTS1::MOUSE::USB_WIN98:
-#		endif
-			_usb_mouse_abs->begin(mouse == PROTO::OUTPUTS1::MOUSE::USB_WIN98);
-			break;
-		case PROTO::OUTPUTS1::MOUSE::USB_REL: _usb_mouse_rel->begin(); break;
-#	endif
-	}
+	_kbd->begin();
+	_usb_mouse->begin();
 }
-
 
 // -----------------------------------------------------------------------------
 static void _cmdSetKeyboard(const uint8_t *data) { // 1 bytes
@@ -203,71 +168,45 @@ static void _cmdSetConnected(const uint8_t *data) { // 1 byte
 }
 
 static void _cmdClearHid(const uint8_t *_) { // 0 bytes
-	if (_usb_kbd) {
-		_usb_kbd->clear();
-	}
-	if (_usb_mouse_abs) {
-		_usb_mouse_abs->clear();
-	} else if (_usb_mouse_rel) {
-		_usb_mouse_rel->clear();
-	}
+	_kbd->clear();
+	_usb_mouse->clear();
 }
 
 static void _cmdKeyEvent(const uint8_t *data) { // 2 bytes
-	if (_usb_kbd) {
-		_usb_kbd->sendKey(data[0], data[1]);
-	} 
-#	ifdef HID_WITH_PS2
-	else if (_ps2_kbd) {
-		_ps2_kbd->sendKey(data[0], data[1]);
-	}
-#endif
+	_kbd->sendKey(data[0], data[1]);
 }
 
 static void _cmdMouseButtonEvent(const uint8_t *data) { // 2 bytes
 #	define MOUSE_PAIR(_state, _button) \
 		_state & PROTO::CMD::MOUSE::_button::SELECT, \
 		_state & PROTO::CMD::MOUSE::_button::STATE
-#	define SEND_BUTTONS(_hid) \
-		_hid->sendButtons( \
-			MOUSE_PAIR(data[0], LEFT), \
-			MOUSE_PAIR(data[0], RIGHT), \
-			MOUSE_PAIR(data[0], MIDDLE), \
-			MOUSE_PAIR(data[1], EXTRA_UP), \
-			MOUSE_PAIR(data[1], EXTRA_DOWN) \
+
+	_usb_mouse->sendButtons( \
+			MOUSE_PAIR(data[0], LEFT),
+			MOUSE_PAIR(data[0], RIGHT),
+			MOUSE_PAIR(data[0], MIDDLE),
+			MOUSE_PAIR(data[1], EXTRA_UP),
+			MOUSE_PAIR(data[1], EXTRA_DOWN)
 		);
-	if (_usb_mouse_abs) {
-		SEND_BUTTONS(_usb_mouse_abs);
-	} else if (_usb_mouse_rel) {
-		SEND_BUTTONS(_usb_mouse_rel);
-	}
-#	undef SEND_BUTTONS
+
 #	undef MOUSE_PAIR
 }
 
 static void _cmdMouseMoveEvent(const uint8_t *data) { // 4 bytes
 	// See /kvmd/apps/otg/hid/keyboard.py for details
-	if (_usb_mouse_abs) {
-		_usb_mouse_abs->sendMove(
+	_usb_mouse->sendMove(
 			PROTO::merge8_int(data[0], data[1]),
 			PROTO::merge8_int(data[2], data[3])
 		);
-	}
 }
 
 static void _cmdMouseRelativeEvent(const uint8_t *data) { // 2 bytes
-	if (_usb_mouse_rel) {
-		_usb_mouse_rel->sendRelative(data[0], data[1]);
-	}
+	_usb_mouse->sendRelative(data[0], data[1]);
 }
 
 static void _cmdMouseWheelEvent(const uint8_t *data) { // 2 bytes
 	// Y only, X is not supported
-	if (_usb_mouse_abs) {
-		_usb_mouse_abs->sendWheel(data[1]);
-	} else if (_usb_mouse_rel) {
-		_usb_mouse_rel->sendWheel(data[1]);
-	}
+	_usb_mouse->sendWheel(data[1]);
 }
 
 static uint8_t _handleRequest(const uint8_t *data) { // 8 bytes
@@ -312,29 +251,17 @@ static void _sendResponse(uint8_t code) {
 		}
 		response[2] = PROTO::OUTPUTS1::DYNAMIC;
 #		endif
-		if (_usb_kbd) {
-			response[1] |= _usb_kbd->getOfflineAs(PROTO::PONG::KEYBOARD_OFFLINE);
-			response[1] |= _usb_kbd->getLedsAs(PROTO::PONG::CAPS, PROTO::PONG::SCROLL, PROTO::PONG::NUM);
-			response[2] |= PROTO::OUTPUTS1::KEYBOARD::USB;
+		if (_kbd->getType()) {
+			response[1] |= _kbd->getOfflineAs(PROTO::PONG::KEYBOARD_OFFLINE);
+			response[1] |= _kbd->getLedsAs(PROTO::PONG::CAPS, PROTO::PONG::SCROLL, PROTO::PONG::NUM);
+			response[2] |= _kbd->getType();
 		}
-#	ifdef HID_WITH_PS2
-		 else if (_ps2_kbd) {
-			response[1] |= _ps2_kbd->getOfflineAs(PROTO::PONG::KEYBOARD_OFFLINE);
-			response[1] |= _ps2_kbd->getLedsAs(PROTO::PONG::CAPS, PROTO::PONG::SCROLL, PROTO::PONG::NUM);
-			response[2] |= PROTO::OUTPUTS1::KEYBOARD::PS2;
-		}
-#endif
-		if (_usb_mouse_abs) {
-			response[1] |= _usb_mouse_abs->getOfflineAs(PROTO::PONG::MOUSE_OFFLINE);
-			if (_usb_mouse_abs->isWin98FixEnabled()) {
-				response[2] |= PROTO::OUTPUTS1::MOUSE::USB_WIN98;
-			} else {
-				response[2] |= PROTO::OUTPUTS1::MOUSE::USB_ABS;
-			}
-		} else if (_usb_mouse_rel) {
-			response[1] |= _usb_mouse_rel->getOfflineAs(PROTO::PONG::MOUSE_OFFLINE);
-			response[2] |= PROTO::OUTPUTS1::MOUSE::USB_REL;
+		
+		if (_usb_mouse->getType()) {
+			response[1] |= _usb_mouse->getOfflineAs(PROTO::PONG::MOUSE_OFFLINE);
+			response[2] |= _usb_mouse->getType();
 		} // TODO: ps2
+
 #		ifdef AUM
 		response[3] |= PROTO::OUTPUTS2::CONNECTABLE;
 		if (aumIsUsbConnected()) {
@@ -390,16 +317,7 @@ void setup(){
 		aumProxyUsbVbus();
 #		endif
 
-#		ifdef HID_WITH_USB
-		if (_usb_kbd) {
-			_usb_kbd->periodic();
-		}
-#		endif
-#		ifdef HID_WITH_PS2
-		if (_ps2_kbd) {
-			_ps2_kbd->periodic();
-		}
-#		endif
+		_kbd->periodic();
 
 #		ifdef CMD_SERIAL
 		if (CMD_SERIAL.available() > 0) {

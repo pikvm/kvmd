@@ -20,12 +20,21 @@
 *****************************************************************************/
 
 
-#pragma once
+#include "proto.h"
 
-static bool is_micros_timed_out(unsigned long start_ts, unsigned long timeout) {
-	unsigned long now = micros();
-	return (
-		(now >= start_ts && now - start_ts > timeout)
-		|| (now < start_ts && ((unsigned long)-1) - start_ts + now > timeout)
-	);
+uint16_t PROTO::crc16(const uint8_t *buffer, unsigned length) {
+	const uint16_t polinom = 0xA001;
+	uint16_t crc = 0xFFFF;
+	for (unsigned byte_count = 0; byte_count < length; ++byte_count) {
+		crc = crc ^ buffer[byte_count];
+		for (unsigned bit_count = 0; bit_count < 8; ++bit_count) {
+			if ((crc & 0x0001) == 0) {
+				crc = crc >> 1;
+			} else {
+				crc = crc >> 1;
+				crc = crc ^ polinom;
+			}
+		}
+	}
+	return crc;
 }

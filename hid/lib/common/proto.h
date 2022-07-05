@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <stdint.h>
 
 namespace PROTO {
 	const uint8_t MAGIC			= 0x33;
@@ -109,23 +110,7 @@ namespace PROTO {
 		};
 	};
 
-	uint16_t crc16(const uint8_t *buffer, unsigned length) {
-		const uint16_t polinom = 0xA001;
-		uint16_t crc = 0xFFFF;
-
-		for (unsigned byte_count = 0; byte_count < length; ++byte_count) {
-			crc = crc ^ buffer[byte_count];
-			for (unsigned bit_count = 0; bit_count < 8; ++bit_count) {
-				if ((crc & 0x0001) == 0) {
-					crc = crc >> 1;
-				} else {
-					crc = crc >> 1;
-					crc = crc ^ polinom;
-				}
-			}
-		}
-		return crc;
-	}
+	uint16_t crc16(const uint8_t *buffer, unsigned length);
 
 	inline int merge8_int(uint8_t from_a, uint8_t from_b) {
 		return (((int)from_a << 8) | (int)from_b);
