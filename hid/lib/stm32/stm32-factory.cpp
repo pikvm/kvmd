@@ -14,7 +14,8 @@ kvmd::Keyboard* kvmd::Factory::makeKeyboard(uint8_t kbd)
 	switch (kbd) {
 #	ifdef HID_WITH_USB
 		case PROTO::OUTPUTS1::KEYBOARD::USB:
-            return new stm32::UsbKeyboard();
+			//TODO add instance of HID
+            return new stm32::UsbKeyboard(nullptr);
 #	endif
 #	ifdef HID_WITH_PS2
 		case PROTO::OUTPUTS1::KEYBOARD::PS2:

@@ -42,7 +42,7 @@
 #		define CHECK_AUM_USB
 #	endif
 #	define CLS_GET_OFFLINE_AS(_hid) \
-		uint8_t getOfflineAs(uint8_t offline) { \
+		bool isOffline() { \
 			CHECK_AUM_USB; \
 			uint8_t ep = _hid.getPluggedEndpoint(); \
 			uint8_t intr_state = SREG; \
@@ -51,16 +51,16 @@
 			bool rw_allowed = UEINTX & (1 << RWAL); \
 			SREG = intr_state; \
 			if (rw_allowed) { \
-				return 0; \
+				return false; \
 			} \
-			return offline; \
+			return true; \
 		}
-#	define CHECK_HID_EP { if (getOfflineAs(1)) return; }
+#	define CHECK_HID_EP { if (isOffline()) return; }
 
 #else
 #	define CLS_GET_OFFLINE_AS(_hid) \
-		uint8_t getOfflineAs(uint8_t offline) { \
-			return 0; \
+		bool isOffline() { \
+			return false; \
 		}
 #	define CHECK_HID_EP
 
@@ -79,7 +79,7 @@ class UsbKeyboard {
 			static unsigned long prev_ts = 0;
 			if (is_micros_timed_out(prev_ts, 50000)) {
 				static bool prev_online = true;
-				bool online = !getOfflineAs(1);
+				bool online = !isOffline();
 				if (!_sent || (online && !prev_online)) {
 					_sendCurrent();
 				}
@@ -119,7 +119,7 @@ class UsbKeyboard {
 
 		void _sendCurrent() {
 #			ifdef HID_USB_CHECK_ENDPOINT
-			if (getOfflineAs(1)) {
+			if (isOffline()) {
 				_sent = false;
 			} else {
 #			endif

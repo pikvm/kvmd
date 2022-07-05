@@ -19,6 +19,6 @@ namespace kvmd
 		virtual void sendRelative(int x, int y) {}
 		virtual void sendWheel(int delta_y) {}
 		virtual uint8_t getType() { return 0; }
-		virtual uint8_t getOfflineAs(uint8_t offline) { return 0; }
+		virtual bool isOffline() { return false; }
 	};
 }

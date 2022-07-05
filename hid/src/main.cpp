@@ -250,13 +250,13 @@ static void _sendResponse(uint8_t code) {
 		response[2] = PROTO::OUTPUTS1::DYNAMIC;
 #		endif
 		if (_kbd->getType()) {
-			response[1] |= _kbd->getOfflineAs(PROTO::PONG::KEYBOARD_OFFLINE);
+			response[1] |= _kbd->isOffline() ? PROTO::PONG::KEYBOARD_OFFLINE : 0;
 			response[1] |= _kbd->getLedsAs(PROTO::PONG::CAPS, PROTO::PONG::SCROLL, PROTO::PONG::NUM);
 			response[2] |= _kbd->getType();
 		}
 		
 		if (_usb_mouse->getType()) {
-			response[1] |= _usb_mouse->getOfflineAs(PROTO::PONG::MOUSE_OFFLINE);
+			response[1] |= _usb_mouse->isOffline () ? PROTO::PONG::MOUSE_OFFLINE : 0;
 			response[2] |= _usb_mouse->getType();
 		} // TODO: ps2
 
