@@ -5,7 +5,7 @@
 
 //TODO implement
 
-namespace kvmd::stm32
+namespace kvmd::avr
 {
     class UsbMouseRelative : public UsbMouse
     {
