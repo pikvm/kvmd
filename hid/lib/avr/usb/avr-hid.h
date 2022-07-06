@@ -38,7 +38,7 @@
 // https://github.com/arduino/ArduinoCore-avr/blob/2f67c916f6ab6193c404eebe22efe901e0f9542d/cores/arduino/USBCore.cpp#L249
 // https://sourceforge.net/p/arduinomidilib/svn/41/tree/branch/3.1/Teensy/teensy_core/usb_midi/usb_api.cpp#l103
 #	ifdef AUM
-#		define CHECK_AUM_USB { if (!aumIsUsbConnected()) { return offline; } }
+#		define CHECK_AUM_USB { if (!aumIsUsbConnected()) { return true; } }
 #	else
 #		define CHECK_AUM_USB
 #	endif
