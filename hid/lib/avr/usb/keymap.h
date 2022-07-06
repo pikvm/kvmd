@@ -25,7 +25,7 @@
 #include <HID-Project.h>
 
 
-KeyboardKeycode keymapUsb(uint8_t code) {
+static KeyboardKeycode keymapUsb(uint8_t code) {
 	switch (code) {
 		case 1: return KEY_A;
 		case 2: return KEY_B;

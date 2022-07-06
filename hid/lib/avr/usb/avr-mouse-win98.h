@@ -9,6 +9,6 @@ namespace kvmd::avr
     class UsbMouseAbsoluteWin98 : public UsbMouseAbsolute
     {
     public:
-        uint8_t getType() { return PROTO::OUTPUTS1::MOUSE::USB_WIN98; }
+        uint8_t getType() override { return PROTO::OUTPUTS1::MOUSE::USB_WIN98; }
     };
 }

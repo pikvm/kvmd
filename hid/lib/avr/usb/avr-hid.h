@@ -24,6 +24,7 @@
 
 #include <Arduino.h>
 #include <HID-Project.h>
+#include "proto.h"
 
 #include "tools.h"
 #ifdef AUM
@@ -41,8 +42,8 @@
 #	else
 #		define CHECK_AUM_USB
 #	endif
-#	define CLS_GET_OFFLINE_AS(_hid) \
-		bool isOffline() { \
+#	define CLS_IS_OFFLINE(_hid) \
+		bool isOffline() override { \
 			CHECK_AUM_USB; \
 			uint8_t ep = _hid.getPluggedEndpoint(); \
 			uint8_t intr_state = SREG; \
@@ -58,23 +59,23 @@
 #	define CHECK_HID_EP { if (isOffline()) return; }
 
 #else
-#	define CLS_GET_OFFLINE_AS(_hid) \
-		bool isOffline() { \
+#	define CLS_IS_OFFLINE(_hid) \
+		bool isOffline() override { \
 			return false; \
 		}
 #	define CHECK_HID_EP
 
 #endif
 
-class UsbKeyboard {
+class UsbKeyboard : public kvmd::Keyboard {
 	public:
 		UsbKeyboard() {}
 
-		void begin() {
+		void begin() override {
 			_kbd.begin();
 		}
 
-		void periodic() {
+		void periodic() override {
 #			ifdef HID_USB_CHECK_ENDPOINT
 			static unsigned long prev_ts = 0;
 			if (is_micros_timed_out(prev_ts, 50000)) {
@@ -89,11 +90,11 @@ class UsbKeyboard {
 #			endif
 		}
 
-		void clear() {
+		void clear() override {
 			_kbd.releaseAll();
 		}
 
-		void sendKey(uint8_t code, bool state) {
+		void sendKey(uint8_t code, bool state) override {
 			KeyboardKeycode usb_code = keymapUsb(code);
 			if (usb_code != KEY_ERROR_UNDEFINED) {
 				if (state ? _kbd.add(usb_code) : _kbd.remove(usb_code)) {
@@ -102,9 +103,9 @@ class UsbKeyboard {
 			}
 		}
 
-		CLS_GET_OFFLINE_AS(_kbd)
+		CLS_IS_OFFLINE(_kbd)
 
-		uint8_t getLedsAs() {
+		uint8_t getLedsAs() override {
 			uint8_t leds = _kbd.getLeds();
 			uint8_t result = 0;
 			if (leds & LED_CAPS_LOCK) result |= PROTO::PONG::CAPS;
@@ -137,7 +138,7 @@ class UsbKeyboard {
 			bool middle_select, bool middle_state, \
 			bool up_select, bool up_state, \
 			bool down_select, bool down_state \
-		) { \
+		) override { \
 			if (left_select) _sendButton(MOUSE_LEFT, left_state); \
 			if (right_select) _sendButton(MOUSE_RIGHT, right_state); \
 			if (middle_select) _sendButton(MOUSE_MIDDLE, middle_state); \
@@ -145,37 +146,33 @@ class UsbKeyboard {
 			if (down_select) _sendButton(MOUSE_NEXT, down_state); \
 		}
 
-class UsbMouseAbsolute {
+class UsbMouseAbsolute : public kvmd::UsbMouse {
 	public:
 		UsbMouseAbsolute() {}
 
-		void begin(bool win98_fix) {
+		void begin() override {
 			_mouse.begin();
-			_mouse.setWin98FixEnabled(win98_fix);
+			_mouse.setWin98FixEnabled(getType() == PROTO::OUTPUTS1::MOUSE::USB_WIN98);
 		}
 
-		bool isWin98FixEnabled() {
-			return _mouse.isWin98FixEnabled();
-		}
-
-		void clear() {
+		void clear() override {
 			_mouse.releaseAll();
 		}
 
 		CLS_SEND_BUTTONS
 
-		void sendMove(int x, int y) {
+		void sendMove(int x, int y) override {
 			CHECK_HID_EP;
 			_mouse.moveTo(x, y);
 		}
 
-		void sendWheel(int delta_y) {
+		void sendWheel(int delta_y) override {
 			// delta_x is not supported by hid-project now
 			CHECK_HID_EP;
 			_mouse.move(0, 0, delta_y);
 		}
 
-		CLS_GET_OFFLINE_AS(_mouse)
+		CLS_IS_OFFLINE(_mouse)
 
 	private:
 		SingleAbsoluteMouse_ _mouse;
@@ -187,32 +184,32 @@ class UsbMouseAbsolute {
 		}
 };
 
-class UsbMouseRelative {
+class UsbMouseRelative : public kvmd::UsbMouse {
 	public:
 		UsbMouseRelative() {}
 
-		void begin() {
+		void begin() override {
 			_mouse.begin();
 		}
 
-		void clear() {
+		void clear() override {
 			_mouse.releaseAll();
 		}
 
 		CLS_SEND_BUTTONS
 
-		void sendRelative(int x, int y) {
+		void sendRelative(int x, int y) override {
 			CHECK_HID_EP;
 			_mouse.move(x, y, 0);
 		}
 
-		void sendWheel(int delta_y) {
+		void sendWheel(int delta_y) override {
 			// delta_x is not supported by hid-project now
 			CHECK_HID_EP;
 			_mouse.move(0, 0, delta_y);
 		}
 
-		CLS_GET_OFFLINE_AS(_mouse)
+		CLS_IS_OFFLINE(_mouse)
 
 	private:
 		BootMouse_ _mouse;
@@ -225,5 +222,5 @@ class UsbMouseRelative {
 };
 
 #undef CLS_SEND_BUTTONS
-#undef CLS_GET_OFFLINE_AS
+#undef CLS_IS_OFFLINE
 #undef CHECK_HID_EP

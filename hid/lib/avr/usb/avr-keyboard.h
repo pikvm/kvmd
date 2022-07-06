@@ -2,14 +2,15 @@
 
 #include "keyboard.h"
 #include "proto.h"
+#include "avr-hid.h"
 
 //TODO implement
 
 namespace kvmd::avr
 {
-    class UsbKeyboard : public Keyboard
+    class UsbKeyboard : public ::UsbKeyboard
     {
     public:
-        uint8_t getType() { return PROTO::OUTPUTS1::KEYBOARD::USB; }
+        uint8_t getType() override { return PROTO::OUTPUTS1::KEYBOARD::USB; }
     };
 }

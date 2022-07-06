@@ -10,6 +10,6 @@ namespace kvmd::stm32
     class UsbMouseAbsolute : public UsbMouse
     {
     public:
-        uint8_t getType() { return PROTO::OUTPUTS1::MOUSE::USB_ABS; }
+        uint8_t getType() override { return PROTO::OUTPUTS1::MOUSE::USB_ABS; }
     };
 }

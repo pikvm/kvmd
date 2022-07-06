@@ -32,6 +32,11 @@
 
 #include "factory.h"
 
+#ifdef ARDUINO_ARCH_AVR
+//TODO remove this dep
+#include "usb/avr-hid.h"
+#endif
+
 #include <Arduino.h>
 #ifdef HID_DYNAMIC
 #ifdef ARDUINO_ARCH_AVR

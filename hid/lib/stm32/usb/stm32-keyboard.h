@@ -17,7 +17,7 @@ namespace kvmd::stm32
         {
         }
 
-        uint8_t getType() { return PROTO::OUTPUTS1::KEYBOARD::USB; }
+        uint8_t getType() override { return PROTO::OUTPUTS1::KEYBOARD::USB; }
 
         void clear()
         {

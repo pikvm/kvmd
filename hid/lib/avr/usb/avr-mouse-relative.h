@@ -7,10 +7,10 @@
 
 namespace kvmd::avr
 {
-    class UsbMouseRelative : public UsbMouse
+    class UsbMouseRelative : public ::UsbMouseRelative
     {
     public:
-        uint8_t getType() { return PROTO::OUTPUTS1::MOUSE::USB_REL; }
+        uint8_t getType() override { return PROTO::OUTPUTS1::MOUSE::USB_REL; }
     };
 
 }

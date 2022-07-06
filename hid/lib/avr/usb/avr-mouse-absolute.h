@@ -7,9 +7,9 @@
 
 namespace kvmd::avr
 {
-    class UsbMouseAbsolute : public UsbMouse
+    class UsbMouseAbsolute : public ::UsbMouseAbsolute
     {
     public:
-        uint8_t getType() { return PROTO::OUTPUTS1::MOUSE::USB_ABS; }
+        uint8_t getType() override { return PROTO::OUTPUTS1::MOUSE::USB_ABS; }
     };
 }
