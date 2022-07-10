@@ -27,8 +27,10 @@ import time
 from typing import Dict
 from typing import AsyncGenerator
 
-import systemd.journal
-
+try:
+    import systemd.journal
+except ModuleNotFoundError:
+    pass
 
 # =====
 class LogReader:

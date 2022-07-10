@@ -1,0 +1,53 @@
+diff --git a/src/network/getnameinfo.c b/src/network/getnameinfo.c
+index 949e181..7d3a9c3 100644
+--- a/src/network/getnameinfo.c
++++ b/src/network/getnameinfo.c
+@@ -11,7 +11,9 @@
+ #include <resolv.h>
+ #include "lookup.h"
+ #include "stdio_impl.h"
++#include <sys/un.h>
+ 
++#define MIN(a,b) ((a)<(b) ? (a) : (b))
+ #define PTR_MAX (64 + sizeof ".in-addr.arpa")
+ #define RR_PTR 12
+ 
+@@ -118,6 +120,29 @@ static int dns_parse_callback(void *c, int rr, const void *data, int len, const
+ 	
+ }
+ 
++/*
++ * getnameinfo_local():
++ * Format an local address into a printable format.
++ */
++/* ARGSUSED */
++static int
++getnameinfo_local(const struct sockaddr *sa, socklen_t salen,
++    char *host, socklen_t hostlen, char *serv, socklen_t servlen,
++    int flags __attribute__((unused)))
++{
++       const struct sockaddr_un *sun =
++           (const struct sockaddr_un *)(const void *)sa;
++       if (salen < (socklen_t) offsetof(struct sockaddr_un, sun_path)) {
++           return EAI_FAMILY;
++       }
++       if (serv != NULL && servlen > 0)
++               serv[0] = '\0';
++       if (host && hostlen > 0)
++               strncpy(host, sun->sun_path,
++                   MIN((socklen_t) sizeof(sun->sun_path) + 1, hostlen));
++       return 0;
++}
++
+ int getnameinfo(const struct sockaddr *restrict sa, socklen_t sl,
+ 	char *restrict node, socklen_t nodelen,
+ 	char *restrict serv, socklen_t servlen,
+@@ -145,6 +170,8 @@ int getnameinfo(const struct sockaddr *restrict sa, socklen_t sl,
+ 			mkptr4(ptr, a+12);
+ 		scopeid = ((struct sockaddr_in6 *)sa)->sin6_scope_id;
+ 		break;
++	case AF_LOCAL:
++		return getnameinfo_local(sa, sl, node, nodelen, serv, servlen, flags);
+ 	default:
+ 		return EAI_FAMILY;
+ 	}
