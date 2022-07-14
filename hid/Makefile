@@ -4,6 +4,8 @@ spi:
 	make _build E=spi C=avr
 aum:
 	make _build E=aum C=avr
+stm32:
+	make _build E=serial C=stm32
 _build:
 	rm -f .current .config
 	platformio run --environment $(E) --project-conf platformio-$(C).ini
@@ -11,7 +13,7 @@ _build:
 	echo -n $(C) > .config
 
 # Added to easy test all builds
-_build_all: aum spi serial
+_build_all: aum spi serial stm32
 	rm -f .current .config
 
 install: upload
@@ -25,7 +27,7 @@ upload:
 			gpioset 0 25=0; \
 		fi \
 	"
-	platformio run --environment '$($@_CURRENT)' --project-conf '$($@_CONFIG)' --target upload
+	platformio run --environment '$($@_CURRENT)' --project-conf 'platformio-$($@_CONFIG).ini' --target upload
 
 
 bootloader-spi: install-bootloader-spi
