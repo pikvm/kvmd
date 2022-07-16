@@ -19,51 +19,54 @@
 #                                                                            #
 *****************************************************************************/
 
-#include "factory.h"
-#include "usb/keyboard-stm32.h"
-#include "usb/hid-wrapper-stm32.h"
-#include "usb/mouse-absolute-stm32.h"
-#include "usb/mouse-relative-stm32.h"
+#pragma once
 
-#ifndef __STM32F1__
-#	error "Only STM32F1 is supported"
-#endif
+#include "mouse.h"
+#include "hid-wrapper-stm32.h"
+#include <USBComposite.h>
 
+namespace DRIVERS {
 
-namespace DRIVERS
-{
-	HidWrapper _hidWrapper;
+	const uint8_t reportDescriptionMouseRelative[] = {
+		HID_MOUSE_REPORT_DESCRIPTOR()
+	};
 
-	Keyboard *Factory::makeKeyboard(type _type) {
-		switch (_type) {
-#			ifdef HID_WITH_USB
-			case USB_KEYBOARD:
-				return new UsbKeyboard(_hidWrapper);
-#			endif
-			default:
-				return new Keyboard(DUMMY);
-		}
-	}
+	class UsbMouseRelative : public Mouse {
+		public:
+			UsbMouseRelative(HidWrapper& _hidWrapper) : Mouse(USB_MOUSE_RELATIVE),
+			_hidWrapper(_hidWrapper), _mouse(_hidWrapper.usbHid) {
+				_hidWrapper.addReportDescriptor(reportDescriptionMouseRelative, sizeof(reportDescriptionMouseRelative));
+			}
 
-	Mouse *Factory::makeMouse(type _type) {
-		switch(_type) {
-#			ifdef HID_WITH_USB
-			case USB_MOUSE_ABSOLUTE:
-				return new UsbMouseAbsolute(_hidWrapper);
-			case USB_MOUSE_RELATIVE:
-				return new UsbMouseRelative(_hidWrapper);
-#			endif
-			default:
-				return new Mouse(DRIVERS::DUMMY);
-		}
-	}
+			void begin() override {
+				_hidWrapper.begin();
+			}
 
-	Storage* Factory::makeStorage(type _type) {
-		switch (_type) {
-			default:
-				return new Storage(DRIVERS::DUMMY);
-		}
-	}
+			void clear() override {
+				_mouse.release(0xff);
+			}
+
+			void sendButtons (
+			bool left_select, bool left_state,
+			bool right_select, bool right_state,
+			bool middle_select, bool middle_state,
+			bool up_select, bool up_state,
+			bool down_select, bool down_state) override {
+				if(left_select) left_state ? _mouse.press(MOUSE_LEFT) : _mouse.release(MOUSE_LEFT);
+				if(right_select) right_state ? _mouse.press(MOUSE_RIGHT) : _mouse.release(MOUSE_RIGHT);
+				if(middle_select) middle_state ? _mouse.press(MOUSE_MIDDLE) : _mouse.release(MOUSE_MIDDLE);
+			}
+
+			void sendRelative(int x, int y) override {
+				_mouse.move(x, y);
+			}
+
+			bool isOffline() override {
+				return USBComposite == false;
+			}
+
+		private:
+			HidWrapper& _hidWrapper;
+			HIDMouse _mouse;
+	};
 }
-
-

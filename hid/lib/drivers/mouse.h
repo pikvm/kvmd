@@ -31,6 +31,10 @@ namespace DRIVERS {
 	struct Mouse : public Driver {
 		using Driver::Driver;
 		virtual void begin() {}
+		
+		/**
+		 * Release all keys
+		 */
 		virtual void clear() {}
 		virtual void sendButtons(
 			bool left_select, bool left_state,

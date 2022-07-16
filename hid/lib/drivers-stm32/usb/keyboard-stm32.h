@@ -19,51 +19,50 @@
 #                                                                            #
 *****************************************************************************/
 
-#include "factory.h"
-#include "usb/keyboard-stm32.h"
-#include "usb/hid-wrapper-stm32.h"
-#include "usb/mouse-absolute-stm32.h"
-#include "usb/mouse-relative-stm32.h"
+#pragma once
 
-#ifndef __STM32F1__
-#	error "Only STM32F1 is supported"
-#endif
+#include "keyboard.h"
+#include "hid-wrapper-stm32.h"
+#include <USBComposite.h>
 
+namespace DRIVERS {
 
-namespace DRIVERS
-{
-	HidWrapper _hidWrapper;
+	const uint8_t reportDescriptionKeyboard[] = {
+		HID_BOOT_KEYBOARD_REPORT_DESCRIPTOR(),
+	};
 
-	Keyboard *Factory::makeKeyboard(type _type) {
-		switch (_type) {
-#			ifdef HID_WITH_USB
-			case USB_KEYBOARD:
-				return new UsbKeyboard(_hidWrapper);
-#			endif
-			default:
-				return new Keyboard(DUMMY);
-		}
-	}
+	class UsbKeyboard : public Keyboard {
+		public:
+			UsbKeyboard(HidWrapper& _hidWrapper) : Keyboard(USB_KEYBOARD),
+				_hidWrapper(_hidWrapper), _bootKeyboard(_hidWrapper.usbHid, 0) {
+				_hidWrapper.addReportDescriptor(reportDescriptionKeyboard, sizeof(reportDescriptionKeyboard));
+			}
 
-	Mouse *Factory::makeMouse(type _type) {
-		switch(_type) {
-#			ifdef HID_WITH_USB
-			case USB_MOUSE_ABSOLUTE:
-				return new UsbMouseAbsolute(_hidWrapper);
-			case USB_MOUSE_RELATIVE:
-				return new UsbMouseRelative(_hidWrapper);
-#			endif
-			default:
-				return new Mouse(DRIVERS::DUMMY);
-		}
-	}
+			void begin() override {
+				_hidWrapper.begin();
+				_bootKeyboard.begin();
+			}
 
-	Storage* Factory::makeStorage(type _type) {
-		switch (_type) {
-			default:
-				return new Storage(DRIVERS::DUMMY);
-		}
-	}
+			void clear() override {
+				_bootKeyboard.releaseAll();
+			}
+
+			bool isOffline() override {
+				return USBComposite == false;
+			}
+
+			KeyboardLedsState getLeds() override {
+				uint8 leds = _bootKeyboard.getLEDs();
+				KeyboardLedsState result = {
+					.caps = leds & 0b00000010,
+					.scroll = false, //TODO how to implement this???
+					.num = leds & 0b00000001,
+				};
+				return result;
+			}
+
+		private:
+			HidWrapper& _hidWrapper;
+			HIDKeyboard _bootKeyboard;
+	};
 }
-
-
