@@ -5,6 +5,7 @@ spi:
 aum:
 	make _build E=aum C=avr
 stm32:
+	platformio run --environment patch --project-conf platformio-stm32.ini
 	make _build E=serial C=stm32
 _build:
 	rm -f .current .config

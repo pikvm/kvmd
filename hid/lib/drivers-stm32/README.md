@@ -16,4 +16,4 @@ TODO:
 - [ ] USB relative mouse - add whele
 - [ ] USB mouses - up down button
 - [ ] WIN98 USB mouse
-- [ ] undefine SERIAL_USB
+- [x] undefine SERIAL_USB

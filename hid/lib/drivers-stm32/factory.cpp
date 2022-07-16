@@ -28,7 +28,9 @@
 #ifndef __STM32F1__
 #	error "Only STM32F1 is supported"
 #endif
-
+#ifdef SERIAL_USB
+#	error "Disable random USB enumeration"
+#endif
 
 namespace DRIVERS
 {
