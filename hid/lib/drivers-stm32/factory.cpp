@@ -32,7 +32,12 @@
 
 namespace DRIVERS
 {
+#if 0
+	USBCompositeSerial _serial;
+	HidWrapper _hidWrapper(&_serial);
+#else
 	HidWrapper _hidWrapper;
+#endif
 
 	Keyboard *Factory::makeKeyboard(type _type) {
 		switch (_type) {
@@ -48,10 +53,10 @@ namespace DRIVERS
 	Mouse *Factory::makeMouse(type _type) {
 		switch(_type) {
 #			ifdef HID_WITH_USB
-			case USB_MOUSE_ABSOLUTE:
-				return new UsbMouseAbsolute(_hidWrapper);
-			case USB_MOUSE_RELATIVE:
-				return new UsbMouseRelative(_hidWrapper);
+			// case USB_MOUSE_ABSOLUTE:
+			// 	return new UsbMouseAbsolute(_hidWrapper);
+			// case USB_MOUSE_RELATIVE:
+			// 	return new UsbMouseRelative(_hidWrapper);
 #			endif
 			default:
 				return new Mouse(DRIVERS::DUMMY);

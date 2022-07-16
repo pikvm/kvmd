@@ -24,6 +24,7 @@
 #include "keyboard.h"
 #include "hid-wrapper-stm32.h"
 #include <USBComposite.h>
+#include "keymap.h"
 
 namespace DRIVERS {
 
@@ -47,6 +48,14 @@ namespace DRIVERS {
 				_bootKeyboard.releaseAll();
 			}
 
+			void sendKey(uint8_t code, bool state) {
+				uint16_t usb_code = keymapUsb(code);
+				if (usb_code != KEY_ERROR_UNDEFINED) {
+					usb_code += KEY_HID_OFFSET;
+					state ? _bootKeyboard.press(usb_code) : _bootKeyboard.release(usb_code);
+				}
+			}
+
 			bool isOffline() override {
 				return USBComposite == false;
 			}
@@ -64,5 +73,6 @@ namespace DRIVERS {
 		private:
 			HidWrapper& _hidWrapper;
 			HIDKeyboard _bootKeyboard;
+			static constexpr uint8 KEY_ERROR_UNDEFINED = 3;
 	};
 }
