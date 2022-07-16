@@ -10,9 +10,9 @@ TODO:
 - [ ] Persistent storage
 - [ ] SPI communication
 - [ ] PS2 keyboard
-- [ ] USB absolute mouse
+- [x] USB absolute mouse
 - [ ] USB absolute mouse - add whele
-- [ ] USB relative mouse
+- [x] USB relative mouse
 - [ ] USB relative mouse - add whele
 - [ ] USB mouses - up down button
 - [ ] WIN98 USB mouse
