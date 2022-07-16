@@ -28,7 +28,7 @@
 namespace DRIVERS {
 
 	const uint8_t reportDescriptionMouseAbsolute[] = {
-		HID_ABS_MOUSE_REPORT_DESCRIPTOR(HID_MOUSE_REPORT_ID)
+		HID_ABS_MOUSE_REPORT_DESCRIPTOR()
 	};
 
 	class UsbMouseAbsolute : public Mouse {
@@ -57,12 +57,26 @@ namespace DRIVERS {
 				if(middle_select) middle_state ? _mouse.press(MOUSE_MIDDLE) : _mouse.release(MOUSE_MIDDLE);
 			}
 
-			void sendMove(int x, int y) {
+			void sendMove(int x, int y) override {
 				_mouse.move(x, y);
 			}
 
 			bool isOffline() override {
 				return USBComposite == false;
+			}
+
+
+			void periodic() override {
+#if 0
+				static unsigned long start_ts = 0;
+				if (is_micros_timed_out(start_ts, 2000000)) {
+					static int x = 0;
+					sendMove(2000 *x, 2000 *x);
+					++x;
+					x %= 2;
+					start_ts = micros();
+				}
+#endif
 			}
 
 		private:

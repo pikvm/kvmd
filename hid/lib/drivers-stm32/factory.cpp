@@ -53,10 +53,10 @@ namespace DRIVERS
 	Mouse *Factory::makeMouse(type _type) {
 		switch(_type) {
 #			ifdef HID_WITH_USB
-			// case USB_MOUSE_ABSOLUTE:
-			// 	return new UsbMouseAbsolute(_hidWrapper);
-			// case USB_MOUSE_RELATIVE:
-			// 	return new UsbMouseRelative(_hidWrapper);
+			case USB_MOUSE_ABSOLUTE:
+				return new UsbMouseAbsolute(_hidWrapper);
+			case USB_MOUSE_RELATIVE:
+				return new UsbMouseRelative(_hidWrapper);
 #			endif
 			default:
 				return new Mouse(DRIVERS::DUMMY);

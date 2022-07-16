@@ -46,5 +46,6 @@ namespace DRIVERS {
 		virtual void sendRelative(int x, int y) {}
 		virtual void sendWheel(int delta_y) {}
 		virtual bool isOffline() { return false; }
+		virtual void periodic() {}
 	};
 }

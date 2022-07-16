@@ -25,35 +25,51 @@
 #include "hid-wrapper-stm32.h"
 #include <USBComposite.h>
 #include "keymap.h"
+#include "tools.h"
 
 namespace DRIVERS {
 
 	const uint8_t reportDescriptionKeyboard[] = {
-		HID_BOOT_KEYBOARD_REPORT_DESCRIPTOR(),
+		HID_KEYBOARD_REPORT_DESCRIPTOR(),
 	};
 
 	class UsbKeyboard : public Keyboard {
 		public:
 			UsbKeyboard(HidWrapper& _hidWrapper) : Keyboard(USB_KEYBOARD),
-				_hidWrapper(_hidWrapper), _bootKeyboard(_hidWrapper.usbHid, 0) {
+				_hidWrapper(_hidWrapper), _keyboard(_hidWrapper.usbHid) {
 				_hidWrapper.addReportDescriptor(reportDescriptionKeyboard, sizeof(reportDescriptionKeyboard));
 			}
 
 			void begin() override {
 				_hidWrapper.begin();
-				_bootKeyboard.begin();
+				_keyboard.begin();
 			}
 
 			void clear() override {
-				_bootKeyboard.releaseAll();
+				_keyboard.releaseAll();
 			}
 
-			void sendKey(uint8_t code, bool state) {
+			void sendKey(uint8_t code, bool state) override {
 				uint16_t usb_code = keymapUsb(code);
 				if (usb_code != KEY_ERROR_UNDEFINED) {
 					usb_code += KEY_HID_OFFSET;
-					state ? _bootKeyboard.press(usb_code) : _bootKeyboard.release(usb_code);
+					state ? _keyboard.press(usb_code) : _keyboard.release(usb_code);
 				}
+			}
+
+			void periodic() override {
+#if 0
+				static unsigned long start_ts = 0;
+				if (is_micros_timed_out(start_ts, 2000000)) {
+					if (_hidWrapper.serial())
+						_hidWrapper.serial()->println(_keyboard.getLEDs());
+					for(int i = 0; i < 38; ++i) {
+						sendKey(i, true);
+						sendKey(i, false);
+					}
+					start_ts = micros();
+				}
+#endif
 			}
 
 			bool isOffline() override {
@@ -61,7 +77,7 @@ namespace DRIVERS {
 			}
 
 			KeyboardLedsState getLeds() override {
-				uint8 leds = _bootKeyboard.getLEDs();
+				uint8 leds = _keyboard.getLEDs();
 				KeyboardLedsState result = {
 					.caps = leds & 0b00000010,
 					.scroll = false, //TODO how to implement this???
@@ -72,7 +88,7 @@ namespace DRIVERS {
 
 		private:
 			HidWrapper& _hidWrapper;
-			HIDKeyboard _bootKeyboard;
+			HIDKeyboard _keyboard;
 			static constexpr uint8 KEY_ERROR_UNDEFINED = 3;
 	};
 }
