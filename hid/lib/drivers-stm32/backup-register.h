@@ -19,63 +19,30 @@
 #                                                                            #
 *****************************************************************************/
 
-#include "factory.h"
-#include "usb/keyboard-stm32.h"
-#include "usb/hid-wrapper-stm32.h"
-#include "usb/mouse-absolute-stm32.h"
-#include "usb/mouse-relative-stm32.h"
-#include "backup-register.h"
+#include "storage.h"
+#include <stm32f1_rtc.h>
 
-#ifndef __STM32F1__
-#	error "Only STM32F1 is supported"
-#endif
-#ifdef SERIAL_USB
-#	error "Disable random USB enumeration"
-#endif
-
-namespace DRIVERS
-{
-#if 0
-	USBCompositeSerial _serial;
-	HidWrapper _hidWrapper(&_serial);
-#else
-	HidWrapper _hidWrapper;
-#endif
-
-	Keyboard *Factory::makeKeyboard(type _type) {
-		switch (_type) {
-#			ifdef HID_WITH_USB
-			case USB_KEYBOARD:
-				return new UsbKeyboard(_hidWrapper);
-#			endif
-			default:
-				return new Keyboard(DUMMY);
+namespace DRIVERS {
+	struct BackupRegister : public Storage {
+		BackupRegister() : Storage(NON_VOLATILE_STORAGE) {
+			_rtc.enableClockInterface();
 		}
-	}
 
-	Mouse *Factory::makeMouse(type _type) {
-		switch(_type) {
-#			ifdef HID_WITH_USB
-			case USB_MOUSE_ABSOLUTE:
-				return new UsbMouseAbsolute(_hidWrapper);
-			case USB_MOUSE_RELATIVE:
-				return new UsbMouseRelative(_hidWrapper);
-#			endif
-			default:
-				return new Mouse(DRIVERS::DUMMY);
+		void readBlock(void *dest, const void *src, size_t size) override {
+			uint8_t* _dest = reinterpret_cast<uint8_t*>(dest);
+			for(size_t i = 0; i < size; ++i) {
+				_dest[i] = _rtc.getBackupRegister(reinterpret_cast<uintptr_t>(src) + i + 1);
+			}
 		}
-	}
 
-	Storage* Factory::makeStorage(type _type) {
-		switch (_type) {
-#			ifdef HID_DYNAMIC
-			case NON_VOLATILE_STORAGE:
-				return new BackupRegister();
-#			endif
-			default:
-				return new Storage(DRIVERS::DUMMY);
+		void updateBlock(const void *src, void *dest, size_t size) override {
+			const uint8_t*  _src = reinterpret_cast<const uint8_t*>(src);
+			for(size_t i = 0; i < size; ++i) {
+				_rtc.setBackupRegister(reinterpret_cast<uintptr_t>(dest) + i + 1, _src[i]);
+			}
 		}
-	}
+
+		private:
+			STM32F1_RTC _rtc;
+	};
 }
-
-
