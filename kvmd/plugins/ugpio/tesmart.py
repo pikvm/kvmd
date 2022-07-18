@@ -102,13 +102,14 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return functools.partial(valid_number, min=1, max=16, name="TESmart channel")
+        return functools.partial(valid_number, min=0, max=15, name="TESmart channel")
 
     async def run(self) -> None:
         prev_active = -2
         while True:
             try:
-                self.__active = int(await self.__send_command(b"\x10\x00"))+1
+                # Current active port command uses 0-based numbering (0x00->PC1...0x0F->PC16)
+                self.__active = int(await self.__send_command(b"\x10\x00"))
             except Exception:
                 pass
             if self.__active != prev_active:
@@ -123,7 +124,8 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return (self.__active == int(pin))
 
     async def write(self, pin: str, state: bool) -> None:
-        channel = int(pin)
+        # Switch input source command uses 1-based numbering (0x01->PC1...0x10->PC16)
+        channel = int(pin)+1
         assert 1 <= channel <= 16
         if state:
             await self.__send_command("{:c}{:c}".format(1, channel).encode())
