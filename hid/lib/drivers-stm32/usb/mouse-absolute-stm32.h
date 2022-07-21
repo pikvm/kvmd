@@ -61,10 +61,13 @@ namespace DRIVERS {
 				_mouse.move(x, y);
 			}
 
+			void sendWheel(int delta_y) override {
+				_mouse.move(0, 0, delta_y);
+			}
+
 			bool isOffline() override {
 				return USBComposite == false;
 			}
-
 
 			void periodic() override {
 #if 0
@@ -73,7 +76,7 @@ namespace DRIVERS {
 					static int x = 0;
 					sendMove(2000 *x, 2000 *x);
 					++x;
-					x %= 2;
+					x %= 10;
 					start_ts = micros();
 				}
 #endif

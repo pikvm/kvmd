@@ -61,6 +61,10 @@ namespace DRIVERS {
 				_mouse.move(x, y);
 			}
 
+			void sendWheel(int delta_y) override {
+				_mouse.move(0, 0, delta_y);
+			}
+
 			bool isOffline() override {
 				return USBComposite == false;
 			}

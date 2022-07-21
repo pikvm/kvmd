@@ -50,9 +50,43 @@ namespace DRIVERS {
 			}
 
 			void sendKey(uint8_t code, bool state) override {
-				uint16_t usb_code = keymapUsb(code);
+				uint16_t usb_code = KEY_ERROR_UNDEFINED;
+				bool offset = false;
+				switch (code) {
+					case 77: 
+						usb_code = KEY_LEFT_CTRL;
+						break;
+					case 78:
+						usb_code = KEY_LEFT_SHIFT;
+						break;
+					case 79:
+						usb_code = KEY_LEFT_ALT;
+						break;
+					case 80:
+						usb_code = KEY_LEFT_GUI;
+						break;
+					case 81:
+						usb_code = KEY_RIGHT_CTRL;
+						break;
+					case 82:
+						usb_code = KEY_RIGHT_SHIFT;
+						break;
+					case 83:
+						usb_code = KEY_RIGHT_ALT;
+						break;
+					case 84:
+						usb_code = KEY_RIGHT_GUI;
+						break;
+					default:
+						usb_code = keymapUsb(code);
+						offset = true;
+						break;
+				}
+				
 				if (usb_code != KEY_ERROR_UNDEFINED) {
-					usb_code += KEY_HID_OFFSET;
+					if(offset) {
+						usb_code += KEY_HID_OFFSET;
+					}
 					state ? _keyboard.press(usb_code) : _keyboard.release(usb_code);
 				}
 			}
@@ -63,10 +97,9 @@ namespace DRIVERS {
 				if (is_micros_timed_out(start_ts, 2000000)) {
 					if (_hidWrapper.serial())
 						_hidWrapper.serial()->println(_keyboard.getLEDs());
-					for(int i = 0; i < 38; ++i) {
-						sendKey(i, true);
-						sendKey(i, false);
-					}
+						sendKey(78, true);
+						sendKey(4, true);
+						sendKey(4, false);
 					start_ts = micros();
 				}
 #endif
@@ -80,7 +113,7 @@ namespace DRIVERS {
 				uint8 leds = _keyboard.getLEDs();
 				KeyboardLedsState result = {
 					.caps = leds & 0b00000010,
-					.scroll = false, //TODO how to implement this???
+					.scroll = leds & 0b00000100,
 					.num = leds & 0b00000001,
 				};
 				return result;
