@@ -69,19 +69,6 @@ namespace DRIVERS {
 				return USBComposite == false;
 			}
 
-			void periodic() override {
-#if 0
-				static unsigned long start_ts = 0;
-				if (is_micros_timed_out(start_ts, 2000000)) {
-					static int x = 0;
-					sendMove(2000 *x, 2000 *x);
-					++x;
-					x %= 10;
-					start_ts = micros();
-				}
-#endif
-			}
-
 		private:
 			HidWrapper& _hidWrapper;
 			HIDAbsMouse _mouse;
