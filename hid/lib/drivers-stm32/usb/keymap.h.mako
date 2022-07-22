@@ -19,68 +19,17 @@
 #                                                                            #
 *****************************************************************************/
 
+
 #pragma once
 
-#include "keyboard.h"
-#include "hid-wrapper-stm32.h"
-#include <USBComposite.h>
-#include "keymap.h"
-#include "tools.h"
+#include "keycode.h"
 
-namespace DRIVERS {
-
-	const uint8_t reportDescriptionKeyboard[] = {
-		HID_KEYBOARD_REPORT_DESCRIPTOR(),
-	};
-
-	class UsbKeyboard : public Keyboard {
-		public:
-			UsbKeyboard(HidWrapper& _hidWrapper) : Keyboard(USB_KEYBOARD),
-				_hidWrapper(_hidWrapper), _keyboard(_hidWrapper.usbHid) {
-				_hidWrapper.addReportDescriptor(reportDescriptionKeyboard, sizeof(reportDescriptionKeyboard));
-			}
-
-			void begin() override {
-				_hidWrapper.begin();
-				_keyboard.begin();
-			}
-
-			void clear() override {
-				_keyboard.releaseAll();
-			}
-
-			void sendKey(uint8_t code, bool state) override {
-				uint16_t usb_code = keymapUsb(code);
-				if (usb_code == KEY_ERROR_UNDEFINED) {
-					return;
-				}
-
-				if(usb_code >= KEY_LEFT_CTRL && usb_code <= KEY_RIGHT_WINDOWS) {
-					usb_code = usb_code - KEY_LEFT_CTRL + 0x80;
-				} else {
-					usb_code += KEY_HID_OFFSET;
-				}
-
-				state ? _keyboard.press(usb_code) : _keyboard.release(usb_code);
-			}
-
-			bool isOffline() override {
-				return USBComposite == false;
-			}
-
-			KeyboardLedsState getLeds() override {
-				uint8 leds = _keyboard.getLEDs();
-				KeyboardLedsState result = {
-					.caps = leds & 0b00000010,
-					.scroll = leds & 0b00000100,
-					.num = leds & 0b00000001,
-				};
-				return result;
-			}
-
-		private:
-			HidWrapper& _hidWrapper;
-			HIDKeyboard _keyboard;
-			static constexpr uint8 KEY_ERROR_UNDEFINED = 3;
-	};
+<%! import operator %>
+KeyboardKeycode keymapUsb(uint8_t code) {
+	switch (code) {
+% for km in sorted(keymap, key=operator.attrgetter("mcu_code")):
+		case ${km.mcu_code}: return ${km.arduino_name};
+% endfor
+		default: return KEY_ERROR_UNDEFINED;
+	}
 }

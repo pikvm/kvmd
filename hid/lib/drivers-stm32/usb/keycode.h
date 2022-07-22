@@ -23,6 +23,42 @@
 
 #include <stdint.h>
 
+#undef KEY_LEFT_CTRL
+#undef KEY_LEFT_SHIFT
+#undef KEY_LEFT_ALT
+#undef KEY_LEFT_GUI
+#undef KEY_RIGHT_CTRL
+#undef KEY_RIGHT_SHIFT
+#undef KEY_RIGHT_ALT
+#undef KEY_RIGHT_GUI
+#undef KEY_UP_ARROW
+#undef KEY_DOWN_ARROW
+#undef KEY_LEFT_ARROW
+#undef KEY_RIGHT_ARROW
+#undef KEY_BACKSPACE
+#undef KEY_TAB
+#undef KEY_RETURN
+#undef KEY_ESC
+#undef KEY_INSERT
+#undef KEY_DELETE
+#undef KEY_PAGE_UP
+#undef KEY_PAGE_DOWN
+#undef KEY_HOME
+#undef KEY_END
+#undef KEY_CAPS_LOCK
+#undef KEY_F1
+#undef KEY_F2
+#undef KEY_F3
+#undef KEY_F4
+#undef KEY_F5
+#undef KEY_F6
+#undef KEY_F7
+#undef KEY_F8
+#undef KEY_F9
+#undef KEY_F10
+#undef KEY_F11
+#undef KEY_F12
+
 //https://github.com/NicoHood/HID/blob/master/src/KeyboardLayouts/ImprovedKeylayouts.h
 
 // Hut1_12v2.pdf
