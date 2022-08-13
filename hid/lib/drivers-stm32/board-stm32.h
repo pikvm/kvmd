@@ -23,16 +23,22 @@
 #pragma once
 
 #include "board.h"
-
+#include <libmaple/iwdg.h>
 
 namespace DRIVERS {
 	class BoardStm32 : public Board {
 		public:
 			BoardStm32() : Board(BOARD){
+				//2 sec timeout
+				iwdg_init(IWDG_PRE_16, 0xFFF);
 			}
 
 			void reset() override {
 				nvic_sys_reset();
+			}
+
+			void periodic() {
+				iwdg_feed();
 			}
 	};
 }

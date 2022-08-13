@@ -28,5 +28,6 @@ namespace DRIVERS {
 	struct Board : public Driver {
 		using Driver::Driver;
 		virtual void reset() {}
+		virtual void periodic() {}
 	};
 }
