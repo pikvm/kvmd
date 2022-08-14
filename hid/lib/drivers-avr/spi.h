@@ -22,27 +22,17 @@
 
 #pragma once
 
-#include <stdint.h>
-
+#include <Arduino.h>
+#include "connection.h"
 
 namespace DRIVERS {
-	enum type {
-		DUMMY = 0,
-		USB_MOUSE_ABSOLUTE,
-		USB_MOUSE_RELATIVE,
-		USB_MOUSE_ABSOLUTE_WIN98,
-		USB_KEYBOARD,
-		PS2_KEYBOARD,
-		NON_VOLATILE_STORAGE,
-		CONNECTION,
-	};
+	struct Spi : public Connection {
+		Spi() : Connection(CONNECTION) {}
 
-	class Driver {
-	public:
-		Driver(type _type) : _type(_type) {}
-		uint8_t getType() { return _type; }
+		void begin() override;
 
-	private:
-		type _type;
+		void periodic() override;
+
+		void write(const uint8_t *data, size_t size) override;
 	};
 }

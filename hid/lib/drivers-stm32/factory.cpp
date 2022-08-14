@@ -26,6 +26,7 @@
 #include "usb/mouse-absolute-stm32.h"
 #include "usb/mouse-relative-stm32.h"
 #include "backup-register.h"
+#include "serial.h"
 
 #ifndef __STM32F1__
 #	error "Only STM32F1 is supported"
@@ -72,4 +73,13 @@ namespace DRIVERS {
 				return new Storage(DRIVERS::DUMMY);
 		}
 	}
+
+	Connection* Factory::makeConnection(type _type) {
+#		ifdef CMD_SERIAL
+		return new Serial();
+#		else
+#		error CMD phy is not defined
+#		endif		
+	}
+
 }
