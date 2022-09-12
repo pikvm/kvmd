@@ -29,7 +29,7 @@ for _variant in "${_variants[@]}"; do
 	pkgname+=(kvmd-platform-$_platform-$_board)
 done
 pkgbase=kvmd
-pkgver=3.134
+pkgver=3.143
 pkgrel=1
 pkgdesc="The main PiKVM daemon"
 url="https://github.com/pikvm/kvmd"
@@ -60,6 +60,7 @@ depends=(
 	python-hidapi
 	python-six
 	python-pyrad
+	python-zstandard
 	libgpiod
 	freetype2
 	"v4l-utils>=1.22.1-1"
@@ -116,7 +117,7 @@ backup=(
 	etc/kvmd/{ht,ipmi,vnc}passwd
 	etc/kvmd/nginx/{kvmd.ctx-{http,server},certbot.ctx-server}.conf
 	etc/kvmd/nginx/listen-http{,s}.conf
-	etc/kvmd/nginx/loc-{login,nocache,proxy,websocket,nobuffering}.conf
+	etc/kvmd/nginx/loc-{login,nocache,proxy,websocket,nobuffering,bigpost}.conf
 	etc/kvmd/nginx/{mime-types,ssl,redirect-to-https,nginx}.conf
 	etc/kvmd/janus/janus{,.plugin.ustreamer,.transport.websockets}.jcfg
 	etc/kvmd/web.css
