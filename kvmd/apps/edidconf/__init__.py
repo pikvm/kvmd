@@ -28,11 +28,9 @@ import contextlib
 import argparse
 import time
 
-from typing import List
 from typing import IO
 from typing import Generator
 from typing import Callable
-from typing import Optional
 
 from ...validators.basic import valid_bool
 from ...validators.basic import valid_int_f0
@@ -83,6 +81,7 @@ class _Edid:
             file.write(text)
 
     def write_bin(self, path: str) -> None:
+        self.__update_checksums()
         with _smart_open(path, "wb") as file:
             file.write(bytes(self.__data))
 
@@ -179,7 +178,7 @@ def _make_format_hex(size: int) -> Callable[[int], str]:
 
 
 # =====
-def main(argv: Optional[List[str]]=None) -> None:  # pylint: disable=too-many-branches
+def main(argv: (list[str] | None)=None) -> None:  # pylint: disable=too-many-branches
     # (parent_parser, argv, _) = init(
     #     add_help=False,
     #     argv=argv,

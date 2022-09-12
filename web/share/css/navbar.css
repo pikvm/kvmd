@@ -114,7 +114,6 @@ ul#navbar li div.menu {
 	border-radius: 0 0 8px 8px;
 	position: absolute;
 	background-color: var(--cs-navbar-default-bg);
-	min-width: 180px;
 	box-shadow: var(--shadow-big);
 	z-index: 2147483645;
 }
@@ -127,8 +126,15 @@ ul#navbar li div.menu details summary {
 	cursor: pointer;
 	outline: none;
 	text-decoration: underline;
-	margin: 0 15px 0 15px;
+	margin: 8px 15px 8px 15px;
 	font-size: 12px;
+}
+ul#navbar li div.menu details div.spoiler {
+	margin-left: 20px !important;
+	border-left: var(--border-default-thin);
+}
+ul#navbar li div.menu details summary::marker {
+	color: var(--cs-marker-fg);
 }
 
 ul#navbar li div.menu div.buttons {

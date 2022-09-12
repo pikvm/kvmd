@@ -25,6 +25,7 @@
 #include "board.h"
 #include <libmaple/iwdg.h>
 
+
 namespace DRIVERS {
 	class BoardStm32 : public Board {
 		public:
