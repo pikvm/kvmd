@@ -48,7 +48,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         username: str,
         password: str,
 
-        timeout: float,
+    #    timeout: float,
     )  -> None:
 
         super().__init__(instance_name, notifier)
@@ -84,14 +84,13 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
 
     def prepare(self) -> None:
         self.__ipdu = self.__create_ipdu()
-        assert self.__ipdu
         for (outlet, state) in self.__initials.items():
             if state is not None:
                 self.__control_outlet(outlet, state)
                 self.__get_outlet_states()
 
     async def run(self) -> None:
-        assert self.__ipdu
+        
         await self.__ipdu_status()
         await self.__update_notifier.notify()
 
@@ -102,11 +101,11 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         return self.__outlet_states[int(outlet)]
     
     async def write(self, outlet: str, state: bool) -> None:
-        assert self.__ipdu
+        
         # Intelligent PDU uses 1-based numbering
         channel = int(outlet) + 1
         assert 1 <= channel <= 8
-        assert self.__ipdu
+        
         await self.__control_outlet(channel,state)
         await self.__ipdu_status()
         await self.__update_notifier.notify()
@@ -144,12 +143,17 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
             return requests.auth.HTTPBasicAuth(*creds)
         except requests.exceptions.ConnectionError as err:
             get_logger(0).error("Can't connect to Intellinet PDU [%s]: %s", self.__host, tools.efmt(err))
-            raise GpioDriverOfflineError(self)
+        #    raise GpioDriverOfflineError(self)
+            pass
+        except requests.exceptions.RequestException as err:
+            get_logger(0).error("Error with Intellinet PDU [%s]: %s", self.__host, tools.efmt(err))
+        #    raise GpioDriverOfflineError(self)
+            pass
         # TODO exception for faild auth
     
     def __control_outlet(self, outlet, state):
         endpoint = self.__endpoints["outlet"]
-        translation_table = {"on": True, "off": False, "power_cycle_off_on": 2}
+        translation_table = {"on": 1, "off": 0, "power_cycle_off_on": 2}
         outlet_state = {"outlet{}".format(outlet): 1}
         outlet_state["op"] = translation_table[state]
         outlet_state["submit"] = "Anwenden"
@@ -159,10 +163,16 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
             resp.raise_for_status()
         except requests.exceptions.ConnectionError as err:
             get_logger(0).error("Can't connect to Intelligent PDU [%s] for controlling outlet: %s", self.__host,tools.efmt(err))
-            raise GpioDriverOfflineError
+         #   raise GpioDriverOfflineError
+            pass
         except requests.exceptions.HTTPError as err:
             get_logger(0).error("error when controlling Outlet on to Intelligent PDU [%s]: %s", self.__host,tools.efmt(err))
-            raise GpioOperationError
+        #    raise GpioOperationError
+            pass
+        except requests.exceptions.RequestException as err:
+            get_logger(0).error("Error with Intellinet PDU [%s]: %s", self.__host, tools.efmt(err))
+       #     raise GpioDriverOfflineError(self)
+            pass
         else:
             self.__ipdu_status()
 
@@ -174,10 +184,16 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
             resp.raise_for_status()
         except requests.exceptions.ConnectionError as err:
             get_logger(0).error("Can't connect to Intelligent PDU [%s] for controlling outlet: %s", self.__host,tools.efmt(err))
-            raise GpioDriverOfflineError
+      #      raise GpioDriverOfflineError
+            pass
         except requests.exceptions.HTTPError as err:
             get_logger(0).error("Error when getting status from Intelligent PDU [%s]: %s", self.__host,tools.efmt(err))
-            raise GpioOperationError
+    #        raise GpioOperationError
+            pass
+        except requests.exceptions.RequestException as err:
+            get_logger(0).error("Error with Intellinet PDU [%s]: %s", self.__host, tools.efmt(err))
+     #       raise GpioDriverOfflineError(self)
+            pass
         else:
             self.__decodeparse_resp(resp)
 
@@ -196,7 +212,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         self.__current = res.find("cur0").text
         self.__temp = res.find("tempBan").text
         self.__humidity = res.find("humBan").text
-        translation_table = {"on": True, "off": False, "power_cycle_off_on": 2}
+        translation_table = {"on": 1, "off": 0, "power_cycle_off_on": 2}
         for (outlet, state) in self.__outlet_states.items():
             statestr = res.find("outletState{}".format(outlet+1))
             state = translation_table[statestr]
