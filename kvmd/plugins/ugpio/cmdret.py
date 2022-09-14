@@ -3,7 +3,6 @@
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
 #    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
-#                             Shantur Rathore <i@shantur.com>                #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -21,66 +20,67 @@
 # ========================================================================== #
 
 
+from typing import Callable
+from typing import Any
+
+from ...logging import get_logger
+
+from ... import tools
 from ... import aiotools
+from ... import aioproc
 
 from ...yamlconf import Option
 
-from ...validators.basic import valid_number
-from ...validators.basic import valid_int_f0
+from ...validators.os import valid_command
 
-from .pwm import Plugin as PwmPlugin
+from . import GpioDriverOfflineError
+from . import UserGpioModes
+from . import BaseUserGpioDriver
 
 
 # =====
-class Plugin(PwmPlugin):
-    def __init__(  # pylint: disable=super-init-not-called,too-many-arguments
+class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attributes
+    def __init__(  # pylint: disable=super-init-not-called
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
 
-        chip: int,
-        period: int,
-        duty_cycle_min: int,
-        duty_cycle_max: int,
-        angle_min: float,
-        angle_max: float,
-        angle_push: float,
-        angle_release: float,
+        cmd: list[str],
     ) -> None:
 
-        angle_push = min(max(angle_push, angle_min), angle_max)
-        angle_release = min(max(angle_release, angle_min), angle_max)
+        super().__init__(instance_name, notifier)
 
-        duty_cycle_per_degree = (duty_cycle_max - duty_cycle_min) / (angle_max - angle_min)
-
-        duty_cycle_push = int(duty_cycle_per_degree * (angle_push - angle_min) + duty_cycle_min)
-        duty_cycle_release = int(duty_cycle_per_degree * (angle_release - angle_min) + duty_cycle_min)
-
-        super().__init__(
-            instance_name=instance_name,
-            notifier=notifier,
-
-            chip=chip,
-            period=period,
-            duty_cycle_push=duty_cycle_push,
-            duty_cycle_release=duty_cycle_release,
-        )
+        self.__cmd = cmd
 
     @classmethod
     def get_plugin_options(cls) -> dict:
-        valid_angle = (lambda arg: valid_number(arg, min=-360.0, max=360.0, type=float))
         return {
-            "chip":           Option(0,        type=valid_int_f0),
-            "period":         Option(20000000, type=valid_int_f0),
-            "duty_cycle_min": Option(1000000,  type=valid_int_f0),
-            "duty_cycle_max": Option(2000000,  type=valid_int_f0),
-            "angle_min":      Option(0.0,      type=valid_angle),
-            "angle_max":      Option(180.0,    type=valid_angle),
-            "angle_push":     Option(100.0,    type=valid_angle),
-            "angle_release":  Option(120.0,    type=valid_angle),
+            "cmd": Option([], type=valid_command),
         }
 
+    @classmethod
+    def get_modes(cls) -> set[str]:
+        return set([UserGpioModes.INPUT])
+
+    @classmethod
+    def get_pin_validator(cls) -> Callable[[Any], Any]:
+        return str
+
+    async def read(self, pin: str) -> bool:
+        _ = pin
+        try:
+            proc = await aioproc.log_process(self.__cmd, logger=get_logger(0), prefix=str(self))
+            return (proc.returncode == 0)
+        except Exception as err:
+            get_logger(0).error("Can't run custom command [ %s ]: %s",
+                                tools.cmdfmt(self.__cmd), tools.efmt(err))
+            raise GpioDriverOfflineError(self)
+
+    async def write(self, pin: str, state: bool) -> None:
+        _ = pin
+        _ = state
+
     def __str__(self) -> str:
-        return f"Servo({self._instance_name})"
+        return f"CMDRET({self._instance_name})"
 
     __repr__ = __str__

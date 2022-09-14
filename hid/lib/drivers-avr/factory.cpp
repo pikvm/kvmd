@@ -72,7 +72,14 @@ namespace DRIVERS {
 #			endif
 			default:
 				return new Storage(DRIVERS::DUMMY);
-        }
+		}
+	}
+
+	Board* Factory::makeBoard(type _type) {
+		switch (_type) {
+			default:
+				return new Board(DRIVERS::DUMMY);
+		}
 	}
 
 	Connection* Factory::makeConnection(type _type) {

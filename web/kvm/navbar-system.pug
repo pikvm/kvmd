@@ -5,7 +5,7 @@ li(class="right")
 		+navbar_led("hid-keyboard-led", "led-hid-keyboard")
 		+navbar_led("hid-mouse-led", "led-hid-mouse")
 		| System
-	div(data-dont-hide-menu class="menu")
+	div(data-dont-hide-menu id="system-menu" class="menu")
 		table(class="kv" style="width: calc(100% - 20px)")
 			tr
 				td(class="value") Runtime settings &amp; tools
@@ -64,19 +64,23 @@ li(class="right")
 				tr(id="hid-outputs-mouse", class="feature-disabled")
 					td Mouse #[a(target="_blank" href="https://docs.pikvm.org/mouse") mode]:
 					td #[div(id="hid-outputs-mouse-box" class="radio-box")]
+		details
+			summary Mouse settings
+			div(class="spoiler")
+				table(class="kv")
+					tr
+						td Mouse polling rate:
+						td #[input(type="range" id="hid-mouse-rate-slider" class="slider")]
+						td(id="hid-mouse-rate-value" class="value" style="min-width: 30px; max-width:30px")
+					tr(id="hid-mouse-sens" class="feature-disabled")
+						td Relative mouse sensitivity:
+						td #[input(disabled type="range" id="hid-mouse-sens-slider" class="slider")]
+						td(id="hid-mouse-sens-value" class="value" style="min-width: 30px; max-width:30px")
+					tr(id="hid-mouse-squash" class="feature-disabled")
+						+menu_switch_notable("hid-mouse-squash-switch", "Squash relative mouse moves", true, true)
+					tr
+						+menu_switch_notable("hid-mouse-reverse-scrolling-switch", "Reverse mouse scrolling", true, false)
 		table(class="kv")
-			tr
-				td Mouse polling rate:
-				td #[input(type="range" id="hid-mouse-rate-slider" class="slider")]
-				td(id="hid-mouse-rate-value" class="value" style="min-width: 30px; max-width:30px")
-			tr(id="hid-mouse-sens" class="feature-disabled")
-				td Relative mouse sensitivity:
-				td #[input(disabled type="range" id="hid-mouse-sens-slider" class="slider")]
-				td(id="hid-mouse-sens-value" class="value" style="min-width: 30px; max-width:30px")
-			tr(id="hid-mouse-squash" class="feature-disabled")
-				+menu_switch_notable("hid-mouse-squash-switch", "Squash relative mouse moves", true, true)
-			tr
-				+menu_switch_notable("hid-mouse-reverse-scrolling-switch", "Reverse mouse scrolling", true, false)
 			tr(id="hid-connect" class="feature-disabled")
 				+menu_switch_notable("hid-connect-switch", "Connect HID to Server", true, true)
 			tr
@@ -92,6 +96,8 @@ li(class="right")
 						label(for="gpio-switch-__v3_usb_breaker__")
 							span(class="switch-inner")
 							span(class="switch")
+			tr
+				+menu_switch_notable("page-close-ask-switch", "Ask page close confirmation", true, true)
 		hr
 		div(class="buttons buttons-row")
 			button(data-force-hide-menu data-show-window="keyboard-window" class="row50") &bull; Show keyboard

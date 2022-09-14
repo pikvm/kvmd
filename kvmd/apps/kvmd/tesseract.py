@@ -36,11 +36,9 @@ from ctypes import c_char_p
 from ctypes import c_void_p
 from ctypes import c_char
 
-from typing import List
-from typing import Set
 from typing import Generator
-from typing import Optional
 
+from PIL import ImageOps
 from PIL import Image as PilImage
 
 from ...errors import OperationError
@@ -59,7 +57,7 @@ class _TessBaseAPI(Structure):
     pass
 
 
-def _load_libtesseract() -> Optional[ctypes.CDLL]:
+def _load_libtesseract() -> (ctypes.CDLL | None):
     try:
         path = ctypes.util.find_library("tesseract")
         if not path:
@@ -87,7 +85,7 @@ _libtess = _load_libtesseract()
 
 
 @contextlib.contextmanager
-def _tess_api(data_dir_path: str, langs: List[str]) -> Generator[_TessBaseAPI, None, None]:
+def _tess_api(data_dir_path: str, langs: list[str]) -> Generator[_TessBaseAPI, None, None]:
     if not _libtess:
         raise OcrError("Tesseract is not available")
     api = _libtess.TessBaseAPICreate()
@@ -106,19 +104,19 @@ _LANG_SUFFIX = ".traineddata"
 
 # =====
 class TesseractOcr:
-    def __init__(self, data_dir_path: str, default_langs: List[str]) -> None:
+    def __init__(self, data_dir_path: str, default_langs: list[str]) -> None:
         self.__data_dir_path = data_dir_path
         self.__default_langs = default_langs
 
     def is_available(self) -> bool:
         return bool(_libtess)
 
-    def get_default_langs(self) -> List[str]:
+    def get_default_langs(self) -> list[str]:
         return list(self.__default_langs)
 
-    def get_available_langs(self) -> List[str]:
+    def get_available_langs(self) -> list[str]:
         # Это быстрее чем, инициализация либы и TessBaseAPIGetAvailableLanguagesAsVector()
-        langs: Set[str] = set()
+        langs: set[str] = set()
         for lang_name in os.listdir(self.__data_dir_path):
             if lang_name.endswith(_LANG_SUFFIX):
                 path = os.path.join(self.__data_dir_path, lang_name)
@@ -128,12 +126,12 @@ class TesseractOcr:
                         langs.add(lang)
         return sorted(langs)
 
-    async def recognize(self, data: bytes, langs: List[str], left: int, top: int, right: int, bottom: int) -> str:
+    async def recognize(self, data: bytes, langs: list[str], left: int, top: int, right: int, bottom: int) -> str:
         if not langs:
             langs = self.__default_langs
         return (await aiotools.run_async(self.__inner_recognize, data, langs, left, top, right, bottom))
 
-    def __inner_recognize(self, data: bytes, langs: List[str], left: int, top: int, right: int, bottom: int) -> str:
+    def __inner_recognize(self, data: bytes, langs: list[str], left: int, top: int, right: int, bottom: int) -> str:
         with _tess_api(self.__data_dir_path, langs) as api:
             assert _libtess
             with io.BytesIO(data) as bio:
@@ -148,6 +146,11 @@ class TesseractOcr:
                             image_cropped = image.crop((left, top, right, bottom))
                             image.close()
                             image = image_cropped
+
+                    ImageOps.grayscale(image)
+                    image_resized = image.resize((int(image.size[0] * 2), int(image.size[1] * 2)), PilImage.BICUBIC)
+                    image.close()
+                    image = image_resized
 
                     _libtess.TessBaseAPISetImage(api, image.tobytes("raw", "RGB"), image.width, image.height, 3, image.width * 3)
                     text_ptr = None

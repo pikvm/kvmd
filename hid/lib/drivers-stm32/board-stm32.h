@@ -20,75 +20,84 @@
 *****************************************************************************/
 
 
-#include "factory.h"
-#include "usb/keyboard-stm32.h"
-#include "usb/hid-wrapper-stm32.h"
-#include "usb/mouse-absolute-stm32.h"
-#include "usb/mouse-relative-stm32.h"
-#include "backup-register.h"
-#include "board-stm32.h"
-#include "serial.h"
+#pragma once
 
-#ifndef __STM32F1__
-#	error "Only STM32F1 is supported"
-#endif
-#ifdef SERIAL_USB
-#	error "Disable random USB enumeration"
-#endif
+#include "board.h"
+#include <libmaple/iwdg.h>
 
 
 namespace DRIVERS {
-	HidWrapper _hidWrapper;
+	class BoardStm32 : public Board {
+		public:
+			BoardStm32() : Board(BOARD){
+				//2 sec timeout
+				iwdg_init(IWDG_PRE_16, 0xFFF);
+				pinMode(LED_BUILTIN, OUTPUT);
+			}
 
-	Keyboard *Factory::makeKeyboard(type _type) {
-		switch (_type) {
-#			ifdef HID_WITH_USB
-			case USB_KEYBOARD:
-				return new UsbKeyboard(_hidWrapper);
-#			endif
-			default:
-				return new Keyboard(DUMMY);
-		}
-	}
+			void reset() override {
+				nvic_sys_reset();
+			}
 
-	Mouse *Factory::makeMouse(type _type) {
-		switch(_type) {
-#			ifdef HID_WITH_USB
-			case USB_MOUSE_ABSOLUTE:
-				return new UsbMouseAbsolute(_hidWrapper);
-			case USB_MOUSE_RELATIVE:
-				return new UsbMouseRelative(_hidWrapper);
-#			endif
-			default:
-				return new Mouse(DRIVERS::DUMMY);
-		}
-	}
+			void periodic() override {
+				iwdg_feed();
+				if (is_micros_timed_out(_prev_ts, 100000)) {
+					switch(_state) {
+						case 0:
+							digitalWrite(LED_BUILTIN, LOW);
+							break;
+						case 2:
+							if(_rx_data) {
+								_rx_data = false;
+								digitalWrite(LED_BUILTIN, LOW);
+							}
+							break;
+						case 4:
+							if(_keyboard_online) {
+								_keyboard_online = false;
+								digitalWrite(LED_BUILTIN, LOW);
+							}
+							break;
+						case 8:
+							if(_mouse_online) {
+								_mouse_online = false;
+								digitalWrite(LED_BUILTIN, LOW);
+							}
+							break;
+						case 1:	// heartbeat off
+						case 3:	// _rx_data off
+						case 7: // _keyboard_online off
+						case 11: // _mouse_online off
+							digitalWrite(LED_BUILTIN, HIGH);
+							break;
+						case 19:
+							_state = -1;
+							break;
+					}
+					++_state;
+					_prev_ts = micros();
+				}
+			}
 
-	Storage* Factory::makeStorage(type _type) {
-		switch (_type) {
-#			ifdef HID_DYNAMIC
-			case NON_VOLATILE_STORAGE:
-				return new BackupRegister();
-#			endif
-			default:
-				return new Storage(DRIVERS::DUMMY);
-		}
-	}
+			void updateStatus(status status) override {
+				switch (status) {
+					case RX_DATA:
+						_rx_data = true;
+						break;
+					case KEYBOARD_ONLINE:
+						_keyboard_online = true;
+						break;
+					case MOUSE_ONLINE:
+						_mouse_online = true;
+						break;
+				}
+			}
 
-	Board* Factory::makeBoard(type _type) {
-		switch (_type) {
-			case BOARD:
-				return new BoardStm32();
-			default:
-				return new Board(DRIVERS::DUMMY);
-        }
-	}
-  
-	Connection* Factory::makeConnection(type _type) {
-#		ifdef CMD_SERIAL
-		return new Serial();
-#		else
-#		error CMD phy is not defined
-#		endif		
-	}
+		private:
+			unsigned long _prev_ts = 0;
+			uint8_t _state = 0;
+			bool _rx_data = false;
+			bool _keyboard_online = false;
+			bool _mouse_online = false;
+	};
 }
