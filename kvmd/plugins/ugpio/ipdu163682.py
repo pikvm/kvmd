@@ -59,6 +59,8 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         self.__username = username
         self.__password = password
 
+        self.__switch_delay = switch_delay
+
         self.__initials: dict[int, (bool | None)] = {}
         self.__outlet_states: dict[int, (bool | None)] = {}
         self.__temp = None
