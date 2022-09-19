@@ -109,10 +109,10 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
     async def run(self) -> None:
         # try to get status from ipdu, ignore exceptions to be able to continue
         try:
-            await self.__ipdu_status()
+            self.__ipdu_status()
         except Exception:
             pass
-        await self.__update_notifier.notify()
+        self.__update_notifier.notify()
 
     async def cleanup(self) -> None:
         # reset configuration of on/off-delays to original values
@@ -125,16 +125,16 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         except Exception as err:
             get_logger(0).error("Can't connect to Intellinet PDU [%s] to get status: %s", self.__host, tools.efmt(err))
             raise GpioDriverOfflineError(self)
-        await self.__update_notifier.notify()
+        self.__update_notifier.notify()
         return self.__outlet_states[int(outlet)]
     
     async def write(self, outlet: str, state: bool) -> None:
               
         assert 0 <= int(outlet) <= 7
         get_logger(0).info("On IPDU {%s]: Controlling outlet %d: state %d", self.__host, int(outlet), state)
-        await self.__control_outlet(int(outlet),state)
-        await asyncio.sleep(self.__switch_delay + 1) #allow some time to complete execution on IPDU
-        await self.__ipdu_status()
+        self.__control_outlet(int(outlet),state)
+        await asyncio.sleep(self.__switch_delay + 1) # allow some time to complete execution on IPDU
+        self.__ipdu_status()
         await self.__update_notifier.notify()
         
 
@@ -171,7 +171,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
     
     def __control_outlet(self, outlet, state):
         endpoint = self.__endpoints["outlet"]
-        translation_table = {True: 1, False: 0, "power_cycle_off_on": 2}
+        translation_table = {True: 0, False: 1}
         outlet_state = {"outlet{}".format(outlet): 1}
         outlet_state["op"] = translation_table[state]
         outlet_state["submit"] = "Anwenden"
@@ -213,7 +213,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         self.__humidity = res.find("humBan").text
         translation_table = {"on": 1, "off": 0, "power_cycle_off_on": 2}
         for (outlet, state) in self.__outlet_states.items():
-            statestr = res.find("outletState{}".format(outlet)).text
+            statestr = res.find("outletStat{}".format(outlet)).text
             self.__outlet_states[int(outlet)] = translation_table[statestr]
         get_logger(0).info("IPDU device (%s) state: current: %s A; temp: %s C; humidity: %s", self.__host, self.__current, self.__temp, self.__humidity)
     
