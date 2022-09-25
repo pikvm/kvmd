@@ -51,7 +51,6 @@ depends=(
 	python-netifaces
 	python-systemd
 	python-dbus
-	python-dbus-next
 	python-pygments
 	python-pyghmi
 	python-pam
