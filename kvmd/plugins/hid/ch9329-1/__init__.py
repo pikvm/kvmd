@@ -43,20 +43,16 @@ from ....validators.basic import valid_int_f0
 from ....validators.basic import valid_int_f1
 from ....validators.basic import valid_float_f01
 from ....validators.os import valid_abs_path
+from ....validators.hw import valid_tty_speed
 
 from .. import BaseHid
 
-from .proto import RESET
-from .proto import GET_INFO
-from .proto import BaseEvent
-from .proto import KeyEvent
-from .proto import MouseEvent
-from .proto import MouseRelativeEvent
+from .tty import TTY
+from .mouse import Mouse
+from .keyboard import Keyboard
 
-from .proto import key_modifier
-from .proto import mouse_pos
-from .proto import mouse_wheel
-from .proto import check_response
+from .tty import RESET
+from .tty import GET_INFO
 
 
 # =====
@@ -74,29 +70,15 @@ class _TempRequestError(_RequestError):
     pass
 
 
-# =====
-class BasePhyConnection:
-    def send(self, request: bytes) -> bytes:
-        raise NotImplementedError
 
-
-class BasePhy:
-    def has_device(self) -> bool:
-        raise NotImplementedError
-
-    @contextlib.contextmanager
-    def connected(self) -> Generator[BasePhyConnection, None, None]:
-        raise NotImplementedError
-
-
-class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-instance-attributes
+class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
-        phy: BasePhy,
-
+        device_path: str,
+        speed: int,
+        read_timeout: float,
         reset_inverted: bool,
         reset_delay: float,
-
         read_retries: int,
         common_retries: int,
         retries_delay: float,
@@ -106,16 +88,17 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
 
         multiprocessing.Process.__init__(self, daemon=True)
 
+        self.__device_path = device_path
+        self.__speed = speed
+        self.__read_timeout = read_timeout
         self.__read_retries = read_retries
         self.__common_retries = common_retries
         self.__retries_delay = retries_delay
         self.__errors_threshold = errors_threshold
         self.__noop = noop
 
-        self.__phy = phy
-
         self.__reset_required_event = multiprocessing.Event()
-        self.__events_queue: "multiprocessing.Queue[BaseEvent]" = multiprocessing.Queue()
+        self.__cmd_queue: "multiprocessing.Queue[list]" = multiprocessing.Queue()
 
         self.__notifier = aiomulti.AioProcessNotifier()
         self.__state_flags = aiomulti.AioSharedFlags({
@@ -126,25 +109,21 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
 
         self.__stop_event = multiprocessing.Event()
 
-        self.__mouse_active = 'usb'
-
         self.keyboard_leds = {
             "caps" : False,
             "scroll" : False,
             "num" : False
         }
 
-        self.mouse_button = ''
-        self.mouse_state = False
-        self.mouse_to_x = []
-        self.mouse_to_y = []
-        self.keys_active = []
 
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "reset_inverted": Option(False, type=valid_bool),
-            "reset_delay":    Option(0.1,   type=valid_float_f01),
+            "device":           Option("/dev/kvmd-hid", type=valid_abs_path, unpack_as="device_path"),
+            "speed":            Option(9600,  type=valid_tty_speed),
+            "read_timeout":     Option(0.3,   type=valid_float_f01),
+            "reset_inverted":   Option(False, type=valid_bool),
+            "reset_delay":      Option(0.1,   type=valid_float_f01),
             "read_retries":     Option(5,     type=valid_int_f1),
             "common_retries":   Option(5,     type=valid_int_f1),
             "retries_delay":    Option(0.5,   type=valid_float_f01),
@@ -154,14 +133,15 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
 
     def sysprep(self) -> None:
         get_logger(0).info("Starting HID daemon ...")
+        self.tty = TTY(self.__device_path, self.__speed, self.__read_timeout)
+        self.mouse = Mouse()
+        self.keyboard = Keyboard()
         self.start()
 
     async def get_state(self) -> dict:
         state = await self.__state_flags.get()
         online = bool(state["online"])
-        pong = (state["status"] >> 16) & 0xFF
-
-        active_mouse = self.__mouse_active
+        active_mouse = self.mouse._active
         absolute = ( active_mouse == 'usb')
 
         return {
@@ -207,62 +187,49 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
 
     def send_key_events(self, keys: Iterable[tuple[str, bool]]) -> None:
         for (key, state) in keys:
-            if state : self.keys_active.append([key, key_modifier(key)])
-            else : self.keys_active.remove([key, key_modifier(key)])
-            self.__queue_event(KeyEvent(self.keys_active, key, state))
+            self.__queue_cmd(self.keyboard.key(key, state))
 
     def send_mouse_button_event(self, button: str, state: bool) -> None:
-        self.mouse_button = button
-        self.mouse_state = state
-        if self.__mouse_active == 'usb' :
-            self.__queue_event(MouseEvent(button, state, self.mouse_to_x, self.mouse_to_y, 0))
-        else :
-            self.__queue_event(MouseEvent(button, state, [], [], 0))
+        self.__queue_cmd(self.mouse.button(button, state))
 
     def send_mouse_move_event(self, to_x: int, to_y: int) -> None:
-        self.mouse_to_x = mouse_pos(to_x)
-        self.mouse_to_y = mouse_pos(to_y)
-        self.__queue_event(MouseEvent(self.mouse_button, self.mouse_state, self.mouse_to_x, self.mouse_to_y, 0))
+        self.__queue_cmd(self.mouse.move(to_x, to_y))
 
     def send_mouse_wheel_event(self, delta_x: int, delta_y: int) -> None:
-        self.mouse_wheel_y = mouse_wheel(delta_y)
-        self.__queue_event(MouseEvent(self.mouse_button, self.mouse_state, self.mouse_to_x, self.mouse_to_y, mouse_wheel(delta_y)))
+        self.__queue_cmd(self.mouse.wheel(delta_x, delta_y))
 
     def send_mouse_relative_event(self, delta_x: int, delta_y: int) -> None:
-        get_logger(0).info(f"HID : mouse relative event delta_x = {delta_x} delta_y = {delta_y}")
-        self.__queue_event(MouseRelativeEvent(delta_x, delta_y))
-
+        self.__queue_cmd(self.mouse.relative(delta_x, delta_y))
 
     def set_params(self, keyboard_output: (str | None)=None, mouse_output: (str | None)=None) -> None:
-        events: list[BaseEvent] = []
-        if keyboard_output is not None:
-            get_logger(0).info(f"HID : keyboard_output = {keyboard_output}")
         if mouse_output is not None:
             get_logger(0).info(f"HID : mouse output = {mouse_output}")
-            self.__mouse_active = mouse_output
+            self.mouse._active = mouse_output
             self.__notifier.notify()
 
     def set_connected(self, connected: bool) -> None:
         get_logger(0).info(f"HID : set_connected = {connected}")
 
     def clear_events(self) -> None:
-        tools.clear_queue(self.__events_queue)
+        tools.clear_queue(self.__cmd_queue)
 
-    def __queue_event(self, event: BaseEvent, clear: bool=False) -> None:
+    def __queue_cmd(self, cmd: list, clear: bool=False) -> None:
         if not self.__stop_event.is_set():
             if clear:
                 # FIXME: Если очистка производится со стороны процесса хида, то возможна гонка между
                 # очисткой и добавлением нового события. Неприятно, но не смертельно.
                 # Починить блокировкой после перехода на асинхронные очереди.
-                tools.clear_queue(self.__events_queue)
-            self.__events_queue.put_nowait(event)
+                tools.clear_queue(self.__cmd_queue)
+            self.__cmd_queue.put_nowait(cmd)
 
     def run(self) -> None:  # pylint: disable=too-many-branches
         logger = aioproc.settle("HID", "hid")
+        self.tty.connect()
         while not self.__stop_event.is_set():
             try:
                 #with self.__gpio:
                 self.__hid_loop()
+                #self.tty.loop()
                     #if self.__phy.has_device():
                         #logger.info("Clearing HID events ...")
                         #try:
@@ -277,44 +244,29 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
     def __hid_loop(self) -> None:
         while not self.__stop_event.is_set():
             try:
-                #if not self.__hid_loop_wait_device():
-                #    continue
-                with self.__phy.connected() as conn:
-                    while not (self.__stop_event.is_set() and self.__events_queue.qsize() == 0):
-                        if self.__reset_required_event.is_set():
-                            try:
-                                self.__set_state_busy(True)
-                                self.__process_request(conn, RESET)
-                            finally:
-                                self.__reset_required_event.clear()
+                conn = self.tty
+                while not (self.__stop_event.is_set() and self.__cmd_queue.qsize() == 0):
+                    if self.__reset_required_event.is_set():
                         try:
-                            event = self.__events_queue.get(timeout=0.1)
-                        except queue.Empty:
-                            get_logger(0).info("HID : nothing in queue")
-                            #self.__process_request(conn, GET_INFO)
-                        else:
-                            self.__process_request(conn, event.make_request())
+                            self.__set_state_busy(True)
+                            #self.__process_request(conn, RESET)
+                        finally:
+                            self.__reset_required_event.clear()
+                    try:
+                        cmd = self.__cmd_queue.get(timeout=0.1)
+                        get_logger(0).info(f"HID : cmd = {cmd}")
+                    except queue.Empty:
+                        get_logger(0).info("HID : nothing in queue")
+                        #self.__process_request(conn, GET_INFO)
+                    else:
+                        conn.send(cmd)
             except Exception:
                 self.clear_events()
                 get_logger(0).exception("Unexpected error in the HID loop")
                 time.sleep(1)
 
-    def __hid_loop_wait_device(self) -> bool:
-        logger = get_logger(0)
-        logger.info("Initial HID")
-        # На самом деле SPI и Serial-девайсы не пропадают, просто резет и ожидание
-        # логичнее всего делать именно здесь. Ну и на будущее, да
-        #for _ in range(10):
-        #    if self.__phy.has_device():
-        #        logger.info("HID found")
-        #        return True
-        #    if self.__stop_event.is_set():
-        #        break
-        #    time.sleep(1)
-        #logger.error("Missing HID")
-        return True
 
-    def __process_request(self, conn: BasePhyConnection, request: bytes) -> bool:  # pylint: disable=too-many-branches
+    def __process_request(self, conn: TTY, request: bytes) -> bool:  # pylint: disable=too-many-branches
         logger = get_logger()
         error_messages: list[str] = []
         live_log_errors = False
@@ -333,9 +285,9 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
                 #    read_retries -= 1
                 #    raise _TempRequestError(f"No response from HID: request={request!r}")
 
-                if not check_response(response):
+                #if not check_response(response):
                 #    request = REQUEST_REPEAT
-                    raise _TempRequestError("Invalid response check ...")
+                #    raise _TempRequestError("Invalid response checksum ...")
 
                 code = response[3]
                 #if code == 0x48:  # Request timeout  # pylint: disable=no-else-raise

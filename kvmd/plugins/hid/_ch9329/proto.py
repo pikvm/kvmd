@@ -39,71 +39,6 @@ class BaseEvent:
         raise NotImplementedError
 
 
-# =====
-_KEYBOARD_NAMES_TO_CODES = {
-    "disabled": 0b00000000,
-    "usb":      0b00000001,
-    "ps2":      0b00000011,
-}
-_KEYBOARD_CODES_TO_NAMES = tools.swapped_kvs(_KEYBOARD_NAMES_TO_CODES)
-
-
-def get_active_keyboard(outputs: int) -> str:
-    return _KEYBOARD_CODES_TO_NAMES.get(outputs & 0b00000111, "disabled")
-
-@dataclasses.dataclass(frozen=True)
-class SetKeyboardOutputEvent(BaseEvent):
-    keyboard: str
-
-    def __post_init__(self) -> None:
-        assert not self.keyboard or self.keyboard in _KEYBOARD_NAMES_TO_CODES
-
-    def make_request(self) -> list:
-        code = _KEYBOARD_NAMES_TO_CODES.get(self.keyboard, 0)
-        return _make_request([0x10,0x00,0x00,0x00,0x00])
-
-
-# =====
-_MOUSE_NAMES_TO_CODES = {
-    "disabled":  0b00000000,
-    "usb":       0b00001000,
-    "usb_rel":   0b00010000,
-    "ps2":       0b00011000,
-    "usb_win98": 0b00100000,
-}
-_MOUSE_CODES_TO_NAMES = tools.swapped_kvs(_MOUSE_NAMES_TO_CODES)
-
-
-def get_active_mouse(outputs: int) -> str:
-    return _MOUSE_CODES_TO_NAMES.get(outputs & 0b00111000, "disabled")
-
-
-@dataclasses.dataclass(frozen=True)
-class SetMouseOutputEvent(BaseEvent):
-    mouse: str
-
-    def __post_init__(self) -> None:
-        assert not self.mouse or self.mouse in _MOUSE_NAMES_TO_CODES
-
-    def make_request(self) -> list:
-        return _make_request([0x10,0x00,0x00,0x00,0x00])
-
-
-# =====
-@dataclasses.dataclass(frozen=True)
-class SetConnectedEvent(BaseEvent):
-    connected: bool
-
-    def make_request(self) -> list:
-        return _make_request([0x10,0x00,0x00,0x00,0x00])
-
-
-# =====
-class ClearEvent(BaseEvent):
-    def make_request(self) -> list:
-        return _make_request([0x10,0x00,0x00,0x00,0x00])
-
-
 @dataclasses.dataclass(frozen=True)
 class KeyEvent(BaseEvent):
     active_keys : list
@@ -196,7 +131,7 @@ def mouse_pos(num: int) -> list:
     return [ to_fixed >> 8, to_fixed & 0xFF ]
 
 def mouse_wheel(num: int) -> int:
-    return 1 if num > 0 else 255 - 1
+    return 1 if num > 0 else 255
 
 def _make_request(command: list) -> list:
     command.insert(0, 0xAB)

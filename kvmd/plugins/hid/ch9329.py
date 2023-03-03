@@ -45,12 +45,13 @@ class _SerialPhyConnection(BasePhyConnection):
     def __init__(self, tty: serial.Serial) -> None:
         self.__tty = tty
 
-    def send(self, request: list) -> bytes:
+    def send(self, request: list) -> list:
         get_logger(0).info(f"SerialPhy : request = {request}")
         #assert len(request) == 8
         #assert request[0] == 0x33
-        if self.__tty.in_waiting:
-            self.__tty.read_all()
+
+        #if self.__tty.in_waiting:
+        #    self.__tty.read_all()
         self.__tty.write(serial.to_bytes(request))
         data = list(self.__tty.read(5))
         if data and data[4] :
@@ -59,7 +60,7 @@ class _SerialPhyConnection(BasePhyConnection):
             get_logger(0).info(f"SerialPhy : data = {data}")
             return data
         else :
-            return b""
+            return []
         #for x in range(7):
         #    byte = self.__tty.read()
         #    if byte : data.append(int.from_bytes(byte))
