@@ -22,72 +22,78 @@
 import math
 
 from ....mouse import MouseRange
-from ....logging import get_logger
 
 class Mouse:
     def __init__(self) -> None:
-        self._active = 'usb'
-        self._button = ''
-        self._clicked = False
-        self._to_x = [0,0]
-        self._to_y = [0,0]
-        self._wheel_y = 0
-        self._delta_x = 0
-        self._delta_y = 0
+        self.__active = 'usb'
+        self.__button = ''
+        self.__clicked = False
+        self.__to_x = [0,0]
+        self.__to_y = [0,0]
+        self.__wheel_y = 0
+        self.__delta_x = 0
+        self.__delta_y = 0
 
     def button(self, button: str, clicked: bool) -> list:
-        self._button = button
-        self._clicked = clicked
-        self._wheel_y = 0
-        if self._active == 'usb':
-            return self._absolute()
-        else :
-            return self._relative()
+        self.__button = button
+        self.__clicked = clicked
+        self.__wheel_y = 0
+        if self.__active != 'usb':
+            self.__to_x = [0,0]
+            self.__to_y = [0,0]
+        return self.__absolute()
 
     def move(self, to_x: int, to_y: int) -> list:
-        get_logger(0).info(f"HID : Mouse move to_x = {to_x} to_y = {to_y}")
-        self._to_x = self._to_fixed(to_x)
-        self._to_y = self._to_fixed(to_y)
-        self._wheel_y = 0
-        return self._absolute()
+        assert MouseRange.MIN <= to_x <= MouseRange.MAX
+        assert MouseRange.MIN <= to_y <= MouseRange.MAX
+        self.__to_x = self.__to_fixed(to_x)
+        self.__to_y = self.__to_fixed(to_y)
+        self.__wheel_y = 0
+        return self.__absolute()
 
-    def wheel(self, to_x: int, to_y: int) -> list:
-        self._wheel_y = 1 if to_y > 0 else 255
-        return self._absolute()
+    def wheel(self, delta_x: int, delta_y: int) -> list:
+        assert -127 <= delta_y <= 127
+        self.__wheel_y = 1 if delta_y > 0 else 255
+        return self.__absolute()
 
     def relative(self, delta_x: int, delta_y: int) -> list:
-        delta_x = math.ceil(delta_x / 4)
-        delta_y = math.ceil(delta_y / 4)
-        self._delta_x = delta_x if delta_x > 0 else 256 + delta_x
-        self._delta_y = delta_y if delta_y > 0 else 256 + delta_y
-        return self._relative()
+        assert -127 <= delta_x <= 127
+        assert -127 <= delta_y <= 127
+        delta_x = math.ceil(delta_x / 3)
+        delta_y = math.ceil(delta_y / 3)
+        self.__delta_x = delta_x if delta_x >= 0 else 255 + delta_x
+        self.__delta_y = delta_y if delta_y >= 0 else 255 + delta_y
+        return self.__relative()
 
-    def _absolute(self) -> list:
-        code = 0x00;
-        if self._clicked:
-            code = self._button_code(self._button)
-        get_logger(0).info(f"HID : MouseEvent to_x = {self._to_x} to_y = {self._to_y}")
+    def active(self) -> str:
+        return self.__active
+
+    def set_active(self, name:str) -> None:
+        self.__active = name
+
+    def __absolute(self) -> list:
+        code = 0x00
+        if self.__clicked:
+            code = self.__button_code(self.__button)
         cmd = [0x00, 0x04, 0x07, 0x02, code, 0x00, 0x00, 0x00, 0x00, 0x00]
-        if len(self._to_x) == 2:
-            cmd[6] = self._to_x[0]
-            cmd[5] = self._to_x[1]
-        if len(self._to_y) == 2:
-            cmd[8] = self._to_y[0]
-            cmd[7] = self._to_y[1]
-        if self._wheel_y:
-            cmd[9] = self._wheel_y
+        if len(self.__to_x) == 2:
+            cmd[6] = self.__to_x[0]
+            cmd[5] = self.__to_x[1]
+        if len(self.__to_y) == 2:
+            cmd[8] = self.__to_y[0]
+            cmd[7] = self.__to_y[1]
+        if self.__wheel_y:
+            cmd[9] = self.__wheel_y
         return cmd
 
-    def _relative(self) -> list:
-        code = 0x00;
-        if self._clicked:
-            code = self._button_code(self._button)
-        cmd = [0x00, 0x05, 0x05, 0x01, code, 0x00, 0x00, 0x00]
-        if self._delta_x : cmd[5] = self._delta_x
-        if self._delta_y : cmd[6] = self._delta_y
+    def __relative(self) -> list:
+        code = 0x00
+        if self.__clicked:
+            code = self.__button_code(self.__button)
+        cmd = [0x00, 0x05, 0x05, 0x01, code, self.__delta_x, self.__delta_y, 0x00]
         return cmd
 
-    def _button_code(self, name: str) -> bytes:
+    def __button_code(self, name: str) -> bytes:
         match name:
             case 'left':
                 return 0x01
@@ -95,7 +101,11 @@ class Mouse:
                 return 0x02
             case 'middle':
                 return 0x04
+            case 'up' :
+                return 0x08
+            case 'down':
+                return 0x10
 
-    def _to_fixed(self, num: int) -> list:
+    def __to_fixed(self, num: int) -> list:
         to_fixed = math.ceil(MouseRange.remap(num, 0, MouseRange.MAX) / 8)
         return [ to_fixed >> 8, to_fixed & 0xFF ]

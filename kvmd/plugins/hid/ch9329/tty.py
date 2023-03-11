@@ -22,46 +22,43 @@
 
 import os
 import serial
-import time
-
-from ....logging import get_logger
-
 
 class TTY:
     def __init__(self, device_path, speed, read_timeout) -> None:
-        self._device_path = device_path
-        self._speed = speed
-        self._read_timeout = read_timeout
+        self.__device_path = device_path
+        self.__speed = speed
+        self.__read_timeout = read_timeout
 
     def has_device(self) -> bool:
-        return os.path.exists(self._device_path)
+        return os.path.exists(self.__device_path)
 
     def connect(self) -> None:
-        get_logger(0).info(f"TTY : inside connect")
-        self._tty = serial.Serial(self._device_path, self._speed, timeout=self._read_timeout)
+        self.__tty = serial.Serial(self.__device_path, self.__speed, timeout=self.__read_timeout)
 
-    def send(self, request: list) -> list:
-        cmd = self._wrap_cmd(request)
-        get_logger(0).info(f"TTY : request = {cmd}")
-        self._tty.write(serial.to_bytes(cmd))
-        data = list(self._tty.read(5))
+    def send(self, cmd: list) -> list:
+        cmd = self.__wrap_cmd(cmd)
+        self.__tty.write(serial.to_bytes(cmd))
+        data = list(self.__tty.read(5))
         if data and data[4] :
-            more_data = list(self._tty.read(data[4] + 1))
+            more_data = list(self.__tty.read(data[4] + 1))
             data.extend(more_data)
-            get_logger(0).info(f"TTY : data = {data}")
-            return data
-        else :
-            return []
+        return data
 
-    def _wrap_cmd(self, cmd: list) -> list:
+    def check_res(self, res: list) -> bool:
+        res_sum = res.pop()
+        return (self.__checksum(res) == res_sum)
+
+    def __wrap_cmd(self, cmd: list) -> list:
         cmd.insert(0, 0xAB)
         cmd.insert(0, 0x57)
-        sum = self._checksum(cmd)
-        cmd.append(sum)
+        cmd.append(self.__checksum(cmd))
         return cmd
 
-    def _checksum(self, cmd: list) -> int:
+    def __checksum(self, cmd: list) -> int:
         return sum(cmd) % 256
 
-RESET = [0x00,0x0F,0x00]
-GET_INFO = [0x00,0x01,0x00]
+def GET_INFO() -> list:
+    return [0x00,0x01,0x00]
+
+#RESET = [0x00,0x0F,0x00]
+#GET_INFO = [0x00,0x01,0x00]

@@ -20,32 +20,46 @@
 # ========================================================================== #
 
 from ....keyboard.mappings import KEYMAP
-from ....logging import get_logger
 
 class Keyboard:
     def __init__(self) -> None:
-        self.leds = {
+        self.__leds = {
             "caps" : False,
             "scroll" : False,
-            "num" : False
+            "num" : False,
         }
-        self._active_keys = []
+        self.__active_keys = []
 
     def key(self, key: str, state: bool) -> list:
-        if state : self._active_keys.append([key, self._is_modifier(key)])
-        else : self._active_keys.remove([key, self._is_modifier(key)])
-        get_logger(0).info(f"HID : KeyEvent name = {key} state = {state}, active_keys {self._active_keys}")
-        code = KEYMAP[key].usb.code if state else 0
-        get_logger(0).info(f"HID : KeyEvent code = {code}")
-        cmd = [0x00, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         if state :
-            if len(self._active_keys) > 1:
-                for idx, key in enumerate(self._active_keys) :
-                    if key[1] : cmd[3+idx] = KEYMAP[key[0]].usb.code
-            cmd[5] = code
+            self.__active_keys.append([key, self.__is_modifier(key)])
+        else :
+            self.__active_keys.remove([key, self.__is_modifier(key)])
+
+        return self.__key()
+
+    def leds(self) -> dict:
+        return self.__leds
+
+    def set_leds(self, led_byte: int) -> None:
+        self.__leds["num"] = bool( led_byte & 1)
+        self.__leds["caps"] = bool( ( led_byte >> 1) & 1 )
+        self.__leds["scroll"] = bool( ( led_byte >> 2) & 1 )
+
+    def __key(self) -> None:
+        cmd = [0x00, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        counter = 0
+        for key in self.__active_keys:
+            if key[1] :
+                cmd[3+counter] = self.__keycode(key[0])
+            else :
+                cmd[5+counter] = self.__keycode(key[0])
+            counter += 1
         return cmd
 
 
+    def __keycode(self, key: str) -> int:
+        return KEYMAP[key].usb.code
 
-    def _is_modifier(self, key: str) -> bool:
+    def __is_modifier(self, key: str) -> bool:
         return KEYMAP[key].usb.is_modifier
