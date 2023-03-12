@@ -111,7 +111,6 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         self.__keyboard = Keyboard()
         self.__mouse = Mouse()
 
-
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
@@ -136,7 +135,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         online = bool(state["online"])
         active_mouse = self.__mouse.active()
         absolute = ( active_mouse == 'usb')
-        keyboard_leds = self.__keyboard.leds()
+        keyboard_leds = await self.__keyboard.leds()
 
         return {
             "online": True,
@@ -218,27 +217,18 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
 
     def run(self) -> None:  # pylint: disable=too-many-branches
         logger = aioproc.settle("HID", "hid")
-        self.__tty.connect()
         while not self.__stop_event.is_set():
             try:
-                #with self.__gpio:
+                self.__tty.connect()
                 self.__hid_loop()
-                #self.tty.loop()
-                    #if self.__phy.has_device():
-                        #logger.info("Clearing HID events ...")
-                        #try:
-                        #    with self.__phy.connected() as conn:
-                                #self.__process_request(conn, ClearEvent().make_request())
-                        #except Exception:
-                        #    logger.exception("Can't clear HID events")
             except Exception:
-                logger.exception("Unexpected error in the GPIO loop")
+                logger.exception("Unexpected error in the run loop")
                 time.sleep(1)
 
     def __hid_loop(self) -> None:
         while not self.__stop_event.is_set():
             try:
-                get_info = True
+
                 while not (self.__stop_event.is_set() and self.__cmd_queue.qsize() == 0):
                     if self.__reset_required_event.is_set():
                         try:
@@ -250,12 +240,9 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                         cmd = self.__cmd_queue.get(timeout=0.1)
                         #get_logger(0).info(f"HID : cmd = {cmd}")
                     except queue.Empty:
-                        if get_info :
-                            self.__process_cmd(GET_INFO())
-                            get_info = False
+                        self.__process_cmd(GET_INFO())
                     else:
                         self.__process_cmd(cmd)
-                        get_info = True
             except Exception:
                 self.clear_events()
                 get_logger(0).exception("Unexpected error in the HID loop")
@@ -263,63 +250,29 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
 
 
     def __process_cmd(self, cmd: list) -> bool:  # pylint: disable=too-many-branches
-        logger = get_logger()
-        error_messages: list[str] = []
-        live_log_errors = False
-
-        common_retries = self.__common_retries
-        read_retries = self.__read_retries
-        error_retval = False
-
-        while common_retries and read_retries:
+        try:
             res = self.__tty.send(cmd)
-            try:
-                #get_logger(0).info(f"HID response = {res}")
-                if len(res) < 4:
-                    read_retries -= 1
-                    raise _TempRequestError(f"No response from HID: cmd={cmd!r}")
+            #get_logger(0).info(f"HID response = {res}")
+            if len(res) < 4:
+                raise _TempRequestError(f"No response from HID: cmd={cmd!r}")
 
-                if not self.__tty.check_res(res):
-                    raise _TempRequestError("Invalid response checksum ...")
+            if not self.__tty.check_res(res):
+                raise _TempRequestError("Invalid response checksum ...")
 
-                #GET_INFO response
-                if res[3] == 0x81:
-                    self.__keyboard.set_leds(res[7])
-
-                #Response Error
-                if res[4] == 1 and res[5] != 0:
-                    raise _TempRequestError(f"Command error code={res[5]!r}")
-
-                self.__set_state_online(True)
+            #GET_INFO response
+            elif res[3] == 0x81:
+                self.__keyboard.set_leds(res[7])
+                self.__notifier.notify()
                 return True
 
-            except _RequestError as err:
-                common_retries -= 1
+            #Response Error
+            elif res[4] == 1 and res[5] != 0:
+                raise _TempRequestError(f"Command error code={res[5]!r}")
 
-                if live_log_errors:
-                    logger.error(err.msg)
-                else:
-                    error_messages.append(err.msg)
-                    if len(error_messages) > self.__errors_threshold:
-                        for msg in error_messages:
-                            logger.error(msg)
-                        error_messages = []
-                        live_log_errors = True
+        except _RequestError as err:
+            get_logger(0).exception(f"{err}")
+            return False
 
-                if isinstance(err, _PermRequestError):
-                    error_retval = True
-                    break
-
-                self.__set_state_online(False)
-
-                if common_retries and read_retries:
-                    time.sleep(self.__retries_delay)
-
-        for msg in error_messages:
-            logger.error(msg)
-        if not (common_retries and read_retries):
-            logger.error("Can't process HID command due many errors: %r", cmd)
-        return error_retval
 
     def __set_state_online(self, online: bool) -> None:
         self.__state_flags.update(online=int(online))

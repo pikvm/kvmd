@@ -19,15 +19,20 @@
 #                                                                            #
 # ========================================================================== #
 
+from .... import aiomulti
+
 from ....keyboard.mappings import KEYMAP
 
 class Keyboard:
     def __init__(self) -> None:
-        self.__leds = {
-            "caps" : False,
-            "scroll" : False,
-            "num" : False,
-        }
+
+        self.__notifier = aiomulti.AioProcessNotifier()
+        self.__leds = aiomulti.AioSharedFlags({
+            "num": False,
+            "caps": False,
+            "scroll": False,
+        }, self.__notifier, type=bool)
+
         self.__active_keys = []
 
     def key(self, key: str, state: bool) -> list:
@@ -38,13 +43,15 @@ class Keyboard:
 
         return self.__key()
 
-    def leds(self) -> dict:
-        return self.__leds
+    async def leds(self) -> dict:
+        leds = await self.__leds.get()
+        return leds
 
     def set_leds(self, led_byte: int) -> None:
-        self.__leds["num"] = bool( led_byte & 1)
-        self.__leds["caps"] = bool( ( led_byte >> 1) & 1 )
-        self.__leds["scroll"] = bool( ( led_byte >> 2) & 1 )
+        num = bool(led_byte & 1)
+        caps = bool(( led_byte >> 1) & 1)
+        scroll = bool(( led_byte >> 2) & 1)
+        self.__leds.update(num=num, caps=caps, scroll=scroll)
 
     def __key(self) -> None:
         cmd = [0x00, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -56,7 +63,6 @@ class Keyboard:
                 cmd[5+counter] = self.__keycode(key[0])
             counter += 1
         return cmd
-
 
     def __keycode(self, key: str) -> int:
         return KEYMAP[key].usb.code
