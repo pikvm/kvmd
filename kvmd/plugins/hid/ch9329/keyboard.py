@@ -36,7 +36,7 @@ class Keyboard:
 
         self.__active_keys: list[list] = []
 
-    def key(self, key: str, state: bool) -> list:
+    def key(self, key: str, state: bool) -> list[int]:
         if state:
             self.__active_keys.append([key, self.__is_modifier(key)])
         else:
@@ -53,7 +53,7 @@ class Keyboard:
         scroll = bool((led_byte >> 2) & 1)
         self.__leds.update(num=num, caps=caps, scroll=scroll)
 
-    def __key(self) -> list:
+    def __key(self) -> list[int]:
         cmd = [0x00, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         counter = 0
         for key in self.__active_keys:

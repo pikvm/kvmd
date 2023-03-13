@@ -32,7 +32,7 @@ class TTY:
     def has_device(self) -> bool:
         return os.path.exists(self.__device_path)
 
-    def send(self, cmd: list) -> list:
+    def send(self, cmd: list[int]) -> list[int]:
         cmd = self.__wrap_cmd(cmd)
         self.__tty.write(serial.to_bytes(cmd))
         data = list(self.__tty.read(5))
@@ -41,21 +41,21 @@ class TTY:
             data.extend(more_data)
         return data
 
-    def check_res(self, res: list) -> bool:
+    def check_res(self, res: list[int]) -> bool:
         res_sum = res.pop()
         return (self.__checksum(res) == res_sum)
 
-    def __wrap_cmd(self, cmd: list) -> list:
+    def __wrap_cmd(self, cmd: list[int]) -> list[int]:
         cmd.insert(0, 0xAB)
         cmd.insert(0, 0x57)
         cmd.append(self.__checksum(cmd))
         return cmd
 
-    def __checksum(self, cmd: list) -> int:
+    def __checksum(self, cmd: list[int]) -> int:
         return sum(cmd) % 256
 
 
-def get_info() -> list:
+def get_info() -> list[int]:
     return [0x00, 0x01, 0x00]
 
 # RESET = [0x00,0x0F,0x00]

@@ -191,7 +191,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
     def clear_events(self) -> None:
         tools.clear_queue(self.__cmd_queue)
 
-    def __queue_cmd(self, cmd: list, clear: bool=False) -> None:
+    def __queue_cmd(self, cmd: list[int], clear: bool=False) -> None:
         if not self.__stop_event.is_set():
             if clear:
                 # FIXME: Если очистка производится со стороны процесса хида, то возможна гонка между
@@ -233,7 +233,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                 get_logger(0).exception("Unexpected error in the HID loop")
                 time.sleep(2)
 
-    def __process_cmd(self, cmd: list) -> bool:  # pylint: disable=too-many-branches
+    def __process_cmd(self, cmd: list[int]) -> bool:  # pylint: disable=too-many-branches
         error_retval = False
         try:
             res = self.__tty.send(cmd)
@@ -246,7 +246,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
 
             # Response Error
             if res[4] == 1 and res[5] != 0:
-                raise _ResError("Command error code = " + res[5])
+                raise _ResError("Command error code = " + str(res[5]))
 
             # get_info response
             if res[3] == 0x81:

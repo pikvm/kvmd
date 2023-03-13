@@ -35,7 +35,7 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
         self.__delta_x = 0
         self.__delta_y = 0
 
-    def button(self, button: str, clicked: bool) -> list:
+    def button(self, button: str, clicked: bool) -> list[int]:
         self.__button = button
         self.__clicked = clicked
         self.__wheel_y = 0
@@ -44,7 +44,7 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
             self.__to_y = [0, 0]
         return self.__absolute()
 
-    def move(self, to_x: int, to_y: int) -> list:
+    def move(self, to_x: int, to_y: int) -> list[int]:
         assert MouseRange.MIN <= to_x <= MouseRange.MAX
         assert MouseRange.MIN <= to_y <= MouseRange.MAX
         self.__to_x = self.__to_fixed(to_x)
@@ -52,13 +52,13 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
         self.__wheel_y = 0
         return self.__absolute()
 
-    def wheel(self, delta_x: int, delta_y: int) -> list:
+    def wheel(self, delta_x: int, delta_y: int) -> list[int]:
         assert -127 <= delta_y <= 127
         _ = delta_x
         self.__wheel_y = 1 if delta_y > 0 else 255
         return self.__absolute()
 
-    def relative(self, delta_x: int, delta_y: int) -> list:
+    def relative(self, delta_x: int, delta_y: int) -> list[int]:
         assert -127 <= delta_x <= 127
         assert -127 <= delta_y <= 127
         delta_x = math.ceil(delta_x / 3)
@@ -73,7 +73,7 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
     def set_active(self, name: str) -> None:
         self.__active = name
 
-    def __absolute(self) -> list:
+    def __absolute(self) -> list[int]:
         code = 0x00
         if self.__clicked:
             code = self.__button_code(self.__button)
@@ -88,7 +88,7 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
             cmd[9] = self.__wheel_y
         return cmd
 
-    def __relative(self) -> list:
+    def __relative(self) -> list[int]:
         code = 0x00
         if self.__clicked:
             code = self.__button_code(self.__button)
@@ -110,6 +110,6 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
                 code = 0x10
         return code
 
-    def __to_fixed(self, num: int) -> list:
+    def __to_fixed(self, num: int) -> list[int]:
         to_fixed = math.ceil(MouseRange.remap(num, 0, MouseRange.MAX) / 8)
         return [to_fixed >> 8, to_fixed & 0xFF]
