@@ -23,6 +23,7 @@ from .... import aiomulti
 
 from ....keyboard.mappings import KEYMAP
 
+
 class Keyboard:
     def __init__(self) -> None:
 
@@ -33,14 +34,13 @@ class Keyboard:
             "scroll": False,
         }, self.__notifier, type=bool)
 
-        self.__active_keys = []
+        self.__active_keys: list[list] = []
 
     def key(self, key: str, state: bool) -> list:
-        if state :
+        if state:
             self.__active_keys.append([key, self.__is_modifier(key)])
-        else :
+        else:
             self.__active_keys.remove([key, self.__is_modifier(key)])
-
         return self.__key()
 
     async def leds(self) -> dict:
@@ -49,18 +49,18 @@ class Keyboard:
 
     def set_leds(self, led_byte: int) -> None:
         num = bool(led_byte & 1)
-        caps = bool(( led_byte >> 1) & 1)
-        scroll = bool(( led_byte >> 2) & 1)
+        caps = bool((led_byte >> 1) & 1)
+        scroll = bool((led_byte >> 2) & 1)
         self.__leds.update(num=num, caps=caps, scroll=scroll)
 
-    def __key(self) -> None:
+    def __key(self) -> list:
         cmd = [0x00, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         counter = 0
         for key in self.__active_keys:
-            if key[1] :
-                cmd[3+counter] = self.__keycode(key[0])
-            else :
-                cmd[5+counter] = self.__keycode(key[0])
+            if key[1]:
+                cmd[3 + counter] = self.__keycode(key[0])
+            else:
+                cmd[5 + counter] = self.__keycode(key[0])
             counter += 1
         return cmd
 

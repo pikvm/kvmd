@@ -23,13 +23,14 @@ import math
 
 from ....mouse import MouseRange
 
-class Mouse:
+
+class Mouse:  # pylint: disable=too-many-instance-attributes
     def __init__(self) -> None:
-        self.__active = 'usb'
-        self.__button = ''
+        self.__active = "usb"
+        self.__button = ""
         self.__clicked = False
-        self.__to_x = [0,0]
-        self.__to_y = [0,0]
+        self.__to_x = [0, 0]
+        self.__to_y = [0, 0]
         self.__wheel_y = 0
         self.__delta_x = 0
         self.__delta_y = 0
@@ -38,9 +39,9 @@ class Mouse:
         self.__button = button
         self.__clicked = clicked
         self.__wheel_y = 0
-        if self.__active != 'usb':
-            self.__to_x = [0,0]
-            self.__to_y = [0,0]
+        if self.__active != "usb":
+            self.__to_x = [0, 0]
+            self.__to_y = [0, 0]
         return self.__absolute()
 
     def move(self, to_x: int, to_y: int) -> list:
@@ -53,6 +54,7 @@ class Mouse:
 
     def wheel(self, delta_x: int, delta_y: int) -> list:
         assert -127 <= delta_y <= 127
+        _ = delta_x
         self.__wheel_y = 1 if delta_y > 0 else 255
         return self.__absolute()
 
@@ -68,7 +70,7 @@ class Mouse:
     def active(self) -> str:
         return self.__active
 
-    def set_active(self, name:str) -> None:
+    def set_active(self, name: str) -> None:
         self.__active = name
 
     def __absolute(self) -> list:
@@ -93,19 +95,21 @@ class Mouse:
         cmd = [0x00, 0x05, 0x05, 0x01, code, self.__delta_x, self.__delta_y, 0x00]
         return cmd
 
-    def __button_code(self, name: str) -> bytes:
+    def __button_code(self, name: str) -> int:
+        code = 0x00
         match name:
-            case 'left':
-                return 0x01
-            case 'right':
-                return 0x02
-            case 'middle':
-                return 0x04
-            case 'up' :
-                return 0x08
-            case 'down':
-                return 0x10
+            case "left":
+                code = 0x01
+            case "right":
+                code = 0x02
+            case "middle":
+                code = 0x04
+            case "up":
+                code = 0x08
+            case "down":
+                code = 0x10
+        return code
 
     def __to_fixed(self, num: int) -> list:
         to_fixed = math.ceil(MouseRange.remap(num, 0, MouseRange.MAX) / 8)
-        return [ to_fixed >> 8, to_fixed & 0xFF ]
+        return [to_fixed >> 8, to_fixed & 0xFF]

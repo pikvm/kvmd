@@ -23,23 +23,20 @@
 import os
 import serial
 
+
 class TTY:
-    def __init__(self, device_path, speed, read_timeout) -> None:
+    def __init__(self, device_path: str, speed: int, read_timeout: float) -> None:
+        self.__tty = serial.Serial(device_path, speed, timeout=read_timeout)
         self.__device_path = device_path
-        self.__speed = speed
-        self.__read_timeout = read_timeout
 
     def has_device(self) -> bool:
         return os.path.exists(self.__device_path)
-
-    def connect(self) -> None:
-        self.__tty = serial.Serial(self.__device_path, self.__speed, timeout=self.__read_timeout)
 
     def send(self, cmd: list) -> list:
         cmd = self.__wrap_cmd(cmd)
         self.__tty.write(serial.to_bytes(cmd))
         data = list(self.__tty.read(5))
-        if data and data[4] :
+        if data and data[4]:
             more_data = list(self.__tty.read(data[4] + 1))
             data.extend(more_data)
         return data
@@ -57,8 +54,9 @@ class TTY:
     def __checksum(self, cmd: list) -> int:
         return sum(cmd) % 256
 
-def GET_INFO() -> list:
-    return [0x00,0x01,0x00]
 
-#RESET = [0x00,0x0F,0x00]
-#GET_INFO = [0x00,0x01,0x00]
+def get_info() -> list:
+    return [0x00, 0x01, 0x00]
+
+# RESET = [0x00,0x0F,0x00]
+# GET_INFO = [0x00,0x01,0x00]

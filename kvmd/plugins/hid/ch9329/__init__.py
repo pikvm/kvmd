@@ -21,12 +21,10 @@
 
 
 import multiprocessing
-import contextlib
 import queue
 import time
 
 from typing import Iterable
-from typing import Generator
 from typing import AsyncGenerator
 
 from ....logging import get_logger
@@ -51,33 +49,22 @@ from .tty import TTY
 from .mouse import Mouse
 from .keyboard import Keyboard
 
-from .tty import GET_INFO
+from .tty import get_info
 
 
-# =====
-class _RequestError(Exception):
+class _ResError(Exception):
     def __init__(self, msg: str) -> None:
         super().__init__(msg)
         self.msg = msg
 
 
-class _PermRequestError(_RequestError):
-    pass
-
-
-class _TempRequestError(_RequestError):
-    pass
-
-
-
+# =====
 class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
         device_path: str,
         speed: int,
         read_timeout: float,
-        reset_inverted: bool,
-        reset_delay: float,
         read_retries: int,
         common_retries: int,
         retries_delay: float,
@@ -117,8 +104,6 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
             "device":           Option("/dev/kvmd-hid", type=valid_abs_path, unpack_as="device_path"),
             "speed":            Option(9600,  type=valid_tty_speed),
             "read_timeout":     Option(0.3,   type=valid_float_f01),
-            "reset_inverted":   Option(False, type=valid_bool),
-            "reset_delay":      Option(0.1,   type=valid_float_f01),
             "read_retries":     Option(5,     type=valid_int_f1),
             "common_retries":   Option(5,     type=valid_int_f1),
             "retries_delay":    Option(0.5,   type=valid_float_f01),
@@ -134,11 +119,11 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         state = await self.__state_flags.get()
         online = bool(state["online"])
         active_mouse = self.__mouse.active()
-        absolute = ( active_mouse == 'usb')
+        absolute = (active_mouse == "usb")
         keyboard_leds = await self.__keyboard.leds()
 
         return {
-            "online": True,
+            "online": online,
             "busy": False,
             "connected": None,
             "keyboard": {
@@ -150,8 +135,8 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                 "online": True,
                 "absolute": absolute,
                 "outputs": {
-                    "available" : ["usb", "usb_rel"],
-                    "active" : active_mouse
+                    "available": ["usb", "usb_rel"],
+                    "active": active_mouse
                 },
             },
         }
@@ -196,12 +181,12 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
 
     def set_params(self, keyboard_output: (str | None)=None, mouse_output: (str | None)=None) -> None:
         if mouse_output is not None:
-            get_logger(0).info(f"HID : mouse output = {mouse_output}")
+            get_logger(0).info("HID : mouse output = %s", mouse_output)
             self.__mouse.set_active(mouse_output)
             self.__notifier.notify()
 
     def set_connected(self, connected: bool) -> None:
-        get_logger(0).info(f"HID : set_connected = {connected}")
+        pass
 
     def clear_events(self) -> None:
         tools.clear_queue(self.__cmd_queue)
@@ -219,7 +204,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         logger = aioproc.settle("HID", "hid")
         while not self.__stop_event.is_set():
             try:
-                self.__tty.connect()
+                # self.__tty.connect()
                 self.__hid_loop()
             except Exception:
                 logger.exception("Unexpected error in the run loop")
@@ -233,46 +218,51 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                     if self.__reset_required_event.is_set():
                         try:
                             self.__set_state_busy(True)
-                            #self.__process_request(conn, RESET)
+                            # self.__process_request(conn, RESET)
                         finally:
                             self.__reset_required_event.clear()
                     try:
                         cmd = self.__cmd_queue.get(timeout=0.1)
-                        #get_logger(0).info(f"HID : cmd = {cmd}")
+                        # get_logger(0).info(f"HID : cmd = {cmd}")
                     except queue.Empty:
-                        self.__process_cmd(GET_INFO())
+                        self.__process_cmd(get_info())
                     else:
                         self.__process_cmd(cmd)
             except Exception:
                 self.clear_events()
                 get_logger(0).exception("Unexpected error in the HID loop")
-                time.sleep(1)
-
+                time.sleep(2)
 
     def __process_cmd(self, cmd: list) -> bool:  # pylint: disable=too-many-branches
+        error_retval = False
         try:
             res = self.__tty.send(cmd)
-            #get_logger(0).info(f"HID response = {res}")
+            # get_logger(0).info(f"HID response = {res}")
             if len(res) < 4:
-                raise _TempRequestError(f"No response from HID: cmd={cmd!r}")
+                raise _ResError("No response from HID - might be disconnected")
 
             if not self.__tty.check_res(res):
-                raise _TempRequestError("Invalid response checksum ...")
+                raise _ResError("Invalid response checksum ...")
 
-            #GET_INFO response
-            elif res[3] == 0x81:
+            # Response Error
+            if res[4] == 1 and res[5] != 0:
+                raise _ResError("Command error code = " + res[5])
+
+            # get_info response
+            if res[3] == 0x81:
                 self.__keyboard.set_leds(res[7])
                 self.__notifier.notify()
-                return True
 
-            #Response Error
-            elif res[4] == 1 and res[5] != 0:
-                raise _TempRequestError(f"Command error code={res[5]!r}")
+            self.__set_state_online(True)
+            return True
 
-        except _RequestError as err:
-            get_logger(0).exception(f"{err}")
-            return False
+        except Exception as err:
+            self.__set_state_online(False)
+            get_logger(0).info(err)
+            time.sleep(2)
+            error_retval = False
 
+        return error_retval
 
     def __set_state_online(self, online: bool) -> None:
         self.__state_flags.update(online=int(online))
