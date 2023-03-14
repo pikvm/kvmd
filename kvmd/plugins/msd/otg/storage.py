@@ -23,32 +23,96 @@
 import os
 import dataclasses
 
+from typing import Generator
+from typing import Optional
+
 from ....logging import get_logger
+
+from .... import aiohelpers
+
+from .. import MsdError
 
 
 # =====
 @dataclasses.dataclass(frozen=True)
-class Image:
+class _Image:
     name: str
     path: str
+    in_storage: bool = dataclasses.field(init=False)
+    complete: bool = dataclasses.field(init=False, compare=False)
+    removable: bool = dataclasses.field(init=False, compare=False)
+    size: int = dataclasses.field(init=False, compare=False)
+    mod_ts: float = dataclasses.field(init=False, compare=False)
 
-    complete: bool = dataclasses.field(compare=False)
-    in_storage: bool = dataclasses.field(compare=False)
 
-    size: int = dataclasses.field(default=0, compare=False)
-    mod_ts: float = dataclasses.field(default=0, compare=False)
+class Image(_Image):
+    def __init__(self, name: str, path: str, storage: Optional["Storage"]) -> None:
+        super().__init__(name, path)
+        self.__storage = storage
+        (self.__dir_path, file_name) = os.path.split(path)
+        self.__complete_path = os.path.join(self.__dir_path, f".__{file_name}.complete")
+        self.__adopted = (storage._is_adopted(self) if storage else True)
+
+    @property
+    def in_storage(self) -> bool:
+        return bool(self.__storage)
+
+    @property
+    def complete(self) -> bool:
+        if self.__storage:
+            return os.path.exists(self.__complete_path)
+        return True
+
+    @property
+    def removable(self) -> bool:
+        if not self.__storage:
+            return False
+        if not self.__adopted:
+            return True
+        return os.access(self.__dir_path, os.W_OK)
+
+    @property
+    def size(self) -> int:
+        try:
+            return os.stat(self.path).st_size
+        except Exception:
+            return 0
+
+    @property
+    def mod_ts(self) -> float:
+        try:
+            return os.stat(self.path).st_mtime
+        except Exception:
+            return 0.0
 
     def exists(self) -> bool:
         return os.path.exists(self.path)
 
-    def __post_init__(self) -> None:
+    async def remount_rw(self, rw: bool, fatal: bool=True) -> None:
+        assert self.__storage
+        if not self.__adopted:
+            await self.__storage.remount_rw(rw, fatal)
+
+    def remove(self, fatal: bool) -> None:
+        assert self.__storage
         try:
-            st = os.stat(self.path)
-        except Exception:
+            os.remove(self.path)
+        except FileNotFoundError:
             pass
+        except Exception:
+            if fatal:
+                raise
+        self.set_complete(False)
+
+    def set_complete(self, flag: bool) -> None:
+        assert self.__storage
+        if flag:
+            open(self.__complete_path, "w").close()  # pylint: disable=consider-using-with
         else:
-            object.__setattr__(self, "size", st.st_size)
-            object.__setattr__(self, "mod_ts", st.st_mtime)
+            try:
+                os.remove(self.__complete_path)
+            except FileNotFoundError:
+                pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -58,60 +122,49 @@ class StorageSpace:
 
 
 class Storage:
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, remount_cmd: list[str]) -> None:
         self.__path = path
-        self.__images_path = os.path.join(self.__path, "images")
-        self.__meta_path = os.path.join(self.__path, "meta")
+        self.__remount_cmd = remount_cmd
 
     def get_watchable_paths(self) -> list[str]:
-        return [self.__images_path, self.__meta_path]
+        paths: list[str] = []
+        for (root_path, dirs, _) in os.walk(self.__path):
+            dirs[:] = list(self.__filter(dirs))
+            paths.append(root_path)
+        return paths
 
     def get_images(self) -> dict[str, Image]:
-        return {
-            name: self.get_image_by_name(name)
-            for name in os.listdir(self.__images_path)
-        }
+        images: dict[str, Image] = {}
+        for (root_path, dirs, files) in os.walk(self.__path):
+            dirs[:] = list(self.__filter(dirs))
+            for file in self.__filter(files):
+                name = os.path.relpath(os.path.join(root_path, file), self.__path)
+                images[name] = self.get_image_by_name(name)
+        return images
+
+    def __filter(self, items: list[str]) -> Generator[str, None, None]:
+        for item in sorted(map(str.strip, items)):
+            if not item.startswith(".") and item != "lost+found":
+                yield item
 
     def get_image_by_name(self, name: str) -> Image:
         assert name
-        path = os.path.join(self.__images_path, name)
-        return self.__get_image(name, path)
+        path = os.path.join(self.__path, name)
+        return self.__get_image(name, path, True)
 
     def get_image_by_path(self, path: str) -> Image:
         assert path
-        name = os.path.basename(path)
-        return self.__get_image(name, path)
+        in_storage = (os.path.commonpath([self.__path, path]) == self.__path)
+        if in_storage:
+            name = os.path.relpath(path, self.__path)
+        else:
+            name = os.path.basename(path)
+        return self.__get_image(name, path, in_storage)
 
-    def __get_image(self, name: str, path: str) -> Image:
+    def __get_image(self, name: str, path: str, in_storage: bool) -> Image:
         assert name
         assert path
-        complete = True
-        in_storage = (os.path.dirname(path) == self.__images_path)
-        if in_storage:
-            complete = os.path.exists(os.path.join(self.__meta_path, name + ".complete"))
-        return Image(name, path, complete, in_storage)
-
-    def remove_image(self, image: Image, fatal: bool) -> None:
-        assert image.in_storage
-        try:
-            os.remove(image.path)
-        except FileNotFoundError:
-            pass
-        except Exception:
-            if fatal:
-                raise
-        self.set_image_complete(image, False)
-
-    def set_image_complete(self, image: Image, flag: bool) -> None:
-        assert image.in_storage
-        path = os.path.join(self.__meta_path, image.name + ".complete")
-        if flag:
-            open(path, "w").close()  # pylint: disable=consider-using-with
-        else:
-            try:
-                os.remove(path)
-            except FileNotFoundError:
-                pass
+        return Image(name, path, (self if in_storage else None))
 
     def get_space(self, fatal: bool) -> (StorageSpace | None):
         try:
@@ -125,3 +178,18 @@ class Storage:
             size=(st.f_blocks * st.f_frsize),
             free=(st.f_bavail * st.f_frsize),
         )
+
+    def _is_adopted(self, image: Image) -> bool:
+        # True, если образ находится вне хранилища
+        # или в другой точке монтирования под ним
+        if not image.in_storage:
+            return True
+        path = image.path
+        while not os.path.ismount(path):
+            path = os.path.dirname(path)
+        return (self.__path != path)
+
+    async def remount_rw(self, rw: bool, fatal: bool=True) -> None:
+        if not (await aiohelpers.remount("MSD", self.__remount_cmd, rw)):
+            if fatal:
+                raise MsdError("Can't execute remount helper")
