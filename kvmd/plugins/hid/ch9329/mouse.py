@@ -28,7 +28,6 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
     def __init__(self) -> None:
         self.__active = "usb"
         self.__buttons = 0x00
-        self.__clicked = False
         self.__to_x = [0, 0]
         self.__to_y = [0, 0]
         self.__wheel_y = 0
@@ -41,7 +40,6 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
             self.__buttons &= ~code
         if clicked:
             self.__buttons |= code
-        self.__clicked = clicked
         self.__wheel_y = 0
         if self.__active != "usb":
             self.__to_x = [0, 0]
