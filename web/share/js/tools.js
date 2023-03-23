@@ -23,6 +23,9 @@
 "use strict";
 
 
+import {browser} from "./bb.js";
+
+
 export var tools = new function() {
 	var self = this;
 
@@ -61,6 +64,10 @@ export var tools = new function() {
 			id += chars.charAt(Math.floor(Math.random() * chars.length));
 		}
 		return id;
+	};
+
+	self.makeIdByText = function(text) {
+		return btoa(text).replace("=", "_");
 	};
 
 	self.formatSize = function(size) {
@@ -181,8 +188,16 @@ export var tools = new function() {
 					el.__display_callback = display_callback;
 				}
 			},
-			"setValue": function(el, value) {
+			"setRange": function(el, min, max) {
+				let value = el.value;
+				el.min = min;
+				el.max = max;
 				if (el.value != value) {
+					self.slider.setValue(el, el.value, true);
+				}
+			},
+			"setValue": function(el, value, force=false) {
+				if (el.value != value || force) {
 					if (el.__pressed) {
 						el.__postponed = value;
 					} else {
@@ -240,11 +255,66 @@ export var tools = new function() {
 		};
 	};
 
+	self.selector = new function() {
+		return {
+			"addOption": function(el, title, value, selected=false) {
+				el.add(new Option(title, value, selected, selected));
+			},
+			"addComment": function(el, title) {
+				let option = new Option(title, ".".repeat(30), false, false); // Kinda magic value
+				option.disabled = true;
+				option.className = "comment";
+				el.add(option);
+			},
+			"addSeparator": function(el) {
+				if (!self.browser.is_mobile) {
+					self.selector.addComment(el, "\u2500".repeat(30));
+				}
+			},
+
+			"setValues": function(el, values, empty_title=null) {
+				if (values.constructor == Object) {
+					values = Object.keys(values).sort();
+				}
+				let values_json = JSON.stringify(values);
+				if (el.__values_json !== values_json) {
+					el.options.length = 0;
+					for (let value of values) {
+						let title = value;
+						if (title.length === 0 && empty_title !== null) {
+							title = empty_title;
+						}
+						self.selector.addOption(el, title, value);
+					}
+					el.__values_json = values_json;
+					el.__values = values;
+				}
+			},
+			"setSelectedValue": function(el, value) {
+				if (el.__values && el.__values.includes(value)) {
+					el.value = value;
+				}
+			},
+		};
+	};
+
 	self.progress = new function() {
 		return {
 			"setValue": function(el, title, percent) {
 				el.setAttribute("data-label", title);
-				$(`${el.id}-value`).style.width = `${percent}%`;
+				el.querySelector(".progress-value").style.width = `${percent}%`;
+			},
+			"setPercentOf": function(el, max, value) {
+				let percent = Math.round(value * 100 / max);
+				self.progress.setValue(el, `${percent}%`, percent);
+			},
+			"setSizeOf": function(el, title, size, free) {
+				let size_str = self.formatSize(size);
+				let used = size - free;
+				let used_str = self.formatSize(used);
+				let percent = used / size * 100;
+				title = title.replace("%s", `${used_str} of ${size_str}`);
+				self.progress.setValue(el, title, percent);
 			},
 		};
 	};
@@ -335,74 +405,17 @@ export var tools = new function() {
 		};
 	};
 
-	self.browser = new function() {
-		// https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769
-
-		// Opera 8.0+
-		let is_opera = (
-			(!!window.opr && !!opr.addons) // eslint-disable-line no-undef
-			|| !!window.opera
-			|| (navigator.userAgent.indexOf(" OPR/") >= 0)
-		);
-
-		// Firefox 1.0+
-		let is_firefox = (typeof InstallTrigger !== "undefined");
-
-		// Safari 3.0+ "[object HTMLElementConstructor]"
-		let is_safari = (function() {
-			if (/constructor/i.test(String(window["HTMLElement"]))) {
-				return true;
-			}
-			let push = null;
-			try {
-				push = window.top["safari"].pushNotification;
-			} catch {
-				try {
-					push = window["safari"].pushNotification;
-				} catch {
-					return false;
-				}
-			}
-			return String(push) === "[object SafariRemoteNotification]";
-		})();
-
-		// Chrome 1+
-		let is_chrome = !!window.chrome;
-
-		// Blink engine detection
-		let is_blink = ((is_chrome || is_opera) && !!window.CSS);
-
-		// iOS browsers
-		// https://stackoverflow.com/questions/9038625/detect-if-device-is-ios
-		// https://github.com/lancedikson/bowser/issues/329
-		let is_ios = (!!navigator.platform && (
-			/iPad|iPhone|iPod/.test(navigator.platform)
-			|| (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1 && !window["MSStream"])
-		));
-
-		// Any browser on Mac
-		let is_mac = ((
-			window.navigator.oscpu
-			|| window.navigator.platform
-			|| window.navigator.appVersion
-			|| "Unknown"
-		).indexOf("Mac") !== -1);
-
-		// Any Windows
-		let is_win = (navigator && !!(/win/i).exec(navigator.platform));
-
+	self.config = new function() {
 		return {
-			"is_opera": is_opera,
-			"is_firefox": is_firefox,
-			"is_safari": is_safari,
-			"is_chrome": is_chrome,
-			"is_blink": is_blink,
-			"is_ios": is_ios,
-			"is_mac": is_mac,
-			"is_win": is_win,
+			"get": function(key, default_value) {
+				let value = window.getComputedStyle(document.documentElement).getPropertyValue(`--config-ui--${key}`);
+				return (value || default_value);
+			},
+			"getBool": (key, default_value) => !!parseInt(self.config.get(key, (default_value ? "1" : "0"))),
 		};
 	};
-	self.info("Browser:", self.browser);
+
+	self.browser = browser;
 };
 
 export var $ = (id) => document.getElementById(id);

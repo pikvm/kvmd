@@ -22,11 +22,20 @@
 
 #pragma once
 
-#include <Arduino.h>
-#include <SPI.h>
+#include "driver.h"
 
 
-void spiBegin();
-bool spiReady();
-const uint8_t *spiGet();
-void spiWrite(const uint8_t *data);
+namespace DRIVERS {
+	enum status {
+		RX_DATA = 0,
+		KEYBOARD_ONLINE,
+		MOUSE_ONLINE,
+	};
+
+	struct Board : public Driver {
+		using Driver::Driver;
+		virtual void reset() {}
+		virtual void periodic() {}
+		virtual void updateStatus(status status) {}
+	};
+}

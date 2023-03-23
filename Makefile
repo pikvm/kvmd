@@ -84,6 +84,7 @@ tox: testenv
 			&& cp -a /src/testenv/.ssl/vnc /etc/kvmd/vnc/ssl \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*.yaml /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*passwd /etc/kvmd \
+			&& cp /usr/share/kvmd/configs.default/kvmd/*.secret /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /etc/kvmd/main.yaml \
 			&& mkdir -p /etc/kvmd/override.d \
 			&& cp /src/testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
@@ -104,14 +105,13 @@ run: testenv $(TESTENV_GPIO)
 			--volume `pwd`/testenv/run:/run/kvmd:rw \
 			--volume `pwd`/testenv:/testenv:ro \
 			--volume `pwd`/kvmd:/kvmd:ro \
+			--volume `pwd`/testenv/env.py:/kvmd/env.py:ro \
 			--volume `pwd`/web:/usr/share/kvmd/web:ro \
 			--volume `pwd`/extras:/usr/share/kvmd/extras:ro \
 			--volume `pwd`/configs:/usr/share/kvmd/configs.default:ro \
 			--volume `pwd`/contrib/keymaps:/usr/share/kvmd/keymaps:ro \
 			--device $(TESTENV_VIDEO):$(TESTENV_VIDEO) \
 			--device $(TESTENV_GPIO):$(TESTENV_GPIO) \
-			--env KVMD_SYSFS_PREFIX=/fake_sysfs \
-			--env KVMD_PROCFS_PREFIX=/fake_procfs \
 			$(if $(TESTENV_RELAY),--device $(TESTENV_RELAY):$(TESTENV_RELAY),) \
 			--publish 8080:80/tcp \
 			--publish 4430:443/tcp \
@@ -126,10 +126,11 @@ run: testenv $(TESTENV_GPIO)
 			&& cp -a /testenv/.ssl/vnc /etc/kvmd/vnc/ssl \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*.yaml /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*passwd /etc/kvmd \
+			&& cp /usr/share/kvmd/configs.default/kvmd/*.secret /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /etc/kvmd/main.yaml \
+			&& ln -s /testenv/web.css /etc/kvmd/web.css \
 			&& mkdir -p /etc/kvmd/override.d \
 			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
-			&& cp /usr/share/kvmd/configs.default/kvmd/web.css /etc/kvmd \
 			&& nginx -c /etc/kvmd/nginx/nginx.conf -g 'user http; error_log stderr;' \
 			&& ln -s $(TESTENV_VIDEO) /dev/kvmd-video \
 			&& ln -s $(TESTENV_GPIO) /dev/kvmd-gpio \
@@ -150,6 +151,7 @@ run-cfg: testenv
 			&& cp -a /testenv/.ssl/vnc /etc/kvmd/vnc/ssl \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*.yaml /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*passwd /etc/kvmd \
+			&& cp /usr/share/kvmd/configs.default/kvmd/*.secret /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /etc/kvmd/main.yaml \
 			&& mkdir -p /etc/kvmd/override.d \
 			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
@@ -171,6 +173,7 @@ run-ipmi: testenv
 			&& cp -a /testenv/.ssl/vnc /etc/kvmd/vnc/ssl \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*.yaml /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*passwd /etc/kvmd \
+			&& cp /usr/share/kvmd/configs.default/kvmd/*.secret /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /etc/kvmd/main.yaml \
 			&& mkdir -p /etc/kvmd/override.d \
 			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
@@ -192,6 +195,7 @@ run-vnc: testenv
 			&& cp -a /testenv/.ssl/vnc /etc/kvmd/vnc/ssl \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*.yaml /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/*passwd /etc/kvmd \
+			&& cp /usr/share/kvmd/configs.default/kvmd/*.secret /etc/kvmd \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /etc/kvmd/main.yaml \
 			&& mkdir -p /etc/kvmd/override.d \
 			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \

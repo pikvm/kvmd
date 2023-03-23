@@ -66,7 +66,7 @@ def main() -> None:
 
     setup(
         name="kvmd",
-        version="3.143",
+        version="3.209",
         url="https://github.com/pikvm/kvmd",
         license="GPLv3",
         author="Maxim Devaev",
@@ -87,7 +87,6 @@ def main() -> None:
             "kvmd.plugins.hid.bt",
             "kvmd.plugins.atx",
             "kvmd.plugins.msd",
-            "kvmd.plugins.msd.relay",
             "kvmd.plugins.msd.otg",
             "kvmd.plugins.ugpio",
             "kvmd.clients",
@@ -103,6 +102,7 @@ def main() -> None:
             "kvmd.apps.otgmsd",
             "kvmd.apps.otgconf",
             "kvmd.apps.htpasswd",
+            "kvmd.apps.totp",
             "kvmd.apps.edidconf",
             "kvmd.apps.cleanup",
             "kvmd.apps.ipmi",
@@ -129,6 +129,7 @@ def main() -> None:
                 "kvmd-otgmsd = kvmd.apps.otgmsd:main",
                 "kvmd-otgconf = kvmd.apps.otgconf:main",
                 "kvmd-htpasswd = kvmd.apps.htpasswd:main",
+                "kvmd-totp = kvmd.apps.totp:main",
                 "kvmd-edidconf = kvmd.apps.edidconf:main",
                 "kvmd-cleanup = kvmd.apps.cleanup:main",
                 "kvmd-ipmi = kvmd.apps.ipmi:main",

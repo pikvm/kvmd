@@ -20,37 +20,5 @@
 # ========================================================================== #
 
 
-import os
-import dataclasses
-
-from ....logging import get_logger
-
-
-# =====
-@dataclasses.dataclass(frozen=True)
-class FsSpace:
-    size: int
-    free: int
-
-
-# =====
-def get_file_size(path: str) -> int:
-    try:
-        return os.path.getsize(path)
-    except Exception as err:
-        get_logger().warning("Can't get size of file %s: %s", path, err)
-        return -1
-
-
-def get_fs_space(path: str, fatal: bool) -> (FsSpace | None):
-    try:
-        st = os.statvfs(path)
-    except Exception as err:
-        if fatal:
-            raise
-        get_logger().warning("Can't get free space of filesystem %s: %s", path, err)
-        return None
-    return FsSpace(
-        size=(st.f_blocks * st.f_frsize),
-        free=(st.f_bavail * st.f_frsize),
-    )
+from . import main
+main()

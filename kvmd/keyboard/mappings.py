@@ -22,8 +22,6 @@
 
 import dataclasses
 
-from typing import Dict
-
 
 # =====
 @dataclasses.dataclass(frozen=True)
@@ -43,7 +41,7 @@ class Key:
     usb: UsbKey
 
 
-KEYMAP: Dict[str, Key] = {
+KEYMAP: dict[str, Key] = {
     "KeyA": Key(mcu=McuKey(code=1), usb=UsbKey(code=4, is_modifier=False)),
     "KeyB": Key(mcu=McuKey(code=2), usb=UsbKey(code=5, is_modifier=False)),
     "KeyC": Key(mcu=McuKey(code=3), usb=UsbKey(code=6, is_modifier=False)),
@@ -151,6 +149,10 @@ KEYMAP: Dict[str, Key] = {
     "Power": Key(mcu=McuKey(code=105), usb=UsbKey(code=102, is_modifier=False)),
     "IntlBackslash": Key(mcu=McuKey(code=106), usb=UsbKey(code=100, is_modifier=False)),
     "IntlYen": Key(mcu=McuKey(code=107), usb=UsbKey(code=137, is_modifier=False)),
+    "IntlRo": Key(mcu=McuKey(code=108), usb=UsbKey(code=135, is_modifier=False)),
+    "KanaMode": Key(mcu=McuKey(code=109), usb=UsbKey(code=136, is_modifier=False)),
+    "Convert": Key(mcu=McuKey(code=110), usb=UsbKey(code=138, is_modifier=False)),
+    "NonConvert": Key(mcu=McuKey(code=111), usb=UsbKey(code=139, is_modifier=False)),
 }
 
 
@@ -437,6 +439,10 @@ AT1_TO_WEB = {
     86: "IntlBackslash",
     87: "F11",
     88: "F12",
+    112: "KanaMode",
+    115: "IntlRo",
+    121: "Convert",
+    123: "NonConvert",
     125: "IntlYen",
     57372: "NumpadEnter",
     57373: "ControlRight",

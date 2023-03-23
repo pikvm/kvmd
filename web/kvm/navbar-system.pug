@@ -1,18 +1,18 @@
-li(class="right")
+li(id="system-dropdown" class="right")
 	a(class="menu-button" href="#")
 		+navbar_led("link-led", "led-link")
 		+navbar_led("stream-led", "led-stream")
 		+navbar_led("hid-keyboard-led", "led-hid-keyboard")
 		+navbar_led("hid-mouse-led", "led-hid-mouse")
-		| System
-	div(data-dont-hide-menu id="system-menu" class="menu")
-		table(class="kv" style="width: calc(100% - 20px)")
+		span System
+	div(id="system-menu" class="menu")
+		table(class="kv")
 			tr
 				td(class="value") Runtime settings &amp; tools
-				td(id="webterm" class="feature-disabled") #[button(data-force-hide-menu data-show-window="webterm-window" class="small") &bull; Term]
-				td #[button(data-force-hide-menu data-show-window="about-window" class="small") &bull; About]
-				td #[button(data-force-hide-menu id="open-log-button" class="small") &bull; Log]
-				td(id="wol" class="feature-disabled")
+				td(id="system-tool-webterm" class="feature-disabled") #[button(data-force-hide-menu data-show-window="webterm-window" class="small") &bull; Term]
+				td(id="system-tool-about") #[button(data-force-hide-menu data-show-window="about-window" class="small") &bull; About]
+				td(id="system-tool-log") #[button(data-force-hide-menu id="open-log-button" class="small") &bull; Log]
+				td(id="system-tool-wol" class="feature-disabled")
 					button(data-force-hide-menu id="gpio-button-__wol__" class="gpio-button small" data-channel="__wol__"
 						data-confirm="Are you sure to send Wake-on-LAN packet to the server?") &bull; WoL
 		hr
@@ -22,22 +22,26 @@ li(class="right")
 		div(id="stream-message-no-h264" class="hidden")
 			+menu_message("warning", "H.264 is not supported by this browser")
 			hr
-		table(class="kv" style="width: calc(100% - 20px)")
+		table(class="kv")
 			tr(id="stream-resolution" class="feature-disabled")
 				td Resolution:
-				td #[select(disabled data-dont-hide-menu id="stream-resolution-selector")]
+				td #[select(disabled id="stream-resolution-selector")]
 			tr(id="stream-quality" class="feature-disabled")
 				td JPEG quality:
-				td #[input(disabled type="range" id="stream-quality-slider" class="slider")]
-				td(id="stream-quality-value" class="value" style="min-width: 30px; max-width:30px")
+				td(class="value-slider") #[input(disabled type="range" id="stream-quality-slider" class="slider")]
+				td(id="stream-quality-value" class="value-number")
 			tr(id="stream-h264-bitrate" class="feature-disabled")
 				td H.264 kbps:
-				td #[input(disabled type="range" id="stream-h264-bitrate-slider" class="slider")]
-				td(id="stream-h264-bitrate-value" class="value" style="min-width: 30px; max-width:30px")
+				td(class="value-slider") #[input(disabled type="range" id="stream-h264-bitrate-slider" class="slider")]
+				td(id="stream-h264-bitrate-value" class="value-number")
+			tr(id="stream-h264-gop" class="feature-disabled")
+				td H.264 #[a(target="_blank" href="https://docs.pikvm.org/webrtc") gop]:
+				td(class="value-slider") #[input(disabled type="range" id="stream-h264-gop-slider" class="slider")]
+				td(id="stream-h264-gop-value" class="value-number")
 			tr
 				td Max FPS:
-				td #[input(disabled type="range" id="stream-desired-fps-slider" class="slider")]
-				td(id="stream-desired-fps-value" class="value" style="min-width: 30px; max-width:30px")
+				td(class="value-slider") #[input(disabled type="range" id="stream-desired-fps-slider" class="slider")]
+				td(id="stream-desired-fps-value" class="value-number")
 			tr(id="stream-mode" class="feature-disabled")
 				td Video #[a(target="_blank" href="https://docs.pikvm.org/webrtc") mode]:
 				td
@@ -48,8 +52,8 @@ li(class="right")
 						label(for="stream-mode-radio-janus") H.264 / WebRTC
 			tr(id="stream-audio", class="feature-disabled")
 				td Audio volume:
-				td #[input(type="range" id="stream-audio-volume-slider" class="slider")]
-				td(id="stream-audio-volume-value" class="value" style="min-width: 30px; max-width:30px")
+				td(class="value-slider") #[input(type="range" id="stream-audio-volume-slider" class="slider")]
+				td(id="stream-audio-volume-value" class="value-number")
 		hr
 		div(class="buttons buttons-row")
 			button(data-force-hide-menu data-show-window="stream-window" class="row33") &bull; Show stream
@@ -69,17 +73,17 @@ li(class="right")
 			div(class="spoiler")
 				table(class="kv")
 					tr
-						td Mouse polling rate:
-						td #[input(type="range" id="hid-mouse-rate-slider" class="slider")]
-						td(id="hid-mouse-rate-value" class="value" style="min-width: 30px; max-width:30px")
+						td Polling interval:
+						td(class="value-slider") #[input(type="range" id="hid-mouse-rate-slider" class="slider")]
+						td(id="hid-mouse-rate-value" class="value-number")
 					tr(id="hid-mouse-sens" class="feature-disabled")
-						td Relative mouse sensitivity:
-						td #[input(disabled type="range" id="hid-mouse-sens-slider" class="slider")]
-						td(id="hid-mouse-sens-value" class="value" style="min-width: 30px; max-width:30px")
+						td Relative sensitivity:
+						td(class="value-slider") #[input(disabled type="range" id="hid-mouse-sens-slider" class="slider")]
+						td(id="hid-mouse-sens-value" class="value-number")
 					tr(id="hid-mouse-squash" class="feature-disabled")
-						+menu_switch_notable("hid-mouse-squash-switch", "Squash relative mouse moves", true, true)
+						+menu_switch_notable("hid-mouse-squash-switch", "Squash relative moves", true, true)
 					tr
-						+menu_switch_notable("hid-mouse-reverse-scrolling-switch", "Reverse mouse scrolling", true, false)
+						+menu_switch_notable("hid-mouse-reverse-scrolling-switch", "Reverse scrolling", true, false)
 		table(class="kv")
 			tr(id="hid-connect" class="feature-disabled")
 				+menu_switch_notable("hid-connect-switch", "Connect HID to Server", true, true)
@@ -94,6 +98,15 @@ li(class="right")
 						input(disabled type="checkbox" id="gpio-switch-__v3_usb_breaker__" class="gpio-switch"
 							data-channel="__v3_usb_breaker__" data-confirm-off=msg)
 						label(for="gpio-switch-__v3_usb_breaker__")
+							span(class="switch-inner")
+							span(class="switch")
+			tr(id="v4-locator" class="feature-disabled")
+				td Enable locator LED:
+				td(align="right")
+					div(class="switch-box")
+						input(disabled type="checkbox" id="gpio-switch-__v4_locator__" class="gpio-switch"
+							data-channel="__v4_locator__")
+						label(for="gpio-switch-__v4_locator__")
 							span(class="switch-inner")
 							span(class="switch")
 			tr

@@ -20,7 +20,6 @@
 # ========================================================================== #
 
 
-import os
 import asyncio
 import contextlib
 import dataclasses
@@ -38,14 +37,12 @@ from ....yamlconf import Option
 
 from ....validators.basic import valid_bool
 from ....validators.basic import valid_number
-from ....validators.os import valid_abs_dir
-from ....validators.os import valid_printable_filename
 from ....validators.os import valid_command
+from ....validators.kvm import valid_msd_image_name
 
 from .... import aiotools
-from .... import aiohelpers
+from .... import fstab
 
-from .. import MsdError
 from .. import MsdIsBusyError
 from .. import MsdOfflineError
 from .. import MsdConnectedError
@@ -57,39 +54,22 @@ from .. import BaseMsd
 from .. import MsdFileReader
 from .. import MsdFileWriter
 
-from . import fs
-
+from .storage import Image
+from .storage import Storage
 from .drive import Drive
 
 
 # =====
 @dataclasses.dataclass(frozen=True)
-class _DriveImage:
-    name: str
-    path: str
-    size: int
-    complete: bool
-    in_storage: bool
-
-
-@dataclasses.dataclass(frozen=True)
 class _DriveState:
-    image: (_DriveImage | None)
+    image: (Image | None)
     cdrom: bool
     rw: bool
 
 
-@dataclasses.dataclass(frozen=True)
-class _StorageState:
-    size: int
-    free: int
-    images: dict[str, _DriveImage]
-
-
-# =====
 @dataclasses.dataclass
 class _VirtualDriveState:
-    image: (_DriveImage | None)
+    image: (Image | None)
     connected: bool
     cdrom: bool
     rw: bool
@@ -108,11 +88,11 @@ class _State:
     def __init__(self, notifier: aiotools.AioNotifier) -> None:
         self.__notifier = notifier
 
-        self.storage: (_StorageState | None) = None
+        self.storage: (Storage | None) = None
         self.vd: (_VirtualDriveState | None) = None
 
-        self._lock = asyncio.Lock()
         self._region = aiotools.AioExclusiveRegion(MsdIsBusyError)
+        self._lock = asyncio.Lock()
 
     @contextlib.asynccontextmanager
     async def busy(self, check_online: bool=True) -> AsyncGenerator[None, None]:
@@ -138,8 +118,6 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         write_chunk_size: int,
         sync_chunk_size: int,
 
-        storage_path: str,
-
         remount_cmd: list[str],
 
         initial: dict,
@@ -151,16 +129,11 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         self.__write_chunk_size = write_chunk_size
         self.__sync_chunk_size = sync_chunk_size
 
-        self.__storage_path = os.path.normpath(storage_path)
-        self.__images_path = os.path.join(self.__storage_path, "images")
-        self.__meta_path = os.path.join(self.__storage_path, "meta")
-
-        self.__remount_cmd = remount_cmd
-
         self.__initial_image: str = initial["image"]
         self.__initial_cdrom: bool = initial["cdrom"]
 
         self.__drive = Drive(gadget, instance=0, lun=0)
+        self.__storage = Storage(fstab.find_msd().root_path, remount_cmd)
 
         self.__reader: (MsdFileReader | None) = None
         self.__writer: (MsdFileWriter | None) = None
@@ -179,15 +152,13 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             "write_chunk_size":  Option(65536,   type=functools.partial(valid_number, min=1024)),
             "sync_chunk_size":   Option(4194304, type=functools.partial(valid_number, min=1024)),
 
-            "storage": Option("/var/lib/kvmd/msd", type=valid_abs_dir, unpack_as="storage_path"),
-
             "remount_cmd": Option([
                 "/usr/bin/sudo", "--non-interactive",
                 "/usr/bin/kvmd-helper-otgmsd-remount", "{mode}",
             ], type=valid_command),
 
             "initial": {
-                "image": Option("",    type=valid_printable_filename, if_empty=""),
+                "image": Option("",    type=valid_msd_image_name, if_empty=""),
                 "cdrom": Option(False, type=valid_bool),
             },
         }
@@ -196,21 +167,20 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         async with self.__state._lock:  # pylint: disable=protected-access
             storage: (dict | None) = None
             if self.__state.storage:
-                storage = dataclasses.asdict(self.__state.storage)
-                for name in list(storage["images"]):
-                    del storage["images"][name]["path"]
-                    del storage["images"][name]["in_storage"]
-
-                storage["downloading"] = (self.__reader.get_state() if self.__reader else None)
-
                 if self.__writer:
                     # При загрузке файла показываем актуальную статистику вручную
-                    storage["uploading"] = self.__writer.get_state()
-                    space = fs.get_fs_space(self.__storage_path, fatal=False)
-                    if space:
-                        storage.update(dataclasses.asdict(space))
-                else:
-                    storage["uploading"] = None
+                    await self.__storage.reload_parts_info()
+
+                storage = dataclasses.asdict(self.__state.storage)
+                for name in list(storage["images"]):
+                    del storage["images"][name]["name"]
+                    del storage["images"][name]["path"]
+                    del storage["images"][name]["in_storage"]
+                for name in list(storage["parts"]):
+                    del storage["parts"][name]["name"]
+
+                storage["downloading"] = (self.__reader.get_state() if self.__reader else None)
+                storage["uploading"] = (self.__writer.get_state() if self.__writer else None)
 
             vd: (dict | None) = None
             if self.__state.vd:
@@ -224,11 +194,6 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 "busy": self.__state.is_busy(),
                 "storage": storage,
                 "drive": vd,
-                "features": {
-                    "multi": True,
-                    "cdrom": True,
-                    "rw": True,
-                },
             }
 
     async def poll_state(self) -> AsyncGenerator[dict, None]:
@@ -250,7 +215,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 self.__drive.set_image_path("")
                 self.__drive.set_cdrom_flag(False)
                 self.__drive.set_rw_flag(False)
-                await self.__remount_rw(False)
+                await self.__storage.remount_rw(False)
             except Exception:
                 get_logger(0).exception("Can't reset MSD properly")
 
@@ -270,19 +235,12 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     ) -> None:
 
         async with self.__state.busy():
-            assert self.__state.storage
             assert self.__state.vd
-
-            if self.__state.vd.connected or self.__drive.get_image_path():
-                raise MsdConnectedError()
+            self.__STATE_check_disconnected()
 
             if name is not None:
                 if name:
-                    image = self.__state.storage.images.get(name)
-                    if image is None or not os.path.exists(image.path):
-                        raise MsdUnknownImageError()
-                    assert image.in_storage
-                    self.__state.vd.image = image
+                    self.__state.vd.image = await self.__STATE_get_storage_image(name)
                 else:
                     self.__state.vd.image = None
 
@@ -301,27 +259,26 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         async with self.__state.busy():
             assert self.__state.vd
             if connected:
-                if self.__state.vd.connected or self.__drive.get_image_path():
-                    raise MsdConnectedError()
+                self.__STATE_check_disconnected()
+
                 if self.__state.vd.image is None:
                     raise MsdImageNotSelected()
 
-                assert self.__state.vd.image.in_storage
-
-                if not os.path.exists(self.__state.vd.image.path):
+                if not (await self.__state.vd.image.exists()):
                     raise MsdUnknownImageError()
+
+                assert self.__state.vd.image.in_storage
 
                 self.__drive.set_rw_flag(self.__state.vd.rw)
                 self.__drive.set_cdrom_flag(self.__state.vd.cdrom)
                 if self.__state.vd.rw:
-                    await self.__remount_rw(True)
+                    await self.__state.vd.image.remount_rw(True)
                 self.__drive.set_image_path(self.__state.vd.image.path)
 
             else:
-                if not (self.__state.vd.connected or self.__drive.get_image_path()):
-                    raise MsdDisconnectedError()
+                self.__STATE_check_connected()
                 self.__drive.set_image_path("")
-                await self.__remount_rw(False, fatal=False)
+                await self.__storage.remount_rw(False, fatal=False)
 
             self.__state.vd.connected = connected
 
@@ -332,24 +289,15 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 try:
                     async with self.__state._lock:  # pylint: disable=protected-access
                         self.__notifier.notify()
-                        assert self.__state.storage
-                        assert self.__state.vd
-
-                        if self.__state.vd.connected or self.__drive.get_image_path():
-                            raise MsdConnectedError()
-
-                        path = os.path.join(self.__images_path, name)
-                        if name not in self.__state.storage.images or not os.path.exists(path):
-                            raise MsdUnknownImageError()
-
+                        self.__STATE_check_disconnected()
+                        image = await self.__STATE_get_storage_image(name)
                         self.__reader = await MsdFileReader(
                             notifier=self.__notifier,
-                            path=path,
+                            name=image.name,
+                            path=image.path,
                             chunk_size=self.__read_chunk_size,
                         ).open()
-
                     yield self.__reader
-
                 finally:
                     await aiotools.shield_fg(self.__close_reader())
         finally:
@@ -359,26 +307,20 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     async def write_image(self, name: str, size: int, remove_incomplete: (bool | None)) -> AsyncGenerator[MsdFileWriter, None]:
         try:
             async with self.__state._region:  # pylint: disable=protected-access
-                path: str = ""
+                image: (Image | None) = None
                 try:
                     async with self.__state._lock:  # pylint: disable=protected-access
                         self.__notifier.notify()
-                        assert self.__state.storage
-                        assert self.__state.vd
+                        self.__STATE_check_disconnected()
+                        image = await self.__STORAGE_create_new_image(name)
 
-                        if self.__state.vd.connected or self.__drive.get_image_path():
-                            raise MsdConnectedError()
-
-                        path = os.path.join(self.__images_path, name)
-                        if name in self.__state.storage.images or os.path.exists(path):
-                            raise MsdImageExistsError()
-
-                        await self.__remount_rw(True)
-                        self.__set_image_complete(name, False)
+                        await image.remount_rw(True)
+                        await image.set_complete(False)
 
                         self.__writer = await MsdFileWriter(
                             notifier=self.__notifier,
-                            path=path,
+                            name=image.name,
+                            path=image.path,
                             file_size=size,
                             sync_size=self.__sync_chunk_size,
                             chunk_size=self.__write_chunk_size,
@@ -386,19 +328,18 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
                     self.__notifier.notify()
                     yield self.__writer
-                    self.__set_image_complete(name, self.__writer.is_complete())
+                    await image.set_complete(self.__writer.is_complete())
 
                 finally:
-                    if remove_incomplete and self.__writer and not self.__writer.is_complete():
-                        # Можно сперва удалить файл, потом закрыть его
-                        try:
-                            os.remove(path)
-                        except Exception:
-                            pass
                     try:
-                        await aiotools.shield_fg(self.__close_writer())
+                        if image and remove_incomplete and self.__writer and not self.__writer.is_complete():
+                            await image.remove(fatal=False)
                     finally:
-                        await aiotools.shield_fg(self.__remount_rw(False, fatal=False))
+                        try:
+                            await aiotools.shield_fg(self.__close_writer())
+                        finally:
+                            if image:
+                                await aiotools.shield_fg(image.remount_rw(False, fatal=False))
         finally:
             # Между закрытием файла и эвентом айнотифи состояние может быть не обновлено,
             # так что форсим обновление вручную, чтобы получить актуальное состояние.
@@ -409,23 +350,44 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         async with self.__state.busy():
             assert self.__state.storage
             assert self.__state.vd
-
-            if self.__state.vd.connected or self.__drive.get_image_path():
-                raise MsdConnectedError()
-
-            image = self.__state.storage.images.get(name)
-            if image is None or not os.path.exists(image.path):
-                raise MsdUnknownImageError()
-            assert image.in_storage
+            self.__STATE_check_disconnected()
+            image = await self.__STATE_get_storage_image(name)
 
             if self.__state.vd.image == image:
                 self.__state.vd.image = None
-            del self.__state.storage.images[name]
 
-            await self.__remount_rw(True)
-            os.remove(image.path)
-            self.__set_image_complete(name, False)
-            await self.__remount_rw(False, fatal=False)
+            await image.remount_rw(True)
+            try:
+                await image.remove(fatal=True)
+            finally:
+                await aiotools.shield_fg(image.remount_rw(False, fatal=False))
+
+    # =====
+
+    def __STATE_check_connected(self) -> None:  # pylint: disable=invalid-name
+        assert self.__state.vd
+        if not (self.__state.vd.connected or self.__drive.get_image_path()):
+            raise MsdDisconnectedError()
+
+    def __STATE_check_disconnected(self) -> None:  # pylint: disable=invalid-name
+        assert self.__state.vd
+        if self.__state.vd.connected or self.__drive.get_image_path():
+            raise MsdConnectedError()
+
+    async def __STATE_get_storage_image(self, name: str) -> Image:  # pylint: disable=invalid-name
+        assert self.__state.storage
+        image = self.__state.storage.images.get(name)
+        if image is None or not (await image.exists()):
+            raise MsdUnknownImageError()
+        assert image.in_storage
+        return image
+
+    async def __STORAGE_create_new_image(self, name: str) -> Image:  # pylint: disable=invalid-name
+        assert self.__state.storage
+        image = await self.__storage.make_image_by_name(name)
+        if image.name in self.__state.storage.images or (await image.exists()):
+            raise MsdImageExistsError()
+        return image
 
     # =====
 
@@ -453,10 +415,8 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                     await asyncio.sleep(5)
 
                 with Inotify() as inotify:
-                    inotify.watch(self.__images_path, InotifyMask.ALL_MODIFY_EVENTS)
-                    inotify.watch(self.__meta_path, InotifyMask.ALL_MODIFY_EVENTS)
-                    for path in self.__drive.get_watchable_paths():
-                        inotify.watch(path, InotifyMask.ALL_MODIFY_EVENTS)
+                    await inotify.watch(InotifyMask.ALL_MODIFY_EVENTS, *self.__storage.get_watchable_paths())
+                    await inotify.watch(InotifyMask.ALL_MODIFY_EVENTS, *self.__drive.get_watchable_paths())
 
                     # После установки вотчеров еще раз проверяем стейт, чтобы ничего не потерять
                     await self.__reload_state()
@@ -466,9 +426,9 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                         need_reload_state = False
                         for event in (await inotify.get_series(timeout=1)):
                             need_reload_state = True
-                            if event.mask & (InotifyMask.DELETE_SELF | InotifyMask.MOVE_SELF | InotifyMask.UNMOUNT):
-                                # Если выгрузили OTG, что-то отмонтировали или делают еще какую-то странную фигню
-                                logger.warning("Got fatal inotify event: %s; reinitializing MSD ...", event)
+                            if event.mask & (InotifyMask.DELETE_SELF | InotifyMask.MOVE_SELF | InotifyMask.UNMOUNT | InotifyMask.ISDIR):
+                                # Если выгрузили OTG, изменили каталоги, что-то отмонтировали или делают еще какую-то странную фигню
+                                logger.info("Got a big inotify event: %s; reinitializing MSD ...", event)
                                 need_restart = True
                                 break
                         if need_restart:
@@ -483,23 +443,30 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         logger = get_logger(0)
         async with self.__state._lock:  # pylint: disable=protected-access
             try:
-                drive_state = self.__get_drive_state()
+                path = self.__drive.get_image_path()
+                drive_state = _DriveState(
+                    image=((await self.__storage.make_image_by_path(path)) if path else None),
+                    cdrom=self.__drive.get_cdrom_flag(),
+                    rw=self.__drive.get_rw_flag(),
+                )
+
+                await self.__storage.reload()
 
                 if self.__state.vd is None and drive_state.image is None:
                     # Если только что включились и образ не подключен - попробовать
                     # перемонтировать хранилище (и создать images и meta).
                     logger.info("Probing to remount storage ...")
-                    await self.__remount_rw(True)
-                    await self.__remount_rw(False)
+                    await self.__storage.remount_rw(True)
+                    await self.__storage.remount_rw(False)
                     await self.__setup_initial()
 
-                storage_state = self.__get_storage_state()
             except Exception:
                 logger.exception("Error while reloading MSD state; switching to offline")
                 self.__state.storage = None
                 self.__state.vd = None
+
             else:
-                self.__state.storage = storage_state
+                self.__state.storage = self.__storage
                 if drive_state.image:
                     # При подключенном образе виртуальный стейт заменяется реальным
                     self.__state.vd = _VirtualDriveState.from_drive_state(drive_state)
@@ -508,10 +475,8 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                         # Если раньше MSD был отключен
                         self.__state.vd = _VirtualDriveState.from_drive_state(drive_state)
 
-                    if (
-                        self.__state.vd.image
-                        and (not self.__state.vd.image.in_storage or not os.path.exists(self.__state.vd.image.path))
-                    ):
+                    image = self.__state.vd.image
+                    if image and (not image.in_storage or not (await image.exists())):
                         # Если только что отключили ручной образ вне хранилища или ранее выбранный образ был удален
                         self.__state.vd.image = None
 
@@ -522,77 +487,14 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     async def __setup_initial(self) -> None:
         if self.__initial_image:
             logger = get_logger(0)
-            path = os.path.join(self.__images_path, self.__initial_image)
-            if os.path.exists(path):
+            image = await self.__storage.make_image_by_name(self.__initial_image)
+            if (await image.exists()):
                 logger.info("Setting up initial image %r ...", self.__initial_image)
                 try:
                     self.__drive.set_rw_flag(False)
                     self.__drive.set_cdrom_flag(self.__initial_cdrom)
-                    self.__drive.set_image_path(path)
+                    self.__drive.set_image_path(image.path)
                 except Exception:
                     logger.exception("Can't setup initial image: ignored")
             else:
                 logger.error("Can't find initial image %r: ignored", self.__initial_image)
-
-    # =====
-
-    def __get_storage_state(self) -> _StorageState:
-        images: dict[str, _DriveImage] = {}
-        for name in os.listdir(self.__images_path):
-            path = os.path.join(self.__images_path, name)
-            if os.path.exists(path):
-                size = fs.get_file_size(path)
-                if size >= 0:
-                    images[name] = _DriveImage(
-                        name=name,
-                        path=path,
-                        size=size,
-                        complete=self.__is_image_complete(name),
-                        in_storage=True,
-                    )
-        space = fs.get_fs_space(self.__storage_path, fatal=True)
-        assert space
-        return _StorageState(
-            size=space.size,
-            free=space.free,
-            images=images,
-        )
-
-    def __get_drive_state(self) -> _DriveState:
-        image: (_DriveImage | None) = None
-        path = self.__drive.get_image_path()
-        if path:
-            name = os.path.basename(path)
-            in_storage = (os.path.dirname(path) == self.__images_path)
-            image = _DriveImage(
-                name=name,
-                path=path,
-                size=max(fs.get_file_size(path), 0),
-                complete=(self.__is_image_complete(name) if in_storage else True),
-                in_storage=in_storage,
-            )
-        return _DriveState(
-            image=image,
-            cdrom=self.__drive.get_cdrom_flag(),
-            rw=self.__drive.get_rw_flag(),
-        )
-
-    # =====
-
-    def __is_image_complete(self, name: str) -> bool:
-        return os.path.exists(os.path.join(self.__meta_path, name + ".complete"))
-
-    def __set_image_complete(self, name: str, flag: bool) -> None:
-        path = os.path.join(self.__meta_path, name + ".complete")
-        if flag:
-            open(path, "w").close()  # pylint: disable=consider-using-with
-        else:
-            if os.path.exists(path):
-                os.remove(path)
-
-    # =====
-
-    async def __remount_rw(self, rw: bool, fatal: bool=True) -> None:
-        if not (await aiohelpers.remount("MSD", self.__remount_cmd, rw)):
-            if fatal:
-                raise MsdError("Can't execute remount helper")

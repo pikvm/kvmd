@@ -27,6 +27,7 @@ import time
 from typing import AsyncGenerator
 
 import aiofiles
+import aiofiles.os
 import aiofiles.base
 
 from ...logging import get_logger
@@ -35,7 +36,6 @@ from ...errors import OperationError
 from ...errors import IsBusyError
 
 from ... import aiotools
-from ... import aiofs
 
 from .. import BasePlugin
 from .. import get_plugin_class
@@ -83,21 +83,6 @@ class MsdUnknownImageError(MsdOperationError):
 class MsdImageExistsError(MsdOperationError):
     def __init__(self) -> None:
         super().__init__("This image is already exists")
-
-
-class MsdMultiNotSupported(MsdOperationError):
-    def __init__(self) -> None:
-        super().__init__("This MSD does not support storing multiple images")
-
-
-class MsdCdromNotSupported(MsdOperationError):
-    def __init__(self) -> None:
-        super().__init__("This MSD does not support CD-ROM switching")
-
-
-class MsdRwNotSupported(MsdOperationError):
-    def __init__(self) -> None:
-        super().__init__("This MSD does not support RW switching")
 
 
 # =====
@@ -178,9 +163,9 @@ class BaseMsd(BasePlugin):
 
 
 class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, notifier: aiotools.AioNotifier, path: str, chunk_size: int) -> None:
+    def __init__(self, notifier: aiotools.AioNotifier, name: str, path: str, chunk_size: int) -> None:
         self.__notifier = notifier
-        self.__name = os.path.basename(path)
+        self.__name = name
         self.__path = path
         self.__chunk_size = chunk_size
 
@@ -222,7 +207,7 @@ class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attribu
     async def open(self) -> "MsdFileReader":
         assert self.__file is None
         get_logger(1).info("Reading %r image from MSD ...", self.__name)
-        self.__file_size = os.stat(self.__path).st_size
+        self.__file_size = (await aiofiles.os.stat(self.__path)).st_size
         self.__file = await aiofiles.open(self.__path, mode="rb")  # type: ignore
         return self
 
@@ -237,9 +222,9 @@ class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attribu
 
 
 class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, notifier: aiotools.AioNotifier, path: str, file_size: int, sync_size: int, chunk_size: int) -> None:
+    def __init__(self, notifier: aiotools.AioNotifier, name: str, path: str, file_size: int, sync_size: int, chunk_size: int) -> None:
         self.__notifier = notifier
-        self.__name = os.path.basename(path)
+        self.__name = name
         self.__path = path
         self.__file_size = file_size
         self.__sync_size = sync_size
@@ -268,7 +253,7 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
 
         self.__unsynced += len(chunk)
         if self.__unsynced >= self.__sync_size:
-            await aiofs.afile_sync(self.__file)
+            await self.__sync()
             self.__unsynced = 0
 
         now = time.monotonic()
@@ -281,13 +266,10 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
     def is_complete(self) -> bool:
         return (self.__written >= self.__file_size)
 
-    def get_file(self) -> aiofiles.base.AiofilesContextManager:
-        assert self.__file is not None
-        return self.__file
-
     async def open(self) -> "MsdFileWriter":
         assert self.__file is None
         get_logger(1).info("Writing %r image (%d bytes) to MSD ...", self.__name, self.__file_size)
+        await aiofiles.os.makedirs(os.path.dirname(self.__path), exist_ok=True)
         self.__file = await aiofiles.open(self.__path, mode="w+b", buffering=0)  # type: ignore
         return self
 
@@ -304,11 +286,16 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
                 (log, result) = (logger.warning, "OVERFLOW")
             log("Written %d of %d bytes to MSD image %r: %s", self.__written, self.__file_size, self.__name, result)
             try:
-                await aiofs.afile_sync(self.__file)
+                await self.__sync()
             finally:
                 await self.__file.close()  # type: ignore
         except Exception:
             logger.exception("Can't close image writer")
+
+    async def __sync(self) -> None:
+        assert self.__file is not None
+        await self.__file.flush()  # type: ignore
+        await aiotools.run_async(os.fsync, self.__file.fileno())  # type: ignore
 
 
 # =====

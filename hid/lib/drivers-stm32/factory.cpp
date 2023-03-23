@@ -26,6 +26,8 @@
 #include "usb/mouse-absolute-stm32.h"
 #include "usb/mouse-relative-stm32.h"
 #include "backup-register.h"
+#include "board-stm32.h"
+#include "serial.h"
 
 #ifndef __STM32F1__
 #	error "Only STM32F1 is supported"
@@ -62,7 +64,7 @@ namespace DRIVERS {
 		}
 	}
 
-	Storage* Factory::makeStorage(type _type) {
+	Storage *Factory::makeStorage(type _type) {
 		switch (_type) {
 #			ifdef HID_DYNAMIC
 			case NON_VOLATILE_STORAGE:
@@ -71,5 +73,22 @@ namespace DRIVERS {
 			default:
 				return new Storage(DRIVERS::DUMMY);
 		}
+	}
+
+	Board *Factory::makeBoard(type _type) {
+		switch (_type) {
+			case BOARD:
+				return new BoardStm32();
+			default:
+				return new Board(DRIVERS::DUMMY);
+        }
+	}
+  
+	Connection *Factory::makeConnection(type _type) {
+#		ifdef CMD_SERIAL
+		return new Serial();
+#		else
+#		error CMD phy is not defined
+#		endif		
 	}
 }

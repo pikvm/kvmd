@@ -88,13 +88,31 @@ export function Keypad(__keys_parent, __sendKey, __apply_fixes) {
 		for (let dict of [__keys, __modifiers]) {
 			for (let code in dict) {
 				if (__isActive(dict[code][0])) {
-					self.emit(code, false);
+					self.emitByCode(code, false);
 				}
 			}
 		}
 	};
 
-	self.emit = function(code, state, apply_fixes=true) {
+	self.emitByKeyEvent = function(event, state) {
+		if (event.repeat) {
+			return;
+		}
+
+		let code = event.code;
+		if (__apply_fixes) {
+			// https://github.com/pikvm/pikvm/issues/819
+			if (code == "IntlBackslash" && ["`", "~"].includes(event.key)) {
+				code = "Backquote";
+			} else if (code == "Backquote" && ["§", "±"].includes(event.key)) {
+				code = "IntlBackslash";
+			}
+		}
+
+		self.emitByCode(code, state);
+	};
+
+	self.emitByCode = function(code, state, apply_fixes=true) {
 		if (code in __merged) {
 			if (__fix_win_altgr && apply_fixes) {
 				if (!__fixWinAltgr(code, state)) {
@@ -116,7 +134,7 @@ export function Keypad(__keys_parent, __sendKey, __apply_fixes) {
 			for (let code in __keys) {
 				setTimeout(function() {
 					if (__isActive(__keys[code][0])) {
-						self.emit(code, false, false);
+						self.emitByCode(code, false, false);
 					}
 				}, 100);
 			}
@@ -131,13 +149,13 @@ export function Keypad(__keys_parent, __sendKey, __apply_fixes) {
 				clearTimeout(__altgr_ctrl_timer);
 				__altgr_ctrl_timer = null;
 				if (code !== "AltRight") {
-					self.emit("ControlLeft", true, false);
+					self.emitByCode("ControlLeft", true, false);
 				}
 			}
 			if (code === "ControlLeft" && !__isActive(__modifiers["ControlLeft"][0])) {
 				__altgr_ctrl_timer = setTimeout(function() {
 					__altgr_ctrl_timer = null;
-					self.emit("ControlLeft", true, false);
+					self.emitByCode("ControlLeft", true, false);
 				}, 50);
 				return false; // Stop handling
 			}
@@ -145,7 +163,7 @@ export function Keypad(__keys_parent, __sendKey, __apply_fixes) {
 			if (__altgr_ctrl_timer) {
 				clearTimeout(__altgr_ctrl_timer);
 				__altgr_ctrl_timer = null;
-				self.emit("ControlLeft", true, false);
+				self.emitByCode("ControlLeft", true, false);
 			}
 		}
 		return true; // Continue handling

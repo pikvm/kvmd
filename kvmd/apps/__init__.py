@@ -93,6 +93,7 @@ from ..validators.kvm import valid_stream_h264_gop
 from ..validators.ugpio import valid_ugpio_driver
 from ..validators.ugpio import valid_ugpio_channel
 from ..validators.ugpio import valid_ugpio_mode
+from ..validators.ugpio import valid_ugpio_view_title
 from ..validators.ugpio import valid_ugpio_view_table
 
 from ..validators.hw import valid_tty_speed
@@ -364,6 +365,12 @@ def _get_config_scheme() -> dict:
                     "type": Option("", type=valid_stripped_string),
                     # Dynamic content
                 },
+
+                "totp": {
+                    "secret": {
+                        "file": Option("/etc/kvmd/totp.secret", type=valid_abs_path, if_empty=""),
+                    },
+                },
             },
 
             "info": {  # Accessed via global config, see kvmd/info for details
@@ -379,6 +386,10 @@ def _get_config_scheme() -> dict:
                     "timeout":    Option(5.0, type=valid_float_f01),
                     "state_poll": Option(5.0, type=valid_float_f01),
                 },
+            },
+
+            "log_reader": {
+                "enabled": Option(True, type=valid_bool),
             },
 
             "hid": {
@@ -428,9 +439,9 @@ def _get_config_scheme() -> dict:
                 },
 
                 "desired_fps": {
-                    "default": Option(30, type=valid_stream_fps, unpack_as="desired_fps"),
+                    "default": Option(40, type=valid_stream_fps, unpack_as="desired_fps"),
                     "min":     Option(0,  type=valid_stream_fps, unpack_as="desired_fps_min"),
-                    "max":     Option(60, type=valid_stream_fps, unpack_as="desired_fps_max"),
+                    "max":     Option(70, type=valid_stream_fps, unpack_as="desired_fps_max"),
                 },
 
                 "h264_bitrate": {
@@ -478,7 +489,7 @@ def _get_config_scheme() -> dict:
                 "scheme": {},  # Dymanic content
                 "view": {
                     "header": {
-                        "title": Option("GPIO"),
+                        "title": Option("GPIO", type=valid_ugpio_view_title),
                     },
                     "table": Option([], type=valid_ugpio_view_table),
                 },
@@ -495,7 +506,6 @@ def _get_config_scheme() -> dict:
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
             },
 
-            "storage":          Option("/var/lib/kvmd/pst", type=valid_abs_dir, unpack_as="storage_path"),
             "ro_retries_delay": Option(10.0, type=valid_float_f01),
             "ro_cleanup_delay": Option(3.0,  type=valid_float_f01),
 
@@ -525,7 +535,17 @@ def _get_config_scheme() -> dict:
             "meta": Option("/run/kvmd/otg", type=valid_abs_path),
 
             "devices": {
+                "hid": {
+                    "keyboard": {
+                        "start": Option(True, type=valid_bool),
+                    },
+                    "mouse": {
+                        "start": Option(True, type=valid_bool),
+                    },
+                },
+
                 "msd": {
+                    "start": Option(True, type=valid_bool),
                     "default": {
                         "stall":     Option(False, type=valid_bool),
                         "cdrom":     Option(True,  type=valid_bool),
@@ -537,10 +557,12 @@ def _get_config_scheme() -> dict:
 
                 "serial": {
                     "enabled": Option(False, type=valid_bool),
+                    "start":   Option(True,  type=valid_bool),
                 },
 
                 "ethernet": {
                     "enabled":  Option(False, type=valid_bool),
+                    "start":    Option(True,  type=valid_bool),
                     "driver":   Option("ecm", type=valid_otg_ethernet),
                     "host_mac": Option("",    type=valid_mac, if_empty=""),
                     "kvm_mac":  Option("",    type=valid_mac, if_empty=""),
@@ -548,6 +570,7 @@ def _get_config_scheme() -> dict:
 
                 "drives": {
                     "enabled": Option(False, type=valid_bool),
+                    "start":   Option(True,  type=valid_bool),
                     "count":   Option(1,     type=valid_int_f1),
                     "default": {
                         "stall":     Option(False, type=valid_bool),
@@ -719,7 +742,7 @@ def _get_config_scheme() -> dict:
                 "--plugins-folder=/usr/lib/ustreamer/janus",
                 "--configs-folder=/etc/kvmd/janus",
                 "--interface={src_ip}",
-                "--stun-server={stun_host}:{stun_port}",
+                "{o_stun_server}",
             ], type=valid_command),
             "cmd_remove": Option([], type=valid_options),
             "cmd_append": Option([], type=valid_options),

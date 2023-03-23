@@ -90,7 +90,7 @@ tr.server {
 	font-family: monospace;
 }
 
-@media all and (display-mode: standalone) {
+@media only screen and (display-mode: standalone) {
 	div#app-keyboard-warning {
 		display: none;
 	}

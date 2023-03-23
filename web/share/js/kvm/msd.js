@@ -23,7 +23,7 @@
 "use strict";
 
 
-import {tools, $, $$$} from "../tools.js";
+import {tools, $} from "../tools.js";
 import {wm} from "../wm.js";
 
 
@@ -35,20 +35,26 @@ export function Msd() {
 	var __state = null;
 	var __http = null;
 
+	var __parts_names_json = "";
+	var __parts_names_len = 0;
+	var __parts = {};
+
 	var __init__ = function() {
 		$("msd-led").title = "Unknown state";
 
+		tools.selector.addOption($("msd-image-selector"), "\u2500 Not selected \u2500", "");
 		$("msd-image-selector").onchange = __selectImage;
+
 		tools.el.setOnClick($("msd-download-button"), __clickDownloadButton);
 		tools.el.setOnClick($("msd-remove-button"), __clickRemoveButton);
 
-		tools.radio.setOnClick("msd-mode-radio", __clickModeRadio);
-
-		tools.el.setOnClick($("msd-rw-switch"), __clickRwSwitch);
+		tools.radio.setOnClick("msd-mode-radio", () => __sendParam("cdrom", tools.radio.getValue("msd-mode-radio")));
+		tools.el.setOnClick($("msd-rw-switch"), () => __sendParam("rw", $("msd-rw-switch").checked));
 
 		tools.el.setOnClick($("msd-select-new-button"), __toggleSelectSub);
 		$("msd-new-file").onchange = __selectNewFile;
 		$("msd-new-url").oninput = __selectNewUrl;
+		$("msd-new-part-selector").onchange = __selectNewFile;
 
 		tools.el.setOnClick($("msd-upload-new-button"), __clickUploadNewButton);
 		tools.el.setOnClick($("msd-abort-new-button"), __clickAbortNewButton);
@@ -93,14 +99,6 @@ export function Msd() {
 		});
 	};
 
-	var __clickModeRadio = function() {
-		__sendParam("cdrom", tools.radio.getValue("msd-mode-radio"));
-	};
-
-	var __clickRwSwitch = function() {
-		__sendParam("rw", $("msd-rw-switch").checked);
-	};
-
 	var __sendParam = function(name, value) {
 		let http = tools.makeRequest("POST", `/api/msd/set_params?${name}=${encodeURIComponent(value)}`, function() {
 			if (http.readyState === 4) {
@@ -114,11 +112,12 @@ export function Msd() {
 	var __clickUploadNewButton = function() {
 		let file = tools.input.getFile($("msd-new-file"));
 		__http = new XMLHttpRequest();
+		let prefix = encodeURIComponent($("msd-new-part-selector").value);
 		if (file) {
-			__http.open("POST", `/api/msd/write?image=${encodeURIComponent(file.name)}&remove_incomplete=1`, true);
+			__http.open("POST", `/api/msd/write?prefix=${prefix}&image=${encodeURIComponent(file.name)}&remove_incomplete=1`, true);
 		} else {
 			let url = $("msd-new-url").value;
-			__http.open("POST", `/api/msd/write_remote?url=${encodeURIComponent(url)}&remove_incomplete=1`, true);
+			__http.open("POST", `/api/msd/write_remote?prefix=${prefix}&url=${encodeURIComponent(url)}&remove_incomplete=1`, true);
 		}
 		__http.upload.timeout = 7 * 24 * 3600;
 		__http.onreadystatechange = __httpStateChange;
@@ -135,7 +134,6 @@ export function Msd() {
 				try {
 					let end = __http.responseText.lastIndexOf("\r\n");
 					if (end < 0) {
-						console.log(1);
 						end = __http.responseText.length;
 					}
 					let begin = __http.responseText.lastIndexOf("\r\n", end - 2);
@@ -214,8 +212,9 @@ export function Msd() {
 		let file = tools.input.getFile($("msd-new-file"));
 		if (file) {
 			$("msd-new-url").value = "";
-			if (file.size > __state.storage.size) {
-				wm.error("New image is too big for your Mass Storage Drive.<br>Maximum:", tools.formatSize(__state.storage.size));
+			let part = __state.storage.parts[$("msd-new-part-selector").value];
+			if (file.size > part.size) {
+				wm.error("New image is too big for the MSD partition.<br>Maximum:", tools.formatSize(part.size));
 				el_input.value = "";
 			}
 		}
@@ -230,37 +229,66 @@ export function Msd() {
 	};
 
 	var __applyState = function() {
-		__applyStateFeatures();
 		__applyStateStatus();
 
 		let s = __state;
 		let online = (s && s.online);
 
-		$("msd-image-name").innerHTML = ((online && s.drive.image) ? s.drive.image.name : "None");
-		$("msd-image-size").innerHTML = ((online && s.drive.image) ? tools.formatSize(s.drive.image.size) : "None");
+		if (s) {
+			tools.feature.setEnabled($("msd-dropdown"), s.enabled);
+			tools.feature.setEnabled($("msd-reset-button"), s.enabled);
+		}
+		tools.hidden.setVisible($("msd-message-offline"), (s && !s.online));
+		tools.hidden.setVisible($("msd-message-image-broken"), (online && s.drive.image && !s.drive.image.complete && !s.storage.uploading));
+		tools.hidden.setVisible($("msd-message-too-big-for-cdrom"), (online && s.drive.cdrom && s.drive.image && s.drive.image.size >= 2359296000));
+		tools.hidden.setVisible($("msd-message-out-of-storage"), (online && s.drive.image && !s.drive.image.in_storage));
+		tools.hidden.setVisible($("msd-message-rw-enabled"), (online && s.drive.rw));
+		tools.hidden.setVisible($("msd-message-another-user-uploads"), (online && s.storage.uploading && !__http));
+		tools.hidden.setVisible($("msd-message-downloads"), (online && s.storage.downloading));
+
 		if (online) {
-			let size_str = tools.formatSize(s.storage.size);
-			let used = s.storage.size - s.storage.free;
-			let used_str = tools.formatSize(used);
-			$("msd-storage-size").innerHTML = size_str;
-			tools.progress.setValue($("msd-storage-progress"), `Storage: ${used_str} of ${size_str}`, used / s.storage.size * 100);
-		} else {
-			$("msd-storage-size").innerHTML = "Unavailable";
-			tools.progress.setValue($("msd-storage-progress"), "Storage: unavailable", 0);
+			let names = Object.keys(s.storage.parts).sort();
+			let parts_names_json = JSON.stringify(names);
+			if (__parts_names_json !== parts_names_json) {
+				$("msd-storages").innerHTML = names.map(name => `
+					<div class="text">
+						<div id="msd-storage-${tools.makeIdByText(name)}-progress" class="progress">
+							<span class="progress-value"></span>
+						</div>
+					</div>
+				`).join("<hr>");
+				__parts_names_json = parts_names_json;
+				__parts_names_len = names.length;
+			}
+			__parts = s.storage.parts;
+		}
+		for (let name in __parts) {
+			let part = __parts[name];
+			let title = (
+				name.length === 0
+				? `${__parts_names_len === 1 ? "Storage: %s" : "Internal storage: %s"}` // eslint-disable-line
+				: `Storage [${name}${part.writable ? "]" : ", read-only]"}: %s` // eslint-disable-line
+			);
+			let id = `msd-storage-${tools.makeIdByText(name)}-progress`;
+			if (online) {
+				tools.progress.setSizeOf($(id), title, part.size, part.free);
+			} else {
+				tools.progress.setValue($(id), title.replace("%s", "unavailable"), 0);
+			}
 		}
 
-		tools.el.setEnabled($("msd-image-selector"), (online && s.features.multi && !s.drive.connected && !s.busy));
+		tools.el.setEnabled($("msd-image-selector"), (online && !s.drive.connected && !s.busy));
 		__applyStateImageSelector();
-		tools.el.setEnabled($("msd-download-button"), (online && s.features.multi && s.drive.image && !s.drive.connected && !s.busy));
-		tools.el.setEnabled($("msd-remove-button"), (online && s.features.multi && s.drive.image && !s.drive.connected && !s.busy));
+		tools.el.setEnabled($("msd-download-button"), (online && s.drive.image && !s.drive.connected && !s.busy));
+		tools.el.setEnabled($("msd-remove-button"), (online && s.drive.image && s.drive.image.removable && !s.drive.connected && !s.busy));
 
-		tools.radio.setEnabled("msd-mode-radio", (online && s.features.cdrom && !s.drive.connected && !s.busy));
-		tools.radio.setValue("msd-mode-radio", `${Number(online && s.features.cdrom && s.drive.cdrom)}`);
+		tools.radio.setEnabled("msd-mode-radio", (online && !s.drive.connected && !s.busy));
+		tools.radio.setValue("msd-mode-radio", `${Number(online && s.drive.cdrom)}`);
 
-		tools.el.setEnabled($("msd-rw-switch"), (online && s.features.rw && !s.drive.connected && !s.busy));
-		$("msd-rw-switch").checked = (online && s.features.rw && s.drive.rw);
+		tools.el.setEnabled($("msd-rw-switch"), (online && !s.drive.connected && !s.busy));
+		$("msd-rw-switch").checked = (online && s.drive.rw);
 
-		tools.el.setEnabled($("msd-connect-button"), (online && (!s.features.multi || s.drive.image) && !s.drive.connected && !s.busy));
+		tools.el.setEnabled($("msd-connect-button"), (online && s.drive.image && !s.drive.connected && !s.busy));
 		tools.el.setEnabled($("msd-disconnect-button"), (online && s.drive.connected && !s.busy));
 
 		tools.el.setEnabled($("msd-select-new-button"), (online && !s.drive.connected && !__http && !s.busy));
@@ -272,14 +300,19 @@ export function Msd() {
 
 		tools.el.setEnabled($("msd-new-file"), (online && !s.drive.connected && !__http && !s.busy));
 		tools.el.setEnabled($("msd-new-url"), (online && !s.drive.connected && !__http && !s.busy));
+		tools.el.setEnabled($("msd-new-part-selector"), (online && !s.drive.connected && !__http && !s.busy));
+		if (online && !s.storage.uploading && !s.storage.downloading) {
+			let parts = Object.keys(s.storage.parts).sort().filter(name => (name === "" || s.storage.parts[name].writable));
+			tools.selector.setValues($("msd-new-part-selector"), parts, "\u2500 Internal \u2500");
+			tools.hidden.setVisible($("msd-new-part"), (parts.length > 1));
+		}
 
 		tools.hidden.setVisible($("msd-uploading-sub"), (online && s.storage.uploading));
 		$("msd-uploading-name").innerHTML = ((online && s.storage.uploading) ? s.storage.uploading.name : "");
 		$("msd-uploading-size").innerHTML = ((online && s.storage.uploading) ? tools.formatSize(s.storage.uploading.size) : "");
 		if (online) {
 			if (s.storage.uploading) {
-				let percent = Math.round(s.storage.uploading.written * 100 / s.storage.uploading.size);
-				tools.progress.setValue($("msd-uploading-progress"), `${percent}%`, percent);
+				tools.progress.setPercentOf($("msd-uploading-progress"), s.storage.uploading.size, s.storage.uploading.written);
 			} else if (!__http) {
 				tools.progress.setValue($("msd-uploading-progress"), "Waiting for upload (press UPLOAD button) ...", 0);
 			}
@@ -288,42 +321,6 @@ export function Msd() {
 			$("msd-new-url").value = "";
 			tools.progress.setValue($("msd-uploading-progress"), "", 0);
 		}
-	};
-
-	var __applyStateFeatures = function() {
-		let s = __state;
-		let online = (s && s.online);
-
-		if (s) {
-			tools.feature.setEnabled($("msd-dropdown"), s.enabled);
-			tools.feature.setEnabled($("msd-reset-button"), s.enabled);
-			for (let el of $$$(".msd-single-storage")) {
-				tools.feature.setEnabled(el, !s.features.multi);
-			}
-			for (let el of $$$(".msd-multi-storage")) {
-				tools.feature.setEnabled(el, s.features.multi);
-			}
-			for (let el of $$$(".msd-cdrom-emulation")) {
-				tools.feature.setEnabled(el, s.features.cdrom);
-			}
-			for (let el of $$$(".msd-rw")) {
-				tools.feature.setEnabled(el, s.features.rw);
-			}
-		}
-
-		tools.hidden.setVisible($("msd-message-offline"), (s && !s.online));
-		tools.hidden.setVisible($("msd-message-image-broken"),
-			(online && s.drive.image && !s.drive.image.complete && !s.storage.uploading));
-		tools.hidden.setVisible($("msd-message-too-big-for-cdrom"),
-			(online && s.features.cdrom && s.drive.cdrom && s.drive.image && s.drive.image.size >= 2359296000));
-		tools.hidden.setVisible($("msd-message-out-of-storage"),
-			(online && s.features.multi && s.drive.image && !s.drive.image.in_storage));
-		tools.hidden.setVisible($("msd-message-rw-enabled"),
-			(online && s.features.rw && s.drive.rw));
-		tools.hidden.setVisible($("msd-message-another-user-uploads"),
-			(online && s.storage.uploading && !__http));
-		tools.hidden.setVisible($("msd-message-downloads"),
-			(online && s.features.multi && s.storage.downloading));
 	};
 
 	var __applyStateStatus = function() {
@@ -339,7 +336,7 @@ export function Msd() {
 		} else if (online && s.storage.uploading) {
 			led_cls = "led-yellow-rotating-fast";
 			msg = "Uploading new image";
-		} else if (online && s.features.multi && s.storage.downloading) {
+		} else if (online && s.storage.downloading) {
 			led_cls = "led-yellow-rotating-fast";
 			msg = "Serving the image to download";
 		} else if (online) { // Sic!
@@ -352,57 +349,43 @@ export function Msd() {
 
 	var __applyStateImageSelector = function() {
 		let s = __state;
-		let online = (s && s.online);
+		if (!(s && s.online) || s.storage.uploading || s.storage.downloading) {
+			return;
+		}
+
 		let el = $("msd-image-selector");
+		el.options.length = 1;
 
-		if (!online) {
-			el.options.length = 1; // Cleanup
-			return;
-		}
-		if (!s.features.multi || s.storage.uploading || s.storage.downloading) {
-			return;
-		}
-
-		if (el.options.length === 0) {
-			el.options[0] = new Option("~ Not selected ~", "", false, false);
-		} else {
-			el.options.length = 1;
-		}
-
-		let precom = "\xA0\xA0\xA0\xA0\xA0\u21b3";
-		let selected_index = 0;
-		let index = 1;
+		let selected = "";
 
 		for (let name of Object.keys(s.storage.images).sort()) {
-			let image = s.storage.images[name];
-
-			let separator = new Option("\u2500".repeat(30), false, false);
-			separator.disabled = true;
-			separator.className = "comment";
-			el.options[index] = separator;
-			++index;
-
-			let option = new Option(name, name, false, false);
-			el.options[index] = option;
+			tools.selector.addSeparator(el);
+			tools.selector.addOption(el, name, name);
+			tools.selector.addComment(el, __makeImageSelectorInfo(s.storage.images[name]));
 			if (s.drive.image && s.drive.image.name === name && s.drive.image.in_storage) {
-				selected_index = index;
+				selected = name;
 			}
-			++index;
-
-			let comment = new Option(`${precom} ${tools.formatSize(image.size)}${image.complete ? "" : ", broken"}`, "", false, false);
-			comment.disabled = true;
-			comment.className = "comment";
-			el.options[index] = comment;
-			++index;
 		}
 
 		if (s.drive.image && !s.drive.image.in_storage) {
-			el.options[index] = new Option(s.drive.image.name, "", false, false);
-			el.options[index + 1] = new Option(`${precom} ${tools.formatSize(s.drive.image.size)}, out of storage`, "", false, false);
-			selected_index = el.options.length - 2;
+			selected = ".__external";
+			tools.selector.addOption(el, s.drive.image.name, selected);
+			tools.selector.addComment(el, __makeImageSelectorInfo(s.drive.image));
 		}
 
-		el.selectedIndex = selected_index;
+		el.value = selected;
+	};
+
+	var __makeImageSelectorInfo = function(image) {
+		let info = `\xA0\xA0\xA0\xA0\xA0\u2570 ${tools.formatSize(image.size)}`;
+		info += (image.complete ? "" : ", broken");
+		if (image.in_storage !== undefined && !image.in_storage) {
+			info += ", out of storage";
+		}
+		let dt = new Date(image.mod_ts * 1000);
+		dt = new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000));
+		info += " \u2500 " + dt.toISOString().slice(0, -8).replaceAll("-", ".").replace("T", "-");
+		return info;
 	};
 
 	__init__();

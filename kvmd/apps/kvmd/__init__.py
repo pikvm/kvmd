@@ -74,15 +74,19 @@ def main(argv: (list[str] | None)=None) -> None:
 
     KvmdServer(
         auth_manager=AuthManager(
+            enabled=config.auth.enabled,
+
             internal_type=config.auth.internal.type,
             internal_kwargs=config.auth.internal._unpack(ignore=["type", "force_users"]),
+            force_internal_users=config.auth.internal.force_users,
+
             external_type=config.auth.external.type,
             external_kwargs=(config.auth.external._unpack(ignore=["type"]) if config.auth.external.type else {}),
-            force_internal_users=config.auth.internal.force_users,
-            enabled=config.auth.enabled,
+
+            totp_secret_path=config.auth.totp.secret.file,
         ),
         info_manager=InfoManager(global_config),
-        log_reader=LogReader(),
+        log_reader=(LogReader() if config.log_reader.enabled else None),
         user_gpio=UserGpio(config.gpio, global_config.otg),
         ocr=TesseractOcr(**config.ocr._unpack()),
 

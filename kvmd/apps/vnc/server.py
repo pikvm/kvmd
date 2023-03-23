@@ -120,15 +120,13 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
         self.__kvmd_session: (KvmdClientSession | None) = None
         self.__kvmd_ws: (KvmdClientWs | None) = None
 
-        self.__fb_notifier = aiotools.AioNotifier()
         self.__fb_queue: "asyncio.Queue[dict]" = asyncio.Queue()
+        self.__fb_has_key = False
 
         # Эти состояния шарить не обязательно - бекенд исключает дублирующиеся события.
         # Все это нужно только чтобы не посылать лишние жсоны в сокет KVMD
         self.__mouse_buttons: dict[str, (bool | None)] = dict.fromkeys(["left", "right", "middle"], None)
         self.__mouse_move = {"x": -1, "y": -1}
-
-        self.__lock = asyncio.Lock()
 
         self.__modifiers = 0
 
@@ -179,15 +177,13 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
             else:
                 if isinstance(host, str):
                     name = f"PiKVM: {host}"
-                    async with self.__lock:
-                        if self._encodings.has_rename:
-                            await self._send_rename(name)
+                    if self._encodings.has_rename:
+                        await self._send_rename(name)
                     self.__shared_params.name = name
 
         elif event_type == "hid_state":
-            async with self.__lock:
-                if self._encodings.has_leds_state:
-                    await self._send_leds_state(**event["keyboard"]["leds"])
+            if self._encodings.has_leds_state:
+                await self._send_leds_state(**event["keyboard"]["leds"])
 
     # =====
 
@@ -198,14 +194,16 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
         while True:
             try:
                 streaming = False
-                async for frame in streamer.read_stream():
-                    if not streaming:
-                        logger.info("%s [streamer]: Streaming ...", self._remote)
-                        streaming = True
-                    if frame["online"]:
-                        await self.__queue_frame(frame)
-                    else:
-                        await self.__queue_frame("No signal")
+                async with streamer.reading() as read_frame:
+                    while True:
+                        frame = await read_frame(not self.__fb_has_key)
+                        if not streaming:
+                            logger.info("%s [streamer]: Streaming ...", self._remote)
+                            streaming = True
+                        if frame["online"]:
+                            await self.__queue_frame(frame)
+                        else:
+                            await self.__queue_frame("No signal")
             except StreamerError as err:
                 if isinstance(err, StreamerPermError):
                     streamer = self.__get_default_streamer()
@@ -246,11 +244,8 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
         }
 
     async def __fb_sender_task_loop(self) -> None:  # pylint: disable=too-many-branches
-        has_h264_key = False
         last: (dict | None) = None
-        while True:
-            await self.__fb_notifier.wait()
-
+        async for _ in self._send_fb_allowed():
             while True:
                 frame = await self.__fb_queue.get()
                 if (
@@ -264,7 +259,7 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
                         or len(last["data"]) + len(frame["data"]) > 4194304
                     ))
                 ):
-                    has_h264_key = (frame["format"] == StreamFormats.H264 and frame["key"])
+                    self.__fb_has_key = (frame["format"] == StreamFormats.H264 and frame["key"])
                     last = frame
                     if self.__fb_queue.qsize() == 0:
                         break
@@ -274,36 +269,35 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
                 if self.__fb_queue.qsize() == 0:
                     break
 
-            async with self.__lock:
-                if self._width != last["width"] or self._height != last["height"]:
-                    self.__shared_params.width = last["width"]
-                    self.__shared_params.height = last["height"]
-                    if not self._encodings.has_resize:
-                        msg = (
-                            f"Resoultion changed: {self._width}x{self._height}"
-                            f" -> {last['width']}x{last['height']}\nPlease reconnect"
-                        )
-                        await self._send_fb_jpeg((await self.__make_text_frame(msg))["data"])
-                        continue
-                    await self._send_resize(last["width"], last["height"])
-
-                if len(last["data"]) == 0:
-                    # Вдруг какой-то баг
-                    self.__fb_notifier.notify()
+            if self._width != last["width"] or self._height != last["height"]:
+                self.__shared_params.width = last["width"]
+                self.__shared_params.height = last["height"]
+                if not self._encodings.has_resize:
+                    msg = (
+                        f"Resoultion changed: {self._width}x{self._height}"
+                        f" -> {last['width']}x{last['height']}\nPlease reconnect"
+                    )
+                    await self._send_fb_jpeg((await self.__make_text_frame(msg))["data"])
                     continue
+                await self._send_resize(last["width"], last["height"])
 
-                if last["format"] == StreamFormats.JPEG:
-                    await self._send_fb_jpeg(last["data"])
-                elif last["format"] == StreamFormats.H264:
-                    if not self._encodings.has_h264:
-                        raise RfbError("The client doesn't want to accept H264 anymore")
-                    if has_h264_key:
-                        await self._send_fb_h264(last["data"])
-                    else:
-                        self.__fb_notifier.notify()
+            if len(last["data"]) == 0:
+                # Вдруг какой-то баг
+                await self._send_fb_allow_again()
+                continue
+
+            if last["format"] == StreamFormats.JPEG:
+                await self._send_fb_jpeg(last["data"])
+            elif last["format"] == StreamFormats.H264:
+                if not self._encodings.has_h264:
+                    raise RfbError("The client doesn't want to accept H264 anymore")
+                if self.__fb_has_key:
+                    await self._send_fb_h264(last["data"])
                 else:
-                    raise RuntimeError(f"Unknown format: {last['format']}")
-                last["data"] = b""
+                    await self._send_fb_allow_again()
+            else:
+                raise RuntimeError(f"Unknown format: {last['format']}")
+            last["data"] = b""
 
     # =====
 
@@ -327,21 +321,33 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
 
     async def _on_key_event(self, code: int, state: bool) -> None:
         is_modifier = self.__switch_modifiers(code, state)
-        if self.__kvmd_ws:
-            web_keys = self.__symmap.get(code)
-            if web_keys:
-                if is_modifier:
-                    web_key = web_keys.get(0)
-                else:
-                    web_key = web_keys.get(self.__modifiers)
-                    if web_key is None:
-                        web_key = web_keys.get(0)
-                if web_key is not None:
-                    await self.__kvmd_ws.send_key_event(web_key, state)
+        variants = self.__symmap.get(code)
+        fake_shift = False
+
+        if variants:
+            if is_modifier:
+                web_key = variants.get(0)
+            else:
+                web_key = variants.get(self.__modifiers)
+                if web_key is None:
+                    web_key = variants.get(0)
+
+                if web_key is None and self.__modifiers == 0 and SymmapModifiers.SHIFT in variants:
+                    # JUMP doesn't send shift events:
+                    #   - https://github.com/pikvm/pikvm/issues/820
+                    web_key = variants[SymmapModifiers.SHIFT]
+                    fake_shift = True
+
+            if web_key and self.__kvmd_ws:
+                if fake_shift:
+                    await self.__kvmd_ws.send_key_event(WebModifiers.SHIFT_LEFT, True)
+                await self.__kvmd_ws.send_key_event(web_key, state)
+                if fake_shift:
+                    await self.__kvmd_ws.send_key_event(WebModifiers.SHIFT_LEFT, False)
 
     async def _on_ext_key_event(self, code: int, state: bool) -> None:
         web_key = AT1_TO_WEB.get(code)
-        if web_key is not None:
+        if web_key:
             self.__switch_modifiers(web_key, state)  # Предполагаем, что модификаторы всегда известны
             if self.__kvmd_ws:
                 await self.__kvmd_ws.send_key_event(web_key, state)
@@ -364,17 +370,17 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
 
     async def _on_pointer_event(self, buttons: dict[str, bool], wheel: dict[str, int], move: dict[str, int]) -> None:
         if self.__kvmd_ws:
-            for (button, state) in buttons.items():
-                if self.__mouse_buttons[button] != state:
-                    await self.__kvmd_ws.send_mouse_button_event(button, state)
-                    self.__mouse_buttons[button] = state
-
             if wheel["x"] or wheel["y"]:
                 await self.__kvmd_ws.send_mouse_wheel_event(wheel["x"], wheel["y"])
 
             if self.__mouse_move != move:
                 await self.__kvmd_ws.send_mouse_move_event(move["x"], move["y"])
                 self.__mouse_move = move
+
+            for (button, state) in buttons.items():
+                if self.__mouse_buttons[button] != state:
+                    await self.__kvmd_ws.send_mouse_button_event(button, state)
+                    self.__mouse_buttons[button] = state
 
     async def _on_cut_event(self, text: str) -> None:
         assert self.__stage1_authorized.is_passed()
@@ -399,9 +405,6 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
         get_logger(0).info("%s [main]: Applying streamer params: jpeg_quality=%s; desired_fps=%d ...",
                            self._remote, quality, self.__desired_fps)
         await self.__kvmd_session.streamer.set_params(quality, self.__desired_fps)
-
-    async def _on_fb_update_request(self) -> None:
-        self.__fb_notifier.notify()
 
 
 # =====

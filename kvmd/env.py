@@ -20,12 +20,7 @@
 # ========================================================================== #
 
 
-import os
-
-
 # =====
-# XXX: Don't use these variables for any purpose other than testing.
-# It can be removed at any time.
-
-SYSFS_PREFIX = str(os.getenv("KVMD_SYSFS_PREFIX", "")).strip()
-PROCFS_PREFIX = str(os.getenv("KVMD_PROCFS_PREFIX", "")).strip()
+ETC_PREFIX = ""
+SYSFS_PREFIX = ""
+PROCFS_PREFIX = ""

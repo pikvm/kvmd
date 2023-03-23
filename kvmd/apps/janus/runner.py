@@ -64,11 +64,13 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
 
     async def __run(self) -> None:
         logger = get_logger(0)
+        logger.info("Probbing the network first time ...")
+
         prev_netcfg: (_Netcfg | None) = None
         while True:
             retry = 0
             netcfg = _Netcfg()
-            for retry in range(self.__check_retries):
+            for retry in range(1 if prev_netcfg is None else self.__check_retries):
                 netcfg = await self.__get_netcfg()
                 if netcfg.ext_ip:
                     break
@@ -78,11 +80,11 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
 
             if netcfg != prev_netcfg:
                 logger.info("Got new %s", netcfg)
-                if netcfg.src_ip and netcfg.ext_ip:
+                if netcfg.src_ip:
                     await self.__stop_janus()
                     await self.__start_janus(netcfg)
                 else:
-                    logger.error("Empty src_ip or ext_ip; stopping Janus ...")
+                    logger.error("Empty src_ip; stopping Janus ...")
                     await self.__stop_janus()
                 prev_netcfg = netcfg
 
@@ -96,19 +98,19 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
     def __get_default_ip(self) -> str:
         try:
             gws = netifaces.gateways()
-            if "default" not in gws:
-                raise RuntimeError(f"No default gateway: {gws}")
+            if "default" in gws:
+                for proto in [socket.AF_INET, socket.AF_INET6]:
+                    if proto in gws["default"]:
+                        iface = gws["default"][proto][1]
+                        addrs = netifaces.ifaddresses(iface)
+                        return addrs[proto][0]["addr"]
 
-            iface = ""
-            for proto in [socket.AF_INET, socket.AF_INET6]:
-                if proto in gws["default"]:
-                    iface = gws["default"][proto][1]
-                    break
-            else:
-                raise RuntimeError(f"No iface for the gateway {gws['default']}")
-
-            for addr in netifaces.ifaddresses(iface).get(proto, []):
-                return addr["addr"]
+            for iface in netifaces.interfaces():
+                if not iface.startswith(("lo", "docker")):
+                    addrs = netifaces.ifaddresses(iface)
+                    for proto in [socket.AF_INET, socket.AF_INET6]:
+                        if proto in addrs:
+                            return addrs[proto][0]["addr"]
         except Exception as err:
             get_logger().error("Can't get default IP: %s", tools.efmt(err))
         return ""
@@ -160,12 +162,20 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
     async def __start_janus_proc(self, netcfg: _Netcfg) -> None:
         assert self.__janus_proc is None
         placeholders = {
-            key: str(value)
-            for (key, value) in dataclasses.asdict(netcfg).items()
+            "o_stun_server": f"--stun-server={netcfg.stun_host}:{netcfg.stun_port}",
+            **{
+                key: str(value)
+                for (key, value) in dataclasses.asdict(netcfg).items()
+            },
         }
+        cmd = list(self.__cmd)
+        if not netcfg.ext_ip:
+            placeholders["o_stun_server"] = ""
+            while "{o_stun_server}" in cmd:
+                cmd.remove("{o_stun_server}")
         cmd = [
             part.format(**placeholders)
-            for part in self.__cmd
+            for part in cmd
         ]
         self.__janus_proc = await aioproc.run_process(cmd)
         get_logger(0).info("Started Janus pid=%d: %s", self.__janus_proc.pid, tools.cmdfmt(cmd))

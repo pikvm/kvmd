@@ -22,6 +22,8 @@
 
 #include "spi.h"
 
+#ifdef CMD_SPI
+
 
 static volatile uint8_t _spi_in[8] = {0};
 static volatile uint8_t _spi_in_index = 0;
@@ -30,26 +32,25 @@ static volatile uint8_t _spi_out[8] = {0};
 static volatile uint8_t _spi_out_index = 0;
 
 
-void spiBegin() {
-	pinMode(MISO, OUTPUT);
-	SPCR = (1 << SPE) | (1 << SPIE); // Slave, SPI En, IRQ En
-}
+namespace DRIVERS {
+	void Spi::begin() {
+		pinMode(MISO, OUTPUT);
+		SPCR = (1 << SPE) | (1 << SPIE); // Slave, SPI En, IRQ En
+	}
 
-bool spiReady() {
-	return (!_spi_out[0] && _spi_in_index == 8);
-}
+	void Spi::periodic() {
+		if (!_spi_out[0] && _spi_in_index == 8) {
+			_data_cb((const uint8_t *)_spi_in, 8);
+		}
+	}
 
-const uint8_t *spiGet() {
-	return (const uint8_t *)_spi_in;
-}
-
-void spiWrite(const uint8_t *data) {
-	// Меджик в нулевом байте разрешает начать ответ
-	for (int index = 7; index >= 0; --index) {
-		_spi_out[index] = data[index];
+	void Spi::write(const uint8_t *data, size_t size) {
+		// Меджик в нулевом байте разрешает начать ответ
+		for (int index = 7; index >= 0; --index) {
+			_spi_out[index] = data[index];
+		}
 	}
 }
-
 
 ISR(SPI_STC_vect) {
 	uint8_t in = SPDR;
@@ -78,3 +79,5 @@ ISR(SPI_STC_vect) {
 		SPDR = 0;
 	}
 }
+
+#endif

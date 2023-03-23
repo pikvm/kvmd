@@ -215,6 +215,8 @@ export function Session() {
 			${state.kernel.system} kernel:
 			${__formatUname(state.kernel)}
 		`;
+		$("kvmd-version-kvmd").innerHTML = state.kvmd.version;
+		$("kvmd-version-streamer").innerHTML = state.streamer.version;
 	};
 
 	var __formatStreamerFeatures = function(features) {
@@ -258,7 +260,7 @@ export function Session() {
 				$("webterm-iframe").src = "";
 			};
 		}
-		tools.feature.setEnabled($("webterm"), has_webterm);
+		tools.feature.setEnabled($("system-tool-webterm"), has_webterm);
 		$("webterm-window").show_hook = show_hook;
 		$("webterm-window").close_hook = close_hook;
 

@@ -82,8 +82,8 @@ class Plugin(BaseUserGpioDriver):
                     await asyncio.sleep(5)
 
                 with Inotify() as inotify:
-                    inotify.watch(os.path.dirname(self.__udc_path), InotifyMask.ALL_MODIFY_EVENTS)
-                    inotify.watch(self.__profile_path, InotifyMask.ALL_MODIFY_EVENTS)
+                    await inotify.watch(InotifyMask.ALL_MODIFY_EVENTS, os.path.dirname(self.__udc_path))
+                    await inotify.watch(InotifyMask.ALL_MODIFY_EVENTS, self.__profile_path)
                     self._notifier.notify()
                     while True:
                         need_restart = False
@@ -129,12 +129,12 @@ class Plugin(BaseUserGpioDriver):
                         self.__set_udc_enabled(True)
 
     def __set_udc_enabled(self, enabled: bool) -> None:
-        with open(self.__udc_path, "w") as udc_file:
-            udc_file.write(self.__udc if enabled else "\n")
+        with open(self.__udc_path, "w") as file:
+            file.write(self.__udc if enabled else "\n")
 
     def __is_udc_enabled(self) -> bool:
-        with open(self.__udc_path) as udc_file:
-            return bool(udc_file.read().strip())
+        with open(self.__udc_path) as file:
+            return bool(file.read().strip())
 
     def __str__(self) -> str:
         return f"GPIO({self._instance_name})"

@@ -44,6 +44,7 @@ ul#navbar li.left {
 }
 
 ul#navbar li a#logo {
+	height: 50px; /* Чтобы вертикальные разделители не вылезали за пределы навбара */
 	line-height: 50px;
 	outline: none;
 	cursor: pointer;
@@ -55,6 +56,7 @@ ul#navbar li a#logo {
 }
 
 ul#navbar li a.menu-button {
+	height: 50px; /* То же самое */
 	line-height: 50px;
 	outline: none;
 	cursor: pointer;
@@ -80,23 +82,20 @@ ul#navbar li a#logo:hover:not(.active),
 ul#navbar li a.menu-button:hover:not(.active) {
 	background-color: var(--cs-navbar-item-hovered-bg);
 }
-@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
-	/* iPad 8 */
-	ul#navbar li a#logo:hover:not(.active),
-	ul#navbar li a.menu-button:hover:not(.active) {
-		background-color: var(--cs-navbar-default-bg) !important;
-	}
-}
 
 ul#navbar li a#logo img {
 	margin-top: -2px;
 	height: 24px;
 }
 
+ul#navbar li a.menu-button span,
 ul#navbar li a.menu-button img {
 	vertical-align: middle;
-	margin-right: 10px;
 	height: 20px;
+}
+ul#navbar li a.menu-button span:not(:last-child),
+ul#navbar li a.menu-button img:not(:last-child) {
+	margin-right: 10px;
 }
 
 ul#navbar li a.menu-button-pressed {
@@ -159,12 +158,32 @@ ul#navbar li div.menu table.kv td.value {
 	max-width: 310px;
 	overflow: hidden;
 }
+ul#navbar li div.menu table.kv td.value-slider {
+	width: 100%;
+}
+ul#navbar li div.menu table.kv td.value-number {
+	font-weight: bold;
+	max-width: 310px;
+	overflow: hidden;
+	min-width: 40px;
+	max-width: 40px;
+}
 
 ul#navbar li div.menu div.buttons button,
 ul#navbar li div.menu div.buttons select {
 	border-radius: 0;
 	text-align: left;
 	padding: 0 16px;
+}
+
+ul#navbar li div.menu input[type=text] {
+	height: 1.5em;
+}
+ul#navbar li div.menu input[type=text]::-moz-placeholder {
+	text-align: center;
+}
+ul#navbar li div.menu input[type=text]::-webkit-input-placeholder {
+	text-align: center;
 }
 
 ul#navbar li div.menu hr {

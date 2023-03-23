@@ -155,9 +155,9 @@ export function Hid(__getGeometry, __recorder) {
 				if ($("hid-outputs-mouse-box").outputs !== mouse_outputs) {
 					let html = "";
 					for (let args of [
-						["USB", "usb", false],
-						["USB Win98", "usb_win98", false],
-						["USB Relative", "usb_rel", true],
+						["Absolute", "usb", false],
+						["Abs-Win98", "usb_win98", false],
+						["Relative", "usb_rel", true],
 						["PS/2", "ps2", true],
 						["Off", "disabled"],
 					]) {
@@ -198,12 +198,9 @@ export function Hid(__getGeometry, __recorder) {
 	};
 
 	self.setKeymaps = function(state) {
-		let selected = tools.storage.get("hid.pak.keymap", state.keymaps["default"]);
-		let html = "";
-		for (let variant of state.keymaps.available) {
-			html += `<option value=${variant} ${variant === selected ? "selected" : ""}>${variant}</option>`;
-		}
-		$("hid-pak-keymap-selector").innerHTML = html;
+		let el = $("hid-pak-keymap-selector");
+		tools.selector.setValues(el, state.keymaps.available);
+		tools.selector.setSelectedValue(el, tools.storage.get("hid.pak.keymap", state.keymaps["default"]));
 	};
 
 	var __releaseAll = function() {
@@ -219,7 +216,7 @@ export function Hid(__getGeometry, __recorder) {
 			[[codes, true], [codes.slice().reverse(), false]].forEach(function(op) {
 				let [op_codes, state] = op;
 				for (let code of op_codes) {
-					raw_events.push({code: code, state: state});
+					raw_events.push({"code": code, "state": state});
 				}
 			});
 

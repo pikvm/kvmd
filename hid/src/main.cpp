@@ -20,48 +20,47 @@
 *****************************************************************************/
 
 
-// #define CMD_SERIAL			Serial1
-// #define CMD_SERIAL_SPEED		115200
-// #define CMD_SERIAL_TIMEOUT	100000
-// -- OR --
-// #define CMD_SPI
-
-#if !(defined(CMD_SERIAL) || defined(CMD_SPI))
-#	error CMD phy is not defined
-#endif
-
-
 #include <Arduino.h>
 
 #include "tools.h"
 #include "proto.h"
-#ifdef CMD_SPI
-#	include "spi.h"
-#endif
+#include "board.h"
+#include "outputs.h"
 #ifdef AUM
 #	include "aum.h"
 #endif
-#include "outputs.h"
 
 
+static DRIVERS::Connection *_conn;
+static DRIVERS::Board *_board;
 static Outputs _out;
+
 #ifdef HID_DYNAMIC
+#	define RESET_TIMEOUT 500000
 static bool _reset_required = false;
+static unsigned long _reset_timestamp;
 #endif
 
 
 // -----------------------------------------------------------------------------
+#ifdef HID_DYNAMIC
+static void _resetRequest() {
+	_reset_required = true;
+	_reset_timestamp = micros();
+}
+#endif
+
 static void _cmdSetKeyboard(const uint8_t *data) { // 1 bytes
 #	ifdef HID_DYNAMIC
 	_out.writeOutputs(PROTO::OUTPUTS1::KEYBOARD::MASK, data[0], false);
-	_reset_required = true;
+	_resetRequest();
 #	endif
 }
 
 static void _cmdSetMouse(const uint8_t *data) { // 1 bytes
 #	ifdef HID_DYNAMIC
 	_out.writeOutputs(PROTO::OUTPUTS1::MOUSE::MASK, data[0], false);
-	_reset_required = true;
+	_resetRequest();
 #	endif
 }
 
@@ -112,10 +111,13 @@ static void _cmdMouseWheelEvent(const uint8_t *data) { // 2 bytes
 }
 
 static uint8_t _handleRequest(const uint8_t *data) { // 8 bytes
-	if (PROTO::crc16(data, 6) == PROTO::merge8(data[6], data[7])) {
+	_board->updateStatus(DRIVERS::RX_DATA);
+	// FIXME: See kvmd/kvmd#80
+	// Should input buffer be cleared in this case?
+	if (data[0] == PROTO::MAGIC && PROTO::crc16(data, 6) == PROTO::merge8(data[6], data[7])) {
 #		define HANDLE(_handler) { _handler(data + 2); return PROTO::PONG::OK; }
 		switch (data[1]) {
-			case PROTO::CMD::PING:				return PROTO::PONG::OK;
+			case PROTO::CMD::PING:		return PROTO::PONG::OK;
 			case PROTO::CMD::SET_KEYBOARD:		HANDLE(_cmdSetKeyboard);
 			case PROTO::CMD::SET_MOUSE:			HANDLE(_cmdSetMouse);
 			case PROTO::CMD::SET_CONNECTED:		HANDLE(_cmdSetConnected);
@@ -150,11 +152,18 @@ static void _sendResponse(uint8_t code) {
 #		ifdef HID_DYNAMIC
 		if (_reset_required) {
 			response[1] |= PROTO::PONG::RESET_REQUIRED;
+			if (is_micros_timed_out(_reset_timestamp, RESET_TIMEOUT)) {
+				_board->reset();
+			}
 		}
 		response[2] = PROTO::OUTPUTS1::DYNAMIC;
 #		endif
 		if (_out.kbd->getType() != DRIVERS::DUMMY) {
-			response[1] |= (_out.kbd->isOffline() ? PROTO::PONG::KEYBOARD_OFFLINE : 0);
+			if(_out.kbd->isOffline()) {
+				response[1] |= PROTO::PONG::KEYBOARD_OFFLINE;
+			} else {
+				_board->updateStatus(DRIVERS::KEYBOARD_ONLINE);
+			}
 			DRIVERS::KeyboardLedsState leds = _out.kbd->getLeds();
 			response[1] |= (leds.caps ? PROTO::PONG::CAPS : 0);
 			response[1] |= (leds.num ? PROTO::PONG::NUM : 0);
@@ -169,7 +178,11 @@ static void _sendResponse(uint8_t code) {
 			}	
 		}
 		if (_out.mouse->getType() != DRIVERS::DUMMY) {
-			response[1] |= (_out.mouse->isOffline() ? PROTO::PONG::MOUSE_OFFLINE : 0);
+			if(_out.mouse->isOffline()) {
+				response[1] |= PROTO::PONG::MOUSE_OFFLINE;
+			} else {
+				_board->updateStatus(DRIVERS::MOUSE_ONLINE);
+			}
 			switch (_out.mouse->getType()) {
 				case DRIVERS::USB_MOUSE_ABSOLUTE_WIN98:
 					response[2] |= PROTO::OUTPUTS1::MOUSE::USB_WIN98;
@@ -202,11 +215,15 @@ static void _sendResponse(uint8_t code) {
 	}
 	PROTO::split16(PROTO::crc16(response, 6), &response[6], &response[7]);
 
-#	ifdef CMD_SERIAL
-	CMD_SERIAL.write(response, 8);
-#	elif defined(CMD_SPI)
-	spiWrite(response);
-#	endif
+	_conn->write(response, 8);
+}
+
+static void _onTimeout() {
+	_sendResponse(PROTO::RESP::TIMEOUT_ERROR);
+}
+
+static void _onData(const uint8_t *data, size_t size) {
+	_sendResponse(_handleRequest(data));
 }
 
 void setup() {
@@ -216,11 +233,12 @@ void setup() {
 	aumInit();
 #	endif
 
-#	ifdef CMD_SERIAL
-	CMD_SERIAL.begin(CMD_SERIAL_SPEED);
-#	elif defined(CMD_SPI)
-	spiBegin();
-#	endif
+	_conn = DRIVERS::Factory::makeConnection(DRIVERS::CONNECTION);
+	_conn->onTimeout(_onTimeout);
+	_conn->onData(_onData);
+	_conn->begin();
+
+	_board = DRIVERS::Factory::makeBoard(DRIVERS::BOARD);
 }
 
 void loop() {
@@ -230,29 +248,6 @@ void loop() {
 
 	_out.kbd->periodic();
 	_out.mouse->periodic();
-
-#	ifdef CMD_SERIAL
-	static unsigned long last = micros();
-	static uint8_t buffer[8];
-	static uint8_t index = 0;
-	if (CMD_SERIAL.available() > 0) {
-		buffer[index] = (uint8_t)CMD_SERIAL.read();
-		if (index == 7) {
-			_sendResponse(_handleRequest(buffer));
-			index = 0;
-		} else /*if (buffer[0] == PROTO::MAGIC)*/ { // FIXME: See kvmd/kvmd#80
-			last = micros();
-			++index;
-		}
-	} else if (index > 0) {
-		if (is_micros_timed_out(last, CMD_SERIAL_TIMEOUT)) {
-			_sendResponse(PROTO::RESP::TIMEOUT_ERROR);
-			index = 0;
-		}
-	}
-#	elif defined(CMD_SPI)
-	if (spiReady()) {
-		_sendResponse(_handleRequest(spiGet()));
-	}
-#	endif
+	_board->periodic();
+	_conn->periodic();
 }

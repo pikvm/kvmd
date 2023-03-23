@@ -1,7 +1,6 @@
- 
-li(class="right")
+li(id="shortcuts-dropdown" class="right")
 	a(class="menu-button" href="#") Shortcuts
-	div(data-dont-hide-menu class="menu")
+	div(class="menu")
 		div(class="text")
 			b Quick keyboard shortcuts#[br]
 			sub Also see #[i System &rarr; Show keyboard]
@@ -25,6 +24,10 @@ li(class="right")
 			div(class="buttons-row")
 				button(data-force-hide-menu data-shortcut="MetaLeft Space" class="row50") &bull; Win+Space
 				button(data-force-hide-menu data-shortcut="AltLeft F4" class="row50") &bull; Alt+F4
+			hr
+			div(class="buttons-row")
+				button(data-force-hide-menu data-shortcut="ControlLeft AltLeft F1" class="row50") &bull; Ctrl+Alt+F1
+				button(data-force-hide-menu data-shortcut="ControlLeft AltLeft F2" class="row50") &bull; Ctrl+Alt+F2
 			hr
 			button(data-force-hide-menu data-shortcut="ControlLeft AltLeft Delete") &bull; Ctrl+Alt+Del
 		hr
