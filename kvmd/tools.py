@@ -51,6 +51,9 @@ def merge(dest: dict, src: dict) -> None:
             if isinstance(dest[key], dict) and isinstance(src[key], dict):
                 merge(dest[key], src[key])
                 continue
+            if isinstance(dest[key], list) and isinstance(src[key], list):
+                dest[key].extend(src[key])
+                continue
         dest[key] = src[key]
 
 
