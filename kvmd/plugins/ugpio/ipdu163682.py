@@ -1,6 +1,6 @@
-# KVMD Plugin for INtellinet 19" Intelligent 8-Port PDU Model 163682
+# KVMD Plugin for Intellinet 19" Intelligent 8-Port PDU Model 163682
 # Communication based on API created by CodingBot under MIT Licence
-# Plugin Components based on KMUD Tesmart-Plugin
+# Plugin Components based on KVMD ANELPWR-Plugin
 
 ### WARNING - WARNING - WARNING - WARNING - WARNING - WARNING - WARNING
 #
@@ -17,10 +17,13 @@ import functools
 from typing import Callable
 from typing import Any
 
+import aiohttp
+
 from ...logging import get_logger
 
 from ... import tools
 from ... import aiotools
+from ... import htclient
 
 from ...yamlconf import Option
 
@@ -33,7 +36,6 @@ from ...validators.basic import valid_float_f01
 from . import BaseUserGpioDriver
 from . import GpioDriverOfflineError
 
-import requests
 from urllib.parse import urlunsplit
 from lxml import etree as et
 
@@ -51,6 +53,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
 
         switch_delay: int,
         state_poll: float,
+        timeout: float,
 
     )  -> None:
 
@@ -63,6 +66,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
 
         self.__switch_delay = switch_delay
         self.__state_poll = state_poll
+        self.__timeout = timeout
 
         self.__initials: dict[int, (bool | None)] = {}
         self.__outlet_states: dict[int, (bool | None)] = {}
@@ -73,6 +77,8 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         self.__outlet_ondelay: dict[int, (int | None)] = {}
         self.__outlet_offdelay: dict[int, (int | None)] = {}
 
+        self.__http_session: (aiohttp.ClientSession | None) = None
+
     @classmethod
     def get_plugin_options(cls) -> dict: 
         return {
@@ -81,7 +87,8 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
             "username":         Option("admin",   type=valid_stripped_string),
             "password":         Option("admin",   type=valid_stripped_string),
             "switch_delay":     Option(1,   type=valid_int_f0),
-            "state_poll":       Option(5.0, type=valid_float_f01)
+            "state_poll":       Option(5.0, type=valid_float_f01),
+            "timeout":          Option(5.0, type=valid_float_f01),
         }
 
     @classmethod
@@ -90,56 +97,74 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
 
     def register_output(self, outlet: str, initial: (bool | None)) -> None:
         self.__initials[int(outlet)] = initial
+        self.__outlet_states[int(outlet)] = None
 
     def register_input(self, outlet: str, debounce: float) -> None:
+        _ = debounce
         self.__outlet_states[int(outlet)] = False
 
     def prepare(self) -> None:
-        self.__create_ipdu()
-        # save original values of on/off-delays
-        self.__save_config()
-        ondelays: dict[ int, (int | None)] ={}
-        offdelays: dict[ int, (int | None)] ={}
-        for (outlet, state) in self.__initials.items():
-            # pre-set dicts to the specified switch-on/off-delay
-            ondelays[int(outlet)] = self.__switch_delay
-            offdelays[int(outlet)] = self.__switch_delay
-        self.__set_config(ondelays, offdelays)
-        for (outlet, state) in self.__initials.items():
-            if state is not None:
-                self.__control_outlet(outlet, state)
-        self.__ipdu_status()
+        async def inner_prepare() -> None:
+           self.__create_ipdu()
+           session = self.__ensure_http_session()
+           endpoint = self.__endpoints["status"]
+           url = urlunsplit([self.__schema, self.__host, endpoint, None, None])
+           try:
+              async with session.get(url, params=None) as resp:
+                 htclient.raise_not_200(resp)
+                 await resp.text()
+           except Exception as err:
+              get_logger().error("Can't connect to Intelligent PDU [%s] when getting status: %s", self.__host,tools.efmt(err))
+              #raise GpioDriverOfflineError
+           else:
+              # save original values of on/off-delays
+              await self.__save_config()
+              ondelays: dict[ int, (int | None)] ={}
+              offdelays: dict[ int, (int | None)] ={}
+              for (outlet, state) in self.__initials.items():
+                  # pre-set dicts to the specified switch-on/off-delay
+                  ondelays[int(outlet)] = self.__switch_delay
+                  offdelays[int(outlet)] = self.__switch_delay
+              await self.__set_config(ondelays, offdelays)
+              for (outlet, state) in self.__initials.items():
+                  if state is not None:
+                      await self.__control_outlet(outlet, state)
+              await self.__ipdu_status()
+        aiotools.run_sync(inner_prepare())
 
     async def run(self) -> None:
-        # try to get status from ipdu, ignore exceptions to be able to continue
-        try:
-            self.__ipdu_status()
-        except Exception:
-            pass
-        self.__update_notifier.notify()
+        prev_state: (dict | None) = None
+        while True:
+           await self.__ipdu_status()
+           if self.__outlet_states != prev_state:
+              self._notifier.notify()
+              prev_state = self.__outlet_states
+           await self.__update_notifier.wait(self.__state_poll)
 
     async def cleanup(self) -> None:
-        # reset configuration of on/off-delays to original values
-        self.__set_config(self.__outlet_ondelay, self.__outlet_offdelay)
+        if self.__http_session:
+           # reset configuration of on/off-delays to original values
+           await self.__set_config(self.__outlet_ondelay, self.__outlet_offdelay)
+           await self.__http_session.close()
+           self.__http_session = None
+    
 
     async def read(self, outlet: str) -> bool:
         # read status from ipdu
-        try:
-            self.__ipdu_status()
-        except Exception as err:
-            get_logger(0).error("Can't connect to Intellinet PDU [%s] to get status: %s", self.__host, tools.efmt(err))
-            raise GpioDriverOfflineError(self)
+        await self.__ipdu_status()
         self.__update_notifier.notify()
+        if self.__outlet_states[int(outlet)] is None:
+           raise GpioDriverOfflineError(self)
         return self.__outlet_states[int(outlet)]
     
     async def write(self, outlet: str, state: bool) -> None:
               
         assert 0 <= int(outlet) <= 7
-        get_logger(0).info("On IPDU {%s]: Controlling outlet %d: state %d", self.__host, int(outlet), state)
-        self.__control_outlet(int(outlet),state)
-        await asyncio.sleep(self.__switch_delay + 1) # allow some time to complete execution on IPDU
-        self.__ipdu_status()
-        await self.__update_notifier.notify(self.__state_poll)
+        get_logger().info("On IPDU {%s]: Controlling outlet %d: state %d", self.__host, int(outlet), state)
+        await self.__control_outlet(int(outlet),state)
+        await asyncio.sleep(self.__switch_delay) # allow some time to complete execution on IPDU
+        await self.__ipdu_status()
+        self.__update_notifier.notify()
         
 
     # =====
@@ -147,7 +172,6 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
     def __create_ipdu(self):
         self.__schema = "http"
         self.__charset = "gb2312"
-        self.__auth = self.__auth((self.__username,self.__password))
         self.__endpoints = {
         # Information
         "status": "status.xml",
@@ -161,19 +185,23 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         "users": "config_user.htm",
         "network": "config_network.htm",
         }
-        
-    def __auth(self, creds):
-        # from codingrobot:
-        #    Don't even bother... The PDU only requests a http auth on the / page.
-        #    All other pages/endpoints (including settings updates und file uploads)
-        #    are unprotected.
-        try:
-            return requests.auth.HTTPBasicAuth(*creds)
-        except Exception as err:
-            get_logger(0).error("Can't connect to Intellinet PDU [%s] for auth: %s", self.__host, tools.efmt(err))
-            raise GpioDriverOfflineError(self)
+
+    def __ensure_http_session(self) -> aiohttp.ClientSession:
+        if not self.__http_session:
+            kwargs: dict =  {
+                "headers": {
+                    "User-Agent": htclient.make_user_agent("KVMD"),
+                },
+                "timeout": aiohttp.ClientTimeout(total=self.__timeout),
+            }
+            if self.__username:
+                kwargs["auth"] = aiohttp.BasicAuth(self.__username, self.__password)
+                kwargs["connector"] = aiohttp.TCPConnector(ssl=False)
+            self.__http_session = aiohttp.ClientSession(**kwargs)
+        return self.__http_session
     
-    def __control_outlet(self, outlet, state):
+    async def __control_outlet(self, outlet, state):
+        session = self.__ensure_http_session()
         endpoint = self.__endpoints["outlet"]
         translation_table = {True: 0, False: 1}
         outlet_state = {"outlet{}".format(outlet): 1}
@@ -181,29 +209,33 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         outlet_state["submit"] = "Anwenden"
         url = urlunsplit([self.__schema, self.__host, endpoint, None, None])
         try:
-            resp = requests.get(url, auth=self.__auth, params=outlet_state)
-            resp.raise_for_status()
+            async with session.get(url, params=outlet_state) as resp:
+               htclient.raise_not_200(resp)
         except Exception as err:
-            get_logger(0).error("Can't connect to Intelligent PDU [%s] for controlling outlet: %s", self.__host,tools.efmt(err))
+            get_logger().error("Can't connect to Intelligent PDU [%s] for controlling outlet: %s", self.__host,tools.efmt(err))
             raise GpioDriverOfflineError(self)
         else:
-            self.__ipdu_status()
+            await self.__ipdu_status()
+            self.__update_notifier.notify()
 
-    def __ipdu_status(self):
+    async def __ipdu_status(self):
+        session = self.__ensure_http_session()
         endpoint = self.__endpoints["status"]
         url = urlunsplit([self.__schema, self.__host, endpoint, None, None])
         try:
-            resp = requests.get(url, auth=self.__auth, params=None)
+            async with session.get(url, params=None) as resp:
+               htclient.raise_not_200(resp)
+               decoded = await resp.text(encoding = self.__charset)
         except Exception as err:
-            get_logger(0).error("Can't connect to Intelligent PDU [%s] when getting status: %s", self.__host,tools.efmt(err))
-            raise GpioDriverOfflineError
+            get_logger().error("Can't connect to Intelligent PDU [%s] when getting status: %s", self.__host,tools.efmt(err))
+            #raise GpioDriverOfflineError
         else:
-            self.__decodeparse_resp(resp)
+            self.__decodeparse_resp(decoded)
 
     def __decodeparse_resp(self, resp):
         # decode
         assert resp
-        decoded = resp.content.decode(self.__charset)
+        decoded = resp
         # parse
         if "html" in decoded.lower():
             parser = et.HTML
@@ -219,18 +251,20 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         for (outlet, state) in self.__outlet_states.items():
             statestr = res.find("outletStat{}".format(outlet)).text
             self.__outlet_states[int(outlet)] = translation_table[statestr]
-        get_logger(0).info("IPDU device (%s) state: current: %s A; temp: %s C; humidity: %s", self.__host, self.__current, self.__temp, self.__humidity)
+        get_logger().info("IPDU device (%s) state: current: %s A; temp: %s C; humidity: %s", self.__host, self.__current, self.__temp, self.__humidity)
     
-    def __save_config(self):
+    async def __save_config(self):
+        session = self.__ensure_http_session()
         endpoint = self.__endpoints["config_pdu"]
         url = urlunsplit([self.__schema, self.__host, endpoint, None, None])
         try:
-            resp = requests.get(url, auth=self.__auth, params=None)
+            async with session.get(url, params=None) as resp:
+               htclient.raise_not_200(resp)
+               decoded = (await resp.text(encoding=self.__charset))
         except Exception as err:
-            get_logger(0).error("Can't connect to Intellinet PDU [%s] for saving configuration: %s", self.__host, tools.efmt(err))
+            get_logger().error("Can't connect to Intellinet PDU [%s] for saving configuration: %s", self.__host, tools.efmt(err))
             raise GpioDriverOfflineError(self)
         else:
-            decoded = resp.content.decode(self.__charset)
             if "html" in decoded.lower():
                 parser = et.HTML
             else:
@@ -244,7 +278,8 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
                 self.__outlet_ondelay["outlet{}".format(idx)] = int(values[1])
                 self.__outlet_offdelay["outlet{}".format(idx)] = int(values[2])
     
-    def __set_config(self, ondelay, offdelay):
+    async def __set_config(self, ondelay, offdelay):
+        session = self.__ensure_http_session()
         endpoint = self.__endpoints["config_pdu"]
         setting = {}
         for (outlet, delay) in ondelay.items():
@@ -254,9 +289,10 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         url = urlunsplit([self.__schema, self.__host, endpoint, None, None])
         headers = {"Content-type": "application/x-www-form-urlencoded"}
         try:
-            requests.post(url, auth=self.__auth,data=setting, headers=headers)
+            async with session.post(url, data=setting, headers=headers) as resp:
+               htclient.raise_not_200(resp)
         except Exception as err:
-            get_logger(0).error("Can't connect to Intellinet PDU [%s] for setting configuration: %s", self.__host, tools.efmt(err))
+            get_logger().error("Can't connect to Intellinet PDU [%s] for setting configuration: %s", self.__host, tools.efmt(err))
             raise GpioDriverOfflineError(self)
 
     # =====
