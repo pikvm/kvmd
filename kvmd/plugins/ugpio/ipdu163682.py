@@ -28,6 +28,7 @@ from ...validators.basic import valid_number
 from ...validators.basic import valid_int_f0
 from ...validators.net import valid_ip_or_host
 from ...validators.basic import valid_stripped_string
+from ...validators.basic import valid_float_f01
 
 from . import BaseUserGpioDriver
 from . import GpioDriverOfflineError
@@ -49,6 +50,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         password: str,
 
         switch_delay: int,
+        state_poll: float,
 
     )  -> None:
 
@@ -60,6 +62,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         self.__password = password
 
         self.__switch_delay = switch_delay
+        self.__state_poll = state_poll
 
         self.__initials: dict[int, (bool | None)] = {}
         self.__outlet_states: dict[int, (bool | None)] = {}
@@ -78,6 +81,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
             "username":         Option("admin",   type=valid_stripped_string),
             "password":         Option("admin",   type=valid_stripped_string),
             "switch_delay":     Option(1,   type=valid_int_f0),
+            "state_poll":       Option(5.0, type=valid_float_f01)
         }
 
     @classmethod
@@ -135,7 +139,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
         self.__control_outlet(int(outlet),state)
         await asyncio.sleep(self.__switch_delay + 1) # allow some time to complete execution on IPDU
         self.__ipdu_status()
-        await self.__update_notifier.notify()
+        await self.__update_notifier.notify(self.__state_poll)
         
 
     # =====
