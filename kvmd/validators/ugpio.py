@@ -52,6 +52,8 @@ def valid_ugpio_view_title(arg: Any) -> (str | list[str]):
 
 def valid_ugpio_view_table(arg: Any) -> list[list[str]]:  # pylint: disable=inconsistent-return-statements
     try:
+        if isinstance(arg, dict):
+            arg = arg.values()
         return [list(map(str, row)) for row in list(arg)]
     except Exception:
         raise_error("<skipped>", "GPIO view table")
