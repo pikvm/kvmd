@@ -252,9 +252,9 @@ class UserGpio:
                 self.__inputs[channel] = _GpioInput(channel, ch_config, driver)
             else:  # output:
                 self.__outputs[channel] = _GpioOutput(channel, ch_config, driver, self.__notifier)
-        viewTable=self.__view["table"]
-        viewMap = self.__view["dict"]
-        viewTable.extend(list(viewMap.values()))
+
+        self.__view["table"].extend(list(self.__view["dict"].values()))
+
     async def get_model(self) -> dict:
         return {
             "scheme": {
@@ -335,8 +335,7 @@ class UserGpio:
 
     def __make_view_table(self) -> list[list[dict] | None]:
         table: list[list[dict] | None] = []
-        viewTable = self.__view["table"]
-        for row in viewTable:
+        for row in self.__view["table"]:
             if len(row) == 0:
                 table.append(None)
                 continue
