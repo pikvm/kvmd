@@ -492,6 +492,7 @@ def _get_config_scheme() -> dict:
                         "title": Option("GPIO", type=valid_ugpio_view_title),
                     },
                     "table": Option([], type=valid_ugpio_view_table),
+                    "dict": Option({}, type=dict)
                 },
             },
         },

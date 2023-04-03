@@ -333,7 +333,10 @@ class UserGpio:
 
     def __make_view_table(self) -> list[list[dict] | None]:
         table: list[list[dict] | None] = []
-        for row in self.__view["table"]:
+        viewTable = self.__view["table"]
+        viewMap = self.__view["dict"]
+        viewTable.extend(list(viewMap.values()))
+        for row in viewTable:
             if len(row) == 0:
                 table.append(None)
                 continue
