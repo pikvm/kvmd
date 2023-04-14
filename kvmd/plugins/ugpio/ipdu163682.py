@@ -230,14 +230,12 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
             get_logger().error("Can't connect to Intelligent PDU [%s] when getting status: %s", self.__host,tools.efmt(err))
             #raise GpioDriverOfflineError
         else:
-            self.__decodeparse_resp(decoded)
+            self.__parse_resp(decoded)
 
-    def __decodeparse_resp(self, resp):
-        # decode
+    def __parse_resp(self, resp):
         assert resp
-        decoded = resp
         # parse
-        if "html" in decoded.lower():
+        if "html" in resp.lower():
             parser = et.HTML
         else:
             parser = et.XML
