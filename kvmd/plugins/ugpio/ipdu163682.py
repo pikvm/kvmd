@@ -216,7 +216,7 @@ class Plugin(BaseUserGpioDriver): # pylint: disable=too-many-instance-attributes
             raise GpioDriverOfflineError(self)
         else:
             await self.__ipdu_status()
-            self.__update_notifier.notify()
+        self.__update_notifier.notify()
 
     async def __ipdu_status(self):
         session = self.__ensure_http_session()
