@@ -70,7 +70,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__timeout = timeout
 
         self.__initials: dict[int, (bool | None)] = {}
-        self.__outlet_states: dict[int, (bool | None)] = {}
+        self.__outlet_states: dict[str, (bool | None)] = {}
         self.__temp = None
         self.__current = None
         self.__humidity = None
@@ -98,11 +98,11 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     def register_output(self, pin: str, initial: (bool | None)) -> None:
         self.__initials[int(pin)] = initial
-        self.__outlet_states[int(pin)] = None
+        self.__outlet_states[pin] = None
 
     def register_input(self, pin: str, debounce: float) -> None:
         _ = debounce
-        self.__outlet_states[int(pin)] = False
+        self.__outlet_states[pin] = False
 
     def prepare(self) -> None:
         async def inner_prepare() -> None:
@@ -153,9 +153,9 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         # read status from ipdu
         await self.__ipdu_status()
         self.__update_notifier.notify()
-        if self.__outlet_states[int(pin)] is None:
+        if self.__outlet_states[pin] is None:
            raise GpioDriverOfflineError(self)
-        return self.__outlet_states[int(pin)]
+        return self.__outlet_states[pin]
 
     async def write(self, pin: str, state: bool) -> None:
         assert 0 <= int(pin) <= 7
@@ -166,7 +166,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__update_notifier.notify()
  
     # =====
-    def __create_ipdu(self):
+    def __create_ipdu(self) -> None:
         self.__schema = "http"
         self.__charset = "gb2312"
         self.__endpoints = {
@@ -197,7 +197,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             self.__http_session = aiohttp.ClientSession(**kwargs)
         return self.__http_session
 
-    async def __control_outlet(self, outlet, state):
+    async def __control_outlet(self, outlet, state) -> None:
         session = self.__ensure_http_session()
         endpoint = self.__endpoints["outlet"]
         translation_table = {True: 0, False: 1}
@@ -214,7 +214,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         await self.__ipdu_status()
         self.__update_notifier.notify()
 
-    async def __ipdu_status(self):
+    async def __ipdu_status(self) -> None:
         session = self.__ensure_http_session()
         endpoint = self.__endpoints["status"]
         url = urlunsplit([self.__schema, self.__host, endpoint, None, None])
@@ -227,7 +227,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         else:
             self.__parse_resp(decoded)
 
-    def __parse_resp(self, resp):
+    def __parse_resp(self, resp) -> None:
         assert resp
         # parse
         if "html" in resp.lower():
@@ -243,10 +243,10 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         translation_table = {"on": 1, "off": 0, "power_cycle_off_on": 2}
         for (outlet, state) in self.__outlet_states.items():
             statestr = res.find("outletStat{}".format(outlet)).text
-            self.__outlet_states[int(outlet)] = translation_table[statestr]
+            self.__outlet_states[outlet] = translation_table[statestr]
         get_logger().info("IPDU device (%s) state: current: %s A; temp: %s C; humidity: %s", self.__host, self.__current, self.__temp, self.__humidity)
 
-    async def __save_config(self):
+    async def __save_config(self) -> None:
         session = self.__ensure_http_session()
         endpoint = self.__endpoints["config_pdu"]
         url = urlunsplit([self.__schema, self.__host, endpoint, None, None])
@@ -270,7 +270,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             self.__outlet_ondelay["outlet{}".format(idx)] = int(values[1])
             self.__outlet_offdelay["outlet{}".format(idx)] = int(values[2])
 
-    async def __set_config(self, ondelay, offdelay):
+    async def __set_config(self, ondelay, offdelay) -> None:
         session = self.__ensure_http_session()
         endpoint = self.__endpoints["config_pdu"]
         setting = {}
