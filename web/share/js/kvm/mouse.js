@@ -70,7 +70,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		tools.storage.bindSimpleSwitch($("hid-mouse-reverse-scrolling-switch"), "hid.mouse.reverse_scrolling", false);
 		tools.slider.setParams($("hid-mouse-sens-slider"), 0.1, 1.9, 0.1, tools.storage.get("hid.mouse.sens", 1.0), __updateRelativeSens);
 		tools.slider.setParams($("hid-mouse-rate-slider"), 10, 100, 10, tools.storage.get("hid.mouse.rate", 100), __updateRate); // set __timer
-		tools.slider.setParams($("hid-mouse-scroll_rate-slider"), 1, 100, 1, tools.storage.get("hid.mouse.scroll_rate", 5), __updateScrollRate); 
+		tools.slider.setParams($("hid-mouse-scroll-slider"), 1, 100, 1, tools.storage.get("hid.mouse.scroll_rate", 5), __updateScrollRate); 
 	};
 
 	/************************************************************************/
@@ -115,7 +115,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	};
 
 	var __updateScrollRate = function(value) {
-		$("hid-mouse-scroll_rate-value").innerHTML = value + " lines";
+		$("hid-mouse-scroll-value").innerHTML = value + " lines";
 		tools.storage.set("hid.mouse.scroll_rate", value);
 	};
 
