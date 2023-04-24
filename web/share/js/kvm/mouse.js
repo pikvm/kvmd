@@ -118,7 +118,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __updateScrollRate = function(value) {
 		$("hid-mouse-scroll-value").innerHTML = value + " #";
 		tools.storage.set("hid.mouse.scroll_rate", value);
-		__relative_scroll_rate = value
+		__relative_scroll_rate = value;
 	};
 
 	var __updateRelativeSens = function(value) {
@@ -259,8 +259,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		event.preventDefault();
 
 		//set default rate of -5, but allow localStorage hid.mouse.scroll_rate value to be used.
-		var rate=-5;
-		rate=-__relative_scroll_rate;
+		var rate=-__relative_scroll_rate;
 		if (!__absolute && !__isRelativeCaptured()) {
 			return;
 		}
