@@ -237,4 +237,3 @@ async def test_case_insensitive_strategy_deep_merge() -> None:
     src: dict = {"Merge Strategy": "DEEPMERGE", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
     merger.yaml_merge(dest, src)
     assert dest == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
-

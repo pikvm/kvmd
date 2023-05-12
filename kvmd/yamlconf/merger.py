@@ -88,7 +88,7 @@ class MergeStrategy(Enum):
                 if matching_dict is None:
                     dest.append(item)  # No items to merge so just append
                     continue
-                self.merge(item, matching_dict, file)  
+                self.merge(item, matching_dict, file)
             elif isinstance(item, list):  # list inside list
                 new_list = []
                 self.deep_merge_list_handling(item, new_list, file)
