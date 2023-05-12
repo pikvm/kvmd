@@ -30,8 +30,8 @@ import yaml.nodes
 import yaml.resolver
 import yaml.constructor
 
+from .merger import yaml_merge
 from .. import tools
-from ..yamlconf.merger import yaml_merge
 
 
 # =====
@@ -59,10 +59,10 @@ class _YamlLoader(yaml.SafeLoader):
                 if isinstance(child, (int, float, str))
             ]
         else:  # Trying scalar for the fallback
-            incs = [str(self.construct_scalar(node))]  # type: ignore
-        return self.__inner_include(list(filter(None, incs)))
+            incs = [str(self.construct_scalar(node))]
+        return self.__convert_supported_types_to_yaml(list(filter(None, incs)))
 
-    def __inner_include(self, incs: list[str]) -> Any:
+    def __convert_supported_types_to_yaml(self, incs: list[str]) -> Any:
         tree: dict = {}
         for inc in filter(None, incs):
             assert inc, inc
@@ -71,16 +71,15 @@ class _YamlLoader(yaml.SafeLoader):
                 for child in sorted(os.listdir(inc_path)):
                     child_path = os.path.join(inc_path, child)
                     if os.path.isfile(child_path) or os.path.islink(child_path):
-                        yaml_merge(tree, (load_yaml_file(child_path) or {}))
+                        yaml_merge(tree, (load_yaml_file(child_path) or {}), child_path)
             else:  # Try file
-                yaml_merge(tree, (load_yaml_file(inc_path) or {}))
+                yaml_merge(tree, (load_yaml_file(inc_path) or {}), inc)
         return tree
 
 
 _YamlLoader.add_constructor("!include", _YamlLoader.include)
 
 
-# =====
 def _disable_some_bools() -> None:
     # https://stackoverflow.com/questions/36463531
     resolvers = yaml.resolver.Resolver.yaml_implicit_resolvers
