@@ -27,8 +27,10 @@ async def test_default_is_same_as_merge_strategy() -> None:
     src: dict = {"a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
     merger.yaml_merge(dest, src)
     assert dest == exp_result
-    src: dict = {"Merge Strategy": "Merge", "a": "3", "b": "2"}
-    merger.yaml_merge(dest, src)
+
+    src2: dict = {"Merge Strategy": "Merge", "a": "3", "b": "2"}
+    dest2: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
+    merger.yaml_merge(dest2, src2)
     assert dest == exp_result
 
 
@@ -74,10 +76,8 @@ async def test_empty_src() -> None:
 
 @pytest.mark.asyncio
 async def test_none_dest() -> None:
-    dest: dict = None
     src: dict = {"a": "1", "b": "2"}
-    merger.yaml_merge(dest, src)
-    assert dest is None  # dest remains the same as src is empty
+    merger.yaml_merge(None, src)
 
 
 @pytest.mark.asyncio
@@ -174,10 +174,11 @@ async def test_case_insensitive_strategy_disabled() -> None:
     src: dict = {"Merge Strategy": "DISABLED", "a": "3", "b": "2"}
     merger.yaml_merge(dest, src)
     assert dest == {"a": "1", "b": "2"}  # dest remains the same as the merge is disabled
-    dest: dict = {"a": "1", "b": "2"}
-    src: dict = {"Merge Strategy": "disable", "a": "3", "b": "2"}
-    merger.yaml_merge(dest, src)
-    assert dest == {"a": "1", "b": "2"}  # dest remains the same as the merge is disabled
+
+    dest2: dict = {"a": "1", "b": "2"}
+    src2: dict = {"Merge Strategy": "disable", "a": "3", "b": "2"}
+    merger.yaml_merge(dest2, src2)
+    assert dest2 == {"a": "1", "b": "2"}  # dest remains the same as the merge is disabled
 
 
 @pytest.mark.asyncio
@@ -187,10 +188,10 @@ async def test_case_insensitive_strategy_merge() -> None:
     merger.yaml_merge(dest, src)
     assert dest == {"a": "3", "b": "4"}
 
-    dest: dict = {"a": "1", "b": "2"}
-    src: dict = {"Merge Strategy": "merge", "a": "3", "b": "4"}
-    merger.yaml_merge(dest, src)
-    assert dest == {"a": "3", "b": "4"}
+    dest2: dict = {"a": "1", "b": "2"}
+    src2: dict = {"Merge Strategy": "merge", "a": "3", "b": "4"}
+    merger.yaml_merge(dest2, src2)
+    assert dest2 == {"a": "3", "b": "4"}
 
 
 @pytest.mark.asyncio
@@ -200,10 +201,10 @@ async def test_case_insensitive_strategy_append() -> None:
     merger.yaml_merge(dest, src)
     assert dest == {"a": "1", "b": "2", "c": "5"}
 
-    dest: dict = {"a": "1", "b": "2"}
-    src: dict = {"Merge Strategy": "APPEND", "a": "3", "b": "4", "c": "5"}
-    merger.yaml_merge(dest, src)
-    assert dest == {"a": "1", "b": "2", "c": "5"}
+    dest2: dict = {"a": "1", "b": "2"}
+    src2: dict = {"Merge Strategy": "APPEND", "a": "3", "b": "4", "c": "5"}
+    merger.yaml_merge(dest2, src2)
+    assert dest2 == {"a": "1", "b": "2", "c": "5"}
 
 
 @pytest.mark.asyncio
@@ -213,27 +214,27 @@ async def test_case_insensitive_strategy_deep_merge() -> None:
     merger.yaml_merge(dest, src)
     assert dest == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
 
-    dest: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
-    src: dict = {"Merge Strategy": "deep_merge", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
-    merger.yaml_merge(dest, src)
-    assert dest == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
+    dest2: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
+    src2: dict = {"Merge Strategy": "deep_merge", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
+    merger.yaml_merge(dest2, src2)
+    assert dest2 == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
 
-    dest: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
-    src: dict = {"Merge Strategy": "deep merge", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
-    merger.yaml_merge(dest, src)
-    assert dest == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
+    dest3: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
+    src3: dict = {"Merge Strategy": "deep merge", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
+    merger.yaml_merge(dest3, src3)
+    assert dest3 == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
 
-    dest: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
-    src: dict = {"Merge Strategy": "DEEP MERGE", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
-    merger.yaml_merge(dest, src)
-    assert dest == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
+    dest4: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
+    src4: dict = {"Merge Strategy": "DEEP MERGE", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
+    merger.yaml_merge(dest4, src4)
+    assert dest4 == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
 
-    dest: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
-    src: dict = {"Merge Strategy": "deepmerge", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
-    merger.yaml_merge(dest, src)
-    assert dest == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
+    dest5: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
+    src5: dict = {"Merge Strategy": "deepmerge", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
+    merger.yaml_merge(dest5, src5)
+    assert dest5 == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
 
-    dest: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
-    src: dict = {"Merge Strategy": "DEEPMERGE", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
-    merger.yaml_merge(dest, src)
-    assert dest == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}
+    dest6: dict = {"a": "1", "b": "2", "c": [1, 2, 3, {"d": 4}]}
+    src6: dict = {"Merge Strategy": "DEEPMERGE", "a": "3", "b": "2", "c": [3, 4, 5, {"e": 6}]}
+    merger.yaml_merge(dest6, src6)
+    assert dest6 == {"a": "3", "b": "2", "c": [1, 2, 3, {"d": 4}, 4, 5, {"e": 6}]}

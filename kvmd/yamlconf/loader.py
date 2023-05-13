@@ -58,8 +58,12 @@ class _YamlLoader(yaml.SafeLoader):
                 for child in self.construct_sequence(node)
                 if isinstance(child, (int, float, str))
             ]
-        else:  # Trying scalar for the fallback
+        elif isinstance(node, yaml.nodes.ScalarNode):
             incs = [str(self.construct_scalar(node))]
+        elif isinstance(node, yaml.nodes.MappingNode):  # Handle MappingNode
+            incs = [str(self.construct_mapping(node))]
+        else:
+            raise ValueError(f"Node type {type(node).__name__} is not supported.")
         return self.__convert_supported_types_to_yaml(list(filter(None, incs)))
 
     def __convert_supported_types_to_yaml(self, incs: list[str]) -> Any:
