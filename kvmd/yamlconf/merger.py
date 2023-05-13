@@ -21,7 +21,7 @@
 
 from enum import Enum
 from typing import Union
-
+from typing import Any
 
 STRATEGY_KEY = "Merge Strategy"
 
@@ -38,21 +38,21 @@ class MergeStrategy(Enum):
     """ Disables the configuration """
 
     @staticmethod
-    def strategy_from_name(strategy_name: str) -> 'MergeStrategy':
+    def strategy_from_name(strategy_name: str) -> "MergeStrategy":
         for strategy in MergeStrategy:
             if strategy_name.lower() in strategy.value:
                 return strategy
         raise ValueError(f"Invalid merge strategy: {strategy_name}")
 
     @staticmethod
-    def get_strategy(src: dict, current_strategy: 'MergeStrategy') -> 'MergeStrategy':
+    def get_strategy(src: dict, current_strategy: "MergeStrategy") -> "MergeStrategy":
         """Returns the merge strategy defined in the source dictionary or the current strategy."""
         if isinstance(src, dict):
             strategy_name = src.pop(STRATEGY_KEY, None)
             return MergeStrategy.strategy_from_name(strategy_name) if strategy_name else current_strategy
         return current_strategy
 
-    def merge(self, src: Union[dict, list], dest: Union[dict, list], file: str) -> None:
+    def merge(self, src: dict, dest: dict, file: str) -> None:
         """ Merges the source dictionary or list into the destination dictionary or list. """
         for (key, value) in src.items():
             match self:
@@ -63,10 +63,10 @@ class MergeStrategy(Enum):
                 case MergeStrategy.DEEP_MERGE:
                     match value:
                         case dict():
-                            dest[key] = dest.get(key, {})
+                            dest[key] = __get_structure(dest, key, {})
                             self.merge(value, dest[key], file)
                         case list():
-                            dest[key] = dest.get(key, [])
+                            dest[key] = __get_structure(dest, key, [])
                             self.deep_merge_list_handling(value, dest[key], file)
                         case _:
                             dest[key] = value
@@ -90,13 +90,13 @@ class MergeStrategy(Enum):
                     continue
                 self.merge(item, matching_dict, file)
             elif isinstance(item, list):  # list inside list
-                new_list = []
+                new_list: list = []
                 self.deep_merge_list_handling(item, new_list, file)
                 dest.append(new_list)
             elif item not in dest:
                 dest.append(item)
 
-    def merge_merge_strategy(self, key, value, src, dest, file):
+    def merge_merge_strategy(self, key: str, value: Any, src: dict, dest: dict, file: str) -> None:
         if key in dest:
             if isinstance(dest[key], dict) and isinstance(value, dict):
                 self.merge(value, dest[key], file)
@@ -109,14 +109,27 @@ class MergeStrategy(Enum):
             if item not in dest:  # Only add new values to the list
                 dest.append(item)
 
-    def _append_dict_handler(self, dest, key, value, file):
+    def _append_dict_handler(self, dest: dict, key: str, value: Any, file: str) -> None:
         self._append_value_handler(dest, key, value)
         self.merge(value, dest.get(key, {}), file)
 
-    def _append_value_handler(self, dest, key, value):
+    def _append_value_handler(self, dest: dict, key: str, value: Any) -> None:
         if key not in dest:
             dest[key] = value
 # =====
+
+
+def __get_structure(structure: Union[dict, list], key: Union[int, str], default_value: Any) -> Any:
+    """Handles getting a value from a dictionary or list in a unified way  """
+    if isinstance(structure, dict):
+        return structure.get(key, default_value)
+    elif isinstance(structure, list):
+        if isinstance(key, int):
+            return structure[key] if key < len(structure) else default_value
+        else:
+            raise ValueError("List indices must be integers.")
+    else:
+        raise ValueError("Input must be a list or a dictionary.")
 
 
 def yaml_merge(dest: dict, src: dict, source: str="", strategy: MergeStrategy = MergeStrategy.MERGE) -> None:
