@@ -63,10 +63,10 @@ class MergeStrategy(Enum):
                 case MergeStrategy.DEEP_MERGE:
                     match value:
                         case dict():
-                            dest[key] = src.get(key, {})
+                            dest[key] = dest.get(key, {})
                             self.merge(value, dest[key], file)
                         case list():
-                            dest[key] = src.get(key, [])
+                            dest[key] = dest.get(key, [])
                             self.deep_merge_list_handling(value, dest[key], file)
                         case _:
                             dest[key] = value
@@ -75,7 +75,7 @@ class MergeStrategy(Enum):
                         case dict():
                             self._append_dict_handler(dest, key, value, file)
                         case list():
-                            self.deep_merge_list_handling(value, dest[key], file)
+                            self.append_list_handler(value, dest[key])
                         case _:
                             self._append_value_handler(dest, key, value)
 
@@ -117,19 +117,6 @@ class MergeStrategy(Enum):
         if key not in dest:
             dest[key] = value
 # =====
-
-
-def _get_structure(structure: Union[dict, list], key: Union[int, str], default_value: Any) -> Any:
-    """Handles getting a value from a dictionary or list in a unified way  """
-    if isinstance(structure, dict):
-        return structure.get(key, default_value)
-    elif isinstance(structure, list):
-        if isinstance(key, int):
-            return structure[key] if key < len(structure) else default_value
-        else:
-            raise ValueError("List indices must be integers.")
-    else:
-        raise ValueError("Input must be a list or a dictionary.")
 
 
 def yaml_merge(dest: dict, src: dict, source: str="", strategy: MergeStrategy = MergeStrategy.MERGE) -> None:

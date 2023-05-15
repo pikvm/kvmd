@@ -77,13 +77,13 @@ async def test_empty_src() -> None:
 @pytest.mark.asyncio
 async def test_none_dest() -> None:
     src: dict = {"a": "1", "b": "2"}
-    merger.yaml_merge(None, src)
+    merger.yaml_merge(None, src)  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio
 async def test_none_src() -> None:
     dest: dict = {"a": "1", "b": "2"}
-    src: dict = None
+    src: dict = None  # type: ignore[assignment]
     merger.yaml_merge(dest, src)
     assert dest == {"a": "1", "b": "2"}  # dest remains the same as src is empty
 
