@@ -20,7 +20,6 @@
 # ========================================================================== #
 
 from enum import Enum
-from typing import Union
 from typing import Any
 
 STRATEGY_KEY = "Merge Strategy"
