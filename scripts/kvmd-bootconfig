@@ -51,10 +51,7 @@ if [ -n "$FIRSTBOOT$FIRST_BOOT" ]; then
     ### stop regular kvmd-oled service and show first time setup status in oled
     systemctl stop kvmd-oled
     /usr/bin/kvmd-oled --interval=0 --text="First time setup\nDo NOT interrupt\nPlease Wait...\n"
-    
-    ### force reboot after first boot
-    touch /boot/pikvm-reboot.txt
-	
+    	
 	( \
 		(umount /etc/machine-id || true) \
 		&& echo -n > /etc/machine-id \
@@ -92,6 +89,7 @@ if [ -n "$FIRSTBOOT$FIRST_BOOT" ]; then
 	# fc-cache is required for installed X server
 	# shellcheck disable=SC2015
 	which fc-cache && fc-cache || true
+
 fi
 
 
@@ -203,6 +201,9 @@ fi
 
 
 # ========== Finish ==========
+
+# since the critical tasks have completed, start kvmd-oled service as an indicator that first boot tasks are complete
+systemctl restart kvmd-oled
 
 rm -f /boot/pikvm.txt
 
