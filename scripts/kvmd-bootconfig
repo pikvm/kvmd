@@ -89,7 +89,6 @@ if [ -n "$FIRSTBOOT$FIRST_BOOT" ]; then
 	# fc-cache is required for installed X server
 	# shellcheck disable=SC2015
 	which fc-cache && fc-cache || true
-
 fi
 
 
@@ -201,10 +200,6 @@ fi
 
 
 # ========== Finish ==========
-
-# since the critical tasks have completed, start kvmd-oled service as an indicator that first boot tasks are complete
-systemctl restart kvmd-oled
-
 rm -f /boot/pikvm.txt
 
 if [ -f /boot/pikvm-reboot.txt ]; then
@@ -216,4 +211,6 @@ if [ -f /boot/pikvm-reboot.txt ]; then
 	sleep 3
 else
 	ro
+    # critical tasks have completed so start kvmd-oled service as an indicator that first boot tasks are complete
+    systemctl restart kvmd-oled
 fi
