@@ -89,10 +89,6 @@ if [ -n "$FIRSTBOOT$FIRST_BOOT" ]; then
 		unset disk part npart label
 	fi
 
-    ### create NFS_Primary directory for use with NFS MSD after reboot ###
-    mount -o remount,rw /var/lib/kvmd/msd
-    mkdir -p /var/lib/kvmd/msd/NFS_Primary
-
 	# fc-cache is required for installed X server
 	# shellcheck disable=SC2015
 	which fc-cache && fc-cache || true
