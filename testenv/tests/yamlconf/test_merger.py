@@ -20,7 +20,7 @@ def test_nested_override() -> None:
 def test_dest_none() -> None:
     base = None
     incoming = {"key1": "value1"}
-    with pytest.raises(ValueError, match='dest cannot be None'):
+    with pytest.raises(ValueError, match='destination cannot be None'):
         merger.yaml_merge(base, incoming)
 
 

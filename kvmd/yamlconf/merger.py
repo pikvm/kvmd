@@ -38,7 +38,7 @@ def yaml_merge(dest: dict, src: dict, source_name: Optional[str]=None) -> None:
     # Checking if destination is None
     if dest is None:
         # We can't merge into a None
-        raise ValueError(f'Could not merge {source_name} into None. The destionation cannot be None')
+        raise ValueError(f'Could not merge {source_name} into None. The destination cannot be None')
 
     # Checking if source is None or empty
     if src is None:
