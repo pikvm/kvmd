@@ -1,8 +1,30 @@
+# ========================================================================== #
+#                                                                            #
+#    KVMD - The main PiKVM daemon.                                           #
+#                                                                            #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+# ========================================================================== #
+
 
 import pytest
 from kvmd.yamlconf import merger
 
 
+# =====
 def test_simple_override() -> None:
     base = {"key1": "value1", "key2": "value2"}
     incoming = {"key1": "new_value1"}
@@ -20,19 +42,19 @@ def test_nested_override() -> None:
 def test_dest_none() -> None:
     base = None
     incoming = {"key1": "value1"}
-    with pytest.raises(ValueError, match='destination cannot be None'):
-        merger.yaml_merge(base, incoming)
+    with pytest.raises(ValueError, match="destination cannot be None"):
+        merger.yaml_merge(base, incoming)  # type: ignore[arg-type]
 
 
 def test_src_none_or_empty() -> None:
     base = {"key1": "value1"}
     incoming = None
-    merger.yaml_merge(base, incoming)
+    merger.yaml_merge(base, incoming)  # type: ignore[arg-type]
     assert base == {"key1": "value1"}
 
     base = {"key1": "value1"}
-    incoming = {}
-    merger.yaml_merge(base, incoming)
+    incoming2: dict = {}
+    merger.yaml_merge(base, incoming2)
     assert base == {"key1": "value1"}
 
 
@@ -46,15 +68,15 @@ def test_merged_new_keys() -> None:
 def test_dest_not_dict() -> None:
     base = "I'm not a dict"
     incoming = {"key1": "value1"}
-    with pytest.raises(TypeError, match='object does not support item assignment'):
-        merger.yaml_merge(base, incoming)
+    with pytest.raises(TypeError, match="object does not support item assignment"):
+        merger.yaml_merge(base, incoming)  # type: ignore[arg-type]
 
 
 def test_src_not_dict() -> None:
     base = {"key1": "value1"}
     incoming = "I'm not a dict"
-    with pytest.raises(TypeError, match='string indices must be integers, not \'str\''):
-        merger.yaml_merge(base, incoming)
+    with pytest.raises(TypeError, match="string indices must be integers, not 'str'"):
+        merger.yaml_merge(base, incoming)  # type: ignore[arg-type]
 
 
 def test_nested_lists_overwrite() -> None:
@@ -135,7 +157,7 @@ def test_multiple_value_types() -> None:
 
 
 def test_non_string_keys() -> None:
-    base = {1: "value1", 2: "value2"}
-    incoming = {1: "new_value1", 3: "value3"}
+    base: dict = {1: "value1", 2: "value2"}
+    incoming: dict = {1: "new_value1", 3: "value3"}
     merger.yaml_merge(base, incoming)
     assert base == {1: "new_value1", 2: "value2", 3: "value3"}
