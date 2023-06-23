@@ -171,7 +171,7 @@ def make_json_response(
     )
     if set_cookies:
         for (key, value) in set_cookies.items():
-            response.set_cookie(key, value)
+            response.set_cookie(key, value, secure=True, httponly=True, samesite='Strict')
     return response
 
 
