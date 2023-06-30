@@ -1,10 +1,13 @@
 # KVMD Plugin for Intellinet 19" Intelligent 8-Port PDU Model 163682
-# Communication based on API created by CodingBot under MIT Licence
+# Communication based on API created by 01programs under MIT Licence:
+# https://github.com/01programs/Intellinet_163682_IP_smart_PDU_API
+#
 # Plugin Components based on KVMD ANELPWR-Plugin
+
 
 ### WARNING - WARNING - WARNING - WARNING - WARNING - WARNING - WARNING
 #
-#       from CodingRobot
+#       from 01programs
 #       I STRONGLY DISCOURAGE YOU FROM USING THIS PDU IN PRODUCTION.
 #       IT'S SECURITY IS VIRTUALLY NON EXISTENT AND I FOUND MULTIPLE
 #       EXPLOITABLE VULNERABILITIES JUST WHILE WRITING THIS API WRAPPER
