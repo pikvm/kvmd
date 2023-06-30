@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -45,15 +45,6 @@ def efmt(err: Exception) -> str:
 
 
 # =====
-def merge(dest: dict, src: dict) -> None:
-    for key in src:
-        if key in dest:
-            if isinstance(dest[key], dict) and isinstance(src[key], dict):
-                merge(dest[key], src[key])
-                continue
-        dest[key] = src[key]
-
-
 def rget(dct: dict, *keys: Hashable) -> dict:
     result = functools.reduce((lambda nxt, key: nxt.get(key, {})), keys, dct)
     if not isinstance(result, dict):

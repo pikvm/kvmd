@@ -58,7 +58,9 @@ RUN pacman --noconfirm --ask=4 -Syy \
 		python-xlib \
 		libxkbcommon \
 		python-hidapi \
+		python-ldap \
 		python-zstandard \
+		libgpiod \
 		freetype2 \
 		nginx-mainline \
 		tesseract \
@@ -73,7 +75,7 @@ RUN pacman --noconfirm --ask=4 -Syy \
 	&& rm -rf /var/cache/pacman/pkg/*
 
 COPY testenv/requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+RUN pip install --break-system-packages -r requirements.txt
 
 # https://stackoverflow.com/questions/57534295
 WORKDIR /root
@@ -82,18 +84,6 @@ RUN npm install htmlhint -g \
 	&& npm install pug-cli -g \
 	&& npm install @babel/eslint-parser -g
 WORKDIR /
-
-ARG LIBGPIOD_VERSION
-ENV LIBGPIOD_PKG libgpiod-$LIBGPIOD_VERSION
-RUN curl \
-		-o $LIBGPIOD_PKG.tar.gz \
-		https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/snapshot/$LIBGPIOD_PKG.tar.gz \
-	&& tar -xzvf $LIBGPIOD_PKG.tar.gz \
-	&& cd $LIBGPIOD_PKG \
-	&& ./autogen.sh --prefix=/usr --enable-tools=yes --enable-bindings-python \
-	&& make PREFIX=/usr install \
-	&& cd - \
-	&& rm -rf $LIBGPIOD_PKG{,.tar.gz}
 
 ARG USTREAMER_MIN_VERSION
 ENV USTREAMER_MIN_VERSION $USTREAMER_MIN_VERSION
@@ -106,7 +96,7 @@ RUN git clone https://github.com/pikvm/ustreamer \
 
 RUN mkdir -p \
 		/etc/kvmd/{nginx,vnc} \
-		/var/lib/kvmd/msd/{images,meta} \
+		/var/lib/kvmd/msd \
 		/var/lib/kvmd/pst/data \
 		/opt/vc/bin
 

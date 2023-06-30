@@ -4,7 +4,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -293,6 +293,22 @@
                           <label for="hid-mouse-reverse-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                         </div>
                       </td>
+                </tr>
+                <tr>
+                      <td>Cumulative scrolling:</td>
+                      <td align="right">
+                        <div class="switch-box">
+                          <input type="checkbox" id="hid-mouse-cumulative-scrolling-switch">
+                          <label for="hid-mouse-cumulative-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                        </div>
+                      </td>
+                </tr>
+                <tr>
+                  <td>Scroll rate:</td>
+                  <td class="value-slider">
+                    <input class="slider" type="range" id="hid-mouse-scroll-slider">
+                  </td>
+                  <td class="value-number" id="hid-mouse-scroll-value"></td>
                 </tr>
               </table>
             </div>
@@ -621,7 +637,7 @@
           <div class="text"><b>Paste text as keypress sequence<br></b><sub>Please note that PiKVM cannot switch the keyboard layout</sub></div>
           <hr>
           <div class="text" style="margin-right: 20px">
-            <textarea id="hid-pak-text" placeholder="Enter your text here"></textarea>
+            <textarea id="hid-pak-text" data-focus placeholder="Enter your text here"></textarea>
           </div>
           <table class="kv">
             <tr>
@@ -1906,7 +1922,7 @@
                   <td class="title" colspan="2">The Open Source IP-KVM</td>
                 </tr>
                 <tr>
-                  <td class="copyright" colspan="2">Copyright &copy; 2018-2022 <a target="_blank" href="mailto:mdevaev@gmail.com">Maxim Devaev</a></td>
+                  <td class="copyright" colspan="2">Copyright &copy; 2018-2023 <a target="_blank" href="mailto:mdevaev@gmail.com">Maxim Devaev</a></td>
                 </tr>
               </table>
             </td>
@@ -1950,6 +1966,7 @@
                     <li>Adam Goodbar</li>
                     <li>Adam S</li>
                     <li>Adam Stuart</li>
+                    <li>AdamBomb</li>
                     <li>adipisicing</li>
                     <li>Adrian Basham</li>
                     <li>Ahmed Syed</li>
@@ -2271,6 +2288,7 @@
                     <li>Ľubor Slušný</li>
                     <li>Luca Di Diomede</li>
                     <li>Lucio De Carli</li>
+                    <li>Luiz Bizzio</li>
                     <li>Lukas Bischof</li>
                     <li>Lukas Kammerer</li>
                     <li>Lukas Söder</li>
@@ -2296,6 +2314,7 @@
                     <li>Marshall Bjerke</li>
                     <li>Marten Hermans</li>
                     <li>Martin Gasser</li>
+                    <li>Martin Raine</li>
                     <li>Martin Suelmann</li>
                     <li>Martin Wilhelmi</li>
                     <li>Marvin Honderboom</li>
@@ -2360,6 +2379,7 @@
                     <li>Paul Bishop</li>
                     <li>Paul De La Rosa</li>
                     <li>Paul Pietkiewicz</li>
+                    <li>Paul Tan</li>
                     <li>Pawel Trofimiuk</li>
                     <li>Peder Madsen</li>
                     <li>Peter</li>
@@ -2386,6 +2406,7 @@
                     <li>Raphael Schitz</li>
                     <li>Ref Chowdhury</li>
                     <li>René Rathenau</li>
+                    <li>ReysDad</li>
                     <li>Ricardo Marques</li>
                     <li>Richard</li>
                     <li>Richard Bernarts</li>

@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -189,7 +189,7 @@ class MsdApi:
                     last_report_ts = 0
                     async for chunk in remote.content.iter_chunked(chunk_size):
                         written = await writer.write_chunk(chunk)
-                        now = int(time.time())
+                        now = int(time.monotonic())
                         if last_report_ts + 1 < now:
                             await stream_write_info()
                             last_report_ts = now

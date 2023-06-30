@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -53,6 +53,7 @@ from ..yamlconf import Option
 from ..yamlconf import build_raw_from_options
 from ..yamlconf.dumper import make_config_dump
 from ..yamlconf.loader import load_yaml_file
+from ..yamlconf.merger import yaml_merge
 
 from ..validators.basic import valid_stripped_string
 from ..validators.basic import valid_stripped_string_not_empty
@@ -82,6 +83,7 @@ from ..validators.net import valid_mac
 from ..validators.net import valid_ssl_ciphers
 
 from ..validators.hid import valid_hid_key
+from ..validators.hid import valid_hid_mouse_output
 from ..validators.hid import valid_hid_mouse_move
 
 from ..validators.kvm import valid_stream_quality
@@ -176,8 +178,8 @@ def _init_config(config_path: str, override_options: list[str], **load_flags: bo
 
     scheme = _get_config_scheme()
     try:
-        tools.merge(raw_config, (raw_config.pop("override", {}) or {}))
-        tools.merge(raw_config, build_raw_from_options(override_options))
+        yaml_merge(raw_config, (raw_config.pop("override", {}) or {}))
+        yaml_merge(raw_config, build_raw_from_options(override_options), "raw CLI options")
         _patch_raw(raw_config)
         config = make_config(raw_config, scheme)
 
@@ -302,6 +304,9 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
             mode: str = params.get("mode", "")
             with manual_validated(mode, *path, channel, "mode"):
                 mode = valid_ugpio_mode(mode, drivers[driver].get_modes())
+
+            if params.get("pulse") == False:  # noqa: E712  # pylint: disable=singleton-comparison
+                params["pulse"] = {"delay": 0}
 
             scheme["kvmd"]["gpio"]["scheme"][channel] = {
                 "driver":   Option("__gpio__", type=functools.partial(valid_ugpio_driver, variants=set(drivers))),
@@ -659,8 +664,9 @@ def _get_config_scheme() -> dict:
         },
 
         "vnc": {
-            "desired_fps": Option(30, type=valid_stream_fps),
-            "keymap":      Option("/usr/share/kvmd/keymaps/en-us", type=valid_abs_file),
+            "desired_fps":  Option(30, type=valid_stream_fps),
+            "mouse_output": Option("usb", type=valid_hid_mouse_output),
+            "keymap":       Option("/usr/share/kvmd/keymaps/en-us", type=valid_abs_file),
 
             "server": {
                 "host":        Option("::", type=valid_ip_or_host),

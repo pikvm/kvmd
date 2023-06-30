@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This source file is partially based on python-watchdog module.          #
 #                                                                            #
@@ -215,7 +215,10 @@ class Inotify:
     async def get_event(self, timeout: float) -> (InotifyEvent | None):
         assert timeout > 0
         try:
-            return (await asyncio.wait_for(self.__events_queue.get(), timeout=timeout))
+            return (await asyncio.wait_for(
+                asyncio.ensure_future(self.__events_queue.get()),
+                timeout=timeout,
+            ))
         except asyncio.TimeoutError:
             return None
 

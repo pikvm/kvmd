@@ -22,6 +22,7 @@
 
 import asyncio
 import contextlib
+import struct
 import types
 
 from typing import Callable
@@ -45,6 +46,18 @@ class _BaseApiPart:
         self._ensure_http_session = ensure_http_session
         self._make_url = make_url
 
+    async def _set_params(self, handle: str, **params: (int | str | None)) -> None:
+        session = self._ensure_http_session()
+        async with session.post(
+            url=self._make_url(handle),
+            params={
+                key: value
+                for (key, value) in params.items()
+                if value is not None
+            },
+        ) as response:
+            htclient.raise_not_200(response)
+
 
 class _AuthApiPart(_BaseApiPart):
     async def check(self) -> bool:
@@ -67,19 +80,11 @@ class _StreamerApiPart(_BaseApiPart):
             return (await response.json())["result"]
 
     async def set_params(self, quality: (int | None)=None, desired_fps: (int | None)=None) -> None:
-        session = self._ensure_http_session()
-        async with session.post(
-            url=self._make_url("streamer/set_params"),
-            params={
-                key: value
-                for (key, value) in [
-                    ("quality", quality),
-                    ("desired_fps", desired_fps),
-                ]
-                if value is not None
-            },
-        ) as response:
-            htclient.raise_not_200(response)
+        await self._set_params(
+            "streamer/set_params",
+            quality=quality,
+            desired_fps=desired_fps,
+        )
 
 
 class _HidApiPart(_BaseApiPart):
@@ -98,6 +103,13 @@ class _HidApiPart(_BaseApiPart):
             data=text,
         ) as response:
             htclient.raise_not_200(response)
+
+    async def set_params(self, keyboard_output: (str | None)=None, mouse_output: (str | None)=None) -> None:
+        await self._set_params(
+            "hid/set_params",
+            keyboard_output=keyboard_output,
+            mouse_output=mouse_output,
+        )
 
 
 class _AtxApiPart(_BaseApiPart):
@@ -127,7 +139,7 @@ class KvmdClientWs:
     def __init__(self, ws: aiohttp.ClientWebSocketResponse) -> None:
         self.__ws = ws
 
-        self.__writer_queue: "asyncio.Queue[tuple[str, dict]]" = asyncio.Queue()
+        self.__writer_queue: "asyncio.Queue[tuple[str, dict] | bytes]" = asyncio.Queue()
         self.__communicated = False
 
     async def communicate(self) -> AsyncGenerator[tuple[str, dict], None]:  # pylint: disable=too-many-branches
@@ -157,7 +169,11 @@ class KvmdClientWs:
                     receive_task = None
 
                 if writer_task in done:
-                    await htserver.send_ws_event(self.__ws, *writer_task.result())
+                    payload = writer_task.result()
+                    if isinstance(payload, bytes):
+                        await self.__ws.send_bytes(payload)
+                    else:
+                        await htserver.send_ws_event(self.__ws, *payload)
                     writer_task = None
         finally:
             if receive_task:
@@ -172,16 +188,16 @@ class KvmdClientWs:
                 self.__communicated = False
 
     async def send_key_event(self, key: str, state: bool) -> None:
-        await self.__writer_queue.put(("key", {"key": key, "state": state}))
+        await self.__writer_queue.put(bytes([1, state]) + key.encode("ascii"))
 
     async def send_mouse_button_event(self, button: str, state: bool) -> None:
-        await self.__writer_queue.put(("mouse_button", {"button": button, "state": state}))
+        await self.__writer_queue.put(bytes([2, state]) + button.encode("ascii"))
 
     async def send_mouse_move_event(self, to_x: int, to_y: int) -> None:
-        await self.__writer_queue.put(("mouse_move", {"to": {"x": to_x, "y": to_y}}))
+        await self.__writer_queue.put(struct.pack(">bhh", 3, to_x, to_y))
 
     async def send_mouse_wheel_event(self, delta_x: int, delta_y: int) -> None:
-        await self.__writer_queue.put(("mouse_wheel", {"delta": {"x": delta_x, "y": delta_y}}))
+        await self.__writer_queue.put(struct.pack(">bbbb", 5, 0, delta_x, delta_y))
 
 
 class KvmdClientSession:

@@ -32,18 +32,18 @@ for _variant in "${_variants[@]}"; do
 	pkgname+=(kvmd-platform-$_platform-$_board)
 done
 pkgbase=kvmd
-pkgver=3.212
+pkgver=3.231
 pkgrel=1
 pkgdesc="The main PiKVM daemon"
 url="https://github.com/pikvm/kvmd"
 license=(GPL)
 arch=(any)
 depends=(
-	"python>=3.10"
-	"python<3.11"
+	"python>=3.11"
+	"python<3.12"
 	python-yaml
-	"python-aiohttp>=3.7.4.post0-1.1"
-	"python-aiofiles>=23.1.0-1"
+	python-aiohttp
+	python-aiofiles
 	python-passlib
 	python-pyotp
 	python-qrcode
@@ -60,12 +60,13 @@ depends=(
 	python-pygments
 	python-pyghmi
 	python-pam
-	"python-pillow>=8.3.1-1"
+	python-pillow
 	python-xlib
 	libxkbcommon
 	python-hidapi
 	python-six
 	python-pyrad
+	python-ldap
 	python-zstandard
 	libgpiod
 	freetype2
@@ -73,7 +74,7 @@ depends=(
 	nginx-mainline
 	openssl
 	platformio
-	avrdude-svn
+	avrdude-pikvm
 	make
 	patch
 	sudo
@@ -118,7 +119,10 @@ conflicts=(
 	python-pikvm
 	python-aiohttp-pikvm
 )
-makedepends=(python-setuptools)
+makedepends=(
+	python-setuptools
+	python-pip
+)
 source=("$url/archive/v$pkgver.tar.gz")
 md5sums=(SKIP)
 backup=(
@@ -134,20 +138,11 @@ backup=(
 )
 
 
-build() {
-	cd "$srcdir"
-	rm -rf $pkgname-build
-	cp -r kvmd-$pkgver $pkgname-build
-	cd $pkgname-build
-	python setup.py build
-}
-
-
 package_kvmd() {
 	install=$pkgname.install
 
-	cd "$srcdir/$pkgname-build"
-	python setup.py install --root="$pkgdir"
+	cd "$srcdir/kvmd-$pkgver"
+	pip install --root="$pkgdir" --no-deps .
 
 	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot}
 

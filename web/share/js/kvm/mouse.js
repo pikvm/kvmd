@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -44,7 +44,8 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __relative_deltas = [];
 	var __relative_touch_pos = null;
 	var __relative_sens = 1.0;
-	var __wheel_delta = {"x": 0, "y": 0};
+	var __scroll_rate = 5;
+	var __scroll_delta = {"x": 0, "y": 0};
 
 	var __stream_hovered = false;
 
@@ -61,15 +62,19 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		$("stream-box").onmouseup = (event) => __streamButtonHandler(event, false);
 		$("stream-box").oncontextmenu = (event) => event.preventDefault();
 		$("stream-box").onmousemove = __streamMoveHandler;
-		$("stream-box").onwheel = __streamWheelHandler;
+		$("stream-box").onwheel = __streamScrollHandler;
 		$("stream-box").ontouchstart = (event) => __streamTouchStartHandler(event);
 		$("stream-box").ontouchmove = (event) => __streamTouchMoveHandler(event);
 		$("stream-box").ontouchend = (event) => __streamTouchEndHandler(event);
 
 		tools.storage.bindSimpleSwitch($("hid-mouse-squash-switch"), "hid.mouse.squash", true);
-		tools.storage.bindSimpleSwitch($("hid-mouse-reverse-scrolling-switch"), "hid.mouse.reverse_scrolling", false);
 		tools.slider.setParams($("hid-mouse-sens-slider"), 0.1, 1.9, 0.1, tools.storage.get("hid.mouse.sens", 1.0), __updateRelativeSens);
 		tools.slider.setParams($("hid-mouse-rate-slider"), 10, 100, 10, tools.storage.get("hid.mouse.rate", 100), __updateRate); // set __timer
+
+		tools.storage.bindSimpleSwitch($("hid-mouse-reverse-scrolling-switch"), "hid.mouse.reverse_scrolling", false);
+		let cumulative_scrolling = !(tools.browser.is_firefox && !tools.browser.is_mac);
+		tools.storage.bindSimpleSwitch($("hid-mouse-cumulative-scrolling-switch"), "hid.mouse.cumulative_scrolling", cumulative_scrolling);
+		tools.slider.setParams($("hid-mouse-scroll-slider"), 1, 25, 1, tools.storage.get("hid.mouse.scroll_rate", 5), __updateScrollRate);
 	};
 
 	/************************************************************************/
@@ -111,6 +116,12 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			clearInterval(__timer);
 		}
 		__timer = setInterval(__sendPlannedMove, value);
+	};
+
+	var __updateScrollRate = function(value) {
+		$("hid-mouse-scroll-value").innerHTML = value;
+		tools.storage.set("hid.mouse.scroll_rate", value);
+		__scroll_rate = value;
 	};
 
 	var __updateRelativeSens = function(value) {
@@ -244,7 +255,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		}
 	};
 
-	var __streamWheelHandler = function(event) {
+	var __streamScrollHandler = function(event) {
 		// https://learn.javascript.ru/mousewheel
 		// https://stackoverflow.com/a/24595588
 
@@ -255,30 +266,30 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		}
 
 		let delta = {"x": 0, "y": 0};
-		if (tools.browser.is_firefox && !tools.browser.is_mac) {
-			if (event.deltaX !== 0) {
-				delta.x = event.deltaX / Math.abs(event.deltaX) * (-5);
-			}
-			if (event.deltaY !== 0) {
-				delta.y = event.deltaY / Math.abs(event.deltaY) * (-5);
-			}
-		} else {
+		if ($("hid-mouse-cumulative-scrolling-switch").checked) {
 			let factor = (tools.browser.is_mac ? 5 : 1);
 
-			__wheel_delta.x += event.deltaX * factor; // Horizontal scrolling
-			if (Math.abs(__wheel_delta.x) >= 100) {
-				delta.x = __wheel_delta.x / Math.abs(__wheel_delta.x) * (-5);
-				__wheel_delta.x = 0;
+			__scroll_delta.x += event.deltaX * factor; // Horizontal scrolling
+			if (Math.abs(__scroll_delta.x) >= 100) {
+				delta.x = __scroll_delta.x / Math.abs(__scroll_delta.x) * (-__scroll_rate);
+				__scroll_delta.x = 0;
 			}
 
-			__wheel_delta.y += event.deltaY * factor; // Vertical scrolling
-			if (Math.abs(__wheel_delta.y) >= 100) {
-				delta.y = __wheel_delta.y / Math.abs(__wheel_delta.y) * (-5);
-				__wheel_delta.y = 0;
+			__scroll_delta.y += event.deltaY * factor; // Vertical scrolling
+			if (Math.abs(__scroll_delta.y) >= 100) {
+				delta.y = __scroll_delta.y / Math.abs(__scroll_delta.y) * (-__scroll_rate);
+				__scroll_delta.y = 0;
+			}
+		} else {
+			if (event.deltaX !== 0) {
+				delta.x = event.deltaX / Math.abs(event.deltaX) * (-__scroll_rate);
+			}
+			if (event.deltaY !== 0) {
+				delta.y = event.deltaY / Math.abs(event.deltaY) * (-__scroll_rate);
 			}
 		}
 
-		__sendWheel(delta);
+		__sendScroll(delta);
 	};
 
 	var __sendOrPlanRelativeMove = function(delta) {
@@ -296,7 +307,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		}
 	};
 
-	var __sendWheel = function(delta) {
+	var __sendScroll = function(delta) {
 		if (delta.x || delta.y) {
 			if ($("hid-mouse-reverse-scrolling-switch").checked) {
 				delta.x *= -1;
@@ -336,7 +347,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __sendEvent = function(event_type, event) {
 		event = {"event_type": event_type, "event": event};
 		if (__ws && !$("hid-mute-switch").checked) {
-			__ws.send(JSON.stringify(event));
+			__ws.sendHidEvent(event);
 		}
 		__recordWsEvent(event);
 	};

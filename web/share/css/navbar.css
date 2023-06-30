@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -106,7 +106,9 @@ ul#navbar li a.menu-button-pressed {
 ul#navbar li div.menu {
 	visibility: hidden;
 	outline: none;
-	overflow: hidden;
+	overflow-x: hidden;
+	overflow-y: auto;
+	max-height: calc(100vh - 55px);
 	white-space: nowrap;
 	border: var(--border-navbar-menu-default-2px);
 	border-top: var(--border-navbar-menu-top-thin);
@@ -121,6 +123,21 @@ ul#navbar li div.menu-active {
 	border-top: var(--border-navbar-menu-top-thin) !important;
 }
 
+ul#navbar li div.menu::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+ul#navbar li div.menu::-webkit-scrollbar-thumb {
+	border-radius: 4px;
+	background: var(--cs-scroll-default-bg);
+}
+@-moz-document url-prefix() {
+	ul#navbar li div.menu {
+		scrollbar-width: 8px;
+		scrollbar-color: var(--cs-scroll-default-bg) var(--cs-code-default-bg);
+	}
+}
+
 ul#navbar li div.menu details summary {
 	cursor: pointer;
 	outline: none;
@@ -131,6 +148,7 @@ ul#navbar li div.menu details summary {
 ul#navbar li div.menu details div.spoiler {
 	margin-left: 20px !important;
 	border-left: var(--border-default-thin);
+	border-bottom: var(--border-default-thin);
 }
 ul#navbar li div.menu details summary::marker {
 	color: var(--cs-marker-fg);

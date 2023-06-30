@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -202,7 +202,7 @@ async def wait_infinite() -> None:
         await asyncio.sleep(3600)
 
 
-async def wait_first(*aws: Awaitable) -> tuple[set[asyncio.Task], set[asyncio.Task]]:
+async def wait_first(*aws: (asyncio.Future | asyncio.Task)) -> tuple[set[asyncio.Task], set[asyncio.Task]]:
     return (await asyncio.wait(list(aws), return_when=asyncio.FIRST_COMPLETED))
 
 
@@ -242,7 +242,10 @@ class AioNotifier:
             await self.__queue.get()
         else:
             try:
-                await asyncio.wait_for(self.__queue.get(), timeout=timeout)
+                await asyncio.wait_for(
+                    asyncio.ensure_future(self.__queue.get()),
+                    timeout=timeout,
+                )
             except asyncio.TimeoutError:
                 return  # False
         while not self.__queue.empty():

@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -329,7 +329,10 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
 
             if waiter_task is None:
                 waiter_task = asyncio.create_task(self.__notifier.wait())
-            if waiter_task in (await aiotools.wait_first(asyncio.sleep(self.__state_poll), waiter_task))[0]:
+            if waiter_task in (await aiotools.wait_first(
+                asyncio.ensure_future(asyncio.sleep(self.__state_poll)),
+                waiter_task,
+            ))[0]:
                 waiter_task = None
 
     # =====

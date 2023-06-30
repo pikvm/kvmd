@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -69,7 +69,7 @@ from .logreader import LogReader
 from .ugpio import UserGpio
 from .streamer import Streamer
 from .snapshoter import Snapshoter
-from .tesseract import TesseractOcr
+from .ocr import Ocr
 
 from .api.auth import AuthApi
 from .api.auth import check_request_auth
@@ -130,7 +130,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         info_manager: InfoManager,
         log_reader: (LogReader | None),
         user_gpio: UserGpio,
-        ocr: TesseractOcr,
+        ocr: Ocr,
 
         hid: BaseHid,
         atx: BaseAtx,

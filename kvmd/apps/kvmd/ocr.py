@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2022  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -103,7 +103,7 @@ _LANG_SUFFIX = ".traineddata"
 
 
 # =====
-class TesseractOcr:
+class Ocr:
     def __init__(self, data_dir_path: str, default_langs: list[str]) -> None:
         self.__data_dir_path = data_dir_path
         self.__default_langs = default_langs
