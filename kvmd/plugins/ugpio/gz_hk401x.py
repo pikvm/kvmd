@@ -4,6 +4,7 @@
 #                                                                            #
 #    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                  2021-2021  Sebastian Goscik <sebastian.goscik@live.co.uk> #
+#                  2023-2023  Up <up@gomen-yui.icu>                          #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
