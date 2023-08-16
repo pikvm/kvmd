@@ -36,11 +36,14 @@ class MsdDriveLockedError(MsdOperationError):
 
 # =====
 class Drive:
-    def __init__(self, gadget: str, instance: int, lun: int) -> None:
+    def __init__(self, gadget: str, instance: int, lun: int,
+                 inquiry_string_cdrom: str, inquiry_string_flash: str) -> None:
         func = f"mass_storage.usb{instance}"
         self.__profile_func_path = usb.get_gadget_path(gadget, usb.G_PROFILE, func)
         self.__profile_path = usb.get_gadget_path(gadget, usb.G_PROFILE)
         self.__lun_path = usb.get_gadget_path(gadget, usb.G_FUNCTIONS, func, f"lun.{lun}")
+        self.__inquiry_string_cdrom = inquiry_string_cdrom
+        self.__inquiry_string_flash = inquiry_string_flash
 
     def is_enabled(self) -> bool:
         return os.path.exists(self.__profile_func_path)
@@ -62,6 +65,10 @@ class Drive:
 
     def set_cdrom_flag(self, flag: bool) -> None:
         self.__set_param("cdrom", str(int(flag)))
+        if flag:
+            self.__set_param("inquiry_string", self.__inquiry_string_cdrom)
+        else:
+            self.__set_param("inquiry_string", self.__inquiry_string_flash)
 
     def get_cdrom_flag(self) -> bool:
         return bool(int(self.__get_param("cdrom")))
@@ -71,6 +78,12 @@ class Drive:
 
     def get_rw_flag(self) -> bool:
         return (not int(self.__get_param("ro")))
+    
+    def set_inquiry_string(self, inquiry_string: str) -> None:
+        self.__set_param("inquiry_string", inquiry_string)
+
+    def get_inquiry_string(self) -> bool:
+        return (not int(self.__get_param("inquiry_string")))
 
     # =====
 

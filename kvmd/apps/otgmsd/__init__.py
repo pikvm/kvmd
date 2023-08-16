@@ -92,6 +92,10 @@ def main(argv: (list[str] | None)=None) -> None:
 
     if options.set_cdrom is not None:
         set_param("cdrom", str(int(options.set_cdrom)))
+        if int(options.set_cdrom) == 1:
+            set_param("inquiry_string", config.otg.devices.msd.default.inquiry_string_cdrom)
+        else:
+            set_param("inquiry_string", config.otg.devices.msd.default.inquiry_string_flash)
 
     if options.set_rw is not None:
         set_param("ro", str(int(not options.set_rw)))

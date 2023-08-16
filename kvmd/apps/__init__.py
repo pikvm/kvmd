@@ -552,11 +552,13 @@ def _get_config_scheme() -> dict:
                 "msd": {
                     "start": Option(True, type=valid_bool),
                     "default": {
-                        "stall":     Option(False, type=valid_bool),
-                        "cdrom":     Option(True,  type=valid_bool),
-                        "rw":        Option(False, type=valid_bool),
-                        "removable": Option(True,  type=valid_bool),
-                        "fua":       Option(True,  type=valid_bool),
+                        "stall":                Option(False, type=valid_bool),
+                        "cdrom":                Option(True,  type=valid_bool),
+                        "rw":                   Option(False, type=valid_bool),
+                        "removable":            Option(True,  type=valid_bool),
+                        "fua":                  Option(True,  type=valid_bool),
+                        "inquiry_string_cdrom":       Option("",  type=valid_stripped_string),
+                        "inquiry_string_flash":       Option("",  type=valid_stripped_string),
                     },
                 },
 
