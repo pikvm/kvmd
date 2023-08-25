@@ -10,8 +10,10 @@ target_sources(${target_name} PRIVATE
 	ph_ps2.c
 	ph_ps2_phy.c
 	ph_cmds.c
-	ph_spi.c
-	ph_uart.c
+	ph_com.c
+	ph_com_bridge.c
+	ph_com_spi.c
+	ph_com_uart.c
 	ph_debug.c
 )
 target_link_options(${target_name} PRIVATE -Xlinker --print-memory-usage)

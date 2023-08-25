@@ -286,13 +286,28 @@
                       </td>
                 </tr>
                 <tr>
-                      <td>Reverse scrolling:</td>
-                      <td align="right">
-                        <div class="switch-box">
-                          <input type="checkbox" id="hid-mouse-reverse-scrolling-switch">
-                          <label for="hid-mouse-reverse-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                        </div>
-                      </td>
+                  <td>Reverse scrolling:</td>
+                  <td>
+                    <table>
+                      <tr>
+                            <td>Y:</td>
+                            <td align="right">
+                              <div class="switch-box">
+                                <input type="checkbox" id="hid-mouse-reverse-scrolling-switch">
+                                <label for="hid-mouse-reverse-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                              </div>
+                            </td>
+                        <td>&nbsp;&nbsp;</td>
+                            <td>X:</td>
+                            <td align="right">
+                              <div class="switch-box">
+                                <input type="checkbox" id="hid-mouse-reverse-panning-switch">
+                                <label for="hid-mouse-reverse-panning-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                              </div>
+                            </td>
+                      </tr>
+                    </table>
+                  </td>
                 </tr>
                 <tr>
                       <td>Cumulative scrolling:</td>
@@ -702,7 +717,7 @@
         </div>
       </li>
       <li class="right" id="shortcuts-dropdown"><a class="menu-button" href="#">Shortcuts</a>
-        <div class="menu">
+        <div class="menu" id="shortcuts-menu">
           <div class="text"><b>Quick keyboard shortcuts<br></b><sub>Also see <i>System &rarr; Show keyboard</i></sub></div>
           <hr>
           <div class="buttons">
@@ -730,10 +745,16 @@
             <hr>
             <div class="buttons-row">
               <button class="row50" data-force-hide-menu data-shortcut="ControlLeft AltLeft F1">&bull; Ctrl+Alt+F1</button>
+              <button class="row50" data-force-hide-menu data-shortcut="MetaLeft KeyL">&bull; Win+L</button>
+            </div>
+            <div class="buttons-row">
               <button class="row50" data-force-hide-menu data-shortcut="ControlLeft AltLeft F2">&bull; Ctrl+Alt+F2</button>
+              <button class="row50" data-force-hide-menu data-shortcut="PrintScreen">&bull; Print Screen</button>
             </div>
             <hr>
-            <button data-force-hide-menu data-shortcut="ControlLeft AltLeft Delete">&bull; Ctrl+Alt+Del</button>
+            <div class="buttons-row">
+              <button data-force-hide-menu data-shortcut="ControlLeft AltLeft Delete">&bull; Ctrl+Alt+Del</button>
+            </div>
           </div>
           <hr>
           <div class="text">
@@ -1915,11 +1936,11 @@
       <div id="about">
         <table>
           <tr>
-            <td class="logo"><img class="svg-gray" src="../share/svg/logo.svg" alt="PiKVM" height="40"></td>
+            <td class="logo"><a href="https://pikvm.org" target="_blank"><img class="svg-gray" src="/share/svg/logo.svg" alt="PiKVM" height="40"></a></td>
             <td>
               <table>
                 <tr>
-                  <td class="title" colspan="2">The Open Source IP-KVM</td>
+                  <td class="title" colspan="2">The Open Source KVM over IP</td>
                 </tr>
                 <tr>
                   <td class="copyright" colspan="2">Copyright &copy; 2018-2023 <a target="_blank" href="mailto:mdevaev@gmail.com">Maxim Devaev</a></td>
@@ -2011,6 +2032,7 @@
                     <li>baddog</li>
                     <li>Bao Tin Hoang</li>
                     <li>Bean Co.</li>
+                    <li>Bela Bargel</li>
                     <li>Belf Igor</li>
                     <li>Ben Gordon</li>
                     <li>Ben Scott</li>
@@ -2027,6 +2049,7 @@
                     <li>bitjoe</li>
                     <li>Bits and Bytes Computers LLC</li>
                     <li>Bjoern Petsch</li>
+                    <li>Blindside</li>
                     <li>Blue Frog LLC</li>
                     <li>Bootstrapper - Programmierung erklärt</li>
                     <li>Bosco</li>
@@ -2213,6 +2236,7 @@
                     <li>Jennifer Herting</li>
                     <li>Jennifer Rowlett</li>
                     <li>Jeremy Abel</li>
+                    <li>Jeremy Combs</li>
                     <li>Jeremy Hines</li>
                     <li>Jerremy Holland</li>
                     <li>Jerry Nall</li>
@@ -2303,6 +2327,7 @@
                     <li>Marcos Wolf</li>
                     <li>Marek Marczykowski-Górecki</li>
                     <li>Marius</li>
+                    <li>Mariusz Stępień</li>
                     <li>Mar. Balske</li>
                     <li>Mark Farrell</li>
                     <li>Mark Gilbert</li>
@@ -2474,6 +2499,7 @@
                     <li>Stratagem Solutions Ltd</li>
                     <li>Sven Breckler</li>
                     <li>sudo34</li>
+                    <li>SuperHiTech</li>
                     <li>Tango_Echo_Alpha</li>
                     <li>Tarlak Desaydrone</li>
                     <li>TechBear</li>
@@ -2519,6 +2545,7 @@
                     <li>William Hooper</li>
                     <li>William Perrin</li>
                     <li>William Stearns</li>
+                    <li>Woojin Son</li>
                     <li>xMdb</li>
                     <li>Yanko Kaneti</li>
                     <li>Yaroslav Kulikovskikh</li>
