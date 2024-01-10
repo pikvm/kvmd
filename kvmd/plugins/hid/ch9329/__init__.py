@@ -26,6 +26,7 @@ import time
 
 from typing import Iterable
 from typing import AsyncGenerator
+from typing import Any
 
 from ....logging import get_logger
 
@@ -56,8 +57,10 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         device_path: str,
         speed: int,
         read_timeout: float,
+        jiggler: dict[str, Any],
     ) -> None:
 
+        BaseHid.__init__(self, **jiggler)
         multiprocessing.Process.__init__(self, daemon=True)
 
         self.__device_path = device_path
@@ -85,6 +88,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
             "device":       Option("/dev/kvmd-hid", type=valid_abs_path, unpack_as="device_path"),
             "speed":        Option(9600, type=valid_tty_speed),
             "read_timeout": Option(0.3,  type=valid_float_f01),
+            **cls._get_jiggler_options(),
         }
 
     def sysprep(self) -> None:
@@ -112,6 +116,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                     "active": ("usb" if absolute else "usb_rel"),
                 },
             },
+            **self._get_jiggler_state(),
         }
 
     async def poll_state(self) -> AsyncGenerator[dict, None]:
@@ -139,23 +144,40 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
     def send_key_events(self, keys: Iterable[tuple[str, bool]]) -> None:
         for (key, state) in keys:
             self.__queue_cmd(self.__keyboard.process_key(key, state))
+            self._bump_activity()
 
     def send_mouse_button_event(self, button: str, state: bool) -> None:
         self.__queue_cmd(self.__mouse.process_button(button, state))
+        self._bump_activity()
 
     def send_mouse_move_event(self, to_x: int, to_y: int) -> None:
         self.__queue_cmd(self.__mouse.process_move(to_x, to_y))
+        self._bump_activity()
 
     def send_mouse_wheel_event(self, delta_x: int, delta_y: int) -> None:
         self.__queue_cmd(self.__mouse.process_wheel(delta_x, delta_y))
+        self._bump_activity()
 
     def send_mouse_relative_event(self, delta_x: int, delta_y: int) -> None:
         self.__queue_cmd(self.__mouse.process_relative(delta_x, delta_y))
+        self._bump_activity()
 
-    def set_params(self, keyboard_output: (str | None)=None, mouse_output: (str | None)=None) -> None:
+    def set_params(
+        self,
+        keyboard_output: (str | None)=None,
+        mouse_output: (str | None)=None,
+        jiggler: (bool | None)=None,
+    ) -> None:
+
+        _ = keyboard_output
         if mouse_output is not None:
             get_logger(0).info("HID : mouse output = %s", mouse_output)
-            self.__mouse.set_absolute(mouse_output == "usb")
+            absolute = (mouse_output == "usb")
+            self.__mouse.set_absolute(absolute)
+            self._set_jiggler_absolute(absolute)
+            self.__notifier.notify()
+        if jiggler is not None:
+            self._set_jiggler_active(jiggler)
             self.__notifier.notify()
 
     def set_connected(self, connected: bool) -> None:

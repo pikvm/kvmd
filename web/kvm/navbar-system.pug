@@ -69,11 +69,15 @@ li(id="system-dropdown" class="right")
 					td Mouse #[a(target="_blank" href="https://docs.pikvm.org/mouse") mode]:
 					td #[div(id="hid-outputs-mouse-box" class="radio-box")]
 		details
-			summary Mouse settings
+			summary Keyboard &amp; Mouse (HID) settings
 			div(class="spoiler")
 				table(class="kv")
 					tr
-						td Polling interval:
+						+menu_switch_notable("hid-keyboard-swap-cc-switch", "Swap Left Ctrl and Caps keys", true, false)
+				hr
+				table(class="kv")
+					tr
+						td Mouse polling:
 						td(class="value-slider") #[input(type="range" id="hid-mouse-rate-slider" class="slider")]
 						td(id="hid-mouse-rate-value" class="value-number")
 					tr(id="hid-mouse-sens" class="feature-disabled")
@@ -99,28 +103,15 @@ li(id="system-dropdown" class="right")
 		table(class="kv")
 			tr(id="hid-connect" class="feature-disabled")
 				+menu_switch_notable("hid-connect-switch", "Connect HID to Server", true, true)
+			tr(id="hid-jiggler" class="feature-disabled")
+				+menu_switch_notable("hid-jiggler-switch", "<a href=\"https://docs.pikvm.org/mouse_jiggler\" target=\"_blank\">Mouse jiggler</a>", false, false)
 			tr
 				+menu_switch_notable("hid-mute-switch", "Mute HID input events", true, false)
 			tr(id="v3-usb-breaker" class="feature-disabled")
-				td Connect main USB to Server:
-				td(align="right")
-					div(class="switch-box")
-						-let msg = "Turning off this switch will disconnect the main USB<br>from the server."
-						-msg += " Are you sure you want to continue?"
-						input(disabled type="checkbox" id="gpio-switch-__v3_usb_breaker__" class="gpio-switch"
-							data-channel="__v3_usb_breaker__" data-confirm-off=msg)
-						label(for="gpio-switch-__v3_usb_breaker__")
-							span(class="switch-inner")
-							span(class="switch")
+				+menu_switch_notable_gpio("__v3_usb_breaker__", "Connect main USB to Server",
+					"Turning off this switch will disconnect the main USB<br>from the server.  Are you sure you want to continue?")
 			tr(id="v4-locator" class="feature-disabled")
-				td Enable locator LED:
-				td(align="right")
-					div(class="switch-box")
-						input(disabled type="checkbox" id="gpio-switch-__v4_locator__" class="gpio-switch"
-							data-channel="__v4_locator__")
-						label(for="gpio-switch-__v4_locator__")
-							span(class="switch-inner")
-							span(class="switch")
+				+menu_switch_notable_gpio("__v4_locator__", "Enable locator LED")
 			tr
 				+menu_switch_notable("page-close-ask-switch", "Ask page close confirmation", true, true)
 		hr

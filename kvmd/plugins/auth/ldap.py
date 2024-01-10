@@ -88,10 +88,15 @@ class Plugin(BaseAuthService):
                 base=self.__base,
                 scope=ldap.SCOPE_SUBTREE,
                 filterstr=f"(&(objectClass=user)(userPrincipalName={user})(memberOf={self.__group}))",
-                attrlist=["userPrincipalName", "memberOf"],
+                attrlist=["memberOf"],
                 timeout=self.__timeout,
             ) or []):
-                if dn is not None and isinstance(attrs, dict) and attrs.get("memberOf"):
+                if (
+                    dn is not None
+                    and isinstance(attrs, dict)
+                    and isinstance(attrs["memberOf"], (list, dict))
+                    and self.__group.encode() in attrs["memberOf"]
+                ):
                     return True
         except ldap.INVALID_CREDENTIALS:
             pass

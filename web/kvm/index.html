@@ -259,11 +259,23 @@
             </table>
           </div>
           <details>
-            <summary>Mouse settings</summary>
+            <summary>Keyboard &amp; Mouse (HID) settings</summary>
             <div class="spoiler">
               <table class="kv">
                 <tr>
-                  <td>Polling interval:</td>
+                      <td>Swap Left Ctrl and Caps keys:</td>
+                      <td align="right">
+                        <div class="switch-box">
+                          <input type="checkbox" id="hid-keyboard-swap-cc-switch">
+                          <label for="hid-keyboard-swap-cc-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                        </div>
+                      </td>
+                </tr>
+              </table>
+              <hr>
+              <table class="kv">
+                <tr>
+                  <td>Mouse polling:</td>
                   <td class="value-slider">
                     <input class="slider" type="range" id="hid-mouse-rate-slider">
                   </td>
@@ -338,6 +350,15 @@
                     </div>
                   </td>
             </tr>
+            <tr class="feature-disabled" id="hid-jiggler">
+                  <td><a href="https://docs.pikvm.org/mouse_jiggler" target="_blank">Mouse jiggler</a>:</td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input disabled type="checkbox" id="hid-jiggler-switch">
+                      <label for="hid-jiggler-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+            </tr>
             <tr>
                   <td>Mute HID input events:</td>
                   <td align="right">
@@ -348,22 +369,22 @@
                   </td>
             </tr>
             <tr class="feature-disabled" id="v3-usb-breaker">
-              <td>Connect main USB to Server:</td>
-              <td align="right">
-                <div class="switch-box">
-                  <input class="gpio-switch" disabled type="checkbox" id="gpio-switch-__v3_usb_breaker__" data-channel="__v3_usb_breaker__" data-confirm-off="Turning off this switch will disconnect the main USB&lt;br&gt;from the server. Are you sure you want to continue?">
-                  <label for="gpio-switch-__v3_usb_breaker__"><span class="switch-inner"></span><span class="switch"></span></label>
-                </div>
-              </td>
+                  <td>Connect main USB to Server:</td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input class="gpio-switch" disabled type="checkbox" id="gpio-switch-__v3_usb_breaker__" data-channel="__v3_usb_breaker__" data-confirm-off="Turning off this switch will disconnect the main USB&lt;br&gt;from the server.  Are you sure you want to continue?">
+                      <label for="gpio-switch-__v3_usb_breaker__"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
             </tr>
             <tr class="feature-disabled" id="v4-locator">
-              <td>Enable locator LED:</td>
-              <td align="right">
-                <div class="switch-box">
-                  <input class="gpio-switch" disabled type="checkbox" id="gpio-switch-__v4_locator__" data-channel="__v4_locator__">
-                  <label for="gpio-switch-__v4_locator__"><span class="switch-inner"></span><span class="switch"></span></label>
-                </div>
-              </td>
+                  <td>Enable locator LED:</td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input class="gpio-switch" disabled type="checkbox" id="gpio-switch-__v4_locator__" data-channel="__v4_locator__" data-confirm-off="">
+                      <label for="gpio-switch-__v4_locator__"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
             </tr>
             <tr>
                   <td>Ask page close confirmation:</td>
@@ -2026,6 +2047,7 @@
                     <li>Arthur Mayer</li>
                     <li>Arthur Woimbée</li>
                     <li>Ashlesh Chaudhari</li>
+                    <li>Asim Shakour</li>
                     <li>Augusto Becciu</li>
                     <li>AVS Computer</li>
                     <li>awkspace</li>
@@ -2058,6 +2080,7 @@
                     <li>Branden Shaulis</li>
                     <li>Brandon Daniels</li>
                     <li>Brian Moses</li>
+                    <li>Brian T Mulcahy</li>
                     <li>Brian Vecchiarelli</li>
                     <li>Brian White</li>
                     <li>Bruno Gomes</li>
@@ -2086,6 +2109,7 @@
                     <li>Christoph Dette</li>
                     <li>Christoffer Lund</li>
                     <li>Christopher Bulla</li>
+                    <li>Christopher Gelatt</li>
                     <li>Christopher Hearn</li>
                     <li>Christopher Mandlbaur</li>
                     <li>Christopher Mendoza</li>
@@ -2136,6 +2160,7 @@
                     <li>Derek Jarvis</li>
                     <li>Derek Yap</li>
                     <li>Didrik</li>
+                    <li>digitalbaconbits</li>
                     <li>Dimitrij Jedich</li>
                     <li>dixon wong</li>
                     <li>dizztrukshin</li>
@@ -2143,12 +2168,14 @@
                     <li>DogeLabs</li>
                     <li>Dominic Phoon</li>
                     <li>Dominik Klonowski</li>
+                    <li>Edmon Abdul Nur</li>
                     <li>Egan Ford</li>
                     <li>Elani Ferri</li>
                     <li>Elliot Woo</li>
                     <li>Eric Phenix</li>
                     <li>ewook</li>
                     <li>eye-catcher.com</li>
+                    <li>Fabian Druschke</li>
                     <li>Fabiano Sidler</li>
                     <li>Far Pin Solutions, LLC</li>
                     <li>Felyx Gabryel</li>
@@ -2348,6 +2375,7 @@
                     <li>Matt Kane</li>
                     <li>Matthew Cameron</li>
                     <li>Mauricio Allende</li>
+                    <li>Max Evans</li>
                     <li>Mecky</li>
                     <li>Mehmet Aydoğdu</li>
                     <li>Michael Bartholomew</li>
@@ -2429,6 +2457,7 @@
                     <li>Ralph Borchers</li>
                     <li>Ranc1d</li>
                     <li>Randall D Bilbrey</li>
+                    <li>RandomJerk</li>
                     <li>Raphael Schitz</li>
                     <li>Ref Chowdhury</li>
                     <li>René Rathenau</li>
@@ -2440,6 +2469,7 @@
                     <li>Richard Freemantle</li>
                     <li>Richard Michael</li>
                     <li>Rico Cantrell</li>
+                    <li>Rob</li>
                     <li>Rob Holden</li>
                     <li>Rob Tongue</li>
                     <li>Robert Klauco</li>
@@ -2490,6 +2520,7 @@
                     <li>Stefan Stemmer</li>
                     <li>Stefan Vaillant</li>
                     <li>Stephan Schmidt</li>
+                    <li>Stephen</li>
                     <li>Stephen Hocking</li>
                     <li>Steve Jones</li>
                     <li>Steve Kerr</li>
@@ -2508,6 +2539,7 @@
                     <li>TheSnowedOne</li>
                     <li>TheTechGiant</li>
                     <li>Thomas Charisoulis</li>
+                    <li>Thomas Gitlin</li>
                     <li>Thomas Hagenmaier</li>
                     <li>Thomas Hedberg Jensen</li>
                     <li>Thomas Price</li>

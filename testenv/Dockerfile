@@ -95,13 +95,26 @@ RUN git clone https://github.com/pikvm/ustreamer \
 	&& cd - \
 	&& rm -rf ustreamer
 
+# FIXME: workaroung for legacy 1.x libgpido
+RUN pacman --noconfirm --ask=4 -R libgpiod
+ENV LIBGPIOD_PKG libgpiod-1.6.4
+RUN curl \
+		-o $LIBGPIOD_PKG.tar.gz \
+		https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/snapshot/$LIBGPIOD_PKG.tar.gz \
+	&& tar -xzvf $LIBGPIOD_PKG.tar.gz \
+	&& cd $LIBGPIOD_PKG \
+	&& ./autogen.sh --prefix=/usr --enable-tools=yes --enable-bindings-python \
+	&& make PREFIX=/usr install \
+	&& cd - \
+	&& rm -rf $LIBGPIOD_PKG{,.tar.gz}
+
 RUN mkdir -p \
 		/etc/kvmd/{nginx,vnc} \
 		/var/lib/kvmd/msd \
 		/var/lib/kvmd/pst/data \
 		/opt/vc/bin
 
-COPY testenv/fakes/vcgencmd /opt/vc/bin/
+COPY testenv/fakes/vcgencmd /usr/bin/
 COPY testenv/fakes/sys /fake_sysfs/sys
 COPY testenv/fakes/proc /fake_procfs/proc
 COPY testenv/fakes/etc /fake_etc/etc

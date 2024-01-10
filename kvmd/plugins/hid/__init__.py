@@ -20,8 +20,16 @@
 # ========================================================================== #
 
 
+import asyncio
+import time
+
 from typing import Iterable
 from typing import AsyncGenerator
+from typing import Any
+
+from ...yamlconf import Option
+
+from ...validators.basic import valid_bool
 
 from .. import BasePlugin
 from .. import get_plugin_class
@@ -29,6 +37,23 @@ from .. import get_plugin_class
 
 # =====
 class BaseHid(BasePlugin):
+    def __init__(self, jiggler_enabled: bool, jiggler_active: bool) -> None:
+        self.__jiggler_enabled = jiggler_enabled
+        self.__jiggler_active = jiggler_active
+        self.__jiggler_absolute = True
+        self.__activity_ts = 0
+
+    @classmethod
+    def _get_jiggler_options(cls) -> dict[str, Any]:
+        return {
+            "jiggler": {
+                "enabled": Option(False, type=valid_bool, unpack_as="jiggler_enabled"),
+                "active":  Option(False, type=valid_bool, unpack_as="jiggler_active"),
+            },
+        }
+
+    # =====
+
     def sysprep(self) -> None:
         raise NotImplementedError
 
@@ -64,15 +89,53 @@ class BaseHid(BasePlugin):
     def send_mouse_wheel_event(self, delta_x: int, delta_y: int) -> None:
         raise NotImplementedError
 
-    def set_params(self, keyboard_output: (str | None)=None, mouse_output: (str | None)=None) -> None:
-        _ = keyboard_output
-        _ = mouse_output
+    def set_params(
+        self,
+        keyboard_output: (str | None)=None,
+        mouse_output: (str | None)=None,
+        jiggler: (bool | None)=None,
+    ) -> None:
+
+        raise NotImplementedError
 
     def set_connected(self, connected: bool) -> None:
         _ = connected
 
     def clear_events(self) -> None:
         raise NotImplementedError
+
+    # =====
+
+    async def systask(self) -> None:
+        factor = 1
+        while True:
+            if self.__jiggler_active and (self.__activity_ts + 60 < int(time.monotonic())):
+                for _ in range(5):
+                    if self.__jiggler_absolute:
+                        self.send_mouse_move_event(100 * factor, 100 * factor)
+                    else:
+                        self.send_mouse_relative_event(10 * factor, 10 * factor)
+                    factor *= -1
+                    await asyncio.sleep(0.1)
+            await asyncio.sleep(1)
+
+    def _bump_activity(self) -> None:
+        self.__activity_ts = int(time.monotonic())
+
+    def _set_jiggler_absolute(self, absolute: bool) -> None:
+        self.__jiggler_absolute = absolute
+
+    def _set_jiggler_active(self, active: bool) -> None:
+        if self.__jiggler_enabled:
+            self.__jiggler_active = active
+
+    def _get_jiggler_state(self) -> dict:
+        return {
+            "jiggler": {
+                "enabled": self.__jiggler_enabled,
+                "active":  self.__jiggler_active,
+            },
+        }
 
 
 # =====

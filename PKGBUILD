@@ -39,7 +39,7 @@ for _variant in "${_variants[@]}"; do
 	pkgname+=(kvmd-platform-$_platform-$_board)
 done
 pkgbase=kvmd
-pkgver=3.256
+pkgver=3.291
 pkgrel=1
 pkgdesc="The main PiKVM daemon"
 url="https://github.com/pikvm/kvmd"
@@ -76,15 +76,11 @@ depends=(
 	python-pyrad
 	python-ldap
 	python-zstandard
-	libgpiod
+	libgpiod1
 	freetype2
 	"v4l-utils>=1.22.1-1"
 	"nginx-mainline>=1.25.1"
 	openssl
-	platformio
-	avrdude-pikvm
-	make
-	patch
 	sudo
 	iptables
 	iproute2
@@ -93,6 +89,7 @@ depends=(
 	"janus-gateway-pikvm>=0.11.2-7"
 	certbot
 	platform-io-access
+	raspberrypi-utils
 	"ustreamer>=5.32"
 
 	# Systemd UDEV bug
@@ -101,10 +98,6 @@ depends=(
 	# https://bugzilla.redhat.com/show_bug.cgi?id=2035802
 	# https://archlinuxarm.org/forum/viewtopic.php?f=15&t=15725&start=40
 	"zstd>=1.5.1-2.1"
-
-	# Avoid dhcpcd stack trace
-	dhclient
-	netctl
 
 	# Possible hotfix for the new os update
 	openssl-1.1
@@ -129,6 +122,8 @@ optdepends=(
 conflicts=(
 	python-pikvm
 	python-aiohttp-pikvm
+	platformio
+	avrdude-pikvm
 )
 makedepends=(
 	python-setuptools
@@ -192,9 +187,6 @@ package_kvmd() {
 	mkdir -p "$pkgdir/etc/kvmd/override.d"
 
 	mkdir -p "$pkgdir/var/lib/kvmd/"{msd,pst}
-
-	# Avoid dhcp problems
-	install -DTm755 configs/os/netctl-dhcp "$pkgdir/etc/netctl/hooks/pikvm-dhcp"
 }
 
 
@@ -215,11 +207,16 @@ for _variant in "${_variants[@]}"; do
 			etc/kvmd/main.yaml
 		)
 
+		if [[ $_base == v0 ]]; then
+			depends=(\"\${depends[@]}\" platformio-core avrdude make patch)
+		fi
+
 		if [[ $_platform =~ ^.*-hdmiusb$ ]]; then
 			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-hdmiusb-check
 		fi
 
 		install -DTm644 configs/os/sysctl.conf \"\$pkgdir/etc/sysctl.d/99-kvmd.conf\"
+		install -DTm644 configs/os/udev/common.rules \"\$pkgdir/usr/lib/udev/rules.d/99-kvmd-common.rules\"
 		install -DTm644 configs/os/udev/$_platform-$_board.rules \"\$pkgdir/etc/udev/rules.d/99-kvmd.rules\"
 		install -DTm444 configs/kvmd/main/$_platform-$_board.yaml \"\$pkgdir/etc/kvmd/main.yaml\"
 
