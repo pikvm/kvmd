@@ -7,7 +7,6 @@ import aiohttp
 from aiohttp import ClientSession
 from yarl import URL
 
-from ...validators.os import valid_stripped_string_not_empty
 from ...yamlconf import Option
 from . import OAuthService
 
@@ -108,14 +107,12 @@ class Plugin(OAuthService):
             "redirect_uri": str(redirect_url),
             "state": oauth_session['state']
         }
-        get_logger().warning("PAYLOAD: "+str(payload))
         headers = {"content-type": "application/x-www-form-urlencoded"}
         async with ClientSession() as session:
             try:
                 async with session.post(self.__access_token_url, data=payload, headers=headers) as resp:
                     token_data = await resp.json()
                     if 'access_token' not in token_data:
-                        get_logger().exception(str(token_data))
                         raise OAuthService.OAuthException(message=f"could not get access-token{str(token_data)}")
                     access_token = token_data.get("access_token")
             except aiohttp.ClientConnectorError as e:

@@ -17,11 +17,8 @@ class OAuthManager:
     ) -> None:
         self.__session_storage = OAuthSessionStorage(fernet.Fernet.generate_key())
         self.__providers: dict[str, OAuthService] = {}
-        get_logger().warning("HALLO" + str(oauth_providers))
 
         for provider, data in oauth_providers.items():
-            get_logger().warning("type: "+data['type'])
-            get_logger().warning("type: "+data['type'])
             service_type = data.pop("type")
             self.__providers.update(
                 {
