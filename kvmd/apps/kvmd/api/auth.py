@@ -24,6 +24,7 @@ import base64
 
 from aiohttp.web import Request
 from aiohttp.web import Response
+from aiohttp.web_exceptions import HTTPNotFound, HTTPFound, HTTPUnauthorized
 
 from ....htserver import UnauthorizedError
 from ....htserver import ForbiddenError
@@ -31,6 +32,7 @@ from ....htserver import HttpExposed
 from ....htserver import exposed_http
 from ....htserver import make_json_response
 from ....htserver import set_request_auth_info
+from ....logging import get_logger
 
 from ....validators.auth import valid_user
 from ....validators.auth import valid_passwd
@@ -41,6 +43,7 @@ from ..auth import AuthManager
 
 # =====
 _COOKIE_AUTH_TOKEN = "auth_token"
+_COOKIE_OAUTH_SESSION = "oauth-session"
 
 
 async def check_request_auth(auth_manager: AuthManager, exposed: HttpExposed, request: Request) -> None:
@@ -106,4 +109,80 @@ class AuthApi:
 
     @exposed_http("GET", "/auth/check")
     async def __check_handler(self, _: Request) -> Response:
+        return make_json_response()
+
+    @exposed_http("GET", "/auth/oauth/providers", auth_required=False)
+    async def __oauth_providers(self, request: Request):
+        response = {}
+        if self.__auth_manager.oauth_manager is None:
+            response.update({'enabled': False})
+        else:
+            response.update({'enabled': True, 'providers': self.__auth_manager.oauth_manager.get_providers()})
+        return make_json_response(response)
+
+    @exposed_http("GET", "/auth/oauth/login/{provider}", auth_required=False)
+    async def __oauth(self, request: Request):
+        """
+        /auth/oauth/login/{provider}
+        """
+        provider = format(request.match_info['provider'])
+        if not self.__auth_manager.oauth_manager.valid_provider(provider):
+            raise HTTPNotFound(reason="Unknown provider %s" % provider)
+
+        redirect_url = request.url.with_path(f"/api/auth/oauth/callback/{provider}").with_scheme('https')
+        oauth_cookie = request.cookies.get(_COOKIE_OAUTH_SESSION, "")
+
+        is_valid_session = await self.__auth_manager.oauth_manager.is_valid_session(provider, oauth_cookie)
+        if not is_valid_session:
+            session = await self.__auth_manager.oauth_manager.register_new_session(provider)
+        else:
+            session = request.cookies.get(_COOKIE_OAUTH_SESSION)
+
+        response = HTTPFound(
+            await self.__auth_manager.oauth_manager.get_authorize_url(
+                provider=provider, redirect_url=redirect_url, session=session,
+            )
+        )
+        response.set_cookie(name=_COOKIE_OAUTH_SESSION, value=session, secure=True, httponly=True, samesite="Lax")
+
+        # 302 redirect to provider:
+        raise response
+
+    @exposed_http("GET", "/auth/oauth/callback/{provider}", auth_required=False)
+    async def __callback(self, request: Request):
+        """
+        /auth/oauth/callback/{provider}
+        """
+        if not request.match_info['provider']:
+            raise HTTPUnauthorized(reason="Provider is missing")
+        provider = format(request.match_info['provider'])
+        if not self.__auth_manager.oauth_manager.valid_provider(provider):
+            raise HTTPNotFound(reason="Unknown provider %s" % provider)
+
+        if not request.cookies.keys().__contains__(_COOKIE_OAUTH_SESSION):
+            raise HTTPUnauthorized(reason="Cookie is missing")
+        oauth_session = request.cookies[_COOKIE_OAUTH_SESSION]
+
+        if not self.__auth_manager.oauth_manager.is_redirect_from_provider(provider=provider, request_query=request.query):
+            raise HTTPUnauthorized(reason="Authorization Code is missing")
+
+        query_params: dict = {}
+        for param in request.query:
+            query_params.update({param: request.query[param]})
+
+        redirect_url = request.url.with_query("").with_path(f"/api/auth/oauth/callback/{provider}").with_scheme('https')
+        user = await self.__auth_manager.oauth_manager.get_user_info(
+            provider=provider,
+            oauth_session=oauth_session,
+            request_query=request.query,
+            redirect_url=redirect_url
+        )
+
+        if self.__auth_manager.is_auth_enabled():
+            token = await self.__auth_manager.login_oauth(
+                user=valid_user(user)
+            )
+            if token:
+                return make_json_response(set_cookies={_COOKIE_AUTH_TOKEN: token})
+            raise ForbiddenError()
         return make_json_response()

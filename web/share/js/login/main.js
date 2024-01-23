@@ -32,6 +32,8 @@ export function main() {
 	if (checkBrowser(null, null)) {
 		initWindowManager();
 
+		__loadProviders();
+
 		tools.el.setOnClick($("login-button"), __login);
 		$("user-input").onkeyup = $("passwd-input").onkeyup = $("code-input").onkeyup = function(event) {
 			if (event.code === "Enter") {
@@ -43,6 +45,38 @@ export function main() {
 		$("user-input").focus();
 	}
 }
+
+function __loadProviders () {
+	let http = tools.makeRequest("GET", "/api/auth/oauth/providers", function() {
+		if (http.readyState === 4) {
+			if (http.status === 200) {
+				let oauthInfo = JSON.parse(http.responseText).result;
+				if (!oauthInfo.enabled) {
+					return;
+				}
+				let buttons = `<tr>
+                                          <td colspan="2">
+                                            <hr>
+                                          </td>
+                                        </tr>
+					<tr><td>&nbsp;</tr></td>`
+                                for (const [short_name, long_name] of Object.entries(oauthInfo.providers)) {
+					buttons += __makeProvider(short_name, long_name);
+				}
+                                $("oauth-tbody").innerHTML = buttons
+			}
+		}
+	})
+}
+
+function __makeProvider(shortName, longName) {
+	return `<tr>
+              <td colspan="2">
+                <button class="key" onclick="window.location.href='/api/auth/oauth/login/${shortName}';">Login with ${longName}</button>
+              </td>
+            </tr>`;
+}
+
 
 function __login() {
 	let user = $("user-input").value;

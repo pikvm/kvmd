@@ -84,6 +84,9 @@ def main(argv: (list[str] | None)=None) -> None:
             external_type=config.auth.external.type,
             external_kwargs=(config.auth.external._unpack(ignore=["type"]) if config.auth.external.type else {}),
 
+            oauth_enabled=config.auth.oauth.enabled,
+            oauth_providers=config.auth.oauth.providers._unpack(ignore=["enabled"] if config.auth.oauth.enabled else {}),
+
             totp_secret_path=config.auth.totp.secret.file,
         ),
         info_manager=InfoManager(global_config),

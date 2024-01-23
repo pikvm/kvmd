@@ -33,6 +33,50 @@ class BaseAuthService(BasePlugin):
         pass
 
 
+class OAuthService(BasePlugin):
+    def __init__(
+            self,
+            short_name: str,
+            long_name: str,
+    ) -> None:
+        self.__short_name = short_name
+        self.__long_name = long_name
+
+    def get_long_name(self) -> str:
+        return self.__long_name
+
+    def get_short_name(self) -> str:
+        return self.__short_name
+
+    def is_redirect_from_provider(self, request_query: str) -> bool:
+        raise NotImplementedError  # pragma: nocover
+
+    def get_authorize_url(self, redirect_url: URL, session, **kwargs) -> str:
+        raise NotImplementedError  # pragma: nocover
+
+    async def get_user_info(
+            self,
+            oauth_session,
+            request_query,
+            redirect_url
+    ):
+        raise NotImplementedError
+
+    def register_new_session(self):
+        raise NotImplementedError
+
+    def is_valid_session(self, oauth_session):
+        raise NotImplementedError
+
+    class OAuthException(Exception):
+        def __init__(self, message):
+            self.message = message
+
+
 # =====
 def get_auth_service_class(name: str) -> type[BaseAuthService]:
+    return get_plugin_class("auth", name)  # type: ignore
+
+
+def get_oauth_service_class(name: str) -> type[OAuthService]:
     return get_plugin_class("auth", name)  # type: ignore
