@@ -123,12 +123,10 @@ class Plugin(OAuthService):
 
             headers = {
                 "Cache-Control": "no-cache",
-            }
-            payload = {
-                "access_token": access_token
+                "Authorization": f"Bearer {access_token}"
             }
             try:
-                async with session.get(self.__user_info_url.with_query(payload), headers=headers) as response:
+                async with session.get(self.__user_info_url, headers=headers) as response:
                     user_info = await response.json()
                     return user_info[self.__username_attribute]
             except aiohttp.ClientConnectorError as e:
