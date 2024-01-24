@@ -261,13 +261,17 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
     rebuild = False
 
     if load_auth:
-        scheme["kvmd"]["auth"]["internal"].update(get_auth_service_class(config.kvmd.auth.internal.type).get_plugin_options())
+        scheme["kvmd"]["auth"]["internal"].update(
+            get_auth_service_class(config.kvmd.auth.internal.type).get_plugin_options()
+        )
         if config.kvmd.auth.external.type:
-            scheme["kvmd"]["auth"]["external"].update(get_auth_service_class(config.kvmd.auth.external.type).get_plugin_options())
+            scheme["kvmd"]["auth"]["external"].update(
+                get_auth_service_class(config.kvmd.auth.external.type).get_plugin_options()
+            )
         if config.kvmd.auth.oauth.enabled:
-            for provider, data in tools.rget(raw_config, "kvmd","auth","oauth","providers").items():
-                scheme["kvmd"]["auth"]["oauth"]["providers"][provider]=get_oauth_service_class(data["type"]).get_plugin_options()
-                scheme["kvmd"]["auth"]["oauth"]["providers"][provider]["type"]=Option(data["type"])
+            for provider, data in tools.rget(raw_config, "kvmd", "auth", "oauth", "providers").items():
+                scheme["kvmd"]["auth"]["oauth"]["providers"][provider] = get_oauth_service_class(data["type"]).get_plugin_options()
+                scheme["kvmd"]["auth"]["oauth"]["providers"][provider]["type"] = Option(data["type"])
         rebuild = True
 
     for (load, section, get_class) in [

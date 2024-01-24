@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 # ========================================================================== #
-
+from yarl import URL
 
 from .. import BasePlugin
 from .. import get_plugin_class
@@ -48,29 +48,30 @@ class OAuthService(BasePlugin):
     def get_short_name(self) -> str:
         return self.__short_name
 
-    def is_redirect_from_provider(self, request_query: str) -> bool:
+    def is_redirect_from_provider(self, request_query: dict) -> bool:
         raise NotImplementedError  # pragma: nocover
 
-    def get_authorize_url(self, redirect_url: URL, session, **kwargs) -> str:
+    def get_authorize_url(self, redirect_url: URL, session: dict) -> str:
         raise NotImplementedError  # pragma: nocover
 
     async def get_user_info(
             self,
-            oauth_session,
-            request_query,
-            redirect_url
-    ):
+            oauth_session: dict,
+            request_query: dict,
+            redirect_url: URL
+    ) -> str:
         raise NotImplementedError
 
-    def register_new_session(self):
+    def register_new_session(self) -> dict:
         raise NotImplementedError
 
-    def is_valid_session(self, oauth_session):
+    def is_valid_session(self, oauth_session: dict) -> bool:
         raise NotImplementedError
 
-    class OAuthException(Exception):
-        def __init__(self, message):
-            self.message = message
+
+class OAuthException(Exception):
+    def __init__(self, message: str):
+        self.message = message
 
 
 # =====

@@ -35,8 +35,8 @@ from ...htserver import HttpExposed
 
 
 # =====
-class AuthManager:
-    def __init__(
+class AuthManager:  # pylint: disable=too-many-instance-attributes
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         enabled: bool,
         unauth_paths: list[str],
@@ -45,13 +45,13 @@ class AuthManager:
         internal_kwargs: dict,
         force_internal_users: list[str],
 
-        oauth_enabled: bool,
-        oauth_providers: list[dict],
-
         external_type: str,
         external_kwargs: dict,
 
         totp_secret_path: str,
+
+        oauth_enabled: bool = False,
+        oauth_providers: (dict | None) = None,
     ) -> None:
 
         self.__enabled = enabled
@@ -76,6 +76,8 @@ class AuthManager:
 
         self.oauth_manager: (OAuthManager | None) = None
         if enabled and oauth_enabled:
+            if oauth_providers is None:
+                oauth_providers = {}
             self.oauth_manager = OAuthManager(oauth_providers)
             get_logger().info("Using OAuth service")
 
