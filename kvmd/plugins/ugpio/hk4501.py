@@ -4,6 +4,7 @@
 #                                                                            #
 #    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
 #                  2021-2021  Sebastian Goscik <sebastian.goscik@live.co.uk> #
+#                  2024-2024  Lukas Schröer <lukas.schroeer@gmx.at>          #  
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -84,7 +85,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return functools.partial(valid_number, min=0, max=3, name="H4401 channel")
+        return functools.partial(valid_number, min=0, max=3, name="HK4501 channel")
 
     def prepare(self) -> None:
         assert self.__proc is None
@@ -127,20 +128,12 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         )
 
     def __serial_worker(self) -> None:
-        logger = aioproc.settle(str(self), f"gpio-h4401-{self._instance_name}")
+        logger = aioproc.settle(str(self), f"gpio-hk4501-{self._instance_name}")
         while not self.__stop_event.is_set():
             try:
                 with self.__get_serial() as tty:
                     data = b""
                     self.__channel_queue.put_nowait(-1)
-
-                    # PROGRAM LOCKS HERE WHEN H4401 IS USED
-                    # Wait for first port heartbeat to set correct channel (~2 sec max)
-                    # while True:
-                    #     (channel, data) = self.__recv_channel(tty, data)
-                    #     if channel is not None:
-                    #         self.__channel_queue.put_nowait(channel)
-                    #         break
 
                     while not self.__stop_event.is_set():
                         (channel, data) = self.__recv_channel(tty, data)
@@ -166,33 +159,25 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return serial.Serial(self.__device_path, self.__speed, timeout=self.__read_timeout)
 
     def __recv_channel(self, tty: serial.Serial, data: bytes) -> tuple[(int | None), bytes]:
-        logger = get_logger()
         channel: (int | None) = None
         if tty.in_waiting:
             data += tty.read_all()
             found = re.findall(b"G0[1-4]gA\x00", data)
-            logger.info(f"Got: {data}")
-            logger.info(f"Found: {found}")
             if found:
                 try:
                     channel = int(found[-1][1:3]) - 1
                 except Exception:
                     channel = None
-            logger.info(f"Channel: {channel}")
             data = data[-12:]
         return (channel, data)
 
     def __send_channel(self, tty: serial.Serial, channel: int) -> None:
-        logger = get_logger()
         assert 0 <= channel <= 3
-        #Recieved: b'G01gA\x00G02gA\x00G03gA\x00G04gA\x00'
-        #Sent:     b'G01gA\x00G02gA\x00G03gA\x00G04gA\x00'
         cmd = "G{port:02d}gA\x00".format(port=(channel + 1)).encode()
         tty.write(cmd)
-        logger.info(f"Sent: {cmd}")
         tty.flush()
 
     def __str__(self) -> str:
-        return f"H4401({self._instance_name})"
+        return f"HK4501({self._instance_name})"
 
     __repr__ = __str__
