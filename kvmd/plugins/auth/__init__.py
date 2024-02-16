@@ -34,19 +34,11 @@ class BaseAuthService(BasePlugin):
 
 
 class OAuthService(BasePlugin):
-    def __init__(
-            self,
-            short_name: str,
-            long_name: str,
-    ) -> None:
-        self.__short_name = short_name
+    def __init__(self, long_name: str) -> None:
         self.__long_name = long_name
 
     def get_long_name(self) -> str:
         return self.__long_name
-
-    def get_short_name(self) -> str:
-        return self.__short_name
 
     def is_redirect_from_provider(self, request_query: dict) -> bool:
         raise NotImplementedError  # pragma: nocover

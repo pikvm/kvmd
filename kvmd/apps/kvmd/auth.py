@@ -137,6 +137,11 @@ class AuthManager:  # pylint: disable=too-many-instance-attributes
             return None
 
     async def login_oauth(self, user: str) -> (str | None):
+        """
+        registers the user, who logged in with oauth, with a new token.
+        @param user: the username provided by the oauth provider
+        @return:
+        """
         assert user == user.strip()
         assert user
         assert self.__enabled

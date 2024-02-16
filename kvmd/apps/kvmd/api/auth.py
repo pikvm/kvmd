@@ -112,6 +112,11 @@ class AuthApi:
 
     @exposed_http("GET", "/auth/oauth/providers", auth_required=False)
     async def __oauth_providers(self, request: Request) -> Response:
+        """
+        Return a json containing the available Providers with short_name and long_name and if oauth is enabled
+        @param request:
+        @return: json with provider infos
+        """
         response: dict[str, (bool | dict)] = {}
         if self.__auth_manager.oauth_manager is None:
             response.update({'enabled': False})
@@ -122,7 +127,10 @@ class AuthApi:
     @exposed_http("GET", "/auth/oauth/login/{provider}", auth_required=False)
     async def __oauth(self, request: Request) -> None:
         """
-        /auth/oauth/login/{provider}
+        Creates the redirect to the Provider specified in the URL. Checks if the provider is valid.
+        Also sets a cookie containing session information.
+        @param request:
+        @return: redirect to provider
         """
         if self.__auth_manager.oauth_manager is None:
             return
@@ -152,7 +160,10 @@ class AuthApi:
     @exposed_http("GET", "/auth/oauth/callback/{provider}", auth_required=False)
     async def __callback(self, request: Request) -> Response:
         """
-        /auth/oauth/callback/{provider}
+        After successful login on the side of the provider, the user gets redirected here. If everything is correct,
+        the user gets logged in with the username provided by the Provider.
+        @param request:
+        @return:
         """
         if self.__auth_manager.oauth_manager is None:
             return make_json_response()
@@ -169,10 +180,6 @@ class AuthApi:
 
         if not self.__auth_manager.oauth_manager.is_redirect_from_provider(provider=provider, request_query=dict(request.query)):
             raise HTTPUnauthorized(reason="Authorization Code is missing")
-
-        query_params: dict = {}
-        for param in request.query:
-            query_params.update({param: request.query[param]})
 
         redirect_url = request.url.with_query("").with_path(f"/api/auth/oauth/callback/{provider}").with_scheme('https')
         user = await self.__auth_manager.oauth_manager.get_user_info(

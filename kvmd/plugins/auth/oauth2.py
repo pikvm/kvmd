@@ -7,6 +7,8 @@ import aiohttp
 from aiohttp import ClientSession
 from yarl import URL
 
+from ...validators.basic import valid_stripped_string_not_empty
+from ...validators.net import valid_url
 from ...yamlconf import Option
 from . import OAuthService, OAuthException
 
@@ -25,7 +27,7 @@ class Plugin(OAuthService):  # pylint: disable=too-many-instance-attributes
             scope: str,
             username_attribute: str
     ) -> None:
-        super().__init__(short_name, long_name)
+        super().__init__(long_name)
         self.__client_id = client_id
         self.__client_secret = client_secret
         self.__access_token_url: URL = URL(access_token_url)
@@ -39,16 +41,16 @@ class Plugin(OAuthService):  # pylint: disable=too-many-instance-attributes
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "client_id": Option(""),
-            "client_secret": Option(""),
-            "access_token_url": Option(""),
-            "authorize_url": Option(""),
-            "base_url": Option(""),
-            "user_info_url": Option(""),
-            "short_name": Option(""),
-            "long_name": Option(""),
-            "scope": Option(""),
-            "username_attribute": Option(""),
+            "client_id":            Option("", type=valid_stripped_string_not_empty),
+            "client_secret":        Option("", type=valid_stripped_string_not_empty),
+            "access_token_url":     Option("", type=valid_url),
+            "authorize_url":        Option("", type=valid_url),
+            "base_url":             Option("", type=valid_url),
+            "user_info_url":        Option("", type=valid_url),
+            "short_name":           Option("", type=valid_stripped_string_not_empty),
+            "long_name":            Option("", type=valid_stripped_string_not_empty),
+            "scope":                Option("", type=valid_stripped_string_not_empty),
+            "username_attribute":   Option("", type=valid_stripped_string_not_empty),
         }
 
     def is_redirect_from_provider(self, request_query: dict) -> bool:
@@ -56,7 +58,10 @@ class Plugin(OAuthService):  # pylint: disable=too-many-instance-attributes
 
     def get_authorize_url(self, redirect_url: URL, session: dict) -> str:
         """
-        Generates the Authorization-Code-Request (Step 2)
+        Generates the Authorization-Code-Request
+        @param redirect_url: the redirect URL the provider should redirect to after login
+        @param session: the encrypted session
+        @return: the authorization code request url
         """
         params: dict[str, str] = {}
         params.update(
@@ -73,6 +78,11 @@ class Plugin(OAuthService):  # pylint: disable=too-many-instance-attributes
         return ret
 
     def is_valid_session(self, oauth_session: dict) -> bool:
+        """
+        Checks if the state provided in the oauth_session is valid.
+        @param oauth_session: the session
+        @return: True: session is valid
+        """
         if 'state' not in oauth_session:
             return False
         for stored_state in self.__states:
@@ -88,6 +98,13 @@ class Plugin(OAuthService):  # pylint: disable=too-many-instance-attributes
             request_query: dict,
             redirect_url: URL
     ) -> str:
+        """
+        Returns the Username provided by the provider. Uses the authorization code to get an access_token.
+        @param oauth_session: the session with state parameter
+        @param request_query: the query as dict containing the authorization code
+        @param redirect_url: the redirect_uri also used in get_authorize_url
+        @return: Username
+        """
         if not self.is_valid_session(oauth_session):
             raise OAuthException(message="unknown or invalid state")
 
@@ -122,6 +139,10 @@ class Plugin(OAuthService):  # pylint: disable=too-many-instance-attributes
                 raise OAuthException(message="could not connect to provider! error message: %s" % str(error))
 
     def register_new_session(self) -> dict:
+        """
+        creates a new session with a new state
+        @return: new session with state
+        """
         state = OAuthState()
         self.__states.append(state)
         return {'state': state.get_value()}
