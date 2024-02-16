@@ -179,7 +179,7 @@ class OAuthSessionStorage:
 
     async def get_session_data(self, oauth_cookie: str) -> dict:
         """
-        decrypts a given session to a string
+        decrypts a given session to a dict
         @param oauth_cookie: the encrypted session
         @return: the decrypted session
         """
