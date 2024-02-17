@@ -31,7 +31,8 @@
 #define _LS_POWER_PIN	13
 #define _KBD_DATA_PIN	11 // CLK == 12
 #define _MOUSE_DATA_PIN	14 // CLK == 15
-
+#define _KBD_PT_DATA_PIN	26 // passthru, CLK == 27
+#define _MOUSE_PT_DATA_PIN	16 // passthru, CLK == 17
 
 u8 ph_g_ps2_kbd_leds = 0;
 bool ph_g_ps2_kbd_online = 0;
@@ -57,15 +58,17 @@ void ph_ps2_init(void) {
 	}
 
 	if (PH_O_IS_KBD_PS2) {
-		kb_init(_KBD_DATA_PIN);
+		kb_init(_KBD_DATA_PIN, _KBD_PT_DATA_PIN);
 	} else {
 		INIT_STUB(_KBD_DATA_PIN);
+		INIT_STUB(_KBD_PT_DATA_PIN);
 	}
 
 	if (PH_O_IS_MOUSE_PS2) {
-		ms_init(_MOUSE_DATA_PIN);
+		ms_init(_MOUSE_DATA_PIN, _MOUSE_PT_DATA_PIN);
 	} else {
 		INIT_STUB(_MOUSE_DATA_PIN);
+		INIT_STUB(_MOUSE_PT_DATA_PIN);
 	}
 
 #	undef INIT_STUB
@@ -123,13 +126,13 @@ void ph_ps2_mouse_send_wheel(s8 h, s8 v) {
 
 void ph_ps2_send_clear(void) {
 	if (PH_O_IS_KBD_PS2) {
-		for(u8 key = 0xe0; key <= 0xe7; key++) {
-			kb_send_key(key, false, 0);
-		}
+		//for(u8 key = 0xe0; key <= 0xe7; key++) {
+		//	kb_send_key(key, false, 0);
+		//}
 
-		for(u8 key = 4; key <= 116; key++) {
-			kb_send_key(key, false, 0);
-		}
+		//for(u8 key = 4; key <= 115; key++) {
+		//kb_send_key(key, false, 0);
+		//}
 	}
 
 	if (PH_O_IS_MOUSE_PS2) {

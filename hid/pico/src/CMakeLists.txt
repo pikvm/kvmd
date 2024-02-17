@@ -16,6 +16,7 @@ target_sources(${target_name} PRIVATE
 	ph_debug.c
 
 	${PS2_PATH}/ps2phy.c
+	${PS2_PATH}/ps2pt.c
 	${PS2_PATH}/ps2kb.c
 	${PS2_PATH}/ps2ms.c
 )
@@ -24,6 +25,7 @@ target_compile_options(${target_name} PRIVATE -Wall -Wextra)
 target_include_directories(${target_name} PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${PS2_PATH})
 
 pico_generate_pio_header(${target_name} ${PS2_PATH}/ps2phy.pio)
+pico_generate_pio_header(${target_name} ${PS2_PATH}/ps2pt.pio)
 
 target_link_libraries(${target_name} PRIVATE
 	pico_stdlib
