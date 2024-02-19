@@ -20,4 +20,15 @@
 # ========================================================================== #
 
 
-__version__ = "3.306"
+# =====
+def make_crc16(data: bytes) -> int:
+    crc = 0xFFFF
+    for byte in data:
+        crc = crc ^ byte
+        for _ in range(8):
+            if crc & 0x0001 == 0:
+                crc = crc >> 1
+            else:
+                crc = crc >> 1
+                crc = crc ^ 0xA001
+    return crc
