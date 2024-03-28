@@ -172,7 +172,16 @@ class _GadgetConfig:
         self.__create_meta(func, name)
         self.__hid_instance += 1
 
-    def add_msd(self, start: bool, user: str, stall: bool, cdrom: bool, rw: bool, removable: bool, fua: bool) -> None:
+    def add_msd(self, 
+                start: bool, 
+                user: str, 
+                stall: bool, 
+                cdrom: bool, 
+                rw: bool, 
+                removable: bool, 
+                fua: bool, 
+                inquiry_string_cdrom: str,
+                inquiry_string_flash: str) -> None:
         func = f"mass_storage.usb{self.__msd_instance}"
         func_path = join(self.__gadget_path, "functions", func)
         _mkdir(func_path)
@@ -181,11 +190,18 @@ class _GadgetConfig:
         _write(join(func_path, "lun.0/ro"), int(not rw))
         _write(join(func_path, "lun.0/removable"), int(removable))
         _write(join(func_path, "lun.0/nofua"), int(not fua))
+        if cdrom:
+            get_logger().info("CD-ROM mode, Setting inquiry string to %s", inquiry_string_cdrom)
+            _write(join(func_path, "lun.0/inquiry_string"), inquiry_string_cdrom)
+        else:
+            get_logger().info("Flash mode, Setting inquiry string to %s", inquiry_string_flash)
+            _write(join(func_path, "lun.0/inquiry_string"), inquiry_string_flash)
         if user != "root":
             _chown(join(func_path, "lun.0/cdrom"), user)
             _chown(join(func_path, "lun.0/ro"), user)
             _chown(join(func_path, "lun.0/file"), user)
             _chown(join(func_path, "lun.0/forced_eject"), user)
+            _chown(join(func_path, "lun.0/inquiry_string"), user)
         if start:
             _symlink(func_path, join(self.__profile_path, func))
         name = ("Mass Storage Drive" if self.__msd_instance == 0 else f"Extra Drive #{self.__msd_instance}")
