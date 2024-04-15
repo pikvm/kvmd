@@ -38,7 +38,7 @@ from .. import get_plugin_class
 
 # =====
 class BaseHid(BasePlugin):
-    def __init__(self, jiggler_enabled: bool, jiggler_active: bool, jiggler_interval) -> None:
+    def __init__(self, jiggler_enabled: bool, jiggler_active: bool, jiggler_interval: int) -> None:
         self.__jiggler_enabled = jiggler_enabled
         self.__jiggler_active = jiggler_active
         self.__jiggler_absolute = True
