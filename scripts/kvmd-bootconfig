@@ -3,7 +3,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -202,6 +202,9 @@ if [ -n "$WIFI_ESSID" ]; then
 	fi
 	wpa_passphrase "$WIFI_ESSID" "$WIFI_PASSWD" > "/etc/wpa_supplicant/wpa_supplicant-$WIFI_IFACE.conf"
 	chmod 640 "/etc/wpa_supplicant/wpa_supplicant-$WIFI_IFACE.conf"
+	if [ -n "$WIFI_HIDDEN" ]; then
+		sed -i -e 's/^}/\tscan_ssid=1\n}/g' "/etc/wpa_supplicant/wpa_supplicant-$WIFI_IFACE.conf"
+	fi
 	systemctl enable "wpa_supplicant@$WIFI_IFACE.service" || true
 	touch /boot/pikvm-reboot.txt
 fi

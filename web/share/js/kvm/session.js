@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -251,7 +251,7 @@ export function Session() {
 		let close_hook = null;
 		let has_webterm = (state.webterm && (state.webterm.enabled || state.webterm.started));
 		if (has_webterm) {
-			let path = "/" + state.webterm.path;
+			let path = "/" + state.webterm.path + "?disableLeaveAlert=true";
 			show_hook = function() {
 				tools.info("Terminal opened: ", path);
 				$("webterm-iframe").src = path;
@@ -275,23 +275,21 @@ export function Session() {
 		$("link-led").className = "led-yellow";
 		$("link-led").title = "Connecting...";
 
-		let http = tools.makeRequest("GET", "/api/auth/check", function() {
-			if (http.readyState === 4) {
-				if (http.status === 200) {
-					__ws = new WebSocket(`${tools.is_https ? "wss" : "ws"}://${location.host}/api/ws`);
-					__ws.sendHidEvent = (event) => __sendHidEvent(__ws, event.event_type, event.event);
-					__ws.onopen = __wsOpenHandler;
-					__ws.onmessage = __wsMessageHandler;
-					__ws.onerror = __wsErrorHandler;
-					__ws.onclose = __wsCloseHandler;
-				} else if (http.status === 401 || http.status === 403) {
-					window.onbeforeunload = () => null;
-					wm.error("Unexpected logout occured, please login again").then(function() {
-						document.location.href = "/login";
-					});
-				} else {
-					__wsCloseHandler(null);
-				}
+		tools.httpGet("/api/auth/check", function(http) {
+			if (http.status === 200) {
+				__ws = new WebSocket(`${tools.is_https ? "wss" : "ws"}://${location.host}/api/ws`);
+				__ws.sendHidEvent = (event) => __sendHidEvent(__ws, event.event_type, event.event);
+				__ws.onopen = __wsOpenHandler;
+				__ws.onmessage = __wsMessageHandler;
+				__ws.onerror = __wsErrorHandler;
+				__ws.onclose = __wsCloseHandler;
+			} else if (http.status === 401 || http.status === 403) {
+				window.onbeforeunload = () => null;
+				wm.error("Unexpected logout occured, please login again").then(function() {
+					document.location.href = "/login";
+				});
+			} else {
+				__wsCloseHandler(null);
 			}
 		});
 	};

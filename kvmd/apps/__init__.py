@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -470,6 +470,7 @@ def _get_config_scheme() -> dict:
 
                 "unix":    Option("/run/kvmd/ustreamer.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "timeout": Option(2.0, type=valid_float_f01),
+                "snapshot_timeout": Option(1.0, type=valid_float_f01),  # error_delay * 3 + 1
 
                 "process_name_prefix": Option("kvmd/streamer"),
 

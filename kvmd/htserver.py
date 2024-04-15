@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -194,7 +194,7 @@ async def start_streaming(
 
     response = StreamResponse(status=200, reason="OK")
     response.content_type = content_type
-    if content_length >= 0:
+    if content_length >= 0:  # pylint: disable=consider-using-min-builtin
         response.content_length = content_length
     if file_name:
         file_name = urllib.parse.quote(file_name, safe="")

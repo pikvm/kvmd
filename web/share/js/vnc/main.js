@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -31,19 +31,17 @@ export function main() {
 }
 
 function __loadKvmdInfo() {
-	let http = tools.makeRequest("GET", "/api/info", function() {
-		if (http.readyState === 4) {
-			if (http.status === 200) {
-				let vnc_port = JSON.parse(http.responseText).result.extras.vnc.port;
-				$("vnc-text").innerHTML = `
-					<span class="code-comment"># How to connect using the Linux terminal:<br>
-					$</span> vncviewer ${window.location.hostname}::${vnc_port}
-				`;
-			} else if (http.status === 401 || http.status === 403) {
-				document.location.href = "/login";
-			} else {
-				setTimeout(__loadKvmdInfo, 1000);
-			}
+	tools.httpGet("/api/info", function(http) {
+		if (http.status === 200) {
+			let vnc_port = JSON.parse(http.responseText).result.extras.vnc.port;
+			$("vnc-text").innerHTML = `
+				<span class="code-comment"># How to connect using the Linux terminal:<br>
+				$</span> vncviewer ${window.location.hostname}::${vnc_port}
+			`;
+		} else if (http.status === 401 || http.status === 403) {
+			document.location.href = "/login";
+		} else {
+			setTimeout(__loadKvmdInfo, 1000);
 		}
 	});
 }

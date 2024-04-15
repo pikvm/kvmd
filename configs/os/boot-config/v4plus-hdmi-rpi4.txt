@@ -14,8 +14,16 @@ dtoverlay=dwc2,dr_mode=peripheral
 dtoverlay=tc358743,4lane=1
 dtoverlay=tc358743-audio
 
+# Passthrough
+dtoverlay=vc4-kms-v3d
+disable_overscan=1
+
 # I2C (display)
 dtparam=i2c_arm=on
 
 # Clock
-dtoverlay=i2c-rtc,pcf8563
+dtoverlay=i2c-rtc,pcf8563,wakeup-source
+
+# Passthrough
+dtoverlay=vc4-kms-v3d
+disable_overscan=1

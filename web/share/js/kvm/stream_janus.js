@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -29,7 +29,7 @@ import {tools, $} from "../tools.js";
 var _Janus = null;
 
 
-export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_audio) {
+export function JanusStreamer(__setActive, __setInactive, __setInfo, __orient, __allow_audio) {
 	var self = this;
 
 	var __stop = false;
@@ -45,6 +45,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 	var __state = null;
 	var __frames = 0;
 
+	self.getOrientation = () => __orient;
 	self.isAudioAllowed = () => __allow_audio;
 
 	self.getName = () => (__allow_audio ? "H.264 + Audio" : "H.264");
@@ -109,7 +110,11 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 		}
 		__stopRetryEmsgInterval();
 		__stopInfoInterval();
-		__handle = null;
+		if (__handle) {
+			__logInfo("uStreamer detaching ...:", __handle.getPlugin(), __handle.getId());
+			__handle.detach();
+			__handle = null;
+		}
 		__janus = null;
 		__setInactive();
 		if (__stop) {
@@ -118,18 +123,45 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 	};
 
 	var __destroyJanus = function() {
-		if (__handle && __handle.webrtcStuff && __handle.webrtcStuff.remoteStream) {
-			for (let track of __handle.webrtcStuff.remoteStream.getTracks()) {
-				track.stop();
-				__handle.webrtcStuff.remoteStream.removeTrack(track);
-			}
-			__handle.webrtcStuff.remoteStream = null;
-		}
-		$("stream-video").srcObject = null;
 		if (__janus !== null) {
 			__janus.destroy();
 		}
 		__finishJanus();
+		let stream = $("stream-video").srcObject;
+		if (stream) {
+			for (let track of stream.getTracks()) {
+				__removeTrack(track);
+			}
+		}
+	};
+
+	var __addTrack = function(track) {
+		let el = $("stream-video");
+		if (el.srcObject) {
+			for (let tr of el.srcObject.getTracks()) {
+				if (tr.kind === track.kind && tr.id !== track.id) {
+					__removeTrack(tr);
+				}
+			}
+		}
+		if (!el.srcObject) {
+			el.srcObject = new MediaStream();
+		}
+		el.srcObject.addTrack(track);
+	};
+
+	var __removeTrack = function(track) {
+		let el = $("stream-video");
+		if (!el.srcObject) {
+			return;
+		}
+		track.stop();
+		el.srcObject.removeTrack(track);
+		if (el.srcObject.getTracks().length === 0) {
+			// MediaStream should be destroyed to prevent old picture freezing
+			// on Janus reconnecting.
+			el.srcObject = null;
+		}
 	};
 
 	var __attachJanus = function() {
@@ -152,13 +184,15 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 				__destroyJanus();
 			},
 
+			"connectionState": function(state) {
+				__logInfo("Peer connection state changed to", state);
+				if (state === "failed") {
+					__destroyJanus();
+				}
+			},
+
 			"iceState": function(state) {
 				__logInfo("ICE state changed to", state);
-				// Если раскомментировать, то он начнет дрючить соединение,
-				// так как каллбек вызывает сильно после завершения работы
-				/*if (state === "disconnected") {
-					__destroyJanus();
-				}*/
 			},
 
 			"webrtcState": function(up) {
@@ -201,8 +235,17 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 
 				if (jsep) {
 					__logInfo("Handling SDP:", jsep);
+					let tracks = [{"type": "video", "capture": false, "recv": true, "add": true}];
+					if (__allow_audio) {
+						tracks.push({"type": "audio", "capture": false, "recv": true, "add": true});
+					}
 					__handle.createAnswer({
 						"jsep": jsep,
+
+						// Janus 1.x
+						"tracks": tracks,
+
+						// Janus 0.x
 						"media": {"audioSend": false, "videoSend": false, "data": false},
 
 						"success": function(jsep) {
@@ -219,6 +262,26 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 				}
 			},
 
+			// Janus 1.x
+			"onremotetrack": function(track, id, added, meta) {
+				// Chrome sends `muted` notifiation for tracks in `disconnected` ICE state
+				// and Janus.js just removes muted track from list of available tracks.
+				// But track still exists actually so it's safe to just ignore
+				// reason == "mute" and "unmute".
+				let reason = (meta || {}).reason;
+				__logInfo("Got onremotetrack:", id, added, reason, track, meta);
+				if (added && reason === "created") {
+					__addTrack(track);
+					if (track.kind === "video") {
+						__sendKeyRequired();
+						__startInfoInterval();
+					}
+				} else if (!added && reason === "ended") {
+					__removeTrack(track);
+				}
+			},
+
+			// Janus 0.x
 			"onremotestream": function(stream) {
 				if (stream === null) {
 					// https://github.com/pikvm/pikvm/issues/1084
@@ -241,12 +304,10 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 				}
 
 				if (!has_video && __isOnline()) {
-					// Найдено в Windows 11 и Chrome/Edge.
-					// При перезагрузке целевого хоста браузер мьютит трек,
-					// приходит стрим без видеотрека и всё умирает.
-					// Связь должна как-то сама восстанавливаться,
-					// но этого почему-то не происходит. Костыль решает проблему.
-					__destroyJanus();
+					// Chrome sends `muted` notifiation for tracks in `disconnected` ICE state
+					// and Janus.js just removes muted track from list of available tracks.
+					// But track still exists actually so it's safe to just ignore that case.
+					return;
 				}
 
 				_Janus.attachMediaStream($("stream-video"), stream);
@@ -320,9 +381,12 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 
 	var __sendWatch = function() {
 		if (__handle) {
-			__logInfo(`Sending WATCH(audio=${__allow_audio}) + FEATURES ...`);
+			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}) + FEATURES ...`);
 			__handle.send({"message": {"request": "features"}});
-			__handle.send({"message": {"request": "watch", "params": {"audio": __allow_audio}}});
+			__handle.send({"message": {"request": "watch", "params": {
+				"orientation": __orient,
+				"audio": __allow_audio,
+			}}});
 		}
 	};
 

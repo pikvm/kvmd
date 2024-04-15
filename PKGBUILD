@@ -39,7 +39,7 @@ for _variant in "${_variants[@]}"; do
 	pkgname+=(kvmd-platform-$_platform-$_board)
 done
 pkgbase=kvmd
-pkgver=3.306
+pkgver=3.332
 pkgrel=1
 pkgdesc="The main PiKVM daemon"
 url="https://github.com/pikvm/kvmd"
@@ -87,11 +87,11 @@ depends=(
 	iproute2
 	dnsmasq
 	ipmitool
-	"janus-gateway-pikvm>=0.11.2-7"
+	"janus-gateway-pikvm>=0.14.2-3"
 	certbot
 	platform-io-access
 	raspberrypi-utils
-	"ustreamer>=5.32"
+	"ustreamer>=6.11"
 
 	# Systemd UDEV bug
 	"systemd>=248.3-2"
@@ -113,6 +113,9 @@ depends=(
 
 	# fsck for /boot
 	dosfstools
+
+	# pgrep for kvmd-udev-restart-pass
+	procps-ng
 
 	# Misc
 	hostapd
@@ -200,7 +203,7 @@ for _variant in "${_variants[@]}"; do
 		cd \"kvmd-\$pkgver\"
 
 		pkgdesc=\"PiKVM platform configs - $_platform for $_board\"
-		depends=(kvmd=$pkgver-$pkgrel \"linux-rpi-pikvm>=5.15.68-3\")
+		depends=(kvmd=$pkgver-$pkgrel \"linux-rpi-pikvm>=6.6.21-3\")
 
 		backup=(
 			etc/sysctl.d/99-kvmd.conf
@@ -216,6 +219,9 @@ for _variant in "${_variants[@]}"; do
 
 		if [[ $_platform =~ ^.*-hdmiusb$ ]]; then
 			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-hdmiusb-check
+		fi
+		if [[ $_base == v4plus ]]; then
+			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-restart-pass
 		fi
 
 		install -DTm644 configs/os/sysctl.conf \"\$pkgdir/etc/sysctl.d/99-kvmd.conf\"
@@ -242,7 +248,7 @@ for _variant in "${_variants[@]}"; do
 
 		if [[ $_platform =~ ^.*-hdmi$ ]]; then
 			backup=(\"\${backup[@]}\" etc/kvmd/tc358743-edid.hex)
-			install -DTm444 configs/kvmd/edid/$_platform.hex \"\$pkgdir/etc/kvmd/tc358743-edid.hex\"
+			install -DTm444 configs/kvmd/edid/$_base.hex \"\$pkgdir/etc/kvmd/tc358743-edid.hex\"
 		fi
 
 		mkdir -p \"\$pkgdir/usr/share/kvmd\"

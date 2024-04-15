@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -69,6 +69,19 @@ export function Streamer() {
 		$("stream-resolution-selector").onchange = (() => __sendParam("resolution", $("stream-resolution-selector").value));
 
 		tools.radio.setOnClick("stream-mode-radio", __clickModeRadio, false);
+
+		// Not getInt() because of radio is a string container.
+		// Also don't reset Janus at class init.
+		tools.radio.clickValue("stream-orient-radio", tools.storage.get("stream.orient", 0));
+		tools.radio.setOnClick("stream-orient-radio", function() {
+			if (__streamer.getMode() === "janus") { // Right now it's working only for H.264
+				let orient = parseInt(tools.radio.getValue("stream-orient-radio"));
+				tools.storage.setInt("stream.orient", orient);
+				if (__streamer.getOrientation() != orient) {
+					__resetStream();
+				}
+			}
+		}, false);
 
 		tools.slider.setParams($("stream-audio-volume-slider"), 0, 100, 1, 0, function(value) {
 			$("stream-video").muted = !value;
@@ -203,15 +216,11 @@ export function Streamer() {
 	var __setActive = function() {
 		$("stream-led").className = "led-green";
 		$("stream-led").title = "Stream is active";
-		tools.el.setEnabled($("stream-screenshot-button"), true);
-		tools.el.setEnabled($("stream-reset-button"), true);
 	};
 
 	var __setInactive = function() {
 		$("stream-led").className = "led-gray";
 		$("stream-led").title = "Stream inactive";
-		tools.el.setEnabled($("stream-screenshot-button"), false);
-		tools.el.setEnabled($("stream-reset-button"), false);
 	};
 
 	var __setInfo = function(is_active, online, text) {
@@ -248,13 +257,18 @@ export function Streamer() {
 		}
 		__streamer.stopStream();
 		if (mode === "janus") {
-			__streamer = new JanusStreamer(__setActive, __setInactive, __setInfo, !$("stream-video").muted);
+			__streamer = new JanusStreamer(__setActive, __setInactive, __setInfo,
+				tools.storage.getInt("stream.orient", 0), !$("stream-video").muted);
+			// Firefox doesn't support RTP orientation:
+			//  - https://bugzilla.mozilla.org/show_bug.cgi?id=1316448
+			tools.feature.setEnabled($("stream-orient"), !tools.browser.is_firefox);
 		} else { // mjpeg
 			__streamer = new MjpegStreamer(__setActive, __setInactive, __setInfo);
+			tools.feature.setEnabled($("stream-orient"), false);
 			tools.feature.setEnabled($("stream-audio"), false); // Enabling in stream_janus.js
 		}
 		if (wm.isWindowVisible($("stream-window"))) {
-			__streamer.ensureStream(__state);
+			__streamer.ensureStream(__state ? __state.streamer : null);
 		}
 	};
 
@@ -270,7 +284,7 @@ export function Streamer() {
 
 	var __clickScreenshotButton = function() {
 		let el = document.createElement("a");
-		el.href = "/api/streamer/snapshot?allow_offline=1";
+		el.href = "/api/streamer/snapshot";
 		el.target = "_blank";
 		document.body.appendChild(el);
 		el.click();
@@ -281,11 +295,9 @@ export function Streamer() {
 		wm.confirm("Are you sure you want to reset stream?").then(function (ok) {
 			if (ok) {
 				__resetStream();
-				let http = tools.makeRequest("POST", "/api/streamer/reset", function() {
-					if (http.readyState === 4) {
-						if (http.status !== 200) {
-							wm.error("Can't reset stream:<br>", http.responseText);
-						}
+				tools.httpPost("/api/streamer/reset", function(http) {
+					if (http.status !== 200) {
+						wm.error("Can't reset stream:<br>", http.responseText);
 					}
 				});
 			}
@@ -293,11 +305,9 @@ export function Streamer() {
 	};
 
 	var __sendParam = function(name, value) {
-		let http = tools.makeRequest("POST", `/api/streamer/set_params?${name}=${value}`, function() {
-			if (http.readyState === 4) {
-				if (http.status !== 200) {
-					wm.error("Can't configure stream:<br>", http.responseText);
-				}
+		tools.httpPost(`/api/streamer/set_params?${name}=${value}`, function(http) {
+			if (http.status !== 200) {
+				wm.error("Can't configure stream:<br>", http.responseText);
 			}
 		});
 	};

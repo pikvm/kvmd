@@ -30,6 +30,10 @@ li(id="system-dropdown" class="right")
 				td JPEG quality:
 				td(class="value-slider") #[input(disabled type="range" id="stream-quality-slider" class="slider")]
 				td(id="stream-quality-value" class="value-number")
+			tr
+				td JPEG max fps:
+				td(class="value-slider") #[input(disabled type="range" id="stream-desired-fps-slider" class="slider")]
+				td(id="stream-desired-fps-value" class="value-number")
 			tr(id="stream-h264-bitrate" class="feature-disabled")
 				td H.264 kbps:
 				td(class="value-slider") #[input(disabled type="range" id="stream-h264-bitrate-slider" class="slider")]
@@ -38,10 +42,6 @@ li(id="system-dropdown" class="right")
 				td H.264 #[a(target="_blank" href="https://docs.pikvm.org/webrtc") gop]:
 				td(class="value-slider") #[input(disabled type="range" id="stream-h264-gop-slider" class="slider")]
 				td(id="stream-h264-gop-value" class="value-number")
-			tr
-				td Max FPS:
-				td(class="value-slider") #[input(disabled type="range" id="stream-desired-fps-slider" class="slider")]
-				td(id="stream-desired-fps-value" class="value-number")
 			tr(id="stream-mode" class="feature-disabled")
 				td Video #[a(target="_blank" href="https://docs.pikvm.org/webrtc") mode]:
 				td
@@ -50,6 +50,18 @@ li(id="system-dropdown" class="right")
 						label(for="stream-mode-radio-mjpeg") MJPEG / HTTP
 						input(type="radio" id="stream-mode-radio-janus" name="stream-mode-radio" value="janus")
 						label(for="stream-mode-radio-janus") H.264 / WebRTC
+			tr(id="stream-orient" class="feature-disabled")
+				td Orientation:
+				td
+					div(class="radio-box")
+						input(checked type="radio" id="stream-orient-radio-0" name="stream-orient-radio" value="0")
+						label(for="stream-orient-radio-0") Default
+						input(type="radio" id="stream-orient-radio-90" name="stream-orient-radio" value="90")
+						label(for="stream-orient-radio-90") 90&deg;
+						input(type="radio" id="stream-orient-radio-180" name="stream-orient-radio" value="180")
+						label(for="stream-orient-radio-180") 180&deg;
+						input(type="radio" id="stream-orient-radio-270" name="stream-orient-radio" value="270")
+						label(for="stream-orient-radio-270") 270&deg;
 			tr(id="stream-audio", class="feature-disabled")
 				td Audio volume:
 				td(class="value-slider") #[input(type="range" id="stream-audio-volume-slider" class="slider")]
@@ -57,8 +69,8 @@ li(id="system-dropdown" class="right")
 		hr
 		div(class="buttons buttons-row")
 			button(data-force-hide-menu data-show-window="stream-window" class="row33") &bull; Show stream
-			button(disabled data-force-hide-menu id="stream-screenshot-button" class="row33") &bull; Screenshot
-			button(disabled id="stream-reset-button" class="row33") Reset stream
+			button(data-force-hide-menu id="stream-screenshot-button" class="row33") &bull; Screenshot
+			button(id="stream-reset-button" class="row33") Reset stream
 		div(id="hid-outputs" class="feature-disabled")
 			hr
 			table(class="kv")
