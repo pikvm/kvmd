@@ -90,12 +90,17 @@ def _write_bytes(path: str, data: bytes) -> None:
         file.write(data)
 
 
+def _check_hid_otg(config: Section) -> bool:
+    return config.kvmd.hid.type == "otg" or (config.kvmd.hid.type == "multi"
+                                             and (config.kvmd.hid.keyboard_device["type"] == "otg" or config.kvmd.hid.mouse_device["type"] == "otg"))
+
+
 def _check_config(config: Section) -> None:
     if (
         not config.otg.devices.serial.enabled
         and not config.otg.devices.ethernet.enabled
-        and config.kvmd.hid.type != "otg"
         and config.kvmd.msd.type != "otg"
+        and not _check_hid_otg(config)
     ):
         raise RuntimeError("Nothing to do")
 
@@ -255,14 +260,16 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         logger.info("===== Ethernet =====")
         gc.add_ethernet(**cod.ethernet._unpack(ignore=["enabled"]))
 
-    if config.kvmd.hid.type == "otg":
+    if _check_hid_otg(config):
         logger.info("===== HID-Keyboard =====")
         gc.add_keyboard(cod.hid.keyboard.start, config.otg.remote_wakeup)
         logger.info("===== HID-Mouse =====")
-        gc.add_mouse(cod.hid.mouse.start, config.otg.remote_wakeup, config.kvmd.hid.mouse.absolute, config.kvmd.hid.mouse.horizontal_wheel)
-        if config.kvmd.hid.mouse_alt.device:
+        hid_mouse = config.kvmd.hid.get("mouse") or config.kvmd.hid.get("mouse_device", {}).get("mouse")
+        gc.add_mouse(cod.hid.mouse.start, config.otg.remote_wakeup, hid_mouse["absolute"], hid_mouse["horizontal_wheel"])
+        hid_mouse_alt = config.kvmd.hid.get("mouse_alt") or config.kvmd.hid.get("mouse_device", {}).get("mouse_alt")
+        if hid_mouse_alt["device"]:
             logger.info("===== HID-Mouse-Alt =====")
-            gc.add_mouse(cod.hid.mouse.start, config.otg.remote_wakeup, (not config.kvmd.hid.mouse.absolute), config.kvmd.hid.mouse.horizontal_wheel)
+        gc.add_mouse(cod.hid.mouse.start, config.otg.remote_wakeup, (not hid_mouse["absolute"]), hid_mouse["horizontal_wheel"])
 
     if config.kvmd.msd.type == "otg":
         logger.info("===== MSD =====")

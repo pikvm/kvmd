@@ -59,6 +59,11 @@ def main(argv: (list[str] | None)=None) -> None:
     hid_kwargs = config.kvmd.hid._unpack(ignore=["type", "keymap", "ignore_keys", "mouse_x_range", "mouse_y_range"])
     if config.kvmd.hid.type == "otg":
         hid_kwargs["udc"] = config.otg.udc  # XXX: Small crutch to pass UDC to the plugin
+    if config.kvmd.hid.type == "multi":
+        if config.kvmd.hid.keyboard_device.type == "otg":
+            hid_kwargs["keyboard_device"]["udc"] = config.otg.udc
+        if config.kvmd.hid.mouse_device.type == "otg":
+            hid_kwargs["mouse_device"]["udc"] = config.otg.udc
 
     global_config = config
     config = config.kvmd
