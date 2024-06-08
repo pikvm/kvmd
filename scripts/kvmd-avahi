@@ -31,7 +31,6 @@ if [ "$1" != --do-the-thing ]; then
 	echo "This script will make some firstboot magic. Don't run it manually."
 	exit 1
 fi
-#!/bin/bash
 
 # Function to get the serial number
 get_serial_number() {
