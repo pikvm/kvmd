@@ -45,12 +45,11 @@ path="/etc/kvmd/$target/ssl"
 set -e
 
 #Read Serial Number or use default all-zeros
-if read -r serialnumber </proc/device-tree/serial-number; then
-	serial="$serialnumber"
-else
-	serial="0000000000000000"
-fi
-
+get_serial_number() {
+    serialnumber=$(cat /proc/device-tree/serial-number 2>/dev/null || echo "0000000000000000")
+    echo "$serialnumber"
+}
+serial=$(get_serial_number)
 san="DNS:pikvm-${serial}.local"
 
 # Function to fetch IP addresses
