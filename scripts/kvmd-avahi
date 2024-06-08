@@ -1,0 +1,123 @@
+#!/bin/bash
+# ========================================================================== #
+#                                                                            #
+#    KVMD - The main PiKVM daemon.                                           #
+#                                                                            #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+# ========================================================================== #
+
+set -ex
+
+if [ "$(whoami)" != root ]; then
+	echo "Only root can do that"
+	exit 1
+fi
+
+if [ "$1" != --do-the-thing ]; then
+	echo "This script will make some firstboot magic. Don't run it manually."
+	exit 1
+fi
+#!/bin/bash
+
+# Function to get the serial number
+get_serial_number() {
+    serialnumber=$(cat /proc/device-tree/serial-number 2>/dev/null || echo "0000000000000000")
+    echo "$serialnumber"
+}
+
+# Function to get the model number
+get_model_number() {
+    modelnumber=$(cat /proc/device-tree/model 2>/dev/null || echo "Unknown Model")
+    echo "$modelnumber"
+}
+
+# Function to compute MD5 hash.  Lightweight to conserve processing
+compute_md5_hash() {
+    echo -n "$1" | md5sum | awk '{print $1}'
+}
+
+# Get the serial number and model
+serial=$(get_serial_number)
+model=$(get_model_number)
+
+# Define the new Avahi service configuration
+new_avahi_config="<?xml version=\"1.0\" standalone='no'?>
+<!DOCTYPE service-group SYSTEM \"avahi-service.dtd\">
+<service-group>
+  <name replace-wildcards=\"yes\">pikvm-${serial}.local</name>
+  <service>
+    <type>_pikvm._tcp</type>
+    <port>443</port>
+    <txt-record>path=/</txt-record>
+    <txt-record>protocol=https</txt-record>
+    <txt-record>description=PiKVM Web Server</txt-record>
+    <txt-record>serial=${serial}</txt-record>
+    <txt-record>model=${model}</txt-record>
+  </service>
+  <service>
+    <type>_https._tcp</type>
+    <port>443</port>
+    <txt-record>path=/</txt-record>
+    <txt-record>protocol=https</txt-record>
+    <txt-record>description=PiKVM Web Server</txt-record>
+    <txt-record>serial=${serial}</txt-record>
+    <txt-record>model=${model}</txt-record>
+  </service>
+</service-group>"
+
+# Path to the Avahi service file
+avahi_service_file="/etc/avahi/services/pikvm.service"
+
+# Function to compute the hash of the current config file
+compute_config_hash() {
+    echo -n "$1" | md5sum | awk '{print $1}'
+}
+
+# Compute the hash of the new config
+new_config_hash=$(compute_config_hash "$new_avahi_config")
+
+# Check if the service file exists and has the same content
+# Only write if requried so we preserve SDCards.
+if [ -f "$avahi_service_file" ]; then
+    current_config=$(cat "$avahi_service_file")
+    current_config_hash=$(compute_config_hash "$current_config")
+    if [ "$current_config_hash" != "$new_config_hash" ]; then
+        # Update the Avahi service file
+        echo "Creating/updating Avahi service file..."
+        echo "$new_avahi_config" > "$avahi_service_file"
+        echo "Avahi service file created/updated at $avahi_service_file"
+    fi
+else
+    # Create the Avahi service file if it doesn't exist
+    echo "Creating Avahi service file..."
+    echo "$new_avahi_config" > "$avahi_service_file"
+    echo "Avahi service file created at $avahi_service_file"
+fi
+
+# Install Avahi if not already installed
+if ! pacman -Qi avahi &>/dev/null; then
+    echo "Installing Avahi..."
+    pacman -S --noconfirm avahi
+    echo "Avahi installed successfully."
+	
+	# Enable and start Avahi daemon to apply changes
+	echo "Enabling and starting Avahi daemon..."
+	systemctl enable avahi-daemon
+	systemctl start avahi-daemon
+	echo "Avahi daemon started successfully."
+fi
+

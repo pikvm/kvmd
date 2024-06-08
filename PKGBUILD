@@ -154,7 +154,7 @@ package_kvmd() {
 	cd "$srcdir/kvmd-$pkgver"
 	pip install --root="$pkgdir" --no-deps .
 
-	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot}
+	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot,avahi}
 
 	install -Dm644 -t "$pkgdir/usr/lib/systemd/system" configs/os/services/*
 	install -DTm644 configs/os/sysusers.conf "$pkgdir/usr/lib/sysusers.d/kvmd.conf"
