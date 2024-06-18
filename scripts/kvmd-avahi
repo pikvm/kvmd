@@ -102,7 +102,8 @@ if [ -f "$avahi_service_file" ]; then
     fi
 else
     # Create the Avahi service file if it doesn't exist
-    echo "Creating Avahi service file..."
+    mkdir -p $(dirname ${avahi_service_file})
+    echo "Creating Avahi service file."
     echo "$new_avahi_config" > "$avahi_service_file"
     echo "Avahi service file created at $avahi_service_file"
 fi
