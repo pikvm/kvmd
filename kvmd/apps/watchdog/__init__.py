@@ -56,6 +56,8 @@ def _write_int(rtc: int, key: str, value: int) -> None:
 def _reset_alarm(rtc: int, timeout: int) -> None:
     try:
         now = _read_int(rtc, "since_epoch")
+    except FileNotFoundError:
+        raise RtcIsNotAvailableError("RTC device not found")
     except OSError as err:
         if err.errno != errno.EINVAL:
             raise
