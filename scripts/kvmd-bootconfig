@@ -69,7 +69,8 @@ if [ -n "$FIRSTBOOT$FIRST_BOOT" ]; then
 	rm -f /etc/kvmd/vnc/ssl/*
 	kvmd-gencert --do-the-thing
 	kvmd-gencert --do-the-thing --vnc
-
+	kvmd-avahi
+	
 	if grep -q 'X-kvmd\.otgmsd' /etc/fstab; then
 		part=$(grep 'X-kvmd\.otgmsd' /etc/fstab | awk '{print $1}')
 		# shellcheck disable=SC2206
