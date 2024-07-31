@@ -62,6 +62,12 @@ http {
 		include /etc/kvmd/nginx/ssl.conf;
 		include /etc/kvmd/nginx/kvmd.ctx-server.conf;
 		include /usr/share/kvmd/extras/*/nginx.ctx-server.conf;
+
+		% if prometheus_use_separate_port:
+		location /api/export/prometheus/metrics {
+			return 404;
+		}
+		% endif
 	}
 
 	% else:
@@ -74,7 +80,30 @@ http {
 		include /etc/kvmd/nginx/certbot.ctx-server.conf;
 		include /etc/kvmd/nginx/kvmd.ctx-server.conf;
 		include /usr/share/kvmd/extras/*/nginx.ctx-server.conf;
+
+		% if prometheus_use_separate_port:
+		location /api/export/prometheus/metrics {
+			return 404;
+		}
+		% endif
 	}
 
+	% endif
+
+	% if prometheus_use_separate_port:
+	server {
+		listen ${prometheus_http_port};
+		% if ipv6_enabled:
+		listen [::]:${prometheus_http_port};
+		% endif
+
+		location /api/export/prometheus/metrics {
+			rewrite ^/api$ / break;
+			rewrite ^/api/(.*)$ /$1 break;
+			proxy_pass http://kvmd;
+			include /etc/kvmd/nginx/loc-proxy.conf;
+			auth_request off;
+		}
+	}
 	% endif
 }

@@ -752,6 +752,10 @@ def _get_config_scheme() -> dict:
                 "enabled": Option(True, type=valid_bool),
                 "port":    Option(443,  type=valid_port),
             },
+            "prometheus": {
+                "use_separate_port": Option(False, type=valid_bool),
+                "http_port":         Option(22091, type=valid_port),
+            },
         },
 
         "janus": {
