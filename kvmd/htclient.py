@@ -77,6 +77,7 @@ async def download(
             sock_connect=timeout,
             sock_read=(read_timeout if read_timeout is not None else timeout),
         ),
+        "trust_env": True,
     }
     async with aiohttp.ClientSession(**kwargs) as session:
         async with session.get(url, verify_ssl=verify) as response:
