@@ -68,6 +68,7 @@ async def download(
     timeout: float=10.0,
     read_timeout: (float | None)=None,
     app: str="KVMD",
+    trust_env: bool=False,
 ) -> AsyncGenerator[aiohttp.ClientResponse, None]:
 
     kwargs: dict = {
@@ -77,7 +78,7 @@ async def download(
             sock_connect=timeout,
             sock_read=(read_timeout if read_timeout is not None else timeout),
         ),
-        "trust_env": True,
+        "trust_env": trust_env,
     }
     async with aiohttp.ClientSession(**kwargs) as session:
         async with session.get(url, verify_ssl=verify) as response:
