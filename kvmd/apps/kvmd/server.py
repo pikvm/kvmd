@@ -172,6 +172,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
 
         self.__auth_manager = auth_manager
         self.__hid = hid
+        self.__atx = atx
         self.__streamer = streamer
         self.__snapshoter = snapshoter  # Not a component: No state or cleanup
 
@@ -209,6 +210,11 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__streamer_notifier = aiotools.AioNotifier()
         self.__reset_streamer = False
         self.__new_streamer_params: dict = {}
+
+        if callable(getattr(hid,'set_parent', None)):
+            hid.set_parent(self)
+        if callable(getattr(atx,'set_parent', None)):
+            atx.set_parent(self)
 
     # ===== STREAMER CONTROLLER
 
