@@ -39,9 +39,11 @@ class InfoManager:
             "auth": AuthInfoSubmanager(config.kvmd.auth.enabled),
             "meta": MetaInfoSubmanager(config.kvmd.info.meta),
             "extras": ExtrasInfoSubmanager(config),
-            "hw": HwInfoSubmanager(**config.kvmd.info.hw._unpack()),
-            "fan": FanInfoSubmanager(**config.kvmd.info.fan._unpack()),
         }
+        if not "hw" in config.kvmd.info.disabled:
+            self.__subs["hw"] = HwInfoSubmanager(**config.kvmd.info.hw._unpack())
+        if not "fan" in config.kvmd.info.disabled:
+            self.__subs["fan"] = FanInfoSubmanager(**config.kvmd.info.fan._unpack())
 
     def get_subs(self) -> set[str]:
         return set(self.__subs)

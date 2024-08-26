@@ -393,6 +393,10 @@ def _get_config_scheme() -> dict:
                     "timeout":    Option(5.0, type=valid_float_f01),
                     "state_poll": Option(5.0, type=valid_float_f01),
                 },
+                "disabled": Option(
+                    [],
+                    type=functools.partial(valid_string_list), unpack_as="disabled",
+                ),
             },
 
             "log_reader": {
