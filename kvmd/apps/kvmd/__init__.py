@@ -54,6 +54,8 @@ def main(argv: (list[str] | None)=None) -> None:
 
     msd_kwargs = config.kvmd.msd._unpack(ignore=["type"])
     if config.kvmd.msd.type == "otg":
+        msd_kwargs["inquiry_string_cdrom"] = config.otg.devices.msd.default.inquiry_string_cdrom
+        msd_kwargs["inquiry_string_flash"] = config.otg.devices.msd.default.inquiry_string_flash
         msd_kwargs["gadget"] = config.otg.gadget  # XXX: Small crutch to pass gadget name to the plugin
 
     hid_kwargs = config.kvmd.hid._unpack(ignore=["type", "keymap", "ignore_keys", "mouse_x_range", "mouse_y_range"])
