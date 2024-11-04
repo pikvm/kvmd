@@ -124,6 +124,8 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         initial: dict,
 
         gadget: str,  # XXX: Not from options, see /kvmd/apps/kvmd/__init__.py for details
+        inquiry_string_cdrom: str, # Ditto
+        inquiry_string_flash: str, # Ditto
     ) -> None:
 
         self.__read_chunk_size = read_chunk_size
@@ -133,7 +135,8 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         self.__initial_image: str = initial["image"]
         self.__initial_cdrom: bool = initial["cdrom"]
 
-        self.__drive = Drive(gadget, instance=0, lun=0)
+        self.__drive = Drive(gadget, instance=0, lun=0, 
+                             inquiry_string_cdrom=inquiry_string_cdrom, inquiry_string_flash=inquiry_string_flash)
         self.__storage = Storage(fstab.find_msd().root_path, remount_cmd)
 
         self.__reader: (MsdFileReader | None) = None
@@ -552,6 +555,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                     self.__drive.set_rw_flag(False)
                     self.__drive.set_cdrom_flag(self.__initial_cdrom)
                     self.__drive.set_image_path(image.path)
+                    self.__drive.set_inquiry_string(self.__initial_cdrom)
                 except Exception:
                     logger.exception("Can't setup initial image: ignored")
             else:
