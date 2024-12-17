@@ -23,6 +23,7 @@
 import secrets
 import pyotp
 
+from .oauth import OAuthManager
 from ...logging import get_logger
 
 from ... import aiotools
@@ -34,8 +35,8 @@ from ...htserver import HttpExposed
 
 
 # =====
-class AuthManager:
-    def __init__(
+class AuthManager:  # pylint: disable=too-many-instance-attributes
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         enabled: bool,
         unauth_paths: list[str],
@@ -48,6 +49,9 @@ class AuthManager:
         external_kwargs: dict,
 
         totp_secret_path: str,
+
+        oauth_enabled: bool = False,
+        oauth_providers: (dict | None) = None,
     ) -> None:
 
         self.__enabled = enabled
@@ -70,9 +74,17 @@ class AuthManager:
             self.__external_service = get_auth_service_class(external_type)(**external_kwargs)
             get_logger().info("Using external auth service %r", self.__external_service.get_plugin_name())
 
+        self.oauth_manager: (OAuthManager | None) = None
+        if enabled and oauth_enabled:
+            if oauth_providers is None:
+                oauth_providers = {}
+            self.oauth_manager = OAuthManager(oauth_providers)
+            get_logger().info("Using OAuth service")
+
         self.__totp_secret_path = totp_secret_path
 
         self.__tokens: dict[str, str] = {}  # {token: user}
+        self.__oauth_tokens: list[str] = []
 
     def is_auth_enabled(self) -> bool:
         return self.__enabled
@@ -123,6 +135,22 @@ class AuthManager:
             return token
         else:
             return None
+
+    async def login_oauth(self, user: str) -> (str | None):
+        """
+        registers the user, who logged in with oauth, with a new token.
+        @param user: the username provided by the oauth provider
+        @return:
+        """
+        assert user == user.strip()
+        assert user
+        assert self.__enabled
+        assert self.oauth_manager
+        token = self.__make_new_token()
+        self.__tokens[token] = user
+
+        get_logger().info("Logged in user with OAuth %r", user)
+        return token
 
     def __make_new_token(self) -> str:
         for _ in range(10):
