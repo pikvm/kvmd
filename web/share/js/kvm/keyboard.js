@@ -33,6 +33,7 @@ export function Keyboard(__recordWsEvent) {
 	var __online = true;
 
 	var __keypad = null;
+	var __metaKeyDown = false;
 
 	var __init__ = function() {
 		__keypad = new Keypad("div#keyboard-window", __sendKey, true);
@@ -126,8 +127,25 @@ export function Keyboard(__recordWsEvent) {
 
 	var __keyboardHandler = function(event, state) {
 		event.preventDefault();
+		__keyboardMetaKeyFixer(event, state);
 		__keypad.emitByKeyEvent(event, state);
 	};
+
+	var __keyboardMetaKeyFixer = function(event, state) {
+		var ignoreList = ["AltLeft", "AltRight", "ControlLeft", "ControlRight",
+						 "ShiftLeft", "ShiftRight"];
+		
+		if (event.code === "MetaLeft" || event.code === "MetaRight") {
+			tools.debug("Keyboard: MetaKeyMode set:", state);
+			__metaKeyDown = state;
+		} else if (__metaKeyDown) {
+			if (state && !ignoreList.includes(event.code)) {
+				tools.debug("Keyboard: Forced keyUp:", event);
+				setTimeout(() => __keypad.emitByKeyEvent(event, false));					
+			}
+		}
+		return true;
+	}
 
 	var __sendKey = function(code, state) {
 		tools.debug("Keyboard: key", (state ? "pressed:" : "released:"), code);
