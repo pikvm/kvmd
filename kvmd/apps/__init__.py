@@ -629,6 +629,7 @@ def _get_config_scheme() -> dict:
                 "audio": {
                     "enabled":  Option(False, type=valid_bool),
                     "start":    Option(True,  type=valid_bool),
+                    "enable_audio_capture": Option(False, type=valid_bool),
                 },
 
                 "drives": {
