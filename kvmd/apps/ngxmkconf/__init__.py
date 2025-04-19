@@ -50,6 +50,8 @@ def main(argv: (list[str] | None)=None) -> None:
         template = in_file.read()
 
     rendered = mako.template.Template(template).render(
+        ipv4_host=config.nginx.listen.ipv4,
+        ipv6_host=config.nginx.listen.ipv6,
         http_port=config.nginx.http.port,
         https_enabled=config.nginx.https.enabled,
         https_port=config.nginx.https.port,

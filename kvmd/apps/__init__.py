@@ -75,6 +75,7 @@ from ..validators.os import valid_options
 from ..validators.os import valid_command
 
 from ..validators.net import valid_ip_or_host
+from ..validators.net import valid_ip
 from ..validators.net import valid_net
 from ..validators.net import valid_port
 from ..validators.net import valid_ports_list
@@ -805,6 +806,10 @@ def _get_config_scheme() -> dict:
         },
 
         "nginx": {
+            "listen": {
+                "ipv4": Option("0.0.0.0", type=functools.partial(valid_ip, v6=False)),
+                "ipv6": Option("[::]", type=functools.partial(valid_ip, v4=False)),
+            },
             "http": {
                 "port": Option(80, type=valid_port),
             },

@@ -39,9 +39,9 @@ http {
 	% if https_enabled:
 
 	server {
-		listen ${http_port};
+		listen ${ipv4_host}:${http_port};
 		% if ipv6_enabled:
-		listen [::]:${http_port};
+		listen ${ipv6_host}:${http_port};
 		% endif
 		include /etc/kvmd/nginx/certbot.ctx-server.conf;
 		location / {
@@ -54,9 +54,9 @@ http {
 	}
 
 	server {
-		listen ${https_port} ssl;
+		listen ${ipv4_host}:${https_port} ssl;
 		% if ipv6_enabled:
-		listen [::]:${https_port} ssl;
+		listen ${ipv6_host}:${https_port} ssl;
 		% endif
 		http2 on;
 		include /etc/kvmd/nginx/ssl.conf;
@@ -67,9 +67,9 @@ http {
 	% else:
 
 	server {
-		listen ${http_port};
+		listen ${ipv4_host}:${http_port};
 		% if ipv6_enabled:
-		listen [::]:${http_port};
+		listen ${ipv6_host}:${http_port};
 		% endif
 		include /etc/kvmd/nginx/certbot.ctx-server.conf;
 		include /etc/kvmd/nginx/kvmd.ctx-server.conf;
