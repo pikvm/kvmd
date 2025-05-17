@@ -23,6 +23,7 @@
 import asyncio
 import threading
 import dataclasses
+import typing
 
 import gpiod
 
@@ -114,11 +115,12 @@ class AioReader:  # pylint: disable=too-many-instance-attributes
                         self.__values[pin].set(bool(value.value))  # type: ignore
 
     def __parse_event(self, event: gpiod.EdgeEvent) -> tuple[int, bool]:
-        if event.event_type == event.Type.RISING_EDGE:
-            return (event.line_offset, True)
-        elif event.event_type == event.Type.FALLING_EDGE:
-            return (event.line_offset, False)
-        raise RuntimeError(f"Invalid event {event} type: {event.type}")
+        match event.event_type:
+            case event.Type.RISING_EDGE:
+                return (event.line_offset, True)
+            case event.Type.FALLING_EDGE:
+                return (event.line_offset, False)
+        typing.assert_never(event.type)
 
 
 class _DebouncedValue:
