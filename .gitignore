@@ -19,3 +19,4 @@
 *.pyc
 *.swp
 /venv/
+.DS_Store

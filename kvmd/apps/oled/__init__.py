@@ -44,6 +44,53 @@ _logger = logging.getLogger("oled")
 
 # =====
 def _detect_geometry() -> dict:
+    # First try to detect actual OLED device height by creating a temporary device
+    try:
+        from luma.core.interface.serial import i2c
+        from luma.oled.device import ssd1306, sh1106
+        
+        for address in [0x3C, 0x3D]: # Common I2C addresses
+            try:
+                serial = i2c(port=1, address=address)
+                # SSD1306
+                try:
+                    temp_device = ssd1306(serial)
+                    height = temp_device.height
+                    temp_device.cleanup()
+                    
+                    # Determine rotation based on device type and height
+                    with open("/proc/device-tree/model") as file:
+                        is_cm4 = ("Compute Module 4" in file.read())
+                    has_usb = bool(list(usb.core.find(find_all=True)))
+                    
+                    if is_cm4 and has_usb and height >= 64:
+                        return {"height": height, "rotate": 2}
+                    else:
+                        return {"height": height, "rotate": 0}
+                        
+                except Exception:
+                    # Try SH1106 if SSD1306 fails
+                    try:
+                        temp_device = sh1106(serial)
+                        height = temp_device.height
+                        temp_device.cleanup()
+                        
+                        with open("/proc/device-tree/model") as file:
+                            is_cm4 = ("Compute Module 4" in file.read())
+                        has_usb = bool(list(usb.core.find(find_all=True)))
+                        
+                        if is_cm4 and has_usb and height >= 64:
+                            return {"height": height, "rotate": 2}
+                        else:
+                            return {"height": height, "rotate": 0}
+                    except Exception:
+                        continue
+            except Exception:
+                continue
+    except Exception:
+        pass
+    
+    # Fallback to original logic if device detection fails
     with open("/proc/device-tree/model") as file:
         is_cm4 = ("Compute Module 4" in file.read())
     has_usb = bool(list(usb.core.find(find_all=True)))
