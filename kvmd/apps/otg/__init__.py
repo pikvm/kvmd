@@ -112,17 +112,22 @@ class _GadgetConfig:
         self.__msd_instance = 0
         _mkdir(meta_path)
 
-    def add_audio_mic(self, start: bool) -> None:
+    def add_audio_devices(self, start: bool, enable_capture: bool) -> None:
         eps = 2
         func = "uac2.usb0"
         func_path = self.__create_function(func)
-        _write(join(func_path, "c_chmask"), 0)
+        if enable_capture:
+            _write(join(func_path, "c_chmask"), 0b11)
+            _write(join(func_path, "c_srate"), 48000)
+            _write(join(func_path, "c_ssize"), 2)
+        else:
+            _write(join(func_path, "c_chmask"), 0)
         _write(join(func_path, "p_chmask"), 0b11)
         _write(join(func_path, "p_srate"), 48000)
         _write(join(func_path, "p_ssize"), 2)
         if start:
             self.__start_function(func, eps)
-        self.__create_meta(func, "Microphone", eps)
+        self.__create_meta(func, "USB Audio", eps)
 
     def add_serial(self, start: bool) -> None:
         eps = 3
@@ -335,8 +340,8 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         gc.add_serial(cod.serial.start)
 
     if cod.audio.enabled:
-        logger.info("===== Microphone =====")
-        gc.add_audio_mic(cod.audio.start)
+        logger.info("===== Audio Devices =====")
+        gc.add_audio_devices(cod.audio.start, cod.audio.enable_audio_capture)
 
     logger.info("===== Preparing complete =====")
 
