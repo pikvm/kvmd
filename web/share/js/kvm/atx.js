@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -32,61 +32,83 @@ export function Atx(__recorder) {
 
 	/************************************************************************/
 
+	var __has_switch = null; // Or true/false
+	var __state = null;
+
 	var __init__ = function() {
 		$("atx-power-led").title = "Power Led";
 		$("atx-hdd-led").title = "Disk Activity Led";
 
 		tools.storage.bindSimpleSwitch($("atx-ask-switch"), "atx.ask", true);
 
-		for (let args of [
-			["atx-power-button", "power", "Are you sure you want to press the power button?"],
-			["atx-power-button-long", "power_long", `
-				Are you sure you want to long press the power button?<br>
-				Warning! This could cause data loss on the server.
-			`],
-			["atx-reset-button", "reset", `
-				Are you sure you want to press the reset button?<br>
-				Warning! This could case data loss on the server.
-			`],
-		]) {
-			tools.el.setOnClick($(args[0]), () => __clickButton(args[1], args[2]));
-		}
+		tools.el.setOnClick($("atx-power-button"), () => __clickAtx("power"));
+		tools.el.setOnClick($("atx-power-button-long"), () => __clickAtx("power_long"));
+		tools.el.setOnClick($("atx-reset-button"), () => __clickAtx("reset"));
 	};
 
 	/************************************************************************/
 
 	self.setState = function(state) {
-		let buttons_enabled = false;
 		if (state) {
-			tools.feature.setEnabled($("atx-dropdown"), state.enabled);
-			$("atx-power-led").className = (state.busy ? "led-yellow" : (state.leds.power ? "led-green" : "led-gray"));
-			$("atx-hdd-led").className = (state.leds.hdd ? "led-red" : "led-gray");
-			buttons_enabled = !state.busy;
+			if (!__state) {
+				__state = {"leds": {}};
+			}
+			if (state.enabled !== undefined) {
+				__state.enabled = state.enabled;
+				tools.feature.setEnabled($("atx-dropdown"), (__state.enabled && !__has_switch));
+			}
+			if (__state.enabled !== undefined) {
+				if (state.busy !== undefined) {
+					__updateButtons(!state.busy);
+					__state.busy = state.busy;
+				}
+				if (state.leds !== undefined) {
+					__state.leds = state.leds;
+				}
+				if (state.busy !== undefined || state.leds !== undefined) {
+					__updateLeds(__state.leds.power, __state.leds.hdd, __state.busy);
+				}
+			}
 		} else {
-			$("atx-power-led").className = "led-gray";
-			$("atx-hdd-led").className = "led-gray";
-		}
-		for (let id of ["atx-power-button", "atx-power-button-long", "atx-reset-button"]) {
-			tools.el.setEnabled($(id), buttons_enabled);
+			__state = null;
+			__updateLeds(false, false, false);
+			__updateButtons(false);
 		}
 	};
 
-	var __clickButton = function(button, confirm_msg) {
+	self.setHasSwitch = function(has_switch) {
+		__has_switch = has_switch;
+		self.setState(__state);
+	};
+
+	var __updateLeds = function(power, hdd, busy) {
+		$("atx-power-led").className = (busy ? "led-yellow" : (power ? "led-green" : "led-gray"));
+		$("atx-hdd-led").className = (hdd ? "led-red" : "led-gray");
+	};
+
+	var __updateButtons = function(enabled) {
+		for (let id of ["atx-power-button", "atx-power-button-long", "atx-reset-button"]) {
+			tools.el.setEnabled($(id), enabled);
+		}
+	};
+
+	var __clickAtx = function(button) {
 		let click_button = function() {
-			let http = tools.makeRequest("POST", `/api/atx/click?button=${button}`, function() {
-				if (http.readyState === 4) {
-					if (http.status === 409) {
-						wm.error("Performing another ATX operation for other client.<br>Please try again later");
-					} else if (http.status !== 200) {
-						wm.error("Click error:<br>", http.responseText);
-					}
+			tools.httpPost("api/atx/click", {"button": button}, function(http) {
+				if (http.status === 409) {
+					wm.error("Performing another ATX operation for other client.<br>Please try again later.");
+				} else if (http.status !== 200) {
+					wm.error("Click error", http.responseText);
 				}
 			});
 			__recorder.recordAtxButtonEvent(button);
 		};
 
 		if ($("atx-ask-switch").checked) {
-			wm.confirm(confirm_msg).then(function(ok) {
+			wm.confirm(`
+				Are you sure you want to press the <b>${tools.escape(button)}</b> button?<br>
+				Warning! This could cause data loss on the server.
+			`).then(function(ok) {
 				if (ok) {
 					click_button();
 				}

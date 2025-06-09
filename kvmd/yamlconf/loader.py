@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -40,9 +40,9 @@ def load_yaml_file(path: str) -> Any:
     with open(path) as file:
         try:
             return yaml.load(file, _YamlLoader)
-        except Exception as err:
+        except Exception as ex:
             # Reraise internal exception as standard ValueError and show the incorrect file
-            raise ValueError(f"Invalid YAML in the file {path!r}:\n{tools.efmt(err)}") from None
+            raise ValueError(f"Invalid YAML in the file {path!r}:\n{tools.efmt(ex)}") from None
 
 
 # =====

@@ -1,0 +1,32 @@
+li.right.feature-disabled#switch-dropdown
+	a.menu-button#switch-menu-button(href="#")
+		+navbar_led("switch-atx-power-led", "led-atx-power")
+		+navbar_led("switch-atx-hdd-led", "led-atx-hdd")
+		span Switch #[i #[sub#switch-active-port]]
+
+	.menu#switch-menu
+		table(style="border-spacing: 0px")
+			tr
+				td
+					.text
+						b #[a(target="_blank" href="https://docs.pikvm.org/switch") PiKVM Switch] is attached#[br]
+						sub Select a port or perform any available action like ATX click
+				td
+					.text
+						button.small(data-force-hide-menu data-show-window="switch-window") &bull; Settings
+		hr
+
+		.hidden#switch-message-update
+			+menu_message("info", "Good news! Your switch is ready to get the firmware update")
+				| Please #[a(target="_blank" href="https://docs.pikvm.org/switch/#firmware-updating") follow the instructions]
+				| when you decide to install it.
+			hr
+
+		table.kv
+			tr
+				+menu_switch_td2("switch-atx-ask-switch", true, true) Ask ATX click confirmation:
+			tr
+				+menu_switch_td2("switch-msd-ask-switch", true, true) Confirm switching when the Drive is connected:
+		hr
+
+		table.kv#switch-chain

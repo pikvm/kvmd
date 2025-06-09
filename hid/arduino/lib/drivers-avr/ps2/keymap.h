@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -148,5 +148,8 @@ void keymapPs2(uint8_t code, Ps2KeyType *ps2_type, uint8_t *ps2_code) {
 		case 109: *ps2_type = PS2_KEY_TYPE_REG; *ps2_code = 19; return; // KanaMode
 		case 110: *ps2_type = PS2_KEY_TYPE_REG; *ps2_code = 100; return; // Convert
 		case 111: *ps2_type = PS2_KEY_TYPE_REG; *ps2_code = 103; return; // NonConvert
+		case 112: *ps2_type = PS2_KEY_TYPE_SPEC; *ps2_code = 35; return; // AudioVolumeMute
+		case 113: *ps2_type = PS2_KEY_TYPE_SPEC; *ps2_code = 50; return; // AudioVolumeUp
+		case 114: *ps2_type = PS2_KEY_TYPE_SPEC; *ps2_code = 33; return; // AudioVolumeDown
 	}
 }

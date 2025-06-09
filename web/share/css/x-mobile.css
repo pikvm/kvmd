@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -91,8 +91,8 @@ ul#navbar li a.menu-button:hover:not(.active) {
 /* ===== slider.css ===== */
 
 /*@media only screen and (orientation: portrait) {
-	@supports (-webkit-appearance: none) {
-		input[type=range].slider {
+	@supports (-webkit-locale: auto) {
+		input[type=range] {
 			margin: 20px 0 20px 0 !important;
 		}
 	}
@@ -112,10 +112,4 @@ ul#navbar li a.menu-button:hover:not(.active) {
 
 div.keypad {
 	zoom: 1.28 !important;
-}
-
-div.keypad div.key:hover,
-div.keypad div.modifier:hover {
-	color: var(--cs-key-default-fg);
-	background-color: var(--cs-key-default-bg);
 }

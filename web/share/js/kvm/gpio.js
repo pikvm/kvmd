@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -23,7 +23,8 @@
 "use strict";
 
 
-import {tools, $, $$$} from "../tools.js";
+import {ROOT_PREFIX} from "../vars.js";
+import {tools, $, $$} from "../tools.js";
 import {wm} from "../wm.js";
 
 
@@ -32,44 +33,59 @@ export function Gpio(__recorder) {
 
 	/************************************************************************/
 
-	var __state = null;
+	var __has_model = false;
 
 	/************************************************************************/
 
 	self.setState = function(state) {
 		if (state) {
-			for (let channel in state.inputs) {
-				let el = $(`gpio-led-${channel}`);
-				if (el) {
-					__setLedState(el, state.inputs[channel].state);
-				}
+			if (state.model !== undefined) {
+				__has_model = true;
+				__updateModel(state.model);
 			}
-			for (let channel in state.outputs) {
-				for (let type of ["switch", "button"]) {
-					let el = $(`gpio-${type}-${channel}`);
-					if (el) {
-						tools.el.setEnabled(el, state.outputs[channel].online && !state.outputs[channel].busy);
-					}
+			if (__has_model && state.state !== undefined) {
+				if (state.state.inputs !== undefined) {
+					__updateInputs(state.state.inputs);
 				}
-				let el = $(`gpio-switch-${channel}`);
-				if (el) {
-					el.checked = state.outputs[channel].state;
+				if (state.state.outputs !== undefined) {
+					__updateOutputs(state.state.outputs);
 				}
 			}
 		} else {
-			for (let el of $$$(".gpio-led")) {
+			__has_model = false;
+			for (let el of $$("__gpio-led")) {
 				__setLedState(el, false);
 			}
-			for (let selector of [".gpio-switch", ".gpio-button"]) {
-				for (let el of $$$(selector)) {
+			for (let selector of ["__gpio-switch", "__gpio-button"]) {
+				for (let el of $$(selector)) {
 					tools.el.setEnabled(el, false);
 				}
 			}
 		}
-		__state = state;
 	};
 
-	self.setModel = function(model) {
+	var __updateInputs = function(inputs) {
+		for (let ch in inputs) {
+			for (let el of $$(`__gpio-led-${ch}`)) {
+				__setLedState(el, inputs[ch].state);
+			}
+		}
+	};
+
+	var __updateOutputs = function(outputs) {
+		for (let ch in outputs) {
+			for (let type of ["switch", "button"]) {
+				for (let el of $$(`__gpio-${type}-${ch}`)) {
+					tools.el.setEnabled(el, (outputs[ch].online && !outputs[ch].busy));
+				}
+			}
+			for (let el of $$(`__gpio-switch-${ch}`)) {
+				el.checked = outputs[ch].state;
+			}
+		}
+	};
+
+	var __updateModel = function(model) {
 		tools.feature.setEnabled($("gpio-dropdown"), model.view.table.length);
 		if (model.view.table.length) {
 			let title = [];
@@ -84,63 +100,71 @@ export function Gpio(__recorder) {
 			$("gpio-menu-button").innerHTML = title.join(" ");
 		}
 
-		let content = "<table class=\"kv\">";
+		let html = "<table class=\"kv\">";
 		for (let row of model.view.table) {
 			if (row === null) {
-				content += "</table><hr><table class=\"kv\">";
+				html += "</table><hr><table class=\"kv\">";
 			} else {
-				content += "<tr>";
+				html += "<tr>";
 				for (let item of row) {
 					if (item.type === "output") {
 						item.scheme = model.scheme.outputs[item.channel];
 					}
-					content += `<td align="center">${__createItem(item)}</td>`;
+					html += `<td align="center">${__createItem(item)}</td>`;
 				}
-				content += "</tr>";
+				html += "</tr>";
 			}
 		}
-		content += "</table>";
-		$("gpio-menu").innerHTML = content;
+		html += "</table>";
+		$("gpio-menu").innerHTML = html;
 
-		for (let channel in model.scheme.outputs) {
-			let el = $(`gpio-switch-${channel}`);
-			if (el) {
-				tools.el.setOnClick(el, __createAction(el, __switchChannel));
+		for (let ch in model.scheme.outputs) {
+			for (let el of $$(`__gpio-switch-${ch}`)) {
+				tools.el.setOnClick(el, tools.partial(__switchChannel, el));
 			}
-			el = $(`gpio-button-${channel}`);
-			if (el) {
-				tools.el.setOnClick(el, __createAction(el, __pulseChannel));
+			for (let el of $$(`__gpio-button-${ch}`)) {
+				tools.el.setOnClick(el, tools.partial(__pulseChannel, el));
 			}
 		}
 
 		tools.feature.setEnabled($("v3-usb-breaker"), ("__v3_usb_breaker__" in model.scheme.outputs));
 		tools.feature.setEnabled($("v4-locator"), ("__v4_locator__" in model.scheme.outputs));
 		tools.feature.setEnabled($("system-tool-wol"), ("__wol__" in model.scheme.outputs));
-
-		self.setState(__state);
-	};
-
-	var __createAction = function(el, action) {
-		return () => action(el);
 	};
 
 	var __createItem = function(item) {
 		if (item.type === "label") {
 			return item.text;
+
 		} else if (item.type === "input") {
+			let e_ch_class = tools.escape(`__gpio-led-${item.channel}`);
+			let e_icon = tools.escape(`${ROOT_PREFIX}share/svg/led-circle.svg`);
 			return `
-				<img id="gpio-led-${item.channel}" class="gpio-led inline-lamp-big led-gray"
-				src="/share/svg/led-circle.svg" data-color="${item.color}" />
+				<img
+					class="__gpio-led ${e_ch_class} inline-lamp-big led-gray"
+					src="${e_icon}"
+					data-color="${tools.escape(item.color)}"
+				/>
 			`;
+
 		} else if (item.type === "output") {
 			let controls = [];
-			let confirm = (item.confirm ? "Are you sure you want to perform this action?" : "");
+			let e_ch = tools.escape(item.channel);
+			let e_confirm = (item.confirm ? tools.escape("Are you sure you want to perform this action?") : "");
 			if (item.scheme["switch"]) {
+				let e_id = tools.escape(`__gpio-switch-${tools.makeRandomId()}`);
+				let e_ch_class = tools.escape(`__gpio-switch-${item.channel}`);
 				controls.push(`
 					<td><div class="switch-box">
-						<input disabled type="checkbox" id="gpio-switch-${item.channel}" class="gpio-switch"
-						data-channel="${item.channel}" data-confirm="${confirm}" />
-						<label for="gpio-switch-${item.channel}">
+						<input
+							disabled
+							type="checkbox"
+							id="${e_id}"
+							class="__gpio-switch ${e_ch_class}"
+							data-channel="${e_ch}"
+							data-confirm="${e_confirm}"
+						/>
+						<label for="${e_id}">
 							<span class="switch-inner"></span>
 							<span class="switch"></span>
 						</label>
@@ -148,20 +172,28 @@ export function Gpio(__recorder) {
 				`);
 			}
 			if (item.scheme.pulse.delay) {
+				let e_ch_class = tools.escape(`__gpio-button-${item.channel}`);
 				controls.push(`
-					<td><button disabled id="gpio-button-${item.channel}" class="gpio-button"
-					data-channel="${item.channel}" data-confirm="${confirm}">${item.text}</button></td>
+					<td><button
+						disabled
+						class="__gpio-button ${e_ch_class}"
+						${item.hide ? "data-force-hide-menu" : ""}
+						data-channel="${e_ch}"
+						data-confirm="${e_confirm}"
+					>
+						${(item.hide ? "&bull; " : "") + tools.escape(item.text)}
+					</button></td>
 				`);
 			}
 			return `<table><tr>${controls.join("<td>&nbsp;&nbsp;&nbsp;</td>")}</tr></table>`;
-		} else {
-			return "";
 		}
+
+		return "";
 	};
 
-	var __setLedState = function(el, state) {
+	var __setLedState = function(el, on) {
 		let color = el.getAttribute("data-color");
-		if (state) {
+		if (on) {
 			el.classList.add(`led-${color}`);
 			el.classList.remove("led-gray");
 		} else {
@@ -171,22 +203,20 @@ export function Gpio(__recorder) {
 	};
 
 	var __switchChannel = function(el) {
-		let channel = el.getAttribute("data-channel");
+		let ch = el.getAttribute("data-channel");
 		let confirm = el.getAttribute("data-confirm");
-		let to = ($(`gpio-switch-${channel}`).checked ? "1" : "0");
+		let to = (el.checked ? "1" : "0");
 		if (to === "0" && el.hasAttribute("data-confirm-off")) {
 			confirm = el.getAttribute("data-confirm-off");
 		}
 		let act = () => {
-			__sendPost(`/api/gpio/switch?channel=${channel}&state=${to}`);
-			__recorder.recordGpioSwitchEvent(channel, to);
+			__sendPost("api/gpio/switch", {"channel": ch, "state": to});
+			__recorder.recordGpioSwitchEvent(ch, to);
 		};
 		if (confirm) {
-			wm.confirm(confirm).then(function(ok) {
+			wm.confirm(tools.escape(confirm)).then(function(ok) {
 				if (ok) {
 					act();
-				} else {
-					self.setState(__state); // Switch back
 				}
 			});
 		} else {
@@ -195,27 +225,29 @@ export function Gpio(__recorder) {
 	};
 
 	var __pulseChannel = function(el) {
-		let channel = el.getAttribute("data-channel");
+		let ch = el.getAttribute("data-channel");
 		let confirm = el.getAttribute("data-confirm");
 		let act = () => {
-			__sendPost(`/api/gpio/pulse?channel=${channel}`);
-			__recorder.recordGpioPulseEvent(channel);
+			__sendPost("api/gpio/pulse", {"channel": ch});
+			__recorder.recordGpioPulseEvent(ch);
 		};
 		if (confirm) {
-			wm.confirm(confirm).then(function(ok) { if (ok) act(); });
+			wm.confirm(tools.escape(confirm)).then(function(ok) {
+				if (ok) {
+					act();
+				}
+			});
 		} else {
 			act();
 		}
 	};
 
-	var __sendPost = function(url) {
-		let http = tools.makeRequest("POST", url, function() {
-			if (http.readyState === 4) {
-				if (http.status === 409) {
-					wm.error("Performing another operation for this GPIO channel.<br>Please try again later");
-				} else if (http.status !== 200) {
-					wm.error("GPIO error:<br>", http.responseText);
-				}
+	var __sendPost = function(url, params) {
+		tools.httpPost(url, params, function(http) {
+			if (http.status === 409) {
+				wm.error("Performing another operation for this GPIO channel.<br>Please try again later.");
+			} else if (http.status !== 200) {
+				wm.error("GPIO error", http.responseText);
 			}
 		});
 	};

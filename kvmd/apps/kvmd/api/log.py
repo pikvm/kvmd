@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -47,16 +47,16 @@ class LogApi:
     # =====
 
     @exposed_http("GET", "/log")
-    async def __log_handler(self, request: Request) -> StreamResponse:
+    async def __log_handler(self, req: Request) -> StreamResponse:
         if self.__log_reader is None:
             raise LogReaderDisabledError()
-        seek = valid_log_seek(request.query.get("seek", 0))
-        follow = valid_bool(request.query.get("follow", False))
-        response = await start_streaming(request, "text/plain")
+        seek = valid_log_seek(req.query.get("seek", 0))
+        follow = valid_bool(req.query.get("follow", False))
+        resp = await start_streaming(req, "text/plain")
         async for record in self.__log_reader.poll_log(seek, follow):
-            await response.write(("[%s %s] --- %s" % (
+            await resp.write(("[%s %s] --- %s" % (
                 record["dt"].strftime("%Y-%m-%d %H:%M:%S"),
                 record["service"],
                 record["msg"],
             )).encode("utf-8") + b"\r\n")
-        return response
+        return resp

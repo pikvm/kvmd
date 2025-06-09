@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -55,10 +55,9 @@ class ExportApi:
 
     @async_lru.alru_cache(maxsize=1, ttl=5)
     async def __get_prometheus_metrics(self) -> str:
-        (atx_state, hw_state, fan_state, gpio_state) = await asyncio.gather(*[
+        (atx_state, info_state, gpio_state) = await asyncio.gather(*[
             self.__atx.get_state(),
-            self.__info_manager.get_submanager("hw").get_state(),
-            self.__info_manager.get_submanager("fan").get_state(),
+            self.__info_manager.get_state(["health", "fan"]),
             self.__user_gpio.get_state(),
         ])
         rows: list[str] = []
@@ -67,13 +66,13 @@ class ExportApi:
         self.__append_prometheus_rows(rows, atx_state["leds"]["power"], "pikvm_atx_power")  # type: ignore
 
         for mode in sorted(UserGpioModes.ALL):
-            for (channel, ch_state) in gpio_state[f"{mode}s"].items():  # type: ignore
+            for (channel, ch_state) in gpio_state["state"][f"{mode}s"].items():  # type: ignore
                 if not channel.startswith("__"):  # Hide special GPIOs
                     for key in ["online", "state"]:
                         self.__append_prometheus_rows(rows, ch_state["state"], f"pikvm_gpio_{mode}_{key}_{channel}")
 
-        self.__append_prometheus_rows(rows, hw_state["health"], "pikvm_hw")  # type: ignore
-        self.__append_prometheus_rows(rows, fan_state, "pikvm_fan")
+        self.__append_prometheus_rows(rows, info_state["health"], "pikvm_hw")  # type: ignore
+        self.__append_prometheus_rows(rows, info_state["fan"], "pikvm_fan")
 
         return "\n".join(rows)
 

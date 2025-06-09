@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -99,3 +99,11 @@ def check_any(arg: Any, name: str, validators: list[Callable[[Any], Any]]) -> An
         except Exception:
             pass
     raise_error(arg, name)
+
+
+# =====
+def filter_printable(arg: str, replace: str, limit: int) -> str:
+    return "".join(
+        (ch if ch.isprintable() else replace)
+        for ch in arg[:limit]
+    )

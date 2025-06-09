@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -24,6 +24,8 @@ import os
 import re
 import asyncio
 
+from typing import AsyncGenerator
+
 from ....logging import get_logger
 
 from ....yamlconf import Section
@@ -41,13 +43,14 @@ from .base import BaseInfoSubmanager
 class ExtrasInfoSubmanager(BaseInfoSubmanager):
     def __init__(self, global_config: Section) -> None:
         self.__global_config = global_config
+        self.__notifier = aiotools.AioNotifier()
 
     async def get_state(self) -> (dict | None):
         try:
             sui = sysunit.SystemdUnitInfo()
             await sui.open()
-        except Exception as err:
-            get_logger(0).error("Can't open systemd bus to get extras state: %s", tools.efmt(err))
+        except Exception as ex:
+            get_logger(0).error("Can't open systemd bus to get extras state: %s", tools.efmt(ex))
             sui = None
         try:
             extras: dict[str, dict] = {}
@@ -64,6 +67,14 @@ class ExtrasInfoSubmanager(BaseInfoSubmanager):
         finally:
             if sui is not None:
                 await aiotools.shield_fg(sui.close())
+
+    async def trigger_state(self) -> None:
+        self.__notifier.notify()
+
+    async def poll_state(self) -> AsyncGenerator[(dict | None), None]:
+        while True:
+            await self.__notifier.wait()
+            yield (await self.get_state())
 
     def __get_extras_path(self, *parts: str) -> str:
         return os.path.join(self.__global_config.kvmd.info.extras, *parts)
@@ -85,8 +96,8 @@ class ExtrasInfoSubmanager(BaseInfoSubmanager):
             if sui is not None:
                 try:
                     (extra["enabled"], extra["started"]) = await sui.get_status(daemon)
-                except Exception as err:
-                    get_logger(0).error("Can't get info about the service %r: %s", daemon, tools.efmt(err))
+                except Exception as ex:
+                    get_logger(0).error("Can't get info about the service %r: %s", daemon, tools.efmt(ex))
 
     def __rewrite_app_port(self, extra: dict) -> None:
         port_path = extra.get("port", "")

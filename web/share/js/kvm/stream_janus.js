@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -29,8 +29,12 @@ import {tools, $} from "../tools.js";
 var _Janus = null;
 
 
-export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_audio) {
+export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, __orient, __allow_audio, __allow_mic) {
 	var self = this;
+
+	/************************************************************************/
+
+	__allow_mic = (__allow_audio && __allow_mic); // XXX: Mic only with audio
 
 	var __stop = false;
 	var __ensuring = false;
@@ -44,10 +48,27 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 
 	var __state = null;
 	var __frames = 0;
+	var __res = {"width": -1, "height": -1};
+	var __resize_listener_installed = false;
 
+	var __ice = null;
+
+	/************************************************************************/
+
+	self.getOrientation = () => __orient;
 	self.isAudioAllowed = () => __allow_audio;
+	self.isMicAllowed = () => __allow_mic;
 
-	self.getName = () => (__allow_audio ? "H.264 + Audio" : "H.264");
+	self.getName = function() {
+		let name = "WebRTC H.264";
+		if (__allow_audio) {
+			name += " + Audio";
+			if (__allow_mic) {
+				name += " + Mic";
+			}
+		}
+		return name;
+	};
 	self.getMode = () => "janus";
 
 	self.getResolution = function() {
@@ -65,23 +86,41 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 		__state = state;
 		__stop = false;
 		__ensureJanus(false);
+		if (!__resize_listener_installed) {
+			$("stream-video").addEventListener("resize", __videoResizeHandler);
+			__resize_listener_installed = true;
+		}
 	};
 
 	self.stopStream = function() {
 		__stop = true;
 		__destroyJanus();
+		if (__resize_listener_installed) {
+			$("stream-video").removeEventListener("resize", __videoResizeHandler);
+			__resize_listener_installed = false;
+		}
+	};
+
+	var __videoResizeHandler = function(ev) {
+		let el = ev.target;
+		if (__res.width !== el.videoWidth || __res.height !== el.videoHeight) {
+			__res.width = el.videoWidth;
+			__res.height = el.videoHeight;
+			__organizeHook();
+		}
 	};
 
 	var __ensureJanus = function(internal) {
 		if (__janus === null && !__stop && (!__ensuring || internal)) {
+			__ensuring = true;
 			__setInactive();
 			__setInfo(false, false, "");
-			__ensuring = true;
 			__logInfo("Starting Janus ...");
 			__janus = new _Janus({
-				"server": `${tools.is_https ? "wss" : "ws"}://${location.host}/janus/ws`,
+				"server": tools.makeWsUrl("janus/ws"),
 				"ipv6": true,
 				"destroyOnUnload": false,
+				"iceServers": () => __getIceServers(),
 				"success": __attachJanus,
 				"error": function(error) {
 					__logError(error);
@@ -89,6 +128,15 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 					__finishJanus();
 				},
 			});
+		}
+	};
+
+	var __getIceServers = function() {
+		if (__ice !== null && __ice.url) {
+			__logInfo("Using the custom ICE Server got from uStreamer:", __ice);
+			return [{"urls": __ice.url}];
+		} else {
+			return [];
 		}
 	};
 
@@ -109,7 +157,11 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 		}
 		__stopRetryEmsgInterval();
 		__stopInfoInterval();
-		__handle = null;
+		if (__handle) {
+			__logInfo("uStreamer detaching ...:", __handle.getPlugin(), __handle.getId());
+			__handle.detach();
+			__handle = null;
+		}
 		__janus = null;
 		__setInactive();
 		if (__stop) {
@@ -118,18 +170,55 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 	};
 
 	var __destroyJanus = function() {
-		if (__handle && __handle.webrtcStuff && __handle.webrtcStuff.remoteStream) {
-			for (let track of __handle.webrtcStuff.remoteStream.getTracks()) {
-				track.stop();
-				__handle.webrtcStuff.remoteStream.removeTrack(track);
-			}
-			__handle.webrtcStuff.remoteStream = null;
-		}
-		$("stream-video").srcObject = null;
 		if (__janus !== null) {
 			__janus.destroy();
 		}
 		__finishJanus();
+		let stream = $("stream-video").srcObject;
+		if (stream) {
+			for (let track of stream.getTracks()) {
+				__removeTrack(track);
+			}
+		}
+	};
+
+	var __addTrack = function(track) {
+		let el = $("stream-video");
+		if (el.srcObject) {
+			for (let tr of el.srcObject.getTracks()) {
+				if (tr.kind === track.kind && tr.id !== track.id) {
+					__removeTrack(tr);
+				}
+			}
+		}
+		if (!el.srcObject) {
+			el.srcObject = new MediaStream();
+		}
+		el.srcObject.addTrack(track);
+		// FIXME: Задержка уменьшается, но начинаются заикания на кейфреймах.
+		// XXX: Этот пример переехал из януса 0.x, перед использованием адаптировать к 1.x.
+		//   - https://github.com/Glimesh/janus-ftl-plugin/issues/101
+		/*if (__handle && __handle.webrtcStuff && __handle.webrtcStuff.pc) {
+			for (let receiver of __handle.webrtcStuff.pc.getReceivers()) {
+				if (receiver.track && receiver.track.kind === "video" && receiver.playoutDelayHint !== undefined) {
+					receiver.playoutDelayHint = 0;
+				}
+			}
+		}*/
+	};
+
+	var __removeTrack = function(track) {
+		let el = $("stream-video");
+		if (!el.srcObject) {
+			return;
+		}
+		track.stop();
+		el.srcObject.removeTrack(track);
+		if (el.srcObject.getTracks().length === 0) {
+			// MediaStream should be destroyed to prevent old picture freezing
+			// on Janus reconnecting.
+			el.srcObject = null;
+		}
 	};
 
 	var __attachJanus = function() {
@@ -143,7 +232,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 			"success": function(handle) {
 				__handle = handle;
 				__logInfo("uStreamer attached:", handle.getPlugin(), handle.getId());
-				__sendWatch();
+				__logInfo("Sending FEATURES ...");
+				__handle.send({"message": {"request": "features"}});
 			},
 
 			"error": function(error) {
@@ -152,13 +242,15 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 				__destroyJanus();
 			},
 
+			"connectionState": function(state) {
+				__logInfo("Peer connection state changed to", state);
+				if (state === "failed") {
+					__destroyJanus();
+				}
+			},
+
 			"iceState": function(state) {
 				__logInfo("ICE state changed to", state);
-				// Если раскомментировать, то он начнет дрючить соединение,
-				// так как каллбек вызывает сильно после завершения работы
-				/*if (state === "disconnected") {
-					__destroyJanus();
-				}*/
 			},
 
 			"webrtcState": function(up) {
@@ -172,7 +264,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 				__stopRetryEmsgInterval();
 
 				if (msg.result) {
-					__logInfo("Got uStreamer result message:", msg.result.status); // starting, started, stopped
+					__logInfo("Got uStreamer result message:", msg.result); // starting, started, stopped
 					if (msg.result.status === "started") {
 						__setActive();
 						__setInfo(false, false, "");
@@ -181,6 +273,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 						__setInfo(false, false, "");
 					} else if (msg.result.status === "features") {
 						tools.feature.setEnabled($("stream-audio"), msg.result.features.audio);
+						tools.feature.setEnabled($("stream-mic"), msg.result.features.mic);
+						__ice = msg.result.features.ice;
+						__sendWatch();
 					}
 				} else if (msg.error_code || msg.error) {
 					__logError("Got uStreamer error message:", msg.error_code, "-", msg.error);
@@ -201,9 +296,21 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 
 				if (jsep) {
 					__logInfo("Handling SDP:", jsep);
+					let tracks = [{"type": "video", "capture": false, "recv": true, "add": true}];
+					if (__allow_audio) {
+						tracks.push({"type": "audio", "capture": __allow_mic, "recv": true, "add": true});
+					}
 					__handle.createAnswer({
 						"jsep": jsep,
-						"media": {"audioSend": false, "videoSend": false, "data": false},
+
+						"tracks": tracks,
+
+						// Chrome is playing OPUS as mono without this hack
+						//   - https://issues.webrtc.org/issues/41481053 - IT'S NOT FIXED!
+						//   - https://github.com/ossrs/srs/pull/2683/files
+						"customizeSdp": function(jsep) {
+							jsep.sdp = jsep.sdp.replace("useinbandfec=1", "useinbandfec=1;stereo=1");
+						},
 
 						"success": function(jsep) {
 							__logInfo("Got SDP:", jsep);
@@ -219,49 +326,23 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 				}
 			},
 
-			"onremotestream": function(stream) {
-				if (stream === null) {
-					// https://github.com/pikvm/pikvm/issues/1084
-					// Этого вообще не должно происходить, но почему-то янусу в unmute
-					// может прилететь null-эвент. Костыляем, наблюдаем.
-					__logError("Got invalid onremotestream(null). Restarting Janus...");
-					__destroyJanus();
-					return;
-				}
-
-				let tracks = stream.getTracks();
-				__logInfo("Got a remote stream changes:", stream, tracks);
-
-				let has_video = false;
-				for (let track of tracks) {
-					if (track.kind == "video") {
-						has_video = true;
-						break;
+			// Janus 1.x
+			"onremotetrack": function(track, id, added, meta) {
+				// Chrome sends `muted` notifiation for tracks in `disconnected` ICE state
+				// and Janus.js just removes muted track from list of available tracks.
+				// But track still exists actually so it's safe to just ignore
+				// reason === "mute" and "unmute".
+				let reason = (meta || {}).reason;
+				__logInfo("Got onremotetrack:", id, added, reason, track, meta);
+				if (added && reason === "created") {
+					__addTrack(track);
+					if (track.kind === "video") {
+						__sendKeyRequired();
+						__startInfoInterval();
 					}
+				} else if (!added && reason === "ended") {
+					__removeTrack(track);
 				}
-
-				if (!has_video && __isOnline()) {
-					// Найдено в Windows 11 и Chrome/Edge.
-					// При перезагрузке целевого хоста браузер мьютит трек,
-					// приходит стрим без видеотрека и всё умирает.
-					// Связь должна как-то сама восстанавливаться,
-					// но этого почему-то не происходит. Костыль решает проблему.
-					__destroyJanus();
-				}
-
-				_Janus.attachMediaStream($("stream-video"), stream);
-				__sendKeyRequired();
-				__startInfoInterval();
-
-				// FIXME: Задержка уменьшается, но начинаются заикания на кейфреймах.
-				//   - https://github.com/Glimesh/janus-ftl-plugin/issues/101
-				/*if (__handle && __handle.webrtcStuff && __handle.webrtcStuff.pc) {
-					for (let receiver of __handle.webrtcStuff.pc.getReceivers()) {
-						if (receiver.track && receiver.track.kind === "video" && receiver.playoutDelayHint !== undefined) {
-							receiver.playoutDelayHint = 0;
-						}
-					}
-				}*/
 			},
 
 			"oncleanup": function() {
@@ -315,14 +396,17 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __allow_aud
 	};
 
 	var __isOnline = function() {
-		return !!(__state && __state.source && __state.source.online);
+		return !!(__state && __state.source.online);
 	};
 
 	var __sendWatch = function() {
 		if (__handle) {
-			__logInfo(`Sending WATCH(audio=${__allow_audio}) + FEATURES ...`);
-			__handle.send({"message": {"request": "features"}});
-			__handle.send({"message": {"request": "watch", "params": {"audio": __allow_audio}}});
+			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}) ...`);
+			__handle.send({"message": {"request": "watch", "params": {
+				"orientation": __orient,
+				"audio": __allow_audio,
+				"mic": __allow_mic,
+			}}});
 		}
 	};
 
@@ -364,8 +448,8 @@ JanusStreamer.ensure_janus = function(callback) {
 					callback(true);
 				},
 			});
-		}).catch((err) => {
-			tools.error("Stream: Can't import Janus module:", err);
+		}).catch((ex) => {
+			tools.error("Stream: Can't import Janus module:", ex);
 			callback(false);
 		});
 	} else {
@@ -375,12 +459,4 @@ JanusStreamer.ensure_janus = function(callback) {
 
 JanusStreamer.is_webrtc_available = function() {
 	return !!window.RTCPeerConnection;
-};
-
-JanusStreamer.is_h264_available = function() {
-	let ok = true;
-	if ($("stream-video").canPlayType) {
-		ok = $("stream-video").canPlayType("video/mp4; codecs=\"avc1.42E01F\"");
-	}
-	return ok;
 };

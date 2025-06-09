@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -22,9 +22,11 @@
 
 from typing import Any
 
-from ..keyboard.mappings import KEYMAP
+from ..keyboard.mappings import WEB_TO_EVDEV
+from ..mouse import MOUSE_TO_EVDEV
 
 from ..mouse import MouseRange
+from ..mouse import MouseDelta
 
 from . import check_string_in_list
 
@@ -41,18 +43,18 @@ def valid_hid_mouse_output(arg: Any) -> str:
 
 
 def valid_hid_key(arg: Any) -> str:
-    return check_string_in_list(arg, "Keyboard key", KEYMAP, lower=False)
+    return check_string_in_list(arg, "Keyboard key", WEB_TO_EVDEV, lower=False)
 
 
 def valid_hid_mouse_move(arg: Any) -> int:
     arg = valid_number(arg, name="Mouse move")
-    return min(max(MouseRange.MIN, arg), MouseRange.MAX)
+    return MouseRange.normalize(arg)
 
 
 def valid_hid_mouse_button(arg: Any) -> str:
-    return check_string_in_list(arg, "Mouse button", ["left", "right", "middle", "up", "down"])
+    return check_string_in_list(arg, "Mouse button", MOUSE_TO_EVDEV)
 
 
 def valid_hid_mouse_delta(arg: Any) -> int:
     arg = valid_number(arg, name="Mouse delta")
-    return min(max(-127, arg), 127)
+    return MouseDelta.normalize(arg)

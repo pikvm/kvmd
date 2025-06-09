@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -22,9 +22,9 @@
 
 import os
 
-import passlib.apache
-
 import pytest
+
+from kvmd.crypto import KvmdHtpasswdFile
 
 from . import get_configured_auth_service
 
@@ -34,7 +34,7 @@ from . import get_configured_auth_service
 async def test_ok__htpasswd_service(tmpdir) -> None:  # type: ignore
     path = os.path.abspath(str(tmpdir.join("htpasswd")))
 
-    htpasswd = passlib.apache.HtpasswdFile(path, new=True)
+    htpasswd = KvmdHtpasswdFile(path, new=True)
     htpasswd.set_password("admin", "pass")
     htpasswd.save()
 

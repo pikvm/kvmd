@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -143,8 +143,8 @@ class Option:
 def manual_validated(value: Any, *path: str) -> Generator[None, None, None]:
     try:
         yield
-    except (TypeError, ValueError) as err:
-        raise ConfigError(f"Invalid value {value!r} for key {'/'.join(path)!r}: {err}")
+    except (TypeError, ValueError) as ex:
+        raise ConfigError(f"Invalid value {value!r} for key {'/'.join(path)!r}: {ex}")
 
 
 def make_config(raw: dict[str, Any], scheme: dict[str, Any], _keys: tuple[str, ...]=()) -> Section:
@@ -185,8 +185,8 @@ def make_config(raw: dict[str, Any], scheme: dict[str, Any], _keys: tuple[str, .
                 else:
                     try:
                         value = option.type(value)
-                    except (TypeError, ValueError) as err:
-                        raise ConfigError(f"Invalid value {value!r} for key {make_full_name(key)!r}: {err}")
+                    except (TypeError, ValueError) as ex:
+                        raise ConfigError(f"Invalid value {value!r} for key {make_full_name(key)!r}: {ex}")
 
             config[key] = value
             config._set_meta(  # pylint: disable=protected-access

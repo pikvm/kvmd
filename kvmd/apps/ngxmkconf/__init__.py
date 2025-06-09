@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -50,8 +50,12 @@ def main(argv: (list[str] | None)=None) -> None:
         template = in_file.read()
 
     rendered = mako.template.Template(template).render(
+        http_ipv4=config.nginx.http.ipv4,
+        http_ipv6=config.nginx.http.ipv6,
         http_port=config.nginx.http.port,
         https_enabled=config.nginx.https.enabled,
+        https_ipv4=config.nginx.https.ipv4,
+        https_ipv6=config.nginx.https.ipv6,
         https_port=config.nginx.https.port,
         ipv6_enabled=network.is_ipv6_enabled(),
     )

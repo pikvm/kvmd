@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -32,10 +32,10 @@ from . import get_configured_auth_service
 
 
 # =====
-async def _handle_auth(request: aiohttp.web.BaseRequest) -> aiohttp.web.Response:
+async def _handle_auth(req: aiohttp.web.BaseRequest) -> aiohttp.web.Response:
     status = 400
-    if request.method == "POST":
-        credentials = (await request.json())
+    if req.method == "POST":
+        credentials = (await req.json())
         if credentials["user"] == "admin" and credentials["passwd"] == "pass":
             status = 200
     return aiohttp.web.Response(text=str(status), status=status)

@@ -17,8 +17,6 @@ kvmd:
 
     hid:
         type: otg
-        mouse_alt:
-            device: /dev/kvmd-hid-mouse-alt
 
     atx:
         type: gpio
@@ -39,12 +37,12 @@ kvmd:
             - "--persistent"
             - "--dv-timings"
             - "--format=uyvy"
-            - "--encoder=omx"
+            - "--buffers=6"
+            - "--encoder=m2m-image"
             - "--workers=3"
             - "--quality={quality}"
             - "--desired-fps={desired_fps}"
             - "--drop-same-frames=30"
-            - "--last-as-blank=0"
             - "--unix={unix}"
             - "--unix-rm"
             - "--unix-mode=0660"
@@ -52,8 +50,8 @@ kvmd:
             - "--process-name-prefix={process_name_prefix}"
             - "--notify-parent"
             - "--no-log-colors"
-            - "--sink=kvmd::ustreamer::jpeg"
-            - "--sink-mode=0660"
+            - "--jpeg-sink=kvmd::ustreamer::jpeg"
+            - "--jpeg-sink-mode=0660"
             - "--h264-sink=kvmd::ustreamer::h264"
             - "--h264-sink-mode=0660"
             - "--h264-bitrate={h264_bitrate}"
@@ -85,13 +83,15 @@ kvmd:
                 pulse: false
 
 
+media:
+    memsink:
+        h264:
+            sink: "kvmd::ustreamer::h264"
+
+
 vnc:
     memsink:
         jpeg:
             sink: "kvmd::ustreamer::jpeg"
         h264:
             sink: "kvmd::ustreamer::h264"
-
-
-otg:
-    remote_wakeup: true

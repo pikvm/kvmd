@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -20,13 +20,12 @@
 # ========================================================================== #
 
 
-import os
 import errno
 import argparse
 
 from ...validators.basic import valid_bool
 from ...validators.basic import valid_int_f0
-from ...validators.os import valid_abs_file
+from ...validators.os import valid_abs_path
 
 from ... import usb
 
@@ -47,9 +46,9 @@ def _set_param(gadget: str, instance: int, param: str, value: str) -> None:
     try:
         with open(_get_param_path(gadget, instance, param), "w") as file:
             file.write(value + "\n")
-    except OSError as err:
-        if err.errno == errno.EBUSY:
-            raise SystemExit(f"Can't change {param!r} value because device is locked: {err}")
+    except OSError as ex:
+        if ex.errno == errno.EBUSY:
+            raise SystemExit(f"Can't change {param!r} value because device is locked: {ex}")
         raise
 
 
@@ -69,10 +68,10 @@ def main(argv: (list[str] | None)=None) -> None:
     parser.add_argument("-i", "--instance", default=0, type=valid_int_f0,
                         metavar="<N>", help="Drive instance (0 for KVMD drive)")
     parser.add_argument("--set-cdrom", default=None, type=valid_bool,
-                        metavar="<1|0|yes|no>", help="Set CD-ROM flag")
+                        metavar="<1|0|yes|no>", help="Set CD/DVD flag")
     parser.add_argument("--set-rw", default=None, type=valid_bool,
                         metavar="<1|0|yes|no>", help="Set RW flag")
-    parser.add_argument("--set-image", default=None, type=valid_abs_file,
+    parser.add_argument("--set-image", default=None, type=valid_abs_path,
                         metavar="<path>", help="Set the image file")
     parser.add_argument("--eject", action="store_true",
                         help="Eject the image")
@@ -97,10 +96,10 @@ def main(argv: (list[str] | None)=None) -> None:
         set_param("ro", str(int(not options.set_rw)))
 
     if options.set_image:
-        if not os.path.isfile(options.set_image):
-            raise SystemExit(f"Not a file: {options.set_image}")
+        # if not os.path.isfile(options.set_image):
+        #     raise SystemExit(f"Not a file: {options.set_image}")
         set_param("file", options.set_image)
 
     print("Image file: ", (get_param("file") or "<none>"))
-    print("CD-ROM flag:", ("yes" if int(get_param("cdrom")) else "no"))
+    print("CD/DVD flag:", ("yes" if int(get_param("cdrom")) else "no"))
     print("RW flag:    ", ("no" if int(get_param("ro")) else "yes"))

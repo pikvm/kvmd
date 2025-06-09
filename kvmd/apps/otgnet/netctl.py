@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -119,6 +119,16 @@ class IptablesForwardIn(BaseCtl):
             ("-A" if direct else "-D"), "FORWARD",
             "-i", self.__iface, "-j", "ACCEPT",
         ]
+
+
+class SysctlIpv4ForwardCtl(BaseCtl):
+    def __init__(self, base_cmd: list[str]) -> None:
+        self.__base_cmd = base_cmd
+
+    def get_command(self, direct: bool) -> list[str]:
+        if direct:
+            return [*self.__base_cmd, "net.ipv4.ip_forward=1"]
+        return []  # Don't revert the command because some services can require it too
 
 
 class CustomCtl(BaseCtl):

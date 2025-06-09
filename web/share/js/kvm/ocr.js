@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -25,6 +25,7 @@
 
 import {tools, $} from "../tools.js";
 import {wm} from "../wm.js";
+import {clipboard} from "./clipboard.js";
 
 
 export function Ocr(__getGeometry) {
@@ -32,9 +33,11 @@ export function Ocr(__getGeometry) {
 
 	/************************************************************************/
 
+	var __enabled = null;
+
 	var __start_pos = null;
 	var __end_pos = null;
-	var __selection = null;
+	var __sel = null;
 
 	var __init__ = function() {
 		tools.el.setOnClick($("stream-ocr-button"), function() {
@@ -51,14 +54,14 @@ export function Ocr(__getGeometry) {
 		$("stream-ocr-window").addEventListener("resize", __resetSelection);
 		$("stream-ocr-window").close_hook = __resetSelection;
 
-		$("stream-ocr-window").onkeyup = function(event) {
-			event.preventDefault();
-			if (event.code === "Enter") {
-				if (__selection) {
+		$("stream-ocr-window").onkeyup = function(ev) {
+			ev.preventDefault();
+			if (ev.code === "Enter") {
+				if (__sel) {
 					__recognizeSelection();
 					wm.closeWindow($("stream-ocr-window"));
 				}
-			} else if (event.code === "Escape") {
+			} else if (ev.code === "Escape") {
 				wm.closeWindow($("stream-ocr-window"));
 			}
 		};
@@ -71,46 +74,61 @@ export function Ocr(__getGeometry) {
 	/************************************************************************/
 
 	self.setState = function(state) {
-		let enabled = (state && state.ocr.enabled && !tools.browser.is_mobile);
-		if (enabled) {
-			let el = $("stream-ocr-lang-selector");
-			tools.selector.setValues(el, state.ocr.langs.available);
-			tools.selector.setSelectedValue(el, tools.storage.get("stream.ocr.lang", state.ocr.langs["default"]));
+		if (state) {
+			if (state.enabled !== undefined) {
+				__enabled = (state.enabled && !tools.browser.is_mobile);
+				tools.feature.setEnabled($("stream-ocr"), __enabled);
+				$("stream-ocr-led").className = (__enabled ? "led-gray" : "hidden");
+			}
+			if (__enabled && state.langs !== undefined) {
+				__updateLangs(state.langs);
+			}
+		} else {
+			__enabled = false;
+			tools.feature.setEnabled($("stream-ocr"), false);
+			$("stream-ocr-led").className = "hidden";
 		}
-		tools.feature.setEnabled($("stream-ocr"), enabled);
-		$("stream-ocr-led").className = (enabled ? "led-gray" : "hidden");
 	};
 
-	var __startSelection = function(event) {
+	var __updateLangs = function(langs) {
+		let el = $("stream-ocr-lang-selector");
+		el.options.length = 0;
+		for (let lang of langs.available) {
+			tools.selector.addOption(el, lang, lang);
+		}
+		el.value = tools.storage.get("stream.ocr.lang", langs["default"]);
+	};
+
+	var __startSelection = function(ev) {
 		if (__start_pos === null) {
 			tools.hidden.setVisible($("stream-ocr-selection"), false);
-			__start_pos = __getGlobalPosition(event);
+			__start_pos = __getGlobalPosition(ev);
 			__end_pos = null;
 		}
 	};
 
-	var __changeSelection = function(event) {
+	var __changeSelection = function(ev) {
 		if (__start_pos !== null) {
-			__end_pos = __getGlobalPosition(event);
+			__end_pos = __getGlobalPosition(ev);
 			let width = Math.abs(__start_pos.x - __end_pos.x);
 			let height = Math.abs(__start_pos.y - __end_pos.y);
-			let el_selection = $("stream-ocr-selection");
-			el_selection.style.left = Math.min(__start_pos.x, __end_pos.x) + "px";
-			el_selection.style.top = Math.min(__start_pos.y, __end_pos.y) + "px";
-			el_selection.style.width = width + "px";
-			el_selection.style.height = height + "px";
-			tools.hidden.setVisible(el_selection, (width > 1 || height > 1));
+			let el = $("stream-ocr-selection");
+			el.style.left = Math.min(__start_pos.x, __end_pos.x) + "px";
+			el.style.top = Math.min(__start_pos.y, __end_pos.y) + "px";
+			el.style.width = width + "px";
+			el.style.height = height + "px";
+			tools.hidden.setVisible(el, (width > 1 || height > 1));
 		}
 	};
 
-	var __endSelection = function(event) {
-		__changeSelection(event);
-		let el_selection = $("stream-ocr-selection");
+	var __endSelection = function(ev) {
+		__changeSelection(ev);
+		let el = $("stream-ocr-selection");
 		let ok = (
-			el_selection.offsetWidth > 1 && el_selection.offsetHeight > 1
+			el.offsetWidth > 1 && el.offsetHeight > 1
 			&& __start_pos !== null && __end_pos !== null
 		);
-		tools.hidden.setVisible(el_selection, ok);
+		tools.hidden.setVisible(el, ok);
 		if (ok) {
 			let rect = $("stream-box").getBoundingClientRect();
 			let rel_left = Math.min(__start_pos.x, __end_pos.x) - rect.left;
@@ -119,26 +137,26 @@ export function Ocr(__getGeometry) {
 			let rel_top = Math.min(__start_pos.y, __end_pos.y) - rect.top + offset;
 			let rel_bottom = Math.max(__start_pos.y, __end_pos.y) - rect.top + offset;
 			let geo = __getGeometry();
-			__selection = {
-				"left": tools.remap(rel_left, geo.x, geo.width, 0, geo.real_width),
-				"right": tools.remap(rel_right, geo.x, geo.width, 0, geo.real_width),
-				"top": tools.remap(rel_top, geo.y, geo.height, 0, geo.real_height),
-				"bottom": tools.remap(rel_bottom, geo.y, geo.height, 0, geo.real_height),
+			__sel = {
+				"left": tools.remap(rel_left - geo.x, 0, geo.width, 0, geo.real_width),
+				"right": tools.remap(rel_right - geo.x, 0, geo.width, 0, geo.real_width),
+				"top": tools.remap(rel_top - geo.y, 0, geo.height, 0, geo.real_height),
+				"bottom": tools.remap(rel_bottom - geo.y, 0, geo.height, 0, geo.real_height),
 			};
 		} else {
-			__selection = null;
+			__sel = null;
 		}
 		__start_pos = null;
 		__end_pos = null;
 	};
 
-	var __getGlobalPosition = function(event) {
+	var __getGlobalPosition = function(ev) {
 		let rect = $("stream-box").getBoundingClientRect();
 		let geo = __getGeometry();
 		let offset = __getNavbarOffset();
 		return {
-			"x": Math.min(Math.max(event.clientX, rect.left + geo.x), rect.right - geo.x),
-			"y": Math.min(Math.max(event.clientY - offset, rect.top + geo.y - offset), rect.bottom - geo.y - offset),
+			"x": Math.min(Math.max(ev.clientX, rect.left + geo.x), rect.right - geo.x),
+			"y": Math.min(Math.max(ev.clientY - offset, rect.top + geo.y - offset), rect.bottom - geo.y - offset),
 		};
 	};
 
@@ -154,30 +172,31 @@ export function Ocr(__getGeometry) {
 		tools.hidden.setVisible($("stream-ocr-selection"), false);
 		__start_pos = null;
 		__end_pos = null;
-		__selection = null;
+		__sel = null;
 	};
 
 	var __recognizeSelection = function() {
 		tools.el.setEnabled($("stream-ocr-button"), false);
 		tools.el.setEnabled($("stream-ocr-lang-selector"), false);
 		$("stream-ocr-led").className = "led-yellow-rotating-fast";
-
-		let lang = $("stream-ocr-lang-selector").value;
-		let url = `/api/streamer/snapshot?ocr=1&ocr_langs=${lang}`;
-		url += `&ocr_left=${__selection.left}&ocr_top=${__selection.top}`;
-		url += `&ocr_right=${__selection.right}&ocr_bottom=${__selection.bottom}`;
-
-		let http = tools.makeRequest("GET", url, function() {
-			if (http.readyState === 4) {
-				if (http.status === 200) {
-					wm.copyTextToClipboard(http.responseText);
-				} else {
-					wm.error("OCR error:<br>", http.responseText);
-				}
-				tools.el.setEnabled($("stream-ocr-button"), true);
-				tools.el.setEnabled($("stream-ocr-lang-selector"), true);
-				$("stream-ocr-led").className = "led-gray";
+		let params = {
+			"allow_offline": 1,
+			"ocr": 1,
+			"ocr_langs": $("stream-ocr-lang-selector").value,
+			"ocr_left": __sel.left,
+			"ocr_top": __sel.top,
+			"ocr_right": __sel.right,
+			"ocr_bottom": __sel.bottom,
+		};
+		tools.httpGet("api/streamer/snapshot", params, function(http) {
+			if (http.status === 200) {
+				clipboard.setText(http.responseText);
+			} else {
+				wm.error("OCR error:<br>", http.responseText);
 			}
+			tools.el.setEnabled($("stream-ocr-button"), true);
+			tools.el.setEnabled($("stream-ocr-lang-selector"), true);
+			$("stream-ocr-led").className = "led-gray";
 		}, null, null, 30000);
 	};
 

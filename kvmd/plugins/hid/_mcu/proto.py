@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -23,11 +23,15 @@
 import dataclasses
 import struct
 
+from evdev import ecodes
+
 from ....keyboard.mappings import KEYMAP
 
 from ....mouse import MouseRange
+from ....mouse import MouseDelta
 
 from .... import tools
+from .... import bitbang
 
 
 # =====
@@ -104,33 +108,36 @@ class ClearEvent(BaseEvent):
 
 @dataclasses.dataclass(frozen=True)
 class KeyEvent(BaseEvent):
-    name: str
+    code:  int
     state: bool
 
     def __post_init__(self) -> None:
-        assert self.name in KEYMAP
+        assert self.code in KEYMAP
 
     def make_request(self) -> bytes:
-        code = KEYMAP[self.name].mcu.code
+        code = KEYMAP[self.code].mcu.code
         return _make_request(struct.pack(">BBBxx", 0x11, code, int(self.state)))
 
 
 @dataclasses.dataclass(frozen=True)
 class MouseButtonEvent(BaseEvent):
-    name: str
+    code:  int
     state: bool
 
     def __post_init__(self) -> None:
-        assert self.name in ["left", "right", "middle", "up", "down"]
+        assert self.code in [
+            ecodes.BTN_LEFT, ecodes.BTN_RIGHT, ecodes.BTN_MIDDLE,
+            ecodes.BTN_BACK, ecodes.BTN_FORWARD,
+        ]
 
     def make_request(self) -> bytes:
         (code, state_pressed, is_main) = {
-            "left":   (0b10000000, 0b00001000, True),
-            "right":  (0b01000000, 0b00000100, True),
-            "middle": (0b00100000, 0b00000010, True),
-            "up":     (0b10000000, 0b00001000, False),  # Back
-            "down":   (0b01000000, 0b00000100, False),  # Forward
-        }[self.name]
+            ecodes.BTN_LEFT:    (0b10000000, 0b00001000, True),
+            ecodes.BTN_RIGHT:   (0b01000000, 0b00000100, True),
+            ecodes.BTN_MIDDLE:  (0b00100000, 0b00000010, True),
+            ecodes.BTN_BACK:    (0b10000000, 0b00001000, False),  # Up
+            ecodes.BTN_FORWARD: (0b01000000, 0b00000100, False),  # Down
+        }[self.code]
         if self.state:
             code |= state_pressed
         if is_main:
@@ -161,8 +168,8 @@ class MouseRelativeEvent(BaseEvent):
     delta_y: int
 
     def __post_init__(self) -> None:
-        assert -127 <= self.delta_x <= 127
-        assert -127 <= self.delta_y <= 127
+        assert MouseDelta.MIN <= self.delta_x <= MouseDelta.MAX
+        assert MouseDelta.MIN <= self.delta_y <= MouseDelta.MAX
 
     def make_request(self) -> bytes:
         return _make_request(struct.pack(">Bbbxx", 0x15, self.delta_x, self.delta_y))
@@ -174,8 +181,8 @@ class MouseWheelEvent(BaseEvent):
     delta_y: int
 
     def __post_init__(self) -> None:
-        assert -127 <= self.delta_x <= 127
-        assert -127 <= self.delta_y <= 127
+        assert MouseDelta.MIN <= self.delta_x <= MouseDelta.MAX
+        assert MouseDelta.MIN <= self.delta_y <= MouseDelta.MAX
 
     def make_request(self) -> bytes:
         # Горизонтальная прокрутка пока не поддерживается
@@ -183,34 +190,21 @@ class MouseWheelEvent(BaseEvent):
 
 
 # =====
-def check_response(response: bytes) -> bool:
-    assert len(response) in (4, 8), response
-    return (_make_crc16(response[:-2]) == struct.unpack(">H", response[-2:])[0])
+def check_response(resp: bytes) -> bool:
+    assert len(resp) in (4, 8), resp
+    return (bitbang.make_crc16(resp[:-2]) == struct.unpack(">H", resp[-2:])[0])
 
 
-def _make_request(command: bytes) -> bytes:
-    assert len(command) == 5, command
-    request = b"\x33" + command
-    request += struct.pack(">H", _make_crc16(request))
-    assert len(request) == 8, request
-    return request
-
-
-def _make_crc16(data: bytes) -> int:
-    crc = 0xFFFF
-    for byte in data:
-        crc = crc ^ byte
-        for _ in range(8):
-            if crc & 0x0001 == 0:
-                crc = crc >> 1
-            else:
-                crc = crc >> 1
-                crc = crc ^ 0xA001
-    return crc
+def _make_request(cmd: bytes) -> bytes:
+    assert len(cmd) == 5, cmd
+    req = b"\x33" + cmd
+    req += struct.pack(">H", bitbang.make_crc16(req))
+    assert len(req) == 8, req
+    return req
 
 
 # =====
 REQUEST_PING = _make_request(b"\x01\x00\x00\x00\x00")
 REQUEST_REPEAT = _make_request(b"\x02\x00\x00\x00\x00")
 
-RESPONSE_LEGACY_OK = b"\x33\x20" + struct.pack(">H", _make_crc16(b"\x33\x20"))
+RESPONSE_LEGACY_OK = b"\x33\x20" + struct.pack(">H", bitbang.make_crc16(b"\x33\x20"))

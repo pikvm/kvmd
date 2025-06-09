@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -22,6 +22,7 @@
 
 import os
 import socket
+import struct
 import asyncio
 import contextlib
 import dataclasses
@@ -83,6 +84,7 @@ class HttpExposed:
     method: str
     path: str
     auth_required: bool
+    allow_usc: bool
     handler: Callable
 
 
@@ -90,14 +92,22 @@ _HTTP_EXPOSED = "_http_exposed"
 _HTTP_METHOD = "_http_method"
 _HTTP_PATH = "_http_path"
 _HTTP_AUTH_REQUIRED = "_http_auth_required"
+_HTTP_ALLOW_USC = "_http_allow_usc"
 
 
-def exposed_http(http_method: str, path: str, auth_required: bool=True) -> Callable:
+def exposed_http(
+    http_method: str,
+    path: str,
+    auth_required: bool=True,
+    allow_usc: bool=True,
+) -> Callable:
+
     def set_attrs(handler: Callable) -> Callable:
         setattr(handler, _HTTP_EXPOSED, True)
         setattr(handler, _HTTP_METHOD, http_method)
         setattr(handler, _HTTP_PATH, path)
         setattr(handler, _HTTP_AUTH_REQUIRED, auth_required)
+        setattr(handler, _HTTP_ALLOW_USC, allow_usc)
         return handler
     return set_attrs
 
@@ -108,6 +118,7 @@ def _get_exposed_http(obj: object) -> list[HttpExposed]:
             method=getattr(handler, _HTTP_METHOD),
             path=getattr(handler, _HTTP_PATH),
             auth_required=getattr(handler, _HTTP_AUTH_REQUIRED),
+            allow_usc=getattr(handler, _HTTP_ALLOW_USC),
             handler=handler,
         )
         for handler in [getattr(obj, name) for name in dir(obj)]
@@ -157,7 +168,7 @@ def make_json_response(
     wrap_result: bool=True,
 ) -> Response:
 
-    response = Response(
+    resp = Response(
         text=json.dumps(({
             "ok": (status == 200),
             "result": (result or {}),
@@ -167,18 +178,18 @@ def make_json_response(
     )
     if set_cookies:
         for (key, value) in set_cookies.items():
-            response.set_cookie(key, value, httponly=True, samesite="Strict")
-    return response
+            resp.set_cookie(key, value, httponly=True, samesite="Strict")
+    return resp
 
 
-def make_json_exception(err: Exception, status: (int | None)=None) -> Response:
-    name = type(err).__name__
-    msg = str(err)
-    if isinstance(err, HttpError):
-        status = err.status
+def make_json_exception(ex: Exception, status: (int | None)=None) -> Response:
+    name = type(ex).__name__
+    msg = str(ex)
+    if isinstance(ex, HttpError):
+        status = ex.status
     else:
         get_logger().error("API error: %s: %s", name, msg)
-    assert status is not None, err
+    assert status is not None, ex
     return make_json_response({
         "error": name,
         "error_msg": msg,
@@ -186,35 +197,35 @@ def make_json_exception(err: Exception, status: (int | None)=None) -> Response:
 
 
 async def start_streaming(
-    request: Request,
+    req: Request,
     content_type: str,
     content_length: int=-1,
     file_name: str="",
 ) -> StreamResponse:
 
-    response = StreamResponse(status=200, reason="OK")
-    response.content_type = content_type
-    if content_length >= 0:
-        response.content_length = content_length
+    resp = StreamResponse(status=200, reason="OK")
+    resp.content_type = content_type
+    if content_length >= 0:  # pylint: disable=consider-using-min-builtin
+        resp.content_length = content_length
     if file_name:
         file_name = urllib.parse.quote(file_name, safe="")
-        response.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{file_name}"
-    await response.prepare(request)
-    return response
+        resp.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{file_name}"
+    await resp.prepare(req)
+    return resp
 
 
-async def stream_json(response: StreamResponse, result: dict, ok: bool=True) -> None:
-    await response.write(json.dumps({
+async def stream_json(resp: StreamResponse, result: dict, ok: bool=True) -> None:
+    await resp.write(json.dumps({
         "ok": ok,
         "result": result,
     }).encode("utf-8") + b"\r\n")
 
 
-async def stream_json_exception(response: StreamResponse, err: Exception) -> None:
-    name = type(err).__name__
-    msg = str(err)
+async def stream_json_exception(resp: StreamResponse, ex: Exception) -> None:
+    name = type(ex).__name__
+    msg = str(ex)
     get_logger().error("API error: %s: %s", name, msg)
-    await stream_json(response, {
+    await stream_json(resp, {
         "error": name,
         "error_msg": msg,
     }, False)
@@ -230,6 +241,16 @@ async def send_ws_event(
         "event_type": event_type,
         "event": event,
     }))
+
+
+async def send_ws_bin(
+    wsr: (ClientWebSocketResponse | WebSocketResponse),
+    op: int,
+    data: bytes,
+) -> None:
+
+    assert 0 <= op <= 255
+    await wsr.send_bytes(op.to_bytes() + data)
 
 
 def parse_ws_event(msg: str) -> tuple[str, dict]:
@@ -249,28 +270,67 @@ def parse_ws_event(msg: str) -> tuple[str, dict]:
 _REQUEST_AUTH_INFO = "_kvmd_auth_info"
 
 
-def _format_P(request: BaseRequest, *_, **__) -> str:  # type: ignore  # pylint: disable=invalid-name
-    return (getattr(request, _REQUEST_AUTH_INFO, None) or "-")
+def _format_P(req: BaseRequest, *_, **__) -> str:  # type: ignore  # pylint: disable=invalid-name
+    return (getattr(req, _REQUEST_AUTH_INFO, None) or "-")
 
 
 AccessLogger._format_P = staticmethod(_format_P)  # type: ignore  # pylint: disable=protected-access
 
 
-def set_request_auth_info(request: BaseRequest, info: str) -> None:
-    setattr(request, _REQUEST_AUTH_INFO, info)
+def set_request_auth_info(req: BaseRequest, info: str) -> None:
+    setattr(req, _REQUEST_AUTH_INFO, info)
+
+
+@dataclasses.dataclass(frozen=True)
+class RequestUnixCredentials:
+    pid: int
+    uid: int
+    gid: int
+
+    def __post_init__(self) -> None:
+        assert self.pid >= 0
+        assert self.uid >= 0
+        assert self.gid >= 0
+
+
+def get_request_unix_credentials(req: BaseRequest) -> (RequestUnixCredentials | None):
+    if req.transport is None:
+        return None
+    sock = req.transport.get_extra_info("socket")
+    if sock is None:
+        return None
+    try:
+        data = sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("iii"))
+    except Exception:
+        return None
+    (pid, uid, gid) = struct.unpack("iii", data)
+    if pid < 0 or uid < 0 or gid < 0:
+        # PID == 0 when the client is outside of server's PID namespace, e.g. when kvmd runs in a container
+        return None
+    return RequestUnixCredentials(pid=pid, uid=uid, gid=gid)
 
 
 # =====
 @dataclasses.dataclass(frozen=True)
 class WsSession:
     wsr: WebSocketResponse
-    kwargs: dict[str, Any]
+    kwargs: dict[str, Any] = dataclasses.field(hash=False)
 
     def __str__(self) -> str:
         return f"WsSession(id={id(self)}, {self.kwargs})"
 
+    def is_alive(self) -> bool:
+        return (
+            not self.wsr.closed
+            and self.wsr._req is not None  # pylint: disable=protected-access
+            and self.wsr._req.transport is not None  # pylint: disable=protected-access
+        )
+
     async def send_event(self, event_type: str, event: (dict | None)) -> None:
         await send_ws_event(self.wsr, event_type, event)
+
+    async def send_bin(self, op: int, data: bytes) -> None:
+        await send_ws_bin(self.wsr, op, data)
 
 
 class HttpServer:
@@ -294,13 +354,14 @@ class HttpServer:
 
         if unix_rm and os.path.exists(unix_path):
             os.remove(unix_path)
-        server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server_socket.bind(unix_path)
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
+        sock.bind(unix_path)
         if unix_mode:
             os.chmod(unix_path, unix_mode)
 
         run_app(
-            sock=server_socket,
+            sock=sock,
             app=self.__make_app(),
             shutdown_timeout=1,
             access_log_format=access_log_format,
@@ -318,16 +379,16 @@ class HttpServer:
                 self.__add_exposed_ws(ws_exposed)
 
     def __add_exposed_http(self, exposed: HttpExposed) -> None:
-        async def wrapper(request: Request) -> Response:
+        async def wrapper(req: Request) -> Response:
             try:
-                await self._check_request_auth(exposed, request)
-                return (await exposed.handler(request))
-            except IsBusyError as err:
-                return make_json_exception(err, 409)
-            except (ValidatorError, OperationError) as err:
-                return make_json_exception(err, 400)
-            except HttpError as err:
-                return make_json_exception(err)
+                await self._check_request_auth(exposed, req)
+                return (await exposed.handler(req))
+            except IsBusyError as ex:
+                return make_json_exception(ex, 409)
+            except (ValidatorError, OperationError) as ex:
+                return make_json_exception(ex, 400)
+            except HttpError as ex:
+                return make_json_exception(ex)
         self.__app.router.add_route(exposed.method, exposed.path, wrapper)
 
     def __add_exposed_ws(self, exposed: WsExposed) -> None:
@@ -342,10 +403,10 @@ class HttpServer:
     # =====
 
     @contextlib.asynccontextmanager
-    async def _ws_session(self, request: Request, **kwargs: Any) -> AsyncGenerator[WsSession, None]:
+    async def _ws_session(self, req: Request, **kwargs: Any) -> AsyncGenerator[WsSession, None]:
         assert self.__ws_heartbeat is not None
         wsr = WebSocketResponse(heartbeat=self.__ws_heartbeat)
-        await wsr.prepare(request)
+        await wsr.prepare(req)
         ws = WsSession(wsr, kwargs)
 
         async with self.__ws_sessions_lock:
@@ -353,7 +414,7 @@ class HttpServer:
             get_logger(2).info("Registered new client session: %s; clients now: %d", ws, len(self.__ws_sessions))
 
         try:
-            await self._on_ws_opened()
+            await self._on_ws_opened(ws)
             yield ws
         finally:
             await aiotools.shield_fg(self.__close_ws(ws))
@@ -364,8 +425,8 @@ class HttpServer:
             if msg.type == WSMsgType.TEXT:
                 try:
                     (event_type, event) = parse_ws_event(msg.data)
-                except Exception as err:
-                    logger.error("Can't parse JSON event from websocket: %r", err)
+                except Exception as ex:
+                    logger.error("Can't parse JSON event from websocket: %r", ex)
                 else:
                     handler = self.__ws_handlers.get(event_type)
                     if handler:
@@ -389,11 +450,7 @@ class HttpServer:
             await asyncio.gather(*[
                 ws.send_event(event_type, event)
                 for ws in self.__ws_sessions
-                if (
-                    not ws.wsr.closed
-                    and ws.wsr._req is not None  # pylint: disable=protected-access
-                    and ws.wsr._req.transport is not None  # pylint: disable=protected-access
-                )
+                if ws.is_alive()
             ], return_exceptions=True)
 
     async def _close_all_wss(self) -> bool:
@@ -413,11 +470,11 @@ class HttpServer:
                 await ws.wsr.close()
             except Exception:
                 pass
-        await self._on_ws_closed()
+        await self._on_ws_closed(ws)
 
     # =====
 
-    async def _check_request_auth(self, exposed: HttpExposed, request: Request) -> None:
+    async def _check_request_auth(self, exposed: HttpExposed, req: Request) -> None:
         pass
 
     async def _init_app(self) -> None:
@@ -429,10 +486,10 @@ class HttpServer:
     async def _on_cleanup(self) -> None:
         pass
 
-    async def _on_ws_opened(self) -> None:
+    async def _on_ws_opened(self, ws: WsSession) -> None:
         pass
 
-    async def _on_ws_closed(self) -> None:
+    async def _on_ws_closed(self, ws: WsSession) -> None:
         pass
 
     # =====

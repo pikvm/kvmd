@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -23,6 +23,7 @@
 import asyncio
 import threading
 import dataclasses
+import typing
 
 import gpiod
 
@@ -83,9 +84,9 @@ class AioReader:  # pylint: disable=too-many-instance-attributes
             self.__path,
             consumer=self.__consumer,
             config={tuple(pins): gpiod.LineSettings(edge_detection=gpiod.line.Edge.BOTH)},
-        ) as line_request:
+        ) as line_req:
 
-            line_request.wait_edge_events(0.1)
+            line_req.wait_edge_events(0.1)
             self.__values = {
                 pin: _DebouncedValue(
                     initial=bool(value.value),
@@ -93,32 +94,33 @@ class AioReader:  # pylint: disable=too-many-instance-attributes
                     notifier=self.__notifier,
                     loop=self.__loop,
                 )
-                for (pin, value) in zip(pins, line_request.get_values(pins))
+                for (pin, value) in zip(pins, line_req.get_values(pins))
             }
             self.__loop.call_soon_threadsafe(self.__notifier.notify)
 
             while not self.__stop_event.is_set():
-                if line_request.wait_edge_events(1):
+                if line_req.wait_edge_events(1):
                     new: dict[int, bool] = {}
-                    for event in line_request.read_edge_events():
-                        (pin, value) = self.__parse_event(event)
-                        new[pin] = value
-                    for (pin, value) in new.items():
-                        self.__values[pin].set(value)
+                    for event in line_req.read_edge_events():
+                        (pin, state) = self.__parse_event(event)
+                        new[pin] = state
+                    for (pin, state) in new.items():
+                        self.__values[pin].set(state)
                 else:  # Timeout
                     # XXX: Лимит был актуален для 1.6. Надо проверить, поменялось ли это в 2.x.
                     # Размер буфера ядра - 16 эвентов на линии. При превышении этого числа,
                     # новые эвенты потеряются. Это не баг, это фича, как мне объяснили в LKML.
                     # Штош. Будем с этим жить и синхронизировать состояния при таймауте.
-                    for (pin, value) in zip(pins, line_request.get_values(pins)):
+                    for (pin, value) in zip(pins, line_req.get_values(pins)):
                         self.__values[pin].set(bool(value.value))  # type: ignore
 
     def __parse_event(self, event: gpiod.EdgeEvent) -> tuple[int, bool]:
-        if event.event_type == event.Type.RISING_EDGE:
-            return (event.line_offset, True)
-        elif event.event_type == event.Type.FALLING_EDGE:
-            return (event.line_offset, False)
-        raise RuntimeError(f"Invalid event {event} type: {event.type}")
+        match event.event_type:
+            case event.Type.RISING_EDGE:
+                return (event.line_offset, True)
+            case event.Type.FALLING_EDGE:
+                return (event.line_offset, False)
+        typing.assert_never(event.event_type)
 
 
 class _DebouncedValue:

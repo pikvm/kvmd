@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -19,8 +19,6 @@
 #                                                                            #
 # ========================================================================== #
 
-
-import asyncio
 
 from aiohttp.web import Request
 from aiohttp.web import Response
@@ -41,17 +39,16 @@ class InfoApi:
     # =====
 
     @exposed_http("GET", "/info")
-    async def __common_state_handler(self, request: Request) -> Response:
-        fields = self.__valid_info_fields(request)
-        results = dict(zip(fields, await asyncio.gather(*[
-            self.__info_manager.get_submanager(field).get_state()
-            for field in fields
-        ])))
-        return make_json_response(results)
+    async def __common_state_handler(self, req: Request) -> Response:
+        fields = self.__valid_info_fields(req)
+        return make_json_response(await self.__info_manager.get_state(fields))
 
-    def __valid_info_fields(self, request: Request) -> list[str]:
-        subs = self.__info_manager.get_subs()
+    def __valid_info_fields(self, req: Request) -> list[str]:
+        available = self.__info_manager.get_subs()
+        available.add("hw")
+        default = set(available)
+        default.remove("health")
         return sorted(valid_info_fields(
-            arg=request.query.get("fields", ",".join(subs)),
-            variants=subs,
-        ) or subs)
+            arg=req.query.get("fields", ",".join(default)),
+            variants=(available),
+        ) or available)

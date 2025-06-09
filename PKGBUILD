@@ -39,20 +39,22 @@ for _variant in "${_variants[@]}"; do
 	pkgname+=(kvmd-platform-$_platform-$_board)
 done
 pkgbase=kvmd
-pkgver=3.302
+pkgver=4.82
 pkgrel=1
 pkgdesc="The main PiKVM daemon"
 url="https://github.com/pikvm/kvmd"
 license=(GPL)
 arch=(any)
 depends=(
-	"python>=3.11"
-	"python<3.12"
+	"python>=3.13"
+	"python<3.14"
 	python-yaml
 	python-aiohttp
 	python-aiofiles
 	python-async-lru
 	python-passlib
+	# python-bcrypt is needed for passlib
+	python-bcrypt
 	python-pyotp
 	python-qrcode
 	python-periphery
@@ -66,7 +68,7 @@ depends=(
 	python-dbus
 	python-dbus-next
 	python-pygments
-	python-pyghmi
+	"python-pyghmi>=1.6.0-2"
 	python-pam
 	python-pillow
 	python-xlib
@@ -77,6 +79,10 @@ depends=(
 	python-ldap
 	python-zstandard
 	python-mako
+	python-luma-oled
+	python-pyusb
+	python-pyudev
+	python-evdev
 	"libgpiod>=2.1"
 	freetype2
 	"v4l-utils>=1.22.1-1"
@@ -87,11 +93,11 @@ depends=(
 	iproute2
 	dnsmasq
 	ipmitool
-	"janus-gateway-pikvm>=0.11.2-7"
+	"janus-gateway-pikvm>=1.3.0"
 	certbot
 	platform-io-access
 	raspberrypi-utils
-	"ustreamer>=5.32"
+	"ustreamer>=6.37"
 
 	# Systemd UDEV bug
 	"systemd>=248.3-2"
@@ -108,11 +114,17 @@ depends=(
 	parted
 	e2fsprogs
 	openssh
-	wpa_supplicant
+	# FIXME:
+	#   - https://archlinuxarm.org/forum/viewtopic.php?f=15&t=17007&p=72789
+	#   - https://github.com/pikvm/pikvm/issues/1375
+	wpa_supplicant-pikvm
 	run-parts
 
 	# fsck for /boot
 	dosfstools
+
+	# pgrep for kvmd-udev-restart-pass, sysctl for kvmd-otgnet
+	procps-ng
 
 	# Misc
 	hostapd
@@ -125,6 +137,7 @@ conflicts=(
 	python-aiohttp-pikvm
 	platformio
 	avrdude-pikvm
+	kvmd-oled
 )
 makedepends=(
 	python-setuptools
@@ -158,7 +171,7 @@ package_kvmd() {
 	install -DTm644 configs/os/tmpfiles.conf "$pkgdir/usr/lib/tmpfiles.d/kvmd.conf"
 
 	mkdir -p "$pkgdir/usr/share/kvmd"
-	cp -r {hid,web,extras,contrib/keymaps} "$pkgdir/usr/share/kvmd"
+	cp -r {switch,hid,web,extras,contrib/keymaps} "$pkgdir/usr/share/kvmd"
 	find "$pkgdir/usr/share/kvmd/web" -name '*.pug' -exec rm -f '{}' \;
 
 	local _cfg_default="$pkgdir/usr/share/kvmd/configs.default"
@@ -200,7 +213,7 @@ for _variant in "${_variants[@]}"; do
 		cd \"kvmd-\$pkgver\"
 
 		pkgdesc=\"PiKVM platform configs - $_platform for $_board\"
-		depends=(kvmd=$pkgver-$pkgrel \"linux-rpi-pikvm>=5.15.68-3\")
+		depends=(kvmd=$pkgver-$pkgrel \"linux-rpi-pikvm>=6.6.45-13\" \"raspberrypi-bootloader-pikvm>=20240818-1\")
 
 		backup=(
 			etc/sysctl.d/99-kvmd.conf
@@ -210,10 +223,15 @@ for _variant in "${_variants[@]}"; do
 
 		if [[ $_base == v0 ]]; then
 			depends=(\"\${depends[@]}\" platformio-core avrdude make patch)
+		elif [[ $_base == v4plus ]]; then
+			depends=(\"\${depends[@]}\" flashrom-pikvm)
 		fi
 
 		if [[ $_platform =~ ^.*-hdmiusb$ ]]; then
 			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-hdmiusb-check
+		fi
+		if [[ $_base == v4plus ]]; then
+			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-restart-pass
 		fi
 
 		install -DTm644 configs/os/sysctl.conf \"\$pkgdir/etc/sysctl.d/99-kvmd.conf\"
@@ -239,16 +257,20 @@ for _variant in "${_variants[@]}"; do
 		fi
 
 		if [[ $_platform =~ ^.*-hdmi$ ]]; then
-			backup=(\"\${backup[@]}\" etc/kvmd/tc358743-edid.hex)
-			install -DTm444 configs/kvmd/edid/$_platform.hex \"\$pkgdir/etc/kvmd/tc358743-edid.hex\"
+			backup=(\"\${backup[@]}\" etc/kvmd/tc358743-edid.hex etc/kvmd/switch-edid.hex)
+			install -DTm444 configs/kvmd/edid/$_base.hex \"\$pkgdir/etc/kvmd/tc358743-edid.hex\"
+			ln -s tc358743-edid.hex \"\$pkgdir/etc/kvmd/switch-edid.hex\"
+		else
+			backup=(\"\${backup[@]}\" etc/kvmd/switch-edid.hex)
+			install -DTm444 configs/kvmd/edid/_no-1920x1200.hex \"\$pkgdir/etc/kvmd/switch-edid.hex\"
 		fi
 
 		mkdir -p \"\$pkgdir/usr/share/kvmd\"
-		local _device=\"\$pkgdir/usr/share/kvmd/device\"
-		rm -f \"\$_device\"
-		echo PIKVM_BASE=$_base > \"\$_device\"
-		echo PIKVM_VIDEO=$_video >> \"\$_device\"
-		echo PIKVM_BOARD=$_board >> \"\$_device\"
-		chmod 444 \"\$_device\"
+		local _platform=\"\$pkgdir/usr/share/kvmd/platform\"
+		rm -f \"\$_platform\"
+		echo PIKVM_MODEL=$_base > \"\$_platform\"
+		echo PIKVM_VIDEO=$_video >> \"\$_platform\"
+		echo PIKVM_BOARD=$_board >> \"\$_platform\"
+		chmod 444 \"\$_platform\"
 	}"
 done

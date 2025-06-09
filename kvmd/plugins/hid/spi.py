@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -57,9 +57,9 @@ class _SpiPhyConnection(BasePhyConnection):
         self.__xfer = xfer
         self.__read_timeout = read_timeout
 
-    def send(self, request: bytes) -> bytes:
-        assert len(request) == 8
-        assert request[0] == 0x33
+    def send(self, req: bytes) -> bytes:
+        assert len(req) == 8
+        assert req[0] == 0x33
 
         deadline_ts = time.monotonic() + self.__read_timeout
         dummy = b"\x00" * 10
@@ -70,26 +70,26 @@ class _SpiPhyConnection(BasePhyConnection):
             get_logger(0).error("SPI timeout reached while garbage reading")
             return b""
 
-        self.__xfer(request)
+        self.__xfer(req)
 
-        response: list[int] = []
+        resp: list[int] = []
         deadline_ts = time.monotonic() + self.__read_timeout
         found = False
         while time.monotonic() < deadline_ts:
-            for byte in self.__xfer(b"\x00" * (9 - len(response))):
+            for byte in self.__xfer(b"\x00" * (9 - len(resp))):
                 if not found:
                     if byte == 0:
                         continue
                     found = True
-                response.append(byte)
-                if len(response) == 8:
+                resp.append(byte)
+                if len(resp) == 8:
                     break
-            if len(response) == 8:
+            if len(resp) == 8:
                 break
         else:
             get_logger(0).error("SPI timeout reached while responce waiting")
             return b""
-        return bytes(response)
+        return bytes(resp)
 
 
 class _SpiPhy(BasePhy):  # pylint: disable=too-many-instance-attributes
@@ -121,7 +121,7 @@ class _SpiPhy(BasePhy):  # pylint: disable=too-many-instance-attributes
 
     @contextlib.contextmanager
     def connected(self) -> Generator[_SpiPhyConnection, None, None]:  # type: ignore
-        with self.__sw_cs_connected() as switch_cs:
+        with self.__sw_cs_connected() as switch_cs:  # pylint: disable=contextmanager-generator-missing-cleanup
             with contextlib.closing(spidev.SpiDev(self.__bus, self.__chip)) as spi:
                 spi.mode = 0
                 spi.no_cs = (not self.__hw_cs)
@@ -153,7 +153,7 @@ class _SpiPhy(BasePhy):  # pylint: disable=too-many-instance-attributes
                 )
 
     @contextlib.contextmanager
-    def __sw_cs_connected(self) -> Generator[(Callable[[bool], bool] | None), None, None]:
+    def __sw_cs_connected(self) -> Generator[(Callable[[bool], None] | None), None, None]:
         if self.__sw_cs_pin > 0:
             with gpiod.request_lines(
                 self.__gpio_device_path,

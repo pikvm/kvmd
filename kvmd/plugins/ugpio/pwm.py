@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                             Shantur Rathore <i@shantur.com>                #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
@@ -94,18 +94,18 @@ class Plugin(BaseUserGpioDriver):
                 pwm.period_ns = self.__period
                 pwm.duty_cycle_ns = self.__get_duty_cycle(bool(initial))
                 pwm.enable()
-            except Exception as err:
+            except Exception as ex:
                 logger.error("Can't get PWM chip %d channel %d: %s",
-                             self.__chip, pin, tools.efmt(err))
+                             self.__chip, pin, tools.efmt(ex))
 
     async def cleanup(self) -> None:
         for (pin, pwm) in self.__pwms.items():
             try:
                 pwm.disable()
                 pwm.close()
-            except Exception as err:
+            except Exception as ex:
                 get_logger(0).error("Can't cleanup PWM chip %d channel %d: %s",
-                                    self.__chip, pin, tools.efmt(err))
+                                    self.__chip, pin, tools.efmt(ex))
 
     async def read(self, pin: str) -> bool:
         try:

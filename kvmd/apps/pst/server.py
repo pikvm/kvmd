@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -24,6 +24,7 @@ import os
 import asyncio
 
 from aiohttp.web import Request
+from aiohttp.web import Response
 from aiohttp.web import WebSocketResponse
 
 from ...logging import get_logger
@@ -35,6 +36,7 @@ from ... import fstab
 
 from ...htserver import exposed_http
 from ...htserver import exposed_ws
+from ...htserver import make_json_response
 from ...htserver import WsSession
 from ...htserver import HttpServer
 
@@ -50,7 +52,7 @@ class PstServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
 
         super().__init__()
 
-        self.__data_path = os.path.join(fstab.find_pst().root_path, "data")
+        self.__data_path = fstab.find_pst().root_path
         self.__ro_retries_delay = ro_retries_delay
         self.__ro_cleanup_delay = ro_cleanup_delay
         self.__remount_cmd = remount_cmd
@@ -60,10 +62,20 @@ class PstServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
     # ===== WEBSOCKET
 
     @exposed_http("GET", "/ws")
-    async def __ws_handler(self, request: Request) -> WebSocketResponse:
-        async with self._ws_session(request) as ws:
+    async def __ws_handler(self, req: Request) -> WebSocketResponse:
+        async with self._ws_session(req) as ws:
             await ws.send_event("loop", {})
             return (await self._ws_loop(ws))
+
+    @exposed_http("GET", "/state")
+    async def __state_handler(self, _: Request) -> Response:
+        return make_json_response({
+            "clients": len(self._get_wss()),
+            "data": {
+                "path": self.__data_path,
+                "write_allowed": self.__is_write_available(),
+            },
+        })
 
     @exposed_ws("ping")
     async def __ws_ping_handler(self, ws: WsSession, _: dict) -> None:
@@ -92,10 +104,10 @@ class PstServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
         await self.__remount_storage(rw=False)
         logger.info("On-Cleanup complete")
 
-    async def _on_ws_opened(self) -> None:
+    async def _on_ws_opened(self, _: WsSession) -> None:
         self.__notifier.notify()
 
-    async def _on_ws_closed(self) -> None:
+    async def _on_ws_closed(self, _: WsSession) -> None:
         self.__notifier.notify()
 
     # ===== SYSTEM TASKS
@@ -117,7 +129,7 @@ class PstServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
             await self.__notifier.wait()
 
     async def __broadcast_storage_state(self, clients: int, write_allowed: bool) -> None:
-        await self._broadcast_ws_event("storage_state", {
+        await self._broadcast_ws_event("storage", {
             "clients": clients,
             "data": {
                 "path": self.__data_path,
@@ -128,9 +140,9 @@ class PstServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
     def __is_write_available(self) -> bool:
         try:
             return (not (os.statvfs(self.__data_path).f_flag & os.ST_RDONLY))
-        except Exception as err:
+        except Exception as ex:
             get_logger(0).info("Can't get filesystem state of PST (%s): %s",
-                               self.__data_path, tools.efmt(err))
+                               self.__data_path, tools.efmt(ex))
             return False
 
     async def __remount_storage(self, rw: bool) -> bool:

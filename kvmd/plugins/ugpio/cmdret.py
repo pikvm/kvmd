@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -71,9 +71,9 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         try:
             proc = await aioproc.log_process(self.__cmd, logger=get_logger(0), prefix=str(self))
             return (proc.returncode == 0)
-        except Exception as err:
+        except Exception as ex:
             get_logger(0).error("Can't run custom command [ %s ]: %s",
-                                tools.cmdfmt(self.__cmd), tools.efmt(err))
+                                tools.cmdfmt(self.__cmd), tools.efmt(ex))
             raise GpioDriverOfflineError(self)
 
     async def write(self, pin: str, state: bool) -> None:

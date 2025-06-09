@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -38,7 +38,9 @@ void keymapPs2(uint8_t code, Ps2KeyType *ps2_type, uint8_t *ps2_code) {
 
 	switch (code) {
 % for km in sorted(keymap, key=operator.attrgetter("mcu_code")):
+	% if km.ps2_key is not None:
 		case ${km.mcu_code}: *ps2_type = PS2_KEY_TYPE_${km.ps2_key.type.upper()}; *ps2_code = ${km.ps2_key.code}; return; // ${km.web_name}
+	% endif
 % endfor
 	}
 }

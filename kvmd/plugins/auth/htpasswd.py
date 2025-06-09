@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -20,11 +20,11 @@
 # ========================================================================== #
 
 
-import passlib.apache
-
 from ...yamlconf import Option
 
 from ...validators.os import valid_abs_file
+
+from ...crypto import KvmdHtpasswdFile
 
 from . import BaseAuthService
 
@@ -43,5 +43,5 @@ class Plugin(BaseAuthService):
     async def authorize(self, user: str, passwd: str) -> bool:
         assert user == user.strip()
         assert user
-        htpasswd = passlib.apache.HtpasswdFile(self.__path)
+        htpasswd = KvmdHtpasswdFile(self.__path)
         return htpasswd.check_password(user, passwd)

@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -59,14 +59,25 @@ def queue_get_last_sync(  # pylint: disable=invalid-name
 # =====
 class AioProcessNotifier:
     def __init__(self) -> None:
-        self.__queue: "multiprocessing.Queue[None]" = multiprocessing.Queue()
+        self.__queue: "multiprocessing.Queue[int]" = multiprocessing.Queue()
 
-    def notify(self) -> None:
-        self.__queue.put_nowait(None)
+    def notify(self, mask: int=0) -> None:
+        self.__queue.put_nowait(mask)
 
-    async def wait(self) -> None:
-        while not (await queue_get_last(self.__queue, 0.1))[0]:
-            pass
+    async def wait(self) -> int:
+        while True:
+            mask = await aiotools.run_async(self.__get)
+            if mask >= 0:
+                return mask
+
+    def __get(self) -> int:
+        try:
+            mask = self.__queue.get(timeout=0.1)
+            while not self.__queue.empty():
+                mask |= self.__queue.get()
+            return mask
+        except queue.Empty:
+            return -1
 
 
 # =====

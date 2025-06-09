@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -72,7 +72,7 @@ def test_fail__valid_ugpio_item(validator: Callable[[Any], str], arg: Any) -> No
 @pytest.mark.parametrize("arg", ["foo", " bar", " baz "])
 def test_ok__valid_ugpio_driver_variants(arg: Any) -> None:
     value = valid_ugpio_driver(arg, set(["foo", "bar", "baz"]))
-    assert type(value) == str  # pylint: disable=unidiomatic-typecheck
+    assert type(value) is str  # pylint: disable=unidiomatic-typecheck
     assert value == str(arg).strip()
 
 

@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -23,6 +23,7 @@
 "use strict";
 
 
+import {ROOT_PREFIX} from "./vars.js";
 import {browser} from "./bb.js";
 
 
@@ -39,25 +40,70 @@ export var tools = new function() {
 
 	/************************************************************************/
 
-	self.makeRequest = function(method, url, callback, body=null, content_type=null, timeout=15000) {
+	self.currentOpen = function(url) {
+		window.location.href = ROOT_PREFIX + url;
+	};
+
+	self.windowOpen = function(url) {
+		window.open(ROOT_PREFIX + url, "_blank");
+	};
+
+	self.httpRequest = function(method, url, params, callback, body=null, content_type=null, timeout=15000) {
+		url = ROOT_PREFIX + url;
+		if (params) {
+			params = new URLSearchParams(params);
+			if (params) {
+				url += "?" + params;
+			}
+		}
 		let http = new XMLHttpRequest();
 		http.open(method, url, true);
 		if (content_type) {
 			http.setRequestHeader("Content-Type", content_type);
 		}
-		http.onreadystatechange = callback;
+		http.onreadystatechange = function() {
+			if (http.readyState === 4) {
+				callback(http);
+			}
+		};
 		http.timeout = timeout;
 		http.send(body);
-		return http;
+	};
+
+	self.httpGet = function(url, params, callback, body=null, content_type=null, timeout=15000) {
+		self.httpRequest("GET", url, params, callback, body, content_type, timeout);
+	};
+
+	self.httpPost = function(url, params, callback, body=null, content_type=null, timeout=15000) {
+		self.httpRequest("POST", url, params, callback, body, content_type, timeout);
+	};
+
+	self.makeWsUrl = function(url) {
+		let proto = (self.is_https ? "wss://" : "ws://");
+		return proto + window.location.host + window.location.pathname + ROOT_PREFIX + url;
 	};
 
 	/************************************************************************/
+
+	self.escape = function(text) {
+		if (typeof text !== "string") {
+			text = "" + text;
+		}
+		return text.replace(
+			/[^-_0-9A-Za-z ]/g,
+			ch => "&#" + ch.charCodeAt(0) + ";"
+		);
+	};
+
+	self.partial = function(func, ...args) {
+		return (...rest) => func(...args, ...rest);
+	};
 
 	self.upperFirst = function(text) {
 		return text[0].toUpperCase() + text.slice(1);
 	};
 
-	self.makeId = function() {
+	self.makeRandomId = function() {
 		let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 		let id = "";
 		for (let count = 0; count < 16; ++count) {
@@ -66,14 +112,8 @@ export var tools = new function() {
 		return id;
 	};
 
-	self.makeIdByText = function(text) {
+	self.makeTextId = function(text) {
 		return btoa(text).replace("=", "_");
-	};
-
-	self.getRandomInt = function(min, max) {
-		min = Math.ceil(min);
-		max = Math.floor(max);
-		return Math.floor(Math.random() * (max - min + 1)) + min;
 	};
 
 	self.formatSize = function(size) {
@@ -96,14 +136,15 @@ export var tools = new function() {
 		return `${hours}:${mins}:${secs}.${millis}`;
 	};
 
-	self.remap = function(x, a1, b1, a2, b2) {
-		let remapped = Math.round((x - a1) / b1 * (b2 - a2) + a2);
-		if (remapped < a2) {
-			return a2;
-		} else if (remapped > b2) {
-			return b2;
-		}
-		return remapped;
+	self.remap = function(value, in_min, in_max, out_min, out_max) {
+		let result = Math.round((value - in_min) * (out_max - out_min) / ((in_max - in_min) || 1) + out_min);
+		return Math.min(Math.max(result, out_min), out_max);
+	};
+
+	self.getRandomInt = function(min, max) {
+		min = Math.ceil(min);
+		max = Math.floor(max);
+		return Math.floor(Math.random() * (max - min + 1)) + min;
 	};
 
 	/************************************************************************/
@@ -111,25 +152,25 @@ export var tools = new function() {
 	self.el = new function() {
 		return {
 			"setOnClick": function(el, callback, prevent_default=true) {
-				el.onclick = el.ontouchend = function(event) {
+				el.onclick = el.ontouchend = function(ev) {
 					if (prevent_default) {
-						event.preventDefault();
+						ev.preventDefault();
 					}
 					callback();
 				};
 			},
 			"setOnDown": function(el, callback, prevent_default=true) {
-				el.onmousedown = el.ontouchstart = function(event) {
+				el.onmousedown = el.ontouchstart = function(ev) {
 					if (prevent_default) {
-						event.preventDefault();
+						ev.preventDefault();
 					}
-					callback();
+					callback(ev);
 				};
 			},
 			"setOnUp": function(el, callback, prevent_default=true) {
-				el.onmouseup = el.ontouchend = function(event) {
+				el.onmouseup = el.ontouchend = function(ev) {
 					if (prevent_default) {
-						event.preventDefault();
+						ev.preventDefault();
 					}
 					callback();
 				};
@@ -169,9 +210,9 @@ export var tools = new function() {
 					el.__pressed = true;
 				};
 
-				el.onmouseup = el.ontouchend = function(event) {
+				el.onmouseup = el.ontouchend = function(ev) {
 					let value = self.slider.getValue(el);
-					event.preventDefault();
+					ev.preventDefault();
 					clear_timer();
 					el.__execution_timer = setTimeout(function() {
 						el.__pressed = false;
@@ -224,29 +265,57 @@ export var tools = new function() {
 		};
 	};
 
+	self.sw = new function() {
+		return {
+			"makeItem": function(id, checked) {
+				id = tools.escape(id);
+				return `
+					<div class="switch-box">
+						<input
+							type="checkbox" id="${id}"
+							${checked ? "checked" : ""}
+						/>
+						<label for="${id}">
+							<span class="switch-inner"></span>
+							<span class="switch"></span>
+						</label>
+					</div>
+				`;
+			},
+		};
+	};
+
 	self.radio = new function() {
 		return {
 			"makeItem": function(name, title, value) {
+				let e_id = self.escape(name) + self.makeTextId(value);
 				return `
-					<input type="radio" id="${name}-${value}" name="${name}" value="${value}" />
-					<label for="${name}-${value}">${title}</label>
+					<input
+						type="radio"
+						id="${e_id}"
+						name="${tools.escape(name)}"
+						value="${tools.escape(value)}"
+					/>
+					<label for="${e_id}">
+						${tools.escape(title)}
+					</label>
 				`;
 			},
 			"setOnClick": function(name, callback, prevent_default=true) {
-				for (let el of $$$(`input[type="radio"][name="${name}"]`)) {
+				for (let el of $$$(`input[type="radio"][name="${CSS.escape(name)}"]`)) {
 					self.el.setOnClick(el, callback, prevent_default);
 				}
 			},
 			"getValue": function(name) {
-				return document.querySelector(`input[type="radio"][name="${name}"]:checked`).value;
+				return document.querySelector(`input[type="radio"][name="${CSS.escape(name)}"]:checked`).value;
 			},
 			"setValue": function(name, value) {
-				for (let el of $$$(`input[type="radio"][name="${name}"]`)) {
+				for (let el of $$$(`input[type="radio"][name="${CSS.escape(name)}"]`)) {
 					el.checked = (el.value === value);
 				}
 			},
 			"clickValue": function(name, value) {
-				for (let el of $$$(`input[type="radio"][name="${name}"]`)) {
+				for (let el of $$$(`input[type="radio"][name="${CSS.escape(name)}"]`)) {
 					if (el.value === value) {
 						el.click();
 						return;
@@ -254,7 +323,7 @@ export var tools = new function() {
 				}
 			},
 			"setEnabled": function(name, enabled) {
-				for (let el of $$$(`input[type="radio"][name="${name}"]`)) {
+				for (let el of $$$(`input[type="radio"][name="${CSS.escape(name)}"]`)) {
 					self.el.setEnabled(el, enabled);
 				}
 			},
@@ -272,34 +341,18 @@ export var tools = new function() {
 				option.className = "comment";
 				el.add(option);
 			},
-			"addSeparator": function(el) {
+			"addSeparator": function(el, repeat=30) {
 				if (!self.browser.is_mobile) {
-					self.selector.addComment(el, "\u2500".repeat(30));
+					self.selector.addComment(el, "\u2500".repeat(repeat));
 				}
 			},
-
-			"setValues": function(el, values, empty_title=null) {
-				if (values.constructor == Object) {
-					values = Object.keys(values).sort();
-				}
-				let values_json = JSON.stringify(values);
-				if (el.__values_json !== values_json) {
-					el.options.length = 0;
-					for (let value of values) {
-						let title = value;
-						if (title.length === 0 && empty_title !== null) {
-							title = empty_title;
-						}
-						self.selector.addOption(el, title, value);
+			"hasValue": function(el, value) {
+				for (let el_op of el.options) {
+					if (el_op.value === value) {
+						return true;
 					}
-					el.__values_json = values_json;
-					el.__values = values;
 				}
-			},
-			"setSelectedValue": function(el, value) {
-				if (el.__values && el.__values.includes(value)) {
-					el.value = value;
-				}
+				return false;
 			},
 		};
 	};
@@ -371,7 +424,7 @@ export var tools = new function() {
 
 	/************************************************************************/
 
-	self.is_https = (location.protocol === "https:");
+	self.is_https = (window.location.protocol === "https:");
 
 	self.cookies = new function() {
 		return {
@@ -391,6 +444,9 @@ export var tools = new function() {
 				return (value !== null ? value : `${default_value}`);
 			},
 			"set": (key, value) => window.localStorage.setItem(key, value),
+
+			"getInt": (key, default_value) => parseInt(self.storage.get(key, default_value)),
+			"setInt": (key, value) => self.storage.set(key, value),
 
 			"getBool": (key, default_value) => !!parseInt(self.storage.get(key, (default_value ? "1" : "0"))),
 			"setBool": (key, value) => self.storage.set(key, (value ? "1" : "0")),

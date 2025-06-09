@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                  2021-2021  Sebastian Goscik <sebastian.goscik@live.co.uk> #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
@@ -157,9 +157,9 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                             if self.__protocol == 2:
                                 self.__channel_queue.put_nowait(channel)
 
-            except Exception as err:
+            except Exception as ex:
                 self.__channel_queue.put_nowait(None)
-                if isinstance(err, serial.SerialException) and err.errno == errno.ENOENT:  # pylint: disable=no-member
+                if isinstance(ex, serial.SerialException) and ex.errno == errno.ENOENT:  # pylint: disable=no-member
                     logger.error("Missing %s serial device: %s", self, self.__device_path)
                 else:
                     logger.exception("Unexpected %s error", self)

@@ -51,7 +51,6 @@ kvmd:
             - "--resolution={resolution}"
             - "--desired-fps={desired_fps}"
             - "--drop-same-frames=30"
-            - "--last-as-blank=0"
             - "--unix={unix}"
             - "--unix-rm"
             - "--unix-mode=0660"
@@ -59,8 +58,8 @@ kvmd:
             - "--process-name-prefix={process_name_prefix}"
             - "--notify-parent"
             - "--no-log-colors"
-            - "--sink=kvmd::ustreamer::jpeg"
-            - "--sink-mode=0660"
+            - "--jpeg-sink=kvmd::ustreamer::jpeg"
+            - "--jpeg-sink-mode=0660"
 
 
 vnc:

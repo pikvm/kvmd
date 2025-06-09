@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -42,7 +42,7 @@ async def remount(name: str, base_cmd: list[str], rw: bool) -> bool:
         if proc.returncode != 0:
             assert proc.returncode is not None
             raise subprocess.CalledProcessError(proc.returncode, cmd)
-    except Exception as err:
-        logger.error("Can't remount %s storage: %s", name, tools.efmt(err))
+    except Exception as ex:
+        logger.error("Can't remount %s storage: %s", name, tools.efmt(ex))
         return False
     return True

@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -77,12 +77,16 @@ div.stream-box-offline::after {
 	display: inline-block;
 	background: radial-gradient(transparent 20%, black);
 }
-div.stream-box-mouse-enabled {
+div.stream-box-mouse-dot {
 	cursor: url("../../svg/stream-mouse-cursor.svg") 5 5, pointer;
+}
+div.stream-box-mouse-none {
+	cursor: none;
 }
 
 img#stream-image,
-video#stream-video {
+video#stream-video,
+canvas#stream-canvas {
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
@@ -100,7 +104,7 @@ div#stream-window.window-active:fullscreen div#stream-box div#stream-fullscreen-
 	top: 0;
 	left: 0;
 	border: 0;
-	box-shadow: var(--shadow-window-fullscreen-active);
+	/*box-shadow: var(--shadow-window-fullscreen-active);*/
 }
 
 div#stream-mouse-buttons {

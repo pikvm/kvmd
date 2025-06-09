@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -56,16 +56,18 @@ div.modal div.modal-window div.modal-header {
 }
 
 div.modal div.modal-window div.modal-content {
-	max-width: 500px;
-	max-height: 500px;
+	max-width: 600px;
+	max-height: 600px;
 	padding: 16px 9px 16px 9px;
 }
 
 div.modal div.modal-window div.modal-buttons {
 	border-top: var(--border-control-thin);
+	display: flex;
 	margin: 0;
 	padding: 0;
 	font-size: 0;
+	width: 100%;
 }
 
 div.modal div.modal-window div.modal-buttons button {

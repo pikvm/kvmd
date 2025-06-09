@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -35,23 +35,24 @@ export function Keyboard(__recordWsEvent) {
 	var __keypad = null;
 
 	var __init__ = function() {
-		__keypad = new Keypad("div#keyboard-window", __sendKey, true);
+		__keypad = new Keypad($("keyboard-window"), __sendKey, true);
 
 		$("hid-keyboard-led").title = "Keyboard free";
 
-		$("keyboard-window").onkeydown = (event) => __keyboardHandler(event, true);
-		$("keyboard-window").onkeyup = (event) => __keyboardHandler(event, false);
+		$("keyboard-window").onkeydown = (ev) => __keyboardHandler(ev, true);
+		$("keyboard-window").onkeyup = (ev) => __keyboardHandler(ev, false);
 		$("keyboard-window").onfocus = __updateOnlineLeds;
 		$("keyboard-window").onblur = __updateOnlineLeds;
 
-		$("stream-window").onkeydown = (event) => __keyboardHandler(event, true);
-		$("stream-window").onkeyup = (event) => __keyboardHandler(event, false);
+		$("stream-window").onkeydown = (ev) => __keyboardHandler(ev, true);
+		$("stream-window").onkeyup = (ev) => __keyboardHandler(ev, false);
 		$("stream-window").onfocus = __updateOnlineLeds;
 		$("stream-window").onblur = __updateOnlineLeds;
 
 		window.addEventListener("focusin", __updateOnlineLeds);
 		window.addEventListener("focusout", __updateOnlineLeds);
 
+		tools.storage.bindSimpleSwitch($("hid-keyboard-bad-link-switch"), "hid.keyboard.bad_link", false);
 		tools.storage.bindSimpleSwitch($("hid-keyboard-swap-cc-switch"), "hid.keyboard.swap_cc", false);
 	};
 
@@ -65,17 +66,17 @@ export function Keyboard(__recordWsEvent) {
 		__updateOnlineLeds();
 	};
 
-	self.setState = function(state, hid_online, hid_busy) {
+	self.setState = function(online, leds, hid_online, hid_busy) {
 		if (!hid_online) {
 			__online = null;
 		} else {
-			__online = (state.online && !hid_busy);
+			__online = (online && !hid_busy);
 		}
 		__updateOnlineLeds();
 
 		for (let led of ["caps", "scroll", "num"]) {
 			for (let el of $$$(`.hid-keyboard-${led}-led`)) {
-				if (state.leds[led]) {
+				if (leds[led]) {
 					el.classList.add("led-green");
 					el.classList.remove("led-gray");
 				} else {
@@ -124,9 +125,9 @@ export function Keyboard(__recordWsEvent) {
 		$("hid-keyboard-led").title = title;
 	};
 
-	var __keyboardHandler = function(event, state) {
-		event.preventDefault();
-		__keypad.emitByKeyEvent(event, state);
+	var __keyboardHandler = function(ev, state) {
+		ev.preventDefault();
+		__keypad.emitByKeyEvent(ev, state);
 	};
 
 	var __sendKey = function(code, state) {
@@ -138,14 +139,19 @@ export function Keyboard(__recordWsEvent) {
 				code = "ControlLeft";
 			}
 		}
-		let event = {
+		let ev = {
 			"event_type": "key",
-			"event": {"key": code, "state": state},
+			"event": {
+				"key": code,
+				"state": state,
+				"finish": $("hid-keyboard-bad-link-switch").checked,
+			},
 		};
 		if (__ws && !$("hid-mute-switch").checked) {
-			__ws.sendHidEvent(event);
+			__ws.sendHidEvent(ev);
 		}
-		__recordWsEvent(event);
+		delete ev.event.finish;
+		__recordWsEvent(ev);
 	};
 
 	__init__();

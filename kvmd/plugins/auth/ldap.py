@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -100,10 +100,10 @@ class Plugin(BaseAuthService):
                     return True
         except ldap.INVALID_CREDENTIALS:
             pass
-        except ldap.SERVER_DOWN as err:
-            get_logger().error("LDAP server is down: %s", tools.efmt(err))
-        except Exception as err:
-            get_logger().error("Unexpected LDAP error: %s", tools.efmt(err))
+        except ldap.SERVER_DOWN as ex:
+            get_logger().error("LDAP server is down: %s", tools.efmt(ex))
+        except Exception as ex:
+            get_logger().error("Unexpected LDAP error: %s", tools.efmt(ex))
         finally:
             if conn is not None:
                 try:

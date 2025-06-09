@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -40,6 +40,9 @@ class MsdDisabledError(MsdOperationError):
 
 # =====
 class Plugin(BaseMsd):
+    def __init__(self) -> None:
+        self.__notifier = aiotools.AioNotifier()
+
     async def get_state(self) -> dict:
         return {
             "enabled": False,
@@ -49,10 +52,13 @@ class Plugin(BaseMsd):
             "drive": None,
         }
 
+    async def trigger_state(self) -> None:
+        self.__notifier.notify()
+
     async def poll_state(self) -> AsyncGenerator[dict, None]:
         while True:
+            await self.__notifier.wait()
             yield (await self.get_state())
-            await aiotools.wait_infinite()
 
     async def reset(self) -> None:
         raise MsdDisabledError()

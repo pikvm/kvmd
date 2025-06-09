@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2023  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -34,10 +34,10 @@ def is_ipv6_enabled() -> bool:
         with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as sock:
             sock.bind(("::1", 0))
         return True
-    except OSError as err:
-        if err.errno in [errno.EADDRNOTAVAIL, errno.EAFNOSUPPORT]:
+    except OSError as ex:
+        if ex.errno in [errno.EADDRNOTAVAIL, errno.EAFNOSUPPORT]:
             return False
-        if err.errno == errno.EADDRINUSE:
+        if ex.errno == errno.EADDRINUSE:
             return True
         raise
 

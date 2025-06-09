@@ -1,7 +1,11 @@
 video: {
 	sink = "kvmd::ustreamer::h264"
 }
-audio: {
-	device = "hw:0,0"
+acap: {
+	device = "hw:tc358743,0"
 	tc358743 = "/dev/kvmd-video"
+}
+aplay: {
+	device = "plughw:UAC2Gadget,0"
+	check = "/run/kvmd/otg/uac2.usb0@meta.json"
 }
