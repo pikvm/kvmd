@@ -3,9 +3,11 @@
 TESTENV_IMAGE ?= kvmd-testenv
 TESTENV_HID ?= /dev/ttyS10
 TESTENV_VIDEO ?= /dev/video0
-TESTENV_GPIO ?= /dev/gpiochip0
 TESTENV_RELAY ?=
 #TESTENV_RELAY ?= $(if $(shell ls /dev/hidraw0 2>/dev/null || true),/dev/hidraw0,)
+
+TESTENV_GPIO_MODULE = /sys/module/gpio_mockup
+TESTENV_GPIO = /dev/$(notdir $(dir $(wildcard $(TESTENV_GPIO_MODULE)/drivers/*/*/*/dev)))
 
 LIBGPIOD_VERSION ?= 1.6.3
 
@@ -97,13 +99,14 @@ tox: testenv
 		"
 
 
-$(TESTENV_GPIO):
-	test ! -e $(TESTENV_GPIO)
+$(TESTENV_GPIO_MODULE):
 	sudo modprobe gpio_mockup gpio_mockup_ranges=0,40
-	test -c $(TESTENV_GPIO)
 
+gpio: $(TESTENV_GPIO_MODULE)
+	test -c "$(TESTENV_GPIO)"
 
-run: testenv $(TESTENV_GPIO)
+.NOTPARALLEL: run
+run: testenv gpio
 	- $(DOCKER) run --rm --name kvmd \
 			--ipc=shareable \
 			--privileged \
