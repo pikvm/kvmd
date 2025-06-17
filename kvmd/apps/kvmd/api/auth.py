@@ -167,7 +167,7 @@ class AuthApi:
         if not self.__auth_manager.oauth_manager.valid_provider(provider):
             raise HTTPNotFound(reason="Unknown provider %s" % provider)
 
-        redirect_url = request.url.with_path(f"/api/auth/oauth/callback/{provider}").with_scheme('https')
+        redirect_url = request.url.with_path(f"/api/auth/oauth/callback/{provider}/").with_scheme('https')
         oauth_cookie = request.cookies.get(_COOKIE_OAUTH_SESSION, "")
 
         is_valid_session = await self.__auth_manager.oauth_manager.is_valid_session(provider, oauth_cookie)
