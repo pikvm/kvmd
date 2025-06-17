@@ -34,6 +34,8 @@ from ...validators.net import valid_url
 from ...yamlconf import Option
 from . import OAuthService, OAuthException
 
+from ...logging import get_logger
+
 
 class Plugin(OAuthService):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments
@@ -156,7 +158,7 @@ class Plugin(OAuthService):  # pylint: disable=too-many-instance-attributes
             try:
                 async with session.get(self.__user_info_url, headers=headers) as response:
                     user_info = await response.json()
-                    return user_info[self.__username_attribute]
+                    return user_info.get(self.__username_attribute, "_oauth_user_")
             except aiohttp.ClientConnectorError as error:
                 raise OAuthException(message="could not connect to provider! error message: %s" % str(error))
 

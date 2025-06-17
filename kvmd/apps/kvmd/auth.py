@@ -197,9 +197,15 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
         assert self.__enabled
         assert self.oauth_manager
         token = self.__make_new_token()
-        self.__tokens[token] = user
-
-        get_logger().info("Logged in user with OAuth %r", user)
+        session = _Session(
+            user=user,
+            expire_ts=self.__make_expire_ts(0),
+        )
+        self.__sessions[token] = session
+        get_logger(0).info("Logged in via OAuth (user %r); expire=%s, sessions_now=%d",
+                           session.user,
+                           self.__format_expire_ts(session.expire_ts),
+                           self.__get_sessions_number(session.user))
         return token
 
     def __make_new_token(self) -> str:
