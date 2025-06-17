@@ -42,10 +42,6 @@ from ...htserver import RequestUnixCredentials
 
 
 # =====
-class AuthManager:  # pylint: disable=too-many-instance-attributes
-    def __init__(  # pylint: disable=too-many-arguments
-
-
 @dataclasses.dataclass(frozen=True)
 class _Session:
     user:      str

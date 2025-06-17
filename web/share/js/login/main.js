@@ -54,24 +54,22 @@ export function main() {
 }
 
 function __loadProviders () {
-	let http = tools.makeRequest("GET", "/api/auth/oauth/providers", function() {
-		if (http.readyState === 4) {
-			if (http.status === 200) {
-				let oauthInfo = JSON.parse(http.responseText).result;
-				if (!oauthInfo.enabled) {
-					return;
-				}
-				let buttons = `<tr>
-                                          <td colspan="2">
-                                            <hr>
-                                          </td>
-                                        </tr>
-					<tr><td>&nbsp;</tr></td>`
-                                for (const [short_name, long_name] of Object.entries(oauthInfo.providers)) {
-					buttons += __makeProvider(short_name, long_name);
-				}
-                                $("oauth-tbody").innerHTML = buttons
+	tools.httpRequest("GET", "/api/auth/oauth/providers", null, function(http) {
+		if (http.status === 200) {
+			let oauthInfo = JSON.parse(http.responseText).result;
+			if (!oauthInfo.enabled) {
+				return;
 			}
+			let buttons = `<tr>
+									  <td colspan="2">
+										<hr>
+									  </td>
+									</tr>
+				<tr><td>&nbsp;</tr></td>`
+							for (const [short_name, long_name] of Object.entries(oauthInfo.providers)) {
+				buttons += __makeProvider(short_name, long_name);
+			}
+							$("oauth-tbody").innerHTML = buttons
 		}
 	})
 }
