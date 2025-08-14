@@ -29,6 +29,7 @@ import datetime
 import secrets
 import pyotp
 
+from .oauth import OAuthManager
 from ...logging import get_logger
 
 from ... import aiotools
@@ -69,6 +70,9 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
         ext_kwargs: dict,
 
         totp_secret_path: str,
+
+        oauth_enabled: bool = False,
+        oauth_providers: (dict | None) = None,
     ) -> None:
 
         logger = get_logger(0)
@@ -107,9 +111,19 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
             logger.info("Using external auth service %r",
                         self.__ext_service.get_plugin_name())
 
+        self.oauth_manager: (OAuthManager | None) = None
+        if enabled and oauth_enabled:
+            if oauth_providers is None:
+                oauth_providers = {}
+            self.oauth_manager = OAuthManager(oauth_providers)
+            get_logger().info("Using OAuth service")
+
         self.__totp_secret_path = totp_secret_path
 
         self.__sessions: dict[str, _Session] = {}  # {token: session}
+
+        self.__tokens: dict[str, str] = {}  # {token: user}
+        self.__oauth_tokens: list[str] = []
 
     def is_auth_enabled(self) -> bool:
         return self.__enabled
@@ -171,6 +185,28 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
             return token
 
         return None
+
+    async def login_oauth(self, user: str) -> (str | None):
+        """
+        registers the user, who logged in with oauth, with a new token.
+        @param user: the username provided by the oauth provider
+        @return:
+        """
+        assert user == user.strip()
+        assert user
+        assert self.__enabled
+        assert self.oauth_manager
+        token = self.__make_new_token()
+        session = _Session(
+            user=user,
+            expire_ts=self.__make_expire_ts(0),
+        )
+        self.__sessions[token] = session
+        get_logger(0).info("Logged in via OAuth (user %r); expire=%s, sessions_now=%d",
+                           session.user,
+                           self.__format_expire_ts(session.expire_ts),
+                           self.__get_sessions_number(session.user))
+        return token
 
     def __make_new_token(self) -> str:
         for _ in range(10):
