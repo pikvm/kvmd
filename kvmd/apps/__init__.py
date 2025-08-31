@@ -192,7 +192,14 @@ def _init_config(config_path: str, override_options: list[str], **load_flags: bo
         raise SystemExit(f"ConfigError: {ex}")
 
 
-def _patch_raw(raw_config: dict) -> None:  # pylint: disable=too-many-branches
+def _patch_raw(raw_config: dict) -> None:
+    _patch_raw_otgnet(raw_config)
+    _patch_raw_otg(raw_config)
+    _patch_raw_kvmd_wol(raw_config)
+    _patch_raw_kvmd_streamer(raw_config)
+
+
+def _patch_raw_otgnet(raw_config: dict) -> None:
     for (sub, cmd) in [("iface", "ip_cmd"), ("firewall", "iptables_cmd")]:
         if isinstance(raw_config.get("otgnet"), dict):
             if isinstance(raw_config["otgnet"].get(sub), dict):
@@ -201,6 +208,8 @@ def _patch_raw(raw_config: dict) -> None:  # pylint: disable=too-many-branches
                     raw_config["otgnet"]["commands"][cmd] = raw_config["otgnet"][sub][cmd]
                     del raw_config["otgnet"][sub][cmd]
 
+
+def _patch_raw_otg(raw_config: dict) -> None:
     if isinstance(raw_config.get("otg"), dict):
         for (old, new) in [
             ("msd", "msd"),
@@ -212,6 +221,8 @@ def _patch_raw(raw_config: dict) -> None:  # pylint: disable=too-many-branches
                     raw_config["otg"]["devices"] = {}
                 raw_config["otg"]["devices"][new] = raw_config["otg"].pop(old)
 
+
+def _patch_raw_kvmd_wol(raw_config: dict) -> None:
     if isinstance(raw_config.get("kvmd"), dict) and isinstance(raw_config["kvmd"].get("wol"), dict):
         if not isinstance(raw_config["kvmd"].get("gpio"), dict):
             raw_config["kvmd"]["gpio"] = {}
@@ -229,6 +240,8 @@ def _patch_raw(raw_config: dict) -> None:  # pylint: disable=too-many-branches
             "switch": False,
         }
 
+
+def _patch_raw_kvmd_streamer(raw_config: dict) -> None:
     if isinstance(raw_config.get("kvmd"), dict) and isinstance(raw_config["kvmd"].get("streamer"), dict):
         streamer_config = raw_config["kvmd"]["streamer"]
 
@@ -255,7 +268,7 @@ def _patch_raw(raw_config: dict) -> None:  # pylint: disable=too-many-branches
             del streamer_config["available_resolutions"]
 
 
-def _patch_dynamic(  # pylint: disable=too-many-locals
+def _patch_dynamic(
     raw_config: dict,
     config: Section,
     scheme: dict,
@@ -269,17 +282,7 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
     rebuild = False
 
     if load_auth:
-        scheme["kvmd"]["auth"]["internal"].update(
-            get_auth_service_class(config.kvmd.auth.internal.type).get_plugin_options()
-        )
-        if config.kvmd.auth.external.type:
-            scheme["kvmd"]["auth"]["external"].update(
-                get_auth_service_class(config.kvmd.auth.external.type).get_plugin_options()
-            )
-        if config.kvmd.auth.oauth.enabled:
-            for provider, data in tools.rget(raw_config, "kvmd", "auth", "oauth", "providers").items():
-                scheme["kvmd"]["auth"]["oauth"]["providers"][provider] = get_oauth_service_class(data["type"]).get_plugin_options()
-                scheme["kvmd"]["auth"]["oauth"]["providers"][provider]["type"] = Option(data["type"])
+        _patch_dynamic_kvmd_auth(raw_config, config, scheme)
         rebuild = True
 
     for (load, section, get_class) in [
@@ -292,61 +295,78 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
             rebuild = True
 
     if load_gpio:
-        driver: str
-        drivers: dict[str, type[BaseUserGpioDriver]] = {}  # Name to drivers
-        for (driver, params) in {  # type: ignore
-            "__gpio__": {},
-            **tools.rget(raw_config, "kvmd", "gpio", "drivers"),
-        }.items():
-            with manual_validated(driver, "kvmd", "gpio", "drivers", "<key>"):
-                driver = valid_ugpio_driver(driver)
-
-            driver_type = valid_stripped_string_not_empty(params.get("type", "gpio"))
-            driver_class = get_ugpio_driver_class(driver_type)
-            drivers[driver] = driver_class
-            scheme["kvmd"]["gpio"]["drivers"][driver] = {
-                "type": Option(driver_type, type=valid_stripped_string_not_empty),
-                **driver_class.get_plugin_options()
-            }
-
-        path = ("kvmd", "gpio", "scheme")
-        for (channel, params) in tools.rget(raw_config, *path).items():
-            with manual_validated(channel, *path, "<key>"):
-                channel = valid_ugpio_channel(channel)
-
-            driver = params.get("driver", "__gpio__")
-            with manual_validated(driver, *path, channel, "driver"):
-                driver = valid_ugpio_driver(driver, set(drivers))
-
-            mode: str = params.get("mode", "")
-            with manual_validated(mode, *path, channel, "mode"):
-                mode = valid_ugpio_mode(mode, drivers[driver].get_modes())
-
-            if params.get("pulse") == False:  # noqa: E712  # pylint: disable=singleton-comparison
-                params["pulse"] = {"delay": 0}
-
-            scheme["kvmd"]["gpio"]["scheme"][channel] = {
-                "driver":   Option("__gpio__", type=functools.partial(valid_ugpio_driver, variants=set(drivers))),
-                "pin":      Option(None,       type=drivers[driver].get_pin_validator()),
-                "mode":     Option("",         type=functools.partial(valid_ugpio_mode, variants=drivers[driver].get_modes())),
-                "inverted": Option(False,      type=valid_bool),
-                **({
-                    "busy_delay": Option(0.2,   type=valid_float_f01),
-                    "initial":    Option(False, type=(lambda arg: (valid_bool(arg) if arg is not None else None))),
-                    "switch":     Option(True,  type=valid_bool),
-                    "pulse": {  # type: ignore
-                        "delay":     Option(0.1, type=valid_float_f0),
-                        "min_delay": Option(0.1, type=valid_float_f01),
-                        "max_delay": Option(0.1, type=valid_float_f01),
-                    },
-                } if mode == UserGpioModes.OUTPUT else {  # input
-                    "debounce": Option(0.1, type=valid_float_f0),
-                })
-            }
-
+        _patch_dynamic_kvmd_gpio(raw_config, config, scheme)
         rebuild = True
 
     return rebuild
+
+
+def _patch_dynamic_kvmd_auth(raw_config: dict, config: Section, scheme: dict) -> None:
+    scheme["kvmd"]["auth"]["internal"].update(
+        get_auth_service_class(config.kvmd.auth.internal.type).get_plugin_options()
+    )
+    if config.kvmd.auth.external.type:
+        scheme["kvmd"]["auth"]["external"].update(
+            get_auth_service_class(config.kvmd.auth.external.type).get_plugin_options()
+        )
+    if config.kvmd.auth.oauth.enabled:
+        for provider, data in tools.rget(raw_config, "kvmd", "auth", "oauth", "providers").items():
+            scheme["kvmd"]["auth"]["oauth"]["providers"][provider] = get_oauth_service_class(data["type"]).get_plugin_options()
+            scheme["kvmd"]["auth"]["oauth"]["providers"][provider]["type"] = Option(data["type"])
+
+
+def _patch_dynamic_kvmd_gpio(raw_config: dict, _: Section, scheme: dict) -> None:
+    driver: str
+    drivers: dict[str, type[BaseUserGpioDriver]] = {}  # Name to drivers
+    for (driver, params) in {  # type: ignore
+        "__gpio__": {},
+        **tools.rget(raw_config, "kvmd", "gpio", "drivers"),
+    }.items():
+        with manual_validated(driver, "kvmd", "gpio", "drivers", "<key>"):
+            driver = valid_ugpio_driver(driver)
+
+        driver_type = valid_stripped_string_not_empty(params.get("type", "gpio"))
+        driver_class = get_ugpio_driver_class(driver_type)
+        drivers[driver] = driver_class
+        scheme["kvmd"]["gpio"]["drivers"][driver] = {
+            "type": Option(driver_type, type=valid_stripped_string_not_empty),
+            **driver_class.get_plugin_options()
+        }
+
+    path = ("kvmd", "gpio", "scheme")
+    for (channel, params) in tools.rget(raw_config, *path).items():
+        with manual_validated(channel, *path, "<key>"):
+            channel = valid_ugpio_channel(channel)
+
+        driver = params.get("driver", "__gpio__")
+        with manual_validated(driver, *path, channel, "driver"):
+            driver = valid_ugpio_driver(driver, set(drivers))
+
+        mode: str = params.get("mode", "")
+        with manual_validated(mode, *path, channel, "mode"):
+            mode = valid_ugpio_mode(mode, drivers[driver].get_modes())
+
+        if params.get("pulse") == False:  # noqa: E712  # pylint: disable=singleton-comparison
+            params["pulse"] = {"delay": 0}
+
+        scheme["kvmd"]["gpio"]["scheme"][channel] = {
+            "driver":   Option("__gpio__", type=functools.partial(valid_ugpio_driver, variants=set(drivers))),
+            "pin":      Option(None,       type=drivers[driver].get_pin_validator()),
+            "mode":     Option("",         type=functools.partial(valid_ugpio_mode, variants=drivers[driver].get_modes())),
+            "inverted": Option(False,      type=valid_bool),
+            **({
+                "busy_delay": Option(0.2,   type=valid_float_f01),
+                "initial":    Option(False, type=(lambda arg: (valid_bool(arg) if arg is not None else None))),
+                "switch":     Option(True,  type=valid_bool),
+                "pulse": {  # type: ignore
+                    "delay":     Option(0.1, type=valid_float_f0),
+                    "min_delay": Option(0.1, type=valid_float_f01),
+                    "max_delay": Option(0.1, type=valid_float_f01),
+                },
+            } if mode == UserGpioModes.OUTPUT else {  # input
+                "debounce": Option(0.1, type=valid_float_f0),
+            })
+        }
 
 
 def _dump_config(config: Section) -> None:
