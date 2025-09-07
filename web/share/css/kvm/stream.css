@@ -104,8 +104,10 @@ div#stream-window.window-active:fullscreen div#stream-box div#stream-fullscreen-
 	top: 0;
 	left: 0;
 	border: 0;
-	/*box-shadow: var(--shadow-window-fullscreen-active);*/
 }
+div#stream-window.window-active:fullscreen div#stream-box div#stream-fullscreen-active.stream-fullscreen-bordered {
+	box-shadow: var(--shadow-window-fullscreen-active);
+
 
 div#stream-mouse-buttons {
 	display: none;

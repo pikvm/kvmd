@@ -58,6 +58,10 @@ export function main() {
 			wm.setFullTabWindow($("stream-window"), true);
 		}
 
+		tools.storage.bindSimpleSwitch($("page-full-screen-frame-switch"), "page.full_screen_frame", false, function(value) {
+			$("stream-fullscreen-active").classList.toggle("stream-fullscreen-bordered", value);
+		});
+
 		wm.showWindow($("stream-window"));
 
 		new Session();
