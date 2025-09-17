@@ -175,7 +175,8 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		$("hid-mouse-led").className = led;
 		$("hid-mouse-led").title = title;
 
-		if (__abs && is_captured) {
+		// Show blue pointer in both absolute mode (when hovered/mobile) and relative mode (when pointer locked or on mobile)
+		if ((__abs && is_captured) || (!__abs && (__isRelativeCaptured() || tools.browser.is_mobile))) {
 			let dot = $("hid-mouse-dot-switch").checked;
 			$("stream-box").classList.toggle("stream-box-mouse-dot", (dot && __ws));
 			$("stream-box").classList.toggle("stream-box-mouse-none", (!dot && __ws));
