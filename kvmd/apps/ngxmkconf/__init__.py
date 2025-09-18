@@ -58,6 +58,8 @@ def main(argv: (list[str] | None)=None) -> None:
         https_ipv6=config.nginx.https.ipv6,
         https_port=config.nginx.https.port,
         ipv6_enabled=network.is_ipv6_enabled(),
+        prometheus_use_separate_port=config.nginx.prometheus.use_separate_port,
+        prometheus_http_port=config.nginx.prometheus.http_port,
     )
 
     if options.print:
