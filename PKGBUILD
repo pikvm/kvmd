@@ -95,7 +95,7 @@ depends=(
 	ipmitool
 	"janus-gateway-pikvm>=1.3.0"
 	certbot
-	platform-io-access
+	"raspberrypi-io-access>=0.7"
 	raspberrypi-utils
 	"ustreamer>=6.37"
 

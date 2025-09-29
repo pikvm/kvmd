@@ -3,6 +3,8 @@ Description=PiKVM - Display reboot message on the OLED
 DefaultDependencies=no
 
 [Service]
+User=kvmd-oled
+Group=kvmd-oled
 Type=oneshot
 ExecStart=/bin/bash -c "kill -USR1 `systemctl show -P MainPID kvmd-oled`"
 ExecStop=/bin/true

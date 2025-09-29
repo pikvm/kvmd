@@ -5,6 +5,8 @@ Before=shutdown.target poweroff.target halt.target
 DefaultDependencies=no
 
 [Service]
+User=kvmd-oled
+Group=kvmd-oled
 Type=oneshot
 ExecStart=/bin/bash -c "kill -USR2 `systemctl show -P MainPID kvmd-oled`"
 ExecStop=/bin/true

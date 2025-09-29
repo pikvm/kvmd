@@ -4,6 +4,8 @@ After=systemd-modules-load.service
 ConditionPathExists=/dev/i2c-1
 
 [Service]
+User=kvmd-oled
+Group=kvmd-oled
 Type=simple
 Restart=always
 RestartSec=3
