@@ -132,13 +132,16 @@ async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many
 
                 await screen.set_swimming(60, 3)
 
+                async def draw_and_sleep(text: str) -> None:
+                    clients = sensors.get_clients_count()
+                    await screen.set_contrast(options.low_contrast if clients > 0 else options.contrast)
+                    await screen.draw_text(sensors.render(text))
+                    await asyncio.sleep(options.interval)
+
                 if device.height >= 64:
                     while stop_reason is None:
                         text = "{fqdn}\n{ip}\niface: {iface}\ntemp: {temp}\ncpu: {cpu} mem: {mem}\n({hb} {clients}) {uptime}"
-                        clients = sensors.get_clients_count()
-                        await screen.set_contrast(options.contrast if clients > 0 else options.low_contrast)
-                        await screen.draw_text(sensors.render(text))
-                        await asyncio.sleep(options.interval)
+                        await draw_and_sleep(text)
                 else:
                     summary = True
                     while stop_reason is None:
@@ -146,10 +149,7 @@ async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many
                             text = "{fqdn}\n({hb} {clients}) {uptime}\ntemp: {temp}"
                         else:
                             text = "{ip}\n({hb}) iface: {iface}\ncpu: {cpu} mem: {mem}"
-                        clients = sensors.get_clients_count()
-                        await screen.set_contrast(options.low_contrast if clients > 0 else options.contrast)
-                        await screen.draw_text(sensors.render(text))
-                        await asyncio.sleep(options.interval)
+                        await draw_and_sleep(text)
                         summary = bool(time.monotonic() // 6 % 2)
 
             if stop_reason is not None:
