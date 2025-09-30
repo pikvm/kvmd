@@ -147,7 +147,7 @@ async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many
                         else:
                             text = "{ip}\n({hb}) iface: {iface}\ncpu: {cpu} mem: {mem}"
                         clients = sensors.get_clients_count()
-                        await screen.set_contrast(options.contrast if clients > 0 else options.low_contrast)
+                        await screen.set_contrast(options.low_contrast if clients > 0 else options.contrast)
                         await screen.draw_text(sensors.render(text))
                         await asyncio.sleep(options.interval)
                         summary = bool(time.monotonic() // 6 % 2)
