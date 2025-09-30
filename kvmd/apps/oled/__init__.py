@@ -134,16 +134,20 @@ async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many
 
                 if device.height >= 64:
                     while stop_reason is None:
-                        text = "{fqdn}\n{ip}\niface: {iface}\nview: {clients} t: {temp}\ncpu: {cpu} mem: {mem}\n({hb}) {uptime}"
+                        text = "{fqdn}\n{ip}\niface: {iface}\ntemp: {temp}\ncpu: {cpu} mem: {mem}\n({hb} {clients}) {uptime}"
+                        clients = sensors.get_clients_count()
+                        await screen.set_contrast(options.contrast if clients > 0 else options.low_contrast)
                         await screen.draw_text(sensors.render(text))
                         await asyncio.sleep(options.interval)
                 else:
                     summary = True
                     while stop_reason is None:
                         if summary:
-                            text = "{fqdn}\n({hb}) {uptime}\nview: {clients} t: {temp}"
+                            text = "{fqdn}\n({hb} {clients}) {uptime}\ntemp: {temp}"
                         else:
                             text = "{ip}\n({hb}) iface: {iface}\ncpu: {cpu} mem: {mem}"
+                        clients = sensors.get_clients_count()
+                        await screen.set_contrast(options.contrast if clients > 0 else options.low_contrast)
                         await screen.draw_text(sensors.render(text))
                         await asyncio.sleep(options.interval)
                         summary = bool(time.monotonic() // 6 % 2)
@@ -188,6 +192,7 @@ def main() -> None:
     parser.add_argument("--fill", action="store_true", help="Fill the display with 0xFF")
     parser.add_argument("--clear-on-exit", action="store_true", help="Clear display on exit")
     parser.add_argument("--contrast", default=64, type=int, help="Set OLED contrast, values from 0 to 255")
+    parser.add_argument("--low-contrast", default=1, type=int, help="Set OLED contrast when device is used")
     parser.add_argument("--fahrenheit", action="store_true", help="Display temperature in Fahrenheit instead of Celsius")
     parser.add_argument("--kvmd-unix", default="/run/kvmd/kvmd.sock", help="Ask some info from KVMD like a clients count")
     parser.add_argument("--kvmd-timeout", default=5.0, type=float, help="Timeout for KVMD requests")
@@ -196,5 +201,6 @@ def main() -> None:
         config = luma_cmdline.load_config(options.config)
         options = parser.parse_args(config + sys.argv[1:])
     options.contrast = min(max(options.contrast, 0), 255)
+    options.low_contrast = min(max(options.low_contrast, 0), 255)
 
     asyncio.run(_run(options))

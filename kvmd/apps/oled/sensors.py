@@ -101,6 +101,9 @@ class Sensors:
 
     # =====
 
+    def get_clients_count(self) -> int:
+        return self.__clients_count
+
     def render(self, text: str) -> str:
         return text.format_map(self)
 

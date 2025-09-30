@@ -23,6 +23,8 @@
 
 import time
 
+import async_lru
+
 from luma.core.device import device as luma_device
 from luma.core.render import canvas as luma_canvas
 
@@ -56,6 +58,7 @@ class Screen:  # pylint: disable=too-many-instance-attributes
         self.__swim_interval = interval
         self.__swim_offset_x = offset_x
 
+    @async_lru.alru_cache(maxsize=1)
     async def set_contrast(self, contrast: int) -> None:
         await aiotools.run_async(self.__device.contrast, contrast)
 
