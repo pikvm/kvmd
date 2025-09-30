@@ -152,10 +152,10 @@ class Sensors:
 
     # =====
 
-    @functools.lru_cache(maxsize=1)
     def __get_uptime(self) -> str:
         return self.__inner_get_uptime(int(time.monotonic()))
 
+    @functools.lru_cache(maxsize=1)
     def __inner_get_uptime(self, ts: int) -> str:
         _ = ts
         uptime = datetime.timedelta(seconds=int(time.time() - psutil.boot_time()))
@@ -166,10 +166,10 @@ class Sensors:
 
     # =====
 
-    @functools.lru_cache(maxsize=1)
     def __get_temp(self) -> str:
         return self.__inner_get_temp(int(time.monotonic()) // 3)
 
+    @functools.lru_cache(maxsize=1)
     def __inner_get_temp(self, ts: int) -> str:
         _ = ts
         try:
@@ -185,10 +185,10 @@ class Sensors:
 
     # =====
 
-    @functools.lru_cache(maxsize=1)
     def __get_cpu(self) -> str:
         return self.__inner_get_cpu(int(time.monotonic()))
 
+    @functools.lru_cache(maxsize=1)
     def __inner_get_cpu(self, ts: int) -> str:
         _ = ts
         st = psutil.cpu_times_percent()
@@ -206,10 +206,10 @@ class Sensors:
         )
         return f"{percent}%"
 
-    @functools.lru_cache(maxsize=1)
     def __get_mem(self) -> str:
         return self.__inner_get_mem(int(time.monotonic()))
 
+    @functools.lru_cache(maxsize=1)
     def __inner_get_mem(self, ts: int) -> str:
         _ = ts
         return f"{int(psutil.virtual_memory().percent)}%"
