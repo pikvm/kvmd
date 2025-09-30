@@ -21,28 +21,85 @@
 # ========================================================================== #
 
 
+import asyncio
 import socket
 import functools
+import itertools
+import types
 import datetime
 import time
+
+from typing import Self
 
 import netifaces
 import psutil
 
+from ...logging import get_logger
+
+from ... import tools
+
+from ...clients.kvmd import KvmdClient
+
 
 # =====
 class Sensors:
-    def __init__(self, fahrenheit: bool) -> None:
+    def __init__(
+        self,
+        kvmd: (KvmdClient | None),
+        fahrenheit: bool,
+    ) -> None:
+
+        self.__kvmd = kvmd
         self.__fahrenheit = fahrenheit
+
+        self.__kvmd_task: (asyncio.Task | None) = None
+
+        hb = itertools.cycle(r"/-\|")
+        self.__clients_count = -1
         self.__sensors = {
-            "fqdn":   socket.getfqdn,
-            "iface":  self.__get_iface,
-            "ip":     self.__get_ip,
-            "uptime": self.__get_uptime,
-            "temp":   self.__get_temp,
-            "cpu":    self.__get_cpu,
-            "mem":    self.__get_mem,
+            "hb":      (lambda: next(hb)),
+            "fqdn":    self.__get_fqdn,
+            "iface":   self.__get_iface,
+            "ip":      self.__get_ip,
+            "uptime":  self.__get_uptime,
+            "temp":    self.__get_temp,
+            "cpu":     self.__get_cpu,
+            "mem":     self.__get_mem,
+            "clients": (lambda: ("?" if self.__clients_count < 0 else str(self.__clients_count))),
         }
+
+    async def __aenter__(self) -> Self:
+        if self.__kvmd:
+            self.__kvmd_task = asyncio.create_task(self.__kvmd_task_loop())
+        return self
+
+    async def __aexit__(
+        self,
+        _exc_type: type[BaseException],
+        _exc: BaseException,
+        _tb: types.TracebackType,
+    ) -> None:
+
+        if self.__kvmd_task:
+            self.__kvmd_task.cancel()
+
+    async def __kvmd_task_loop(self) -> None:
+        logger = get_logger()
+        assert self.__kvmd
+        while True:
+            try:
+                async with self.__kvmd.make_session() as session:
+                    async with session.ws(stream=False) as ws:
+                        logger.info("Polling KVMD ...")
+                        async for (event_type, event) in ws.communicate():
+                            if event_type == "clients":
+                                self.__clients_count = int(event["count"])
+            except Exception as ex:
+                self.__clients_count = -1
+                logger.error("Can't poll KVMD: %s", tools.efmt(ex))
+                await asyncio.sleep(5)
+
+    # =====
 
     def render(self, text: str) -> str:
         return text.format_map(self)
@@ -52,14 +109,23 @@ class Sensors:
 
     # =====
 
+    def __get_fqdn(self) -> str:
+        return self.__inner_get_fqdn(int(time.monotonic()) // 3)
+
+    def __inner_get_fqdn(self, ts: int) -> str:
+        _ = ts
+        return socket.getfqdn()
+
+    # =====
+
     def __get_iface(self) -> str:
-        return self.__get_netconf(round(time.monotonic() / 0.3))[0]
+        return self.__inner_get_netconf(int(time.monotonic()) // 3)[0]
 
     def __get_ip(self) -> str:
-        return self.__get_netconf(round(time.monotonic() / 0.3))[1]
+        return self.__inner_get_netconf(int(time.monotonic()) // 3)[1]
 
     @functools.lru_cache(maxsize=1)
-    def __get_netconf(self, ts: int) -> tuple[str, str]:
+    def __inner_get_netconf(self, ts: int) -> tuple[str, str]:
         _ = ts
         try:
             gws = netifaces.gateways()
@@ -83,7 +149,12 @@ class Sensors:
 
     # =====
 
+    @functools.lru_cache(maxsize=1)
     def __get_uptime(self) -> str:
+        return self.__inner_get_uptime(int(time.monotonic()))
+
+    def __inner_get_uptime(self, ts: int) -> str:
+        _ = ts
         uptime = datetime.timedelta(seconds=int(time.time() - psutil.boot_time()))
         pl = {"days": uptime.days}
         (pl["hours"], rem) = divmod(uptime.seconds, 3600)
@@ -92,7 +163,12 @@ class Sensors:
 
     # =====
 
+    @functools.lru_cache(maxsize=1)
     def __get_temp(self) -> str:
+        return self.__inner_get_temp(int(time.monotonic()) // 3)
+
+    def __inner_get_temp(self, ts: int) -> str:
+        _ = ts
         try:
             with open("/sys/class/thermal/thermal_zone0/temp") as file:
                 temp = int(file.read().strip()) / 1000
@@ -106,7 +182,12 @@ class Sensors:
 
     # =====
 
+    @functools.lru_cache(maxsize=1)
     def __get_cpu(self) -> str:
+        return self.__inner_get_cpu(int(time.monotonic()))
+
+    def __inner_get_cpu(self, ts: int) -> str:
+        _ = ts
         st = psutil.cpu_times_percent()
         user = st.user - st.guest
         nice = st.nice - st.guest_nice
@@ -122,5 +203,10 @@ class Sensors:
         )
         return f"{percent}%"
 
+    @functools.lru_cache(maxsize=1)
     def __get_mem(self) -> str:
+        return self.__inner_get_mem(int(time.monotonic()))
+
+    def __inner_get_mem(self, ts: int) -> str:
+        _ = ts
         return f"{int(psutil.virtual_memory().percent)}%"

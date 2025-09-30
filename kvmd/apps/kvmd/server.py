@@ -140,6 +140,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
     __EV_OCR_STATE = "ocr"
     __EV_INFO_STATE = "info"
     __EV_SWITCH_STATE = "switch"
+    __EV_CLIENTS_STATE = "clients"  # FIXME
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
@@ -248,6 +249,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
                     assert sub.trigger_state
                     await sub.trigger_state()
             await self._broadcast_ws_event(self.__EV_HID_KEYMAPS_STATE, await self.__hid_api.get_keymaps())  # FIXME
+            await self._broadcast_ws_event(self.__EV_CLIENTS_STATE, {"count": self.__get_stream_clients()})  # FIXME
             return (await self._ws_loop(ws))
 
     @exposed_ws("ping")
@@ -309,18 +311,22 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__hid.clear_events()
         self.__streamer_notifier.notify()
 
-    def __has_stream_clients(self) -> bool:
-        return bool(sum(map(
+    def __get_stream_clients(self) -> int:
+        return sum(map(
             (lambda ws: ws.kwargs["stream"]),
             self._get_wss(),
-        )))
+        ))
 
     # ===== SYSTEM TASKS
 
     async def __stream_controller(self) -> None:
         prev = False
         while True:
-            cur = (self.__has_stream_clients() or self.__snapshoter.snapshoting() or self.__stream_forever)
+            cur = (
+                bool(self.__get_stream_clients())
+                or self.__snapshoter.snapshoting()
+                or self.__stream_forever
+            )
             if not prev and cur:
                 await self.__streamer.ensure_start()
             elif prev and not cur:
@@ -336,11 +342,12 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
                 self.__reset_streamer = False
 
             prev = cur
+            await self._broadcast_ws_event(self.__EV_CLIENTS_STATE, {"count": self.__get_stream_clients()})  # FIXME
             await self.__streamer_notifier.wait()
 
     async def __stream_snapshoter(self) -> None:
         await self.__snapshoter.run(
-            is_live=self.__has_stream_clients,
+            is_live=(lambda: bool(self.__get_stream_clients)),
             notifier=self.__streamer_notifier,
         )
 
