@@ -306,13 +306,19 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
             logger.info("===== HID-Mouse-Alt =====")
             gc.add_mouse(cod.hid.mouse_alt.start, config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
 
+    def make_inquiry_string(isc: Section) -> str:
+        kwargs = isc._unpack()
+        if not kwargs["vendor"]:
+            kwargs["vendor"] = config.otg.manufacturer
+        return usb.make_inquiry_string(**kwargs)
+
     if config.kvmd.msd.type == "otg":
         logger.info("===== MSD =====")
         gc.add_msd(
             start=cod.msd.start,
             user=config.otg.user,
-            inquiry_string_cdrom=usb.make_inquiry_string(**cod.msd.default.inquiry_string.cdrom._unpack()),
-            inquiry_string_flash=usb.make_inquiry_string(**cod.msd.default.inquiry_string.flash._unpack()),
+            inquiry_string_cdrom=make_inquiry_string(cod.msd.default.inquiry_string.cdrom),
+            inquiry_string_flash=make_inquiry_string(cod.msd.default.inquiry_string.flash),
             **cod.msd.default._unpack(ignore="inquiry_string"),
         )
         if cod.drives.enabled:
@@ -321,8 +327,8 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
                 gc.add_msd(
                     start=cod.drives.start,
                     user="root",
-                    inquiry_string_cdrom=usb.make_inquiry_string(**cod.drives.default.inquiry_string.cdrom._unpack()),
-                    inquiry_string_flash=usb.make_inquiry_string(**cod.drives.default.inquiry_string.flash._unpack()),
+                    inquiry_string_cdrom=make_inquiry_string(cod.drives.default.inquiry_string.cdrom),
+                    inquiry_string_flash=make_inquiry_string(cod.drives.default.inquiry_string.flash),
                     **cod.drives.default._unpack(ignore="inquiry_string"),
                 )
 
