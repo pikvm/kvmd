@@ -308,7 +308,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     def make_inquiry_string(isc: Section) -> str:
         kwargs = isc._unpack()
-        if not kwargs["vendor"]:
+        if kwargs["vendor"] is None:
             kwargs["vendor"] = config.otg.manufacturer
         return usb.make_inquiry_string(**kwargs)
 
