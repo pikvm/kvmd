@@ -357,7 +357,7 @@ class Chain:  # pylint: disable=too-many-instance-attributes
         except Exception as ex:
             raise DeviceError(ex)
 
-    def __consume_commands(self) -> None:
+    def __consume_commands(self) -> None:  # pylint: disable=too-many-branches
         while not self.__cmd_queue.empty():
             cmd = self.__cmd_queue.get()
             match cmd:

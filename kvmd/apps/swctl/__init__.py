@@ -69,7 +69,7 @@ def _create_edid(arg: str) -> Edid:
 
 
 # =====
-def main() -> None:  # pylint: disable=too-many-statements
+def main() -> None:  # pylint: disable=too-many-statements,too-many-branches
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--device", default="")
     parser.set_defaults(cmd="")

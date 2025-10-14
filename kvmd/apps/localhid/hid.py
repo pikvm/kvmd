@@ -88,7 +88,7 @@ class Hid:  # pylint: disable=too-many-instance-attributes
         except Exception:
             pass
 
-    async def poll_to_queue(self, queue: asyncio.Queue[tuple[int, tuple]]) -> None:
+    async def poll_to_queue(self, queue: asyncio.Queue[tuple[int, tuple]]) -> None:  # pylint: disable=too-many-branches
         def put(event: int, args: tuple) -> None:
             queue.put_nowait((event, args))
 
