@@ -47,7 +47,8 @@ RUN \
 		python-aiofiles \
 		python-async-lru \
 		python-passlib \
-		python-bcrypt \
+		# See kvmd/crypto.py
+		# python-bcrypt \
 		python-pyotp \
 		python-qrcode \
 		python-pyserial \

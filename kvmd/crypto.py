@@ -31,7 +31,12 @@ _SHA256 = "ldap_salted_sha256"
 
 
 def _make_kvmd_htpasswd_context() -> CryptContext:
+    # FIXME: bcrypt removed due to breaking changes:
+    #   - https://foss.heptapod.net/python-libs/passlib/-/issues/196
+    #   - https://github.com/notypecheck/passlib/pull/20
     schemes = list(_apache_htpasswd_ctx.schemes())
+    if "bcrypt" in schemes:
+        schemes.remove("bcrypt")
     for alg in [_SHA256, _SHA512]:
         if alg in schemes:
             schemes.remove(alg)
@@ -40,7 +45,7 @@ def _make_kvmd_htpasswd_context() -> CryptContext:
     return CryptContext(
         schemes=schemes,
         default=_SHA512,
-        bcrypt__ident="2y",  # See note in the passlib.apache
+        # bcrypt__ident="2y",  # See note in the passlib.apache  # FIXME: here too
     )
 
 
