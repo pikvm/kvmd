@@ -148,7 +148,7 @@ makedepends=(
 source=("$url/archive/v$pkgver.tar.gz")
 md5sums=(SKIP)
 backup=(
-	etc/kvmd/{override,logging,auth,meta}.yaml
+	etc/kvmd/{override,auth,meta}.yaml
 	etc/kvmd/{ht,ipmi,vnc}passwd
 	etc/kvmd/totp.secret
 	etc/kvmd/nginx/{kvmd.ctx-{http,server},certbot.ctx-server}.conf

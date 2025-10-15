@@ -119,6 +119,14 @@ EOF
 		fi
 	fi
 
+	if [[ "$(vercmp "$2" 4.102)" -lt 0 ]]; then
+		if grep -q '^logging: !include logging.yaml' /etc/kvmd/main.yaml; then
+			sed -i -e '/^logging: !include logging.yaml/d' /etc/kvmd/main.yaml
+		else
+			rm -f /etc/kvmd/logging.yaml
+		fi
+	fi
+
 	# Some update deletes /etc/motd, WTF
 	# shellcheck disable=SC2015,SC2166
 	[ ! -f /etc/motd -a -f /etc/motd.pacsave ] && mv /etc/motd.pacsave /etc/motd || true

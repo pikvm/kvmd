@@ -4,8 +4,6 @@
 
 override: !include [override.d, override.yaml]
 
-logging: !include logging.yaml
-
 kvmd:
     auth: !include auth.yaml
 
