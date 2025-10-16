@@ -132,12 +132,14 @@ def init(
                         help="Override config options list (like sec/sub/opt=value)", metavar="<k=v>",)
     parser.add_argument("-m", "--dump-config", action="store_true",
                         help="View current configuration (include all overrides)")
+    parser.add_argument("-M", "--dump-config-changes", action="store_true",
+                        help="Similar to --dump-config, but shows only changed fields")
     if check_run:
         parser.add_argument("--run", dest="run", action="store_true",
                             help="Run the service")
     (options, remaining) = parser.parse_known_args(argv)
 
-    if options.dump_config:
+    if options.dump_config or options.dump_config_changes:
         _dump_config(_init_config(
             config_path=options.config,
             override_options=options.set_options,
@@ -146,7 +148,7 @@ def init(
             load_atx=True,
             load_msd=True,
             load_gpio=True,
-        ))
+        ), options.dump_config_changes)
         raise SystemExit()
     config = _init_config(options.config, options.set_options, **load)
 
@@ -366,8 +368,8 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
     return rebuild
 
 
-def _dump_config(config: Section) -> None:
-    dump = make_config_dump(config)
+def _dump_config(config: Section, only_changed: bool) -> None:
+    dump = make_config_dump(config, only_changed)
     if sys.stdout.isatty():
         dump = pygments.highlight(
             dump,
