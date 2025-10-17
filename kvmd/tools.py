@@ -20,9 +20,12 @@
 # ========================================================================== #
 
 
+import os
+import tempfile
 import asyncio
 import operator
 import functools
+import contextlib
 import multiprocessing.queues
 import queue
 import shlex
@@ -93,3 +96,26 @@ def passwds_splitted(text: str) -> Generator[tuple[int, str]]:
         if len(ls) == 0 or ls.startswith("#"):
             continue
         yield (lineno, line)
+
+
+# =====
+@contextlib.contextmanager
+def atomic_file_edit(path: str) -> Generator[str]:
+    (tmp_fd, tmp_path) = tempfile.mkstemp(
+        prefix=f".{os.path.basename(path)}.",
+        dir=os.path.dirname(path),
+    )
+    try:
+        try:
+            st = os.stat(path)
+            with open(path, "rb") as file:
+                os.write(tmp_fd, file.read())
+                os.fchown(tmp_fd, st.st_uid, st.st_gid)
+                os.fchmod(tmp_fd, st.st_mode)
+        finally:
+            os.close(tmp_fd)
+        yield tmp_path
+        os.rename(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
