@@ -114,7 +114,6 @@ class Option:
         type: (Callable[[Any], Any] | None)=None,  # pylint: disable=redefined-builtin
         if_none: Any=Stub,
         if_empty: Any=Stub,
-        only_if: str="",
         unpack_as: str="",
         hint: str="",
     ) -> None:
@@ -123,14 +122,13 @@ class Option:
         self.type: Callable[[Any], Any] = (type or (self.__type(default) if default is not None else str))  # type: ignore
         self.if_none = if_none
         self.if_empty = if_empty
-        self.only_if = only_if
         self.unpack_as = unpack_as
         self.hint = hint
 
     def __repr__(self) -> str:
         return (
             f"<Option(default={self.default}, type={self.type}, if_none={self.if_none},"
-            f" if_empty={self.if_empty}, only_if={self.only_if}, unpack_as={self.unpack_as}, hint={self.hint})>"
+            f" if_empty={self.if_empty}, unpack_as={self.unpack_as}, hint={self.hint})>"
         )
 
 
@@ -155,35 +153,19 @@ def make_config(raw: dict[str, Any], scheme: dict[str, Any], _keys: tuple[str, .
     def make_full_name(key: str) -> str:
         return "/".join(make_full_key(key))
 
-    def process_option(key: str, no_only_if: bool=False) -> Any:
+    def process_option(key: str) -> Any:
         if key not in config:
             option: Option = scheme[key]
-            only_if = option.only_if
-            only_if_negative = option.only_if.startswith("!")
-            if only_if_negative:
-                only_if = only_if[1:]
-
-            if only_if and no_only_if:  # pylint: disable=no-else-raise
-                # Перекрестный only_if запрещен
-                raise RuntimeError(f"Found only_if recursion on key {make_full_name(key)!r}")
-            elif only_if and (
-                (not only_if_negative and not process_option(only_if, no_only_if=True))
-                or (only_if_negative and process_option(only_if, no_only_if=True))
-            ):
-                # Если есть условие и оно ложно - ставим дефолт и не валидируем
-                value = option.default
+            value = raw.get(key, option.default)
+            if option.if_none != Stub and value is None:
+                value = option.if_none
+            elif option.if_empty != Stub and not value:
+                value = option.if_empty
             else:
-                value = raw.get(key, option.default)
-                if option.if_none != Stub and value is None:
-                    value = option.if_none
-                elif option.if_empty != Stub and not value:
-                    value = option.if_empty
-                else:
-                    try:
-                        value = option.type(value)
-                    except (TypeError, ValueError) as ex:
-                        raise ConfigError(f"Invalid value {value!r} for key {make_full_name(key)!r}: {ex}")
-
+                try:
+                    value = option.type(value)
+                except (TypeError, ValueError) as ex:
+                    raise ConfigError(f"Invalid value {value!r} for key {make_full_name(key)!r}: {ex}")
             config[key] = value
             config._set_option(key, option)  # pylint: disable=protected-access
         return config[key]
