@@ -141,7 +141,12 @@ def manual_validated(value: Any, *path: str) -> Generator[None, None, None]:
         raise ConfigError(f"Invalid value {value!r} for key {'/'.join(path)!r}: {ex}")
 
 
-def make_config(raw: dict[str, Any], scheme: dict[str, Any], _keys: tuple[str, ...]=()) -> Section:
+def make_config(
+    raw: dict[str, Any],
+    scheme: dict[str, Any],
+    _keys: tuple[str, ...]=(),
+) -> Section:
+
     if not isinstance(raw, dict):
         raise ConfigError(f"The node {('/'.join(_keys) or '/')!r} must be a dictionary")
 
