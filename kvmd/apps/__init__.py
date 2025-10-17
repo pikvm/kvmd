@@ -198,66 +198,66 @@ def _init_logging(cli: bool) -> None:
 def _init_config(config_path: str, override_options: list[str], **load_flags: bool) -> Section:
     config_path = os.path.expanduser(config_path)
     try:
-        raw_config: dict = load_yaml_file(config_path)
+        raw: dict = load_yaml_file(config_path)
     except Exception as ex:
         raise SystemExit(f"ConfigError: Can't read config file {config_path!r}:\n{tools.efmt(ex)}")
-    if not isinstance(raw_config, dict):
+    if not isinstance(raw, dict):
         raise SystemExit(f"ConfigError: Top-level of the file {config_path!r} must be a dictionary")
 
     scheme = _get_config_scheme()
     try:
-        yaml_merge(raw_config, (raw_config.pop("override", {}) or {}))
-        yaml_merge(raw_config, build_raw_from_options(override_options), "raw CLI options")
-        _patch_raw(raw_config)
-        config = make_config(raw_config, scheme)
+        yaml_merge(raw, (raw.pop("override", {}) or {}))
+        yaml_merge(raw, build_raw_from_options(override_options), "raw CLI options")
+        _patch_raw(raw)
+        config = make_config(raw, scheme)
 
-        if _patch_dynamic(raw_config, config, scheme, **load_flags):
-            config = make_config(raw_config, scheme)
+        if _patch_dynamic(raw, config, scheme, **load_flags):
+            config = make_config(raw, scheme)
 
         return config
     except (ConfigError, UnknownPluginError) as ex:
         raise SystemExit(f"ConfigError: {ex}")
 
 
-def _patch_raw(raw_config: dict) -> None:  # pylint: disable=too-many-branches
+def _patch_raw(raw: dict) -> None:  # pylint: disable=too-many-branches
     for (sub, cmd) in [("iface", "ip_cmd"), ("firewall", "iptables_cmd")]:
-        if isinstance(raw_config.get("otgnet"), dict):
-            if isinstance(raw_config["otgnet"].get(sub), dict):
-                if raw_config["otgnet"][sub].get(cmd):
-                    raw_config["otgnet"].setdefault("commands", {})
-                    raw_config["otgnet"]["commands"][cmd] = raw_config["otgnet"][sub][cmd]
-                    del raw_config["otgnet"][sub][cmd]
+        if isinstance(raw.get("otgnet"), dict):
+            if isinstance(raw["otgnet"].get(sub), dict):
+                if raw["otgnet"][sub].get(cmd):
+                    raw["otgnet"].setdefault("commands", {})
+                    raw["otgnet"]["commands"][cmd] = raw["otgnet"][sub][cmd]
+                    del raw["otgnet"][sub][cmd]
 
-    if isinstance(raw_config.get("otg"), dict):
+    if isinstance(raw.get("otg"), dict):
         for (old, new) in [
             ("msd", "msd"),
             ("acm", "serial"),
             ("drives", "drives"),
         ]:
-            if old in raw_config["otg"]:
-                if not isinstance(raw_config["otg"].get("devices"), dict):
-                    raw_config["otg"]["devices"] = {}
-                raw_config["otg"]["devices"][new] = raw_config["otg"].pop(old)
+            if old in raw["otg"]:
+                if not isinstance(raw["otg"].get("devices"), dict):
+                    raw["otg"]["devices"] = {}
+                raw["otg"]["devices"][new] = raw["otg"].pop(old)
 
-    if isinstance(raw_config.get("kvmd"), dict) and isinstance(raw_config["kvmd"].get("wol"), dict):
-        if not isinstance(raw_config["kvmd"].get("gpio"), dict):
-            raw_config["kvmd"]["gpio"] = {}
+    if isinstance(raw.get("kvmd"), dict) and isinstance(raw["kvmd"].get("wol"), dict):
+        if not isinstance(raw["kvmd"].get("gpio"), dict):
+            raw["kvmd"]["gpio"] = {}
         for section in ["drivers", "scheme"]:
-            if not isinstance(raw_config["kvmd"]["gpio"].get(section), dict):
-                raw_config["kvmd"]["gpio"][section] = {}
-        raw_config["kvmd"]["gpio"]["drivers"]["__wol__"] = {
+            if not isinstance(raw["kvmd"]["gpio"].get(section), dict):
+                raw["kvmd"]["gpio"][section] = {}
+        raw["kvmd"]["gpio"]["drivers"]["__wol__"] = {
             "type": "wol",
-            **raw_config["kvmd"].pop("wol"),
+            **raw["kvmd"].pop("wol"),
         }
-        raw_config["kvmd"]["gpio"]["scheme"]["__wol__"] = {
+        raw["kvmd"]["gpio"]["scheme"]["__wol__"] = {
             "driver": "__wol__",
             "pin": 0,
             "mode": "output",
             "switch": False,
         }
 
-    if isinstance(raw_config.get("kvmd"), dict) and isinstance(raw_config["kvmd"].get("streamer"), dict):
-        streamer_config = raw_config["kvmd"]["streamer"]
+    if isinstance(raw.get("kvmd"), dict) and isinstance(raw["kvmd"].get("streamer"), dict):
+        streamer_config = raw["kvmd"]["streamer"]
 
         desired_fps = streamer_config.get("desired_fps")
         if desired_fps is not None and not isinstance(desired_fps, dict):
@@ -283,7 +283,7 @@ def _patch_raw(raw_config: dict) -> None:  # pylint: disable=too-many-branches
 
 
 def _patch_dynamic(  # pylint: disable=too-many-locals
-    raw_config: dict,
+    raw: dict,
     config: Section,
     scheme: dict,
     load_auth: bool=False,
@@ -315,7 +315,7 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
         drivers: dict[str, type[BaseUserGpioDriver]] = {}  # Name to drivers
         for (driver, params) in {  # type: ignore
             "__gpio__": {},
-            **tools.rget(raw_config, "kvmd", "gpio", "drivers"),
+            **tools.rget(raw, "kvmd", "gpio", "drivers"),
         }.items():
             with manual_validated(driver, "kvmd", "gpio", "drivers", "<key>"):
                 driver = valid_ugpio_driver(driver)
@@ -329,7 +329,7 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
             }
 
         path = ("kvmd", "gpio", "scheme")
-        for (channel, params) in tools.rget(raw_config, *path).items():
+        for (channel, params) in tools.rget(raw, *path).items():
             with manual_validated(channel, *path, "<key>"):
                 channel = valid_ugpio_channel(channel)
 
