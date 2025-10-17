@@ -68,7 +68,7 @@ def _parse_value(value: str) -> Any:
 class Section(dict):
     def __init__(self) -> None:
         dict.__init__(self)
-        self.__meta: dict[str, dict[str, Any]] = {}
+        self.__options: dict[str, "Option"] = {}
 
     def _unpack(self, ignore: (list[str] | None)=None) -> dict[str, Any]:
         if ignore is None:
@@ -82,21 +82,17 @@ class Section(dict):
                     unpacked[self._get_unpack_as(key)] = value  # pylint: disable=protected-access
         return unpacked
 
-    def _set_meta(self, key: str, default: Any, unpack_as: str, hint: str) -> None:  # pylint: disable=redefined-builtin
-        self.__meta[key] = {
-            "default": default,
-            "unpack_as": unpack_as,
-            "hint": hint,
-        }
+    def _set_option(self, key: str, option: "Option") -> None:
+        self.__options[key] = option
 
     def _get_default(self, key: str) -> Any:
-        return self.__meta[key]["default"]
+        return self.__options[key].default
 
     def _get_unpack_as(self, key: str) -> str:
-        return (self.__meta[key]["unpack_as"] or key)
+        return (self.__options[key].unpack_as or key)
 
     def _get_hint(self, key: str) -> str:
-        return self.__meta[key]["hint"]
+        return self.__options[key].hint
 
     def __getattribute__(self, key: str) -> Any:
         if key in self:
@@ -189,12 +185,7 @@ def make_config(raw: dict[str, Any], scheme: dict[str, Any], _keys: tuple[str, .
                         raise ConfigError(f"Invalid value {value!r} for key {make_full_name(key)!r}: {ex}")
 
             config[key] = value
-            config._set_meta(  # pylint: disable=protected-access
-                key=key,
-                default=option.default,
-                unpack_as=option.unpack_as,
-                hint=option.hint,
-            )
+            config._set_option(key, option)  # pylint: disable=protected-access
         return config[key]
 
     for key in scheme:
