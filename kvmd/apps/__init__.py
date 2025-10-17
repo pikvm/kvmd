@@ -27,10 +27,6 @@ import argparse
 import logging
 import logging.config
 
-import pygments
-import pygments.lexers.data
-import pygments.formatters
-
 from .. import tools
 
 from ..plugins import UnknownPluginError
@@ -49,9 +45,9 @@ from ..yamlconf import make_config
 from ..yamlconf import Section
 from ..yamlconf import Option
 from ..yamlconf import build_raw_from_options
-from ..yamlconf.dumper import make_config_dump
 from ..yamlconf.loader import load_yaml_file
 from ..yamlconf.merger import yaml_merge
+from ..yamlconf.dumper import dump_yaml
 
 from ..validators.basic import valid_stripped_string
 from ..validators.basic import valid_stripped_string_not_empty
@@ -140,15 +136,19 @@ def init(
     (options, remaining) = parser.parse_known_args(argv)
 
     if options.dump_config or options.dump_config_changes:
-        _dump_config(_init_config(
-            config_path=options.config,
-            override_options=options.set_options,
-            load_auth=True,
-            load_hid=True,
-            load_atx=True,
-            load_msd=True,
-            load_gpio=True,
-        ), options.dump_config_changes)
+        print(dump_yaml(
+            data=_init_config(
+                config_path=options.config,
+                override_options=options.set_options,
+                load_auth=True,
+                load_hid=True,
+                load_atx=True,
+                load_msd=True,
+                load_gpio=True,
+            ),
+            only_changed=options.dump_config_changes,
+            colored=sys.stdout.isatty(),
+        ))
         raise SystemExit()
     config = _init_config(options.config, options.set_options, **load)
 
@@ -368,24 +368,13 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
     return rebuild
 
 
-def _dump_config(config: Section, only_changed: bool) -> None:
-    dump = make_config_dump(config, only_changed)
-    if sys.stdout.isatty():
-        dump = pygments.highlight(
-            dump,
-            pygments.lexers.data.YamlLexer(),
-            pygments.formatters.TerminalFormatter(bg="dark"),  # pylint: disable=no-member
-        )
-    print(dump)
-
-
 def _get_config_scheme() -> dict:
     return {
         "kvmd": {
             "server": {
                 "unix":              Option("/run/kvmd/kvmd.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "unix_rm":           Option(True,  type=valid_bool),
-                "unix_mode":         Option(0o660, type=valid_unix_mode),
+                "unix_mode":         Option(0o660, type=valid_unix_mode, hint="oct"),
                 "heartbeat":         Option(15.0,  type=valid_float_f01),
                 "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
@@ -541,7 +530,7 @@ def _get_config_scheme() -> dict:
                     "header": {
                         "title": Option("GPIO", type=valid_ugpio_view_title),
                     },
-                    "table": Option([], type=valid_ugpio_view_table),
+                    "table": Option([], type=valid_ugpio_view_table, hint="inlined_items"),
                 },
             },
 
@@ -556,7 +545,7 @@ def _get_config_scheme() -> dict:
             "server": {
                 "unix":              Option("/run/kvmd/media.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "unix_rm":           Option(True,  type=valid_bool),
-                "unix_mode":         Option(0o660, type=valid_unix_mode),
+                "unix_mode":         Option(0o660, type=valid_unix_mode, hint="oct"),
                 "heartbeat":         Option(15.0,  type=valid_float_f01),
                 "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
@@ -582,7 +571,7 @@ def _get_config_scheme() -> dict:
             "server": {
                 "unix":              Option("/run/kvmd/pst.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "unix_rm":           Option(True,  type=valid_bool),
-                "unix_mode":         Option(0o660, type=valid_unix_mode),
+                "unix_mode":         Option(0o660, type=valid_unix_mode, hint="oct"),
                 "heartbeat":         Option(15.0,  type=valid_float_f01),
                 "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
@@ -598,14 +587,14 @@ def _get_config_scheme() -> dict:
         },
 
         "otg": {
-            "vendor_id":      Option(0x1D6B, type=valid_otg_id),  # Linux Foundation
-            "product_id":     Option(0x0104, type=valid_otg_id),  # Multifunction Composite Gadget
+            "vendor_id":      Option(0x1D6B, type=valid_otg_id, hint="hex"),  # Linux Foundation
+            "product_id":     Option(0x0104, type=valid_otg_id, hint="hex"),  # Multifunction Composite Gadget
             "manufacturer":   Option("PiKVM", type=valid_stripped_string),
             "product":        Option("PiKVM Composite Device", type=valid_stripped_string),
             "serial":         Option("CAFEBABE", type=valid_stripped_string, if_none=None),
             "config":         Option(None,   type=valid_stripped_string, if_none=None),
-            "device_version": Option(-1,     type=functools.partial(valid_number, min=-1, max=0xFFFF)),
-            "usb_version":    Option(0x0200, type=valid_otg_id),
+            "device_version": Option(-1,     type=functools.partial(valid_number, min=-1, max=0xFFFF), hint="hex"),
+            "usb_version":    Option(0x0200, type=valid_otg_id, hint="hex"),
             "max_power":      Option(250,    type=functools.partial(valid_number, min=50, max=500)),
             "remote_wakeup":  Option(True,   type=valid_bool),
 

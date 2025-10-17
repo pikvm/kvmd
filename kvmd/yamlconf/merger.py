@@ -20,8 +20,14 @@
 # ========================================================================== #
 
 
+from typing import Mapping
+from typing import Any
+
+import ruamel.yaml.compat
+
+
 # =====
-def yaml_merge(dest: dict, src: dict, src_name: str="") -> None:
+def yaml_merge(dest: Mapping, src: Mapping, src_name: str="") -> None:
     """ Merges the source dictionary into the destination dictionary. """
 
     # Checking if destination is None
@@ -38,10 +44,15 @@ def yaml_merge(dest: dict, src: dict, src_name: str="") -> None:
 
 
 # ======
-def _merge(dest: dict, src: dict) -> None:
+def _is_dict(obj: Any) -> bool:
+    # OrderedDict in ruamel is inherited from dict, but we want to check it explicitly.
+    return isinstance(obj, (dict, ruamel.yaml.compat.OrderedDict))
+
+
+def _merge(dest: Mapping, src: Mapping) -> None:
     for key in src:
         if key in dest:
-            if isinstance(dest[key], dict) and isinstance(src[key], dict):
+            if _is_dict(dest[key]) and _is_dict(src[key]):
                 _merge(dest[key], src[key])
                 continue
-        dest[key] = src[key]
+        dest[key] = src[key]  # type: ignore

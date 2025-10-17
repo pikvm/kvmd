@@ -82,11 +82,11 @@ class Section(dict):
                     unpacked[self._get_unpack_as(key)] = value  # pylint: disable=protected-access
         return unpacked
 
-    def _set_meta(self, key: str, default: Any, unpack_as: str, help: str) -> None:  # pylint: disable=redefined-builtin
+    def _set_meta(self, key: str, default: Any, unpack_as: str, hint: str) -> None:  # pylint: disable=redefined-builtin
         self.__meta[key] = {
             "default": default,
             "unpack_as": unpack_as,
-            "help": help,
+            "hint": hint,
         }
 
     def _get_default(self, key: str) -> Any:
@@ -95,8 +95,8 @@ class Section(dict):
     def _get_unpack_as(self, key: str) -> str:
         return (self.__meta[key]["unpack_as"] or key)
 
-    def _get_help(self, key: str) -> str:
-        return self.__meta[key]["help"]
+    def _get_hint(self, key: str) -> str:
+        return self.__meta[key]["hint"]
 
     def __getattribute__(self, key: str) -> Any:
         if key in self:
@@ -120,7 +120,7 @@ class Option:
         if_empty: Any=Stub,
         only_if: str="",
         unpack_as: str="",
-        help: str="",  # pylint: disable=redefined-builtin
+        hint: str="",
     ) -> None:
 
         self.default = default
@@ -129,12 +129,12 @@ class Option:
         self.if_empty = if_empty
         self.only_if = only_if
         self.unpack_as = unpack_as
-        self.help = help
+        self.hint = hint
 
     def __repr__(self) -> str:
         return (
             f"<Option(default={self.default}, type={self.type}, if_none={self.if_none},"
-            f" if_empty={self.if_empty}, only_if={self.only_if}, unpack_as={self.unpack_as})>"
+            f" if_empty={self.if_empty}, only_if={self.only_if}, unpack_as={self.unpack_as}, hint={self.hint})>"
         )
 
 
@@ -193,7 +193,7 @@ def make_config(raw: dict[str, Any], scheme: dict[str, Any], _keys: tuple[str, .
                 key=key,
                 default=option.default,
                 unpack_as=option.unpack_as,
-                help=option.help,
+                hint=option.hint,
             )
         return config[key]
 

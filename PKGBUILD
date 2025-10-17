@@ -49,6 +49,7 @@ depends=(
 	"python>=3.13"
 	"python<3.14"
 	python-yaml
+	python-ruamel-yaml
 	python-aiohttp
 	python-aiofiles
 	python-async-lru

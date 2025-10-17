@@ -43,6 +43,7 @@ RUN \
 		python-tox \
 		python-mako \
 		python-yaml \
+		python-ruamel-yaml \
 		python-aiohttp \
 		python-aiofiles \
 		python-async-lru \

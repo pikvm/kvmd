@@ -55,6 +55,9 @@ _Edid.set_monitor_serial
 _Edid.set_audio
 
 Dumper.ignore_aliases
+_YamlHandler.Representer
+_YamlHandler.preserve_quotes
+SequenceNode.flow_style
 
 _auth_server_port_fixture
 _test_user

@@ -20,20 +20,31 @@
 # ========================================================================== #
 
 
+import sys
 import os
 import json
 import contextlib
 import dataclasses
+import textwrap
 import argparse
 import time
 
 from typing import Generator
 
-import yaml
+import pyudev
+import usb.core
+import usb.util
+
+from ...yamlconf.dumper import YamlHexInt
+from ...yamlconf.dumper import YamlInlinedItemsList
+from ...yamlconf.dumper import dump_yaml
+from ...yamlconf.dumper import override_yaml_file
+from ...yamlconf.merger import yaml_merge
 
 from ...validators.basic import valid_stripped_string_not_empty
 
 from ... import usb
+from ... import env
 
 from .. import init
 
@@ -121,7 +132,7 @@ class _GadgetControl:
         new = (new - disable) | enable
         eps_req = sum(func.eps for func in funcs if func.name in new)
         if eps_req > self.__eps:
-            raise RuntimeError(f"No available endpoints for this config: {eps_req} required, {self.__eps} is maximum")
+            raise SystemExit(f"No available endpoints for this config: {eps_req} required, {self.__eps} is maximum")
         with self.__udc_stopped():
             self.__clear_profile(recreate=False)
             for func in new:
@@ -139,27 +150,10 @@ class _GadgetControl:
             print(f"{'+' if func.enabled else '-'} {func.name}  # [{func.eps}] {func.desc}")
 
     def make_gpio_config(self) -> None:
-        class Dumper(yaml.Dumper):
-            def increase_indent(self, flow: bool=False, indentless: bool=False) -> None:
-                _ = indentless
-                super().increase_indent(flow, False)
-
-            def ignore_aliases(self, data) -> bool:  # type: ignore
-                _ = data
-                return True
-
-        class InlineList(list):
-            pass
-
-        def represent_inline_list(dumper: yaml.Dumper, data):  # type: ignore
-            return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
-
-        Dumper.add_representer(InlineList, represent_inline_list)
-
         config = {
             "drivers": {"otgconf": {"type": "otgconf"}},
             "scheme": {},
-            "view": {"table": []},
+            "view": {"table": YamlInlinedItemsList()},
         }
         for func in self.__read_metas():
             config["scheme"][func.name] = {  # type: ignore
@@ -168,16 +162,143 @@ class _GadgetControl:
                 "mode": "output",
                 "pulse": False,
             }
-            config["view"]["table"].append(InlineList([  # type: ignore
+            config["view"]["table"].append([  # type: ignore
                 "#" + func.desc,
                 "#" + func.name,
                 func.name,
-            ]))
-        print(yaml.dump({"kvmd": {"gpio": config}}, indent=4, Dumper=Dumper))
+            ])
+        print(dump_yaml({"kvmd": {"gpio": config}}, colored=sys.stdout.isatty()))
 
     def reset(self) -> None:
         with self.__udc_stopped():
             pass
+
+
+# =====
+@dataclasses.dataclass(frozen=True)
+class _Donor:
+    vendor_id:      int
+    product_id:     int
+    manufacturer:   str
+    product:        str
+    serial:         (str | None)
+    config:         (str | None)
+    device_version: int
+
+
+def _find_inputs() -> set[str]:
+    found: set[str] = set()
+    ctx = pyudev.Context()
+    for device in ctx.list_devices(subsystem="input"):
+        props = device.properties
+        if props.get("ID_INPUT") == "1" and props.get("ID_BUS") == "usb":
+            parent = device.find_parent("usb", "usb_device")
+            if parent is not None:
+                path = parent.properties.get("DEVPATH")
+                if path:
+                    found.add(f"{env.SYSFS_PREFIX}/sys{path}")
+    return found
+
+
+def _parse_hex(arg: str) -> int:
+    return int(arg.strip(), 16)
+
+
+def _parse_str(arg: str) -> str:
+    return arg.strip()
+
+
+def _find_donor() -> (_Donor | None):
+    for path in _find_inputs():
+        kvs: dict = {}
+        for (key, name, parser, nullable) in [
+            ("vendor_id",      "idVendor",      _parse_hex, False),
+            ("product_id",     "idProduct",     _parse_hex, False),
+            ("manufacturer",   "manufacturer",  _parse_str, False),
+            ("product",        "product",       _parse_str, False),
+            ("serial",         "serial",        _parse_str, True),  # See _Donor definition
+            ("config",         "configuration", _parse_str, True),
+            ("device_version", "bcdDevice",     _parse_hex, False),
+        ]:
+            try:
+                with open(os.path.join(path, name)) as file:
+                    kvs[key] = parser(file.read())
+            except Exception as ex:
+                if isinstance(ex, FileNotFoundError) and nullable:
+                    kvs[key] = None
+                else:
+                    kvs = {}
+                    break
+        if kvs:
+            return _Donor(**kvs)
+    return None
+
+
+def _print_donor_info(donor: _Donor) -> None:
+    print(f"VendorID:      0x{donor.vendor_id:04X}")
+    print(f"ProductID:     0x{donor.product_id:04X}")
+    print(f"Manufacturer:  {donor.manufacturer}")
+    print(f"Product:       {donor.product}")
+    if donor.serial is not None:  # See _Donor definition
+        print(f"Serial:        {donor.serial}")
+    if donor.config is not None:
+        print(f"Config:        {donor.config}")
+    print(f"DeviceVersion: 0x{donor.device_version:04X}")
+
+
+def _make_donor_config(donor: _Donor) -> dict:
+    cdrom = {
+        "vendor":   None,
+        "product":  "Optical Drive",
+        "revision": "1.00",
+    }
+    flash = {**cdrom, "product": "Flash Drive"}
+    config = {
+        "vendor_id":      YamlHexInt(donor.vendor_id),
+        "product_id":     YamlHexInt(donor.product_id),
+        "manufacturer":   donor.manufacturer,
+        "product":        donor.product,
+        "serial":         donor.serial,
+        "config":         donor.config,
+        "device_version": (donor.device_version or YamlHexInt(donor.device_version)),
+        "devices": {
+            "msd": {"default": {"inquiry_string": {
+                "cdrom": cdrom,
+                "flash": flash,
+            }}},
+            "drives": {"default": {"inquiry_string": {
+                "cdrom": cdrom,
+                "flash": flash,
+            }}},
+        },
+    }
+    return {"otg": config}
+
+
+def _print_donor_tip(path: str) -> None:
+    if sys.stdout.isatty() and sys.stderr.isatty():
+        reset = "\033[39m"
+        gray = f"{reset}\033[30;1m"
+        blue = f"{reset}\033[34m"
+    else:
+        gray = blue = reset = ""
+    print(file=sys.stderr)
+    print(textwrap.dedent(f"""
+        {gray}# Note: The config has been stored in the following path:
+        #    {blue}{path}{gray}
+        # You can also manually edit this file for your needs.
+        # Please note that a {blue}reboot{gray} is required to apply this.{reset}
+    """).strip(), file=sys.stderr)
+
+
+def _import_usb_ids(path: str) -> None:
+    donor = _find_donor()
+    if donor is None:
+        raise SystemExit("Can't find any appropriate USB device connected to PiKVM like keyboard or mouse")
+    _print_donor_info(donor)
+    with override_yaml_file(path) as config:
+        yaml_merge(config, _make_donor_config(donor))
+    _print_donor_tip(path)
 
 
 # =====
@@ -196,10 +317,24 @@ def main(argv: (list[str] | None)=None) -> None:
     parser.add_argument("-e", "--enable-function", nargs="+", default=[], metavar="<name>", help="Enable function(s)")
     parser.add_argument("-d", "--disable-function", nargs="+", default=[], metavar="<name>", help="Disable function(s)")
     parser.add_argument("-r", "--reset-gadget", action="store_true", help="Reset gadget")
+    parser.add_argument("--import-usb-ids", action="store_true",
+                        help="Find a local USB HID device and take its IDs and write it to [--usb-ids] file")
+    parser.add_argument("--override", dest="override_path", default="/etc/kvmd/override.yaml",
+                        help="A place for config generated by [--import-usb-ids]", metavar="file")
     parser.add_argument("--make-gpio-config", action="store_true")
     options = parser.parse_args(argv[1:])
 
-    gc = _GadgetControl(config.otg.meta, config.otg.gadget, config.otg.udc, config.otg.endpoints, config.otg.init_delay)
+    if options.import_usb_ids:
+        _import_usb_ids(options.override_path)
+        return
+
+    gc = _GadgetControl(
+        meta_path=config.otg.meta,
+        gadget=config.otg.gadget,
+        udc=config.otg.udc,
+        eps=config.otg.endpoints,
+        init_delay=config.otg.init_delay,
+    )
 
     if options.list_functions:
         gc.list_functions()

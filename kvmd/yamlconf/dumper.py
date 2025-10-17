@@ -20,12 +20,24 @@
 # ========================================================================== #
 
 
+import io
 import textwrap
+import contextlib
 
 from typing import Generator
 from typing import Any
 
-import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.nodes import ScalarNode
+from ruamel.yaml.nodes import CollectionNode
+from ruamel.yaml.nodes import SequenceNode
+from ruamel.yaml.nodes import MappingNode
+from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.representer import RoundTripRepresenter
+
+import pygments
+import pygments.lexers.data
+import pygments.formatters
 
 from .. import tools
 
@@ -33,63 +45,156 @@ from . import Section
 
 
 # =====
-def make_config_dump(config: Section, only_changed: bool) -> str:
-    return "\n".join(_inner_make_dump(config, only_changed))
+class YamlHexInt(int):
+    pass
+
+
+class YamlOctInt(int):
+    pass
+
+
+class YamlInlinedItemsList(list):
+    pass
+
+
+class _SimpleRepresenter(RoundTripRepresenter):
+    def ignore_aliases(self, data: Any) -> bool:
+        return True
+
+    def _represent_hex_int(self, value: YamlHexInt) -> ScalarNode:
+        if value > 0:
+            value: str = f"0x{value:X}"  # type: ignore
+        return self.represent_scalar("tag:yaml.org,2002:int", str(value))
+
+    def _represent_oct_int(self, value: YamlOctInt) -> ScalarNode:
+        if value > 0:
+            value: str = f"0o{value:o}"  # type: ignore
+        return self.represent_scalar("tag:yaml.org,2002:int", str(value))
+
+    def _represent_inlined_items_list(self, seq: YamlInlinedItemsList) -> SequenceNode:
+        node = self.represent_sequence("tag:yaml.org,2002:seq", seq)
+        for child in node.value:
+            if isinstance(child, CollectionNode):
+                child.flow_style = True
+        return node
+
+
+_SimpleRepresenter.add_representer(YamlHexInt, _SimpleRepresenter._represent_hex_int)  # pylint: disable=protected-access
+_SimpleRepresenter.add_representer(YamlOctInt, _SimpleRepresenter._represent_oct_int)  # pylint: disable=protected-access
+_SimpleRepresenter.add_representer(YamlInlinedItemsList, _SimpleRepresenter._represent_inlined_items_list)  # pylint: disable=protected-access
 
 
 _INDENT = 4
 
 
-def _inner_make_dump(
-    config: Section,
-    only_changed: bool,
-    _level: int=0,
-) -> Generator[str, None, None]:
+class _ConfigRepresenter(_SimpleRepresenter):
+    def __init__(self, *args, **kwargs) -> None:  # type: ignore
+        super().__init__(*args, **kwargs)
 
-    for (key, value) in tools.sorted_kvs(config):
-        if isinstance(value, Section):
-            prefix = " " * _INDENT * _level
-            lines = list(_inner_make_dump(value, only_changed, _level + 1))
-            if lines:
-                yield f"{prefix}{key}:"
-                yield from lines
-                yield ""
-        else:
-            default = config._get_default(key)  # pylint: disable=protected-access
-            comment = config._get_help(key)  # pylint: disable=protected-access
-            if default == value:
-                if not only_changed:
-                    yield _make_yaml_kv(key, value, _level, comment=comment)
+        self.only_changed = False
+        self.__depth = 0
+
+        # This is used only for dumping default values.
+        # They should not have Sections() inside.
+        # Avoid potential recursion too.
+        self.__handler = _YamlHandler()
+        self.__handler.Representer = _SimpleRepresenter
+
+    def _represent_section(self, config: Section) -> MappingNode:
+        self.__depth += 1
+        com = CommentedMap(dict(config))
+        sections: set[str] = set()
+        for (key, value) in config.items():
+            if isinstance(value, Section):
+                sections.add(key)
             else:
-                yield _make_yaml_kv(key, default, _level, comment=comment, commented=True)
-                yield _make_yaml_kv(key, value, _level)
+                hint = config._get_hint(key)  # pylint: disable=protected-access
+                com[key] = self.__get_hinted(value, hint)
+                default = config._get_default(key)  # pylint: disable=protected-access
+                if value != default:
+                    comment = self.__make_comment(default, hint)
+                    if "\n" in comment:
+                        com.yaml_set_comment_before_after_key(
+                            key=key,
+                            after=comment,
+                            after_indent=(self.__depth * _INDENT),
+                        )
+                    else:
+                        com.yaml_add_eol_comment(comment, key, column=0)
+                elif self.only_changed:
+                    com.pop(key)
+
+        node = self.represent_mapping("tag:yaml.org,2002:map", com)
+        if self.only_changed:
+            node.value = [
+                (k_node, v_node)
+                for (k_node, v_node) in node.value
+                if (
+                    not isinstance(v_node, MappingNode)
+                    or not isinstance(v_node.value, list)
+                    or len(v_node.value) != 0
+                )
+            ]
+        self.__depth -= 1
+        return node
+
+    def __get_hinted(self, value: Any, hint: str) -> Any:
+        match hint:
+            case "hex" if isinstance(value, int):
+                return YamlHexInt(value)
+            case "oct" if isinstance(value, int):
+                return YamlOctInt(value)
+            case "inlined_items" if isinstance(value, list):
+                return YamlInlinedItemsList(value)
+        return value
+
+    def __make_comment(self, default: Any, hint: str) -> str:
+        text = self.__handler.dump_as_string(self.__get_hinted(default, hint))
+        text = text.rstrip()
+        if text.endswith("\n..."):
+            text = text[:-4].rstrip()
+        text = textwrap.dedent(text)
+        nl = ("\n" if "\n" in text else " ")  # Multiline or single-line
+        return f"### Default:{nl}{text}"
 
 
-def _make_yaml_kv(
-    key: str,
-    value: Any,
-    level: int,
-    comment: str="",
-    commented: bool=False,
-) -> str:
+_ConfigRepresenter.add_representer(Section, _ConfigRepresenter._represent_section)  # pylint: disable=protected-access
 
-    text = yaml.dump(value, indent=_INDENT, allow_unicode=True)
-    text = text.replace("\n...\n", "").strip()
-    if (
-        isinstance(value, dict) and text[0] != "{"
-        or isinstance(value, list) and text[0] != "["
-    ):
-        text = "\n" + textwrap.indent(text, prefix=" " * _INDENT)
-    else:
-        text = " " + text
 
-    prefix = " " * _INDENT * level
-    if commented:
-        prefix = prefix + "# "
-    text = textwrap.indent(f"{key}:{text}", prefix=prefix)
+class _YamlHandler(YAML):
+    def __init__(self) -> None:
+        super().__init__()
+        self.preserve_quotes = True
+        self.indent(mapping=_INDENT, sequence=_INDENT, offset=_INDENT)
+        # ruamel.yaml ignores oOyYnN by default: https://stackoverflow.com/questions/36463531
 
-    if comment:
-        lines = text.split("\n")
-        lines[0] += "  # " + comment
-        text = "\n".join(lines)
+    def dump_as_string(self, data: Any) -> str:
+        with io.StringIO() as file:
+            self.dump(data, file)
+            return file.getvalue()
+
+
+def dump_yaml(data: Any, only_changed: bool=False, colored: bool=False) -> str:
+    handler = _YamlHandler()
+    handler.Representer = _ConfigRepresenter
+    handler.representer.only_changed = only_changed
+    text = handler.dump_as_string(data)
+    if colored:
+        text = pygments.highlight(
+            text,
+            pygments.lexers.data.YamlLexer(),
+            pygments.formatters.TerminalFormatter(bg="dark"),  # pylint: disable=no-member
+        )
     return text
+
+
+@contextlib.contextmanager
+def override_yaml_file(path: str) -> Generator[Any]:
+    handler = _YamlHandler()
+    handler.Representer = _ConfigRepresenter
+    with tools.atomic_file_edit(path) as tmp_path:
+        with open(tmp_path) as file:
+            doc = handler.load(file)
+        yield doc
+        with open(tmp_path, "w") as file:
+            file.write(handler.dump_as_string(doc))
