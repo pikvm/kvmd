@@ -87,7 +87,7 @@ class SwitchApi:
     async def __set_port_params(self, req: Request) -> Response:
         port = valid_float_f0(req.query.get("port"))
         params = {
-            param: validator(req.query.get(param))
+            param: validator(req.query.get(param))  # type: ignore
             for (param, validator) in [
                 ("edid_id", valid_switch_edid_id.mk(allow_default=True)),
                 ("dummy",   valid_bool),

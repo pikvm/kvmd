@@ -68,7 +68,7 @@ class MsdApi:
     @exposed_http("POST", "/msd/set_params")
     async def __set_params_handler(self, req: Request) -> Response:
         params = {
-            key: validator(req.query.get(param))
+            key: validator(req.query.get(param))  # type: ignore
             for (param, key, validator) in [
                 ("image", "name",  valid_msd_image_name.mk(allow_eject=True)),
                 ("cdrom", "cdrom", valid_bool),
