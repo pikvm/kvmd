@@ -249,7 +249,7 @@ def _print_donor_info(donor: _Donor) -> None:
 def _make_donor_config(donor: _Donor) -> dict:
     cdrom = {
         "vendor":   None,
-        "product":  "Optical Drive",
+        "product":  "GENERIC",
         "revision": "1.00",
     }
     flash = {**cdrom, "product": "Flash Drive"}
