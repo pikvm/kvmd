@@ -22,9 +22,12 @@
 
 import sys
 import os
+import copy
 import argparse
 import logging
 import logging.config
+
+from typing import Any
 
 from .. import tools
 
@@ -197,22 +200,26 @@ def _init_logging(cli: bool) -> None:
 def _init_config(config_path: str, override_options: list[str], **load_flags: bool) -> Section:
     config_path = os.path.expanduser(config_path)
     try:
-        raw: dict = load_yaml_file(config_path)
+        main: dict = load_yaml_file(config_path)
     except Exception as ex:
         raise SystemExit(f"ConfigError: Can't read config file {config_path!r}:\n{tools.efmt(ex)}")
-    if not isinstance(raw, dict):
+
+    if not isinstance(main, dict):
         raise SystemExit(f"ConfigError: Top-level of the file {config_path!r} must be a dictionary")
+
+    try:
+        override = (main.pop("override", {}) or {})
+        yaml_merge(override, build_raw_from_options(override_options), "raw CLI options")
+        _patch_raw(main)
+        _patch_raw(override)
+    except Exception as ex:
+        raise SystemExit(f"ConfigError: {tools.efmt(ex)}")
 
     scheme = _get_config_scheme()
     try:
-        yaml_merge(raw, (raw.pop("override", {}) or {}))
-        yaml_merge(raw, build_raw_from_options(override_options), "raw CLI options")
-        _patch_raw(raw)
-        config = make_config(raw, scheme)
-
-        if _patch_dynamic(raw, config, scheme, **load_flags):
-            config = make_config(raw, scheme)
-
+        config = make_config(main, override, scheme)
+        if _patch_dynamic(main, override, config, scheme, **load_flags):
+            config = make_config(main, override, scheme)
         return config
     except (ConfigError, UnknownPluginError) as ex:
         raise SystemExit(f"ConfigError: {ex}")
@@ -245,6 +252,13 @@ def _is_dict(kv: Any, *path: str) -> bool:
 
 
 def _patch_raw(raw: dict) -> None:  # pylint: disable=too-many-branches
+    for params in _walk_dict(raw, "kvmd", "gpio", "scheme").values():
+        if _is_dict(params):
+            if params.get("pulse") == False:  # noqa: E712  # pylint: disable=singleton-comparison
+                params["pulse"] = {"delay": 0}
+
+    # === Legacy ===
+
     if _is_dict(raw, "otgnet"):
         for (sub, cmd) in [("iface", "ip_cmd"), ("firewall", "iptables_cmd")]:
             if _is_dict(raw["otgnet"], sub):
@@ -308,7 +322,8 @@ def _patch_raw(raw: dict) -> None:  # pylint: disable=too-many-branches
 
 
 def _patch_dynamic(  # pylint: disable=too-many-locals
-    raw: dict,
+    main: dict,
+    override: dict,
     config: Section,
     scheme: dict,
     load_auth: bool=False,
@@ -336,6 +351,9 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
             rebuild = True
 
     if load_gpio:
+        raw = copy.deepcopy(main)
+        yaml_merge(raw, override)
+
         driver: str
         drivers: dict[str, type[BaseUserGpioDriver]] = {}  # Name to drivers
         for (driver, params) in {  # type: ignore

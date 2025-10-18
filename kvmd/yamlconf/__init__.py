@@ -142,26 +142,32 @@ def manual_validated(value: Any, *path: str) -> Generator[None, None, None]:
 
 
 def make_config(
-    raw: dict[str, Any],
-    scheme: dict[str, Any],
-    _keys: tuple[str, ...]=(),
+    main: Any,
+    override: Any,
+    scheme: dict,
+    _path: tuple[str, ...]=(),
 ) -> Section:
 
-    if not isinstance(raw, dict):
-        raise ConfigError(f"The node {('/'.join(_keys) or '/')!r} must be a dictionary")
+    if not isinstance(main, dict):
+        raise ConfigError(f"The node {('/'.join(_path) or '/')!r} of main must be a dictionary")
+    if not isinstance(override, dict):
+        raise ConfigError(f"The node {('/'.join(_path) or '/')!r} of override must be a dictionary")
 
     config = Section()
 
-    def make_full_key(key: str) -> tuple[str, ...]:
-        return _keys + (key,)
+    def make_full_path(key: str) -> tuple[str, ...]:
+        return _path + (key,)
 
     def make_full_name(key: str) -> str:
-        return "/".join(make_full_key(key))
+        return "/".join(make_full_path(key))
 
-    def process_option(key: str) -> Any:
-        if key not in config:
+    for key in scheme:
+        if isinstance(scheme[key], Option):
             option: Option = scheme[key]
-            value = raw.get(key, option.default)
+            if key in main and option.default != main[key]:
+                option.default = main[key]
+
+            value = override.get(key, option.default)
             if option.if_none != Stub and value is None:
                 value = option.if_none
             elif option.if_empty != Stub and not value:
@@ -171,15 +177,18 @@ def make_config(
                     value = option.type(value)
                 except (TypeError, ValueError) as ex:
                     raise ConfigError(f"Invalid value {value!r} for key {make_full_name(key)!r}: {ex}")
+
             config[key] = value
             config._set_option(key, option)  # pylint: disable=protected-access
-        return config[key]
 
-    for key in scheme:
-        if isinstance(scheme[key], Option):
-            process_option(key)
         elif isinstance(scheme[key], dict):
-            config[key] = make_config(raw.get(key, {}), scheme[key], make_full_key(key))
+            config[key] = make_config(
+                main=main.get(key, {}),
+                override=override.get(key, {}),
+                scheme=scheme[key],
+                _path=make_full_path(key),
+            )
+
         else:
             raise RuntimeError(f"Incorrect scheme definition for key {make_full_name(key)!r}:"
                                f" the value is {type(scheme[key])!r}, not dict() or Option()")

@@ -57,7 +57,7 @@ _E_FREE = HttpExposed("GET", "/baz_free", auth_required=False, allow_usc=True, h
 def _make_service_kwargs(path: str) -> dict:
     cls = get_auth_service_class("htpasswd")
     scheme = cls.get_plugin_options()
-    return make_config({"file": path}, scheme)._unpack()
+    return make_config({}, {"file": path}, scheme)._unpack()
 
 
 @contextlib.asynccontextmanager
