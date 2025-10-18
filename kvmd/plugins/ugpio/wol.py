@@ -21,7 +21,6 @@
 
 
 import socket
-import functools
 
 from typing import Callable
 from typing import Any
@@ -61,7 +60,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "ip":   Option("255.255.255.255", type=functools.partial(valid_ip, v6=False)),
+            "ip":   Option("255.255.255.255", type=valid_ip.mk(v6=False)),
             "port": Option(9,  type=valid_port),
             "mac":  Option("", type=valid_mac, if_empty=""),
         }

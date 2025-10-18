@@ -25,25 +25,31 @@ from typing import Any
 from .basic import valid_string_list
 from .basic import valid_number
 
+from . import add_validator_magic
 from . import check_re_match
 
 
 # =====
+@add_validator_magic
 def valid_user(arg: Any) -> str:
     return check_re_match(arg, "username characters", r"^[a-z_][a-z0-9_-]*$")
 
 
+@add_validator_magic
 def valid_users_list(arg: Any) -> list[str]:
     return valid_string_list(arg, subval=valid_user, name="users list")
 
 
+@add_validator_magic
 def valid_passwd(arg: Any) -> str:
     return check_re_match(arg, "passwd characters", r"^[\x20-\x7e]*\Z$", strip=False, hide=True)
 
 
+@add_validator_magic
 def valid_expire(arg: Any) -> int:
     return int(valid_number(arg, min=0, name="expiration time"))
 
 
+@add_validator_magic
 def valid_auth_token(arg: Any) -> str:
     return check_re_match(arg, "auth token", r"^[0-9a-f]{64}$", hide=True)

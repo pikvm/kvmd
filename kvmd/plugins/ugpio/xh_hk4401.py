@@ -23,7 +23,6 @@
 
 import re
 import multiprocessing
-import functools
 import errno
 import time
 
@@ -82,12 +81,12 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             "device":       Option("",    type=valid_abs_path, unpack_as="device_path"),
             "speed":        Option(19200, type=valid_tty_speed),
             "read_timeout": Option(2.0,   type=valid_float_f01),
-            "protocol":     Option(1,     type=functools.partial(valid_number, min=1, max=2)),
+            "protocol":     Option(1,     type=valid_number.mk(min=1, max=2)),
         }
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return functools.partial(valid_number, min=0, max=3, name="XH-HK4401 channel")
+        return valid_number.mk(min=0, max=3, name="XH-HK4401 channel")
 
     def prepare(self) -> None:
         assert self.__proc is None

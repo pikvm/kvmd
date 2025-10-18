@@ -21,11 +21,15 @@
 
 
 import re
+import functools
 
+from typing import cast
 from typing import Mapping
 from typing import Sequence
 from typing import Callable
+from typing import ParamSpec
 from typing import TypeVar
+from typing import Protocol
 from typing import NoReturn
 from typing import Any
 
@@ -35,8 +39,34 @@ class ValidatorError(ValueError):
     pass
 
 
-# =====
-_RetvalSeqT = TypeVar("_RetvalSeqT", bound=Sequence)
+_PP = ParamSpec("_PP")
+_PR_co = TypeVar("_PR_co", covariant=True)
+
+
+class _ContainsMkMethod(Protocol[_PP, _PR_co]):
+    def mk(self, **kwargs: Any) -> Callable[[Any], _PR_co]:
+        # I wanted to use _PP.kwargs, but I can't:
+        #   - https://peps.python.org/pep-0612/#id1
+        #   - https://github.com/python/typing/issues/1524
+        ...
+
+    def __call__(self, *args: _PP.args, **kwargs: _PP.kwargs) -> _PR_co:
+        ...
+
+
+_VP = ParamSpec("_VP")
+_VR = TypeVar("_VR")
+
+
+def add_validator_magic(validator: Callable[_VP, _VR]) -> _ContainsMkMethod[_VP, _VR]:
+    def make(**kwargs: Any) -> Callable[[Any], _VR]:
+        @functools.wraps(validator)
+        def specialized(arg: Any) -> _VR:
+            return validator(arg, **kwargs)
+        return specialized
+
+    validator.mk = make  # type: ignore
+    return cast(_ContainsMkMethod, validator)
 
 
 # =====
@@ -84,6 +114,9 @@ def check_re_match(arg: Any, name: str, pattern: str, strip: bool=True, hide: bo
     if re.match(pattern, arg, flags=re.MULTILINE) is None:
         raise_error(arg, name, hide=hide)
     return arg
+
+
+_RetvalSeqT = TypeVar("_RetvalSeqT", bound=Sequence)
 
 
 def check_len(arg: _RetvalSeqT, name: str, limit: int) -> _RetvalSeqT:

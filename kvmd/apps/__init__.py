@@ -22,7 +22,6 @@
 
 import sys
 import os
-import functools
 import argparse
 import logging
 import logging.config
@@ -345,13 +344,13 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
                 params["pulse"] = {"delay": 0}
 
             scheme["kvmd"]["gpio"]["scheme"][channel] = {
-                "driver":   Option("__gpio__", type=functools.partial(valid_ugpio_driver, variants=set(drivers))),
+                "driver":   Option("__gpio__", type=valid_ugpio_driver.mk(variants=set(drivers))),
                 "pin":      Option(None,       type=drivers[driver].get_pin_validator()),
-                "mode":     Option("",         type=functools.partial(valid_ugpio_mode, variants=drivers[driver].get_modes())),
+                "mode":     Option("",         type=valid_ugpio_mode.mk(variants=drivers[driver].get_modes())),
                 "inverted": Option(False,      type=valid_bool),
                 **({
                     "busy_delay": Option(0.2,   type=valid_float_f01),
-                    "initial":    Option(False, type=(lambda arg: (valid_bool(arg) if arg is not None else None))),
+                    "initial":    Option(False, type=valid_bool, if_none=None),
                     "switch":     Option(True,  type=valid_bool),
                     "pulse": {  # type: ignore
                         "delay":     Option(0.1, type=valid_float_f0),
@@ -463,7 +462,7 @@ def _get_config_scheme() -> dict:
                     "default":   Option("", type=valid_stream_resolution, if_empty="", unpack_as="resolution"),
                     "available": Option(
                         [],
-                        type=functools.partial(valid_string_list, subval=valid_stream_resolution),
+                        type=valid_string_list.mk(subval=valid_stream_resolution),
                         unpack_as="available_resolutions",
                     ),
                 },
@@ -593,9 +592,9 @@ def _get_config_scheme() -> dict:
             "product":        Option("PiKVM Composite Device", type=valid_stripped_string),
             "serial":         Option("CAFEBABE", type=valid_stripped_string, if_none=None),
             "config":         Option(None,   type=valid_stripped_string, if_none=None),
-            "device_version": Option(-1,     type=functools.partial(valid_number, min=-1, max=0xFFFF), hint="hex"),
+            "device_version": Option(-1,     type=valid_number.mk(min=-1, max=0xFFFF), hint="hex"),
             "usb_version":    Option(0x0200, type=valid_otg_id, hint="hex"),
-            "max_power":      Option(250,    type=functools.partial(valid_number, min=50, max=500)),
+            "max_power":      Option(250,    type=valid_number.mk(min=50, max=500)),
             "remote_wakeup":  Option(True,   type=valid_bool),
 
             "gadget":     Option("kvmd", type=valid_otg_gadget),
@@ -689,7 +688,7 @@ def _get_config_scheme() -> dict:
 
         "otgnet": {
             "iface": {
-                "net": Option("172.30.30.0/24", type=functools.partial(valid_net, v6=False)),
+                "net": Option("172.30.30.0/24", type=valid_net.mk(v6=False)),
             },
 
             "firewall": {
@@ -768,7 +767,7 @@ def _get_config_scheme() -> dict:
             "desired_fps":     Option(30, type=valid_stream_fps),
             "mouse_output":    Option("usb", type=valid_hid_mouse_output),
             "keymap":          Option("/usr/share/kvmd/keymaps/en-us", type=valid_abs_file),
-            "scroll_rate":     Option(4,   type=functools.partial(valid_number, min=1, max=30)),
+            "scroll_rate":     Option(4,   type=valid_number.mk(min=1, max=30)),
 
             "server": {
                 "host":        Option("",   type=valid_ip_or_host, if_empty=""),
@@ -778,9 +777,9 @@ def _get_config_scheme() -> dict:
                 "no_delay": Option(True, type=valid_bool),
                 "keepalive": {
                     "enabled":  Option(True, type=valid_bool, unpack_as="keepalive_enabled"),
-                    "idle":     Option(10,   type=functools.partial(valid_number, min=1, max=3600), unpack_as="keepalive_idle"),
-                    "interval": Option(3,    type=functools.partial(valid_number, min=1, max=60), unpack_as="keepalive_interval"),
-                    "count":    Option(3,    type=functools.partial(valid_number, min=1, max=10), unpack_as="keepalive_count"),
+                    "idle":     Option(10,   type=valid_number.mk(min=1, max=3600), unpack_as="keepalive_idle"),
+                    "interval": Option(3,    type=valid_number.mk(min=1, max=60), unpack_as="keepalive_interval"),
+                    "count":    Option(3,    type=valid_number.mk(min=1, max=10), unpack_as="keepalive_count"),
                 },
 
                 "tls": {
@@ -838,14 +837,14 @@ def _get_config_scheme() -> dict:
 
         "nginx": {
             "http": {
-                "ipv4": Option("0.0.0.0", type=functools.partial(valid_ip, v6=False)),
-                "ipv6": Option("::",      type=functools.partial(valid_ip, v4=False)),
+                "ipv4": Option("0.0.0.0", type=valid_ip.mk(v6=False)),
+                "ipv6": Option("::",      type=valid_ip.mk(v4=False)),
                 "port": Option(80,        type=valid_port),
             },
             "https": {
                 "enabled": Option(True,      type=valid_bool),
-                "ipv4":    Option("0.0.0.0", type=functools.partial(valid_ip, v6=False)),
-                "ipv6":    Option("::",      type=functools.partial(valid_ip, v4=False)),
+                "ipv4":    Option("0.0.0.0", type=valid_ip.mk(v6=False)),
+                "ipv6":    Option("::",      type=valid_ip.mk(v4=False)),
                 "port":    Option(443,       type=valid_port),
             },
         },

@@ -68,7 +68,7 @@ class Plugin(PwmPlugin):
 
     @classmethod
     def get_plugin_options(cls) -> dict:
-        valid_angle = (lambda arg: valid_number(arg, min=-360.0, max=360.0, type=float))
+        valid_angle = valid_number.mk(min=-360.0, max=360.0, type=float)
         return {
             "chip":           Option(0,        type=valid_int_f0),
             "period":         Option(20000000, type=valid_int_f0),

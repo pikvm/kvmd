@@ -21,7 +21,6 @@
 
 
 import asyncio
-import functools
 
 from typing import Callable
 from typing import Any
@@ -89,7 +88,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return functools.partial(valid_number, min=0, max=7, name="ANELPWR channel")
+        return valid_number.mk(min=0, max=7, name="ANELPWR channel")
 
     def register_input(self, pin: str, debounce: float) -> None:
         _ = debounce

@@ -23,7 +23,6 @@
 import asyncio
 import contextlib
 import dataclasses
-import functools
 import copy
 
 from typing import AsyncGenerator
@@ -150,9 +149,9 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "read_chunk_size":   Option(65536,   type=functools.partial(valid_number, min=1024)),
-            "write_chunk_size":  Option(65536,   type=functools.partial(valid_number, min=1024)),
-            "sync_chunk_size":   Option(4194304, type=functools.partial(valid_number, min=1024)),
+            "read_chunk_size":   Option(65536,   type=valid_number.mk(min=1024)),
+            "write_chunk_size":  Option(65536,   type=valid_number.mk(min=1024)),
+            "sync_chunk_size":   Option(4194304, type=valid_number.mk(min=1024)),
 
             "remount_cmd": Option([
                 "/usr/bin/sudo", "--non-interactive",

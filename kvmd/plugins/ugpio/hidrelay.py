@@ -22,7 +22,6 @@
 
 import asyncio
 import contextlib
-import functools
 
 from typing import Callable
 from typing import Any
@@ -82,7 +81,7 @@ class Plugin(BaseUserGpioDriver):
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return functools.partial(valid_number, min=0, max=7, name="HID relay channel")
+        return valid_number.mk(min=0, max=7, name="HID relay channel")
 
     def register_output(self, pin: str, initial: (bool | None)) -> None:
         self.__initials[int(pin)] = initial

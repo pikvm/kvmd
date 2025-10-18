@@ -27,6 +27,7 @@ from typing import Callable
 from typing import Any
 
 from . import ValidatorError
+from . import add_validator_magic
 from . import raise_error
 from . import check_re_match
 from . import check_any
@@ -37,6 +38,7 @@ from .basic import valid_string_list
 
 
 # =====
+@add_validator_magic
 def valid_ip_or_host(arg: Any) -> str:
     name = "IPv4/6 address or RFC-1123 hostname"
     return check_any(
@@ -49,6 +51,7 @@ def valid_ip_or_host(arg: Any) -> str:
     )
 
 
+@add_validator_magic
 def valid_ip(arg: Any, v4: bool=True, v6: bool=True) -> str:
     assert v4 or v6
     validators: list[Callable] = []
@@ -67,6 +70,7 @@ def valid_ip(arg: Any, v4: bool=True, v6: bool=True) -> str:
     )
 
 
+@add_validator_magic
 def valid_net(arg: Any, v4: bool=True, v6: bool=True) -> str:
     assert v4 or v6
     validators: list[Callable] = []
@@ -87,6 +91,7 @@ def valid_net(arg: Any, v4: bool=True, v6: bool=True) -> str:
     )
 
 
+@add_validator_magic
 def valid_rfc_host(arg: Any) -> str:
     # http://stackoverflow.com/questions/106179/regular-expression-to-match-hostname-or-ip-address
     pattern = r"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*" \
@@ -94,19 +99,23 @@ def valid_rfc_host(arg: Any) -> str:
     return check_re_match(arg, "RFC-1123 hostname", pattern)
 
 
+@add_validator_magic
 def valid_port(arg: Any) -> int:
     return int(valid_number(arg, min=0, max=65535, name="network port"))
 
 
+@add_validator_magic
 def valid_ports_list(arg: Any) -> list[int]:
     return list(map(int, valid_string_list(arg, subval=valid_port, name="ports list")))
 
 
+@add_validator_magic
 def valid_mac(arg: Any) -> str:
     pattern = ":".join([r"[0-9a-fA-F]{2}"] * 6)
     return check_re_match(arg, "MAC address", pattern).lower()
 
 
+@add_validator_magic
 def valid_ssl_ciphers(arg: Any) -> str:
     name = "SSL ciphers"
     arg = valid_stripped_string_not_empty(arg, name)
@@ -117,6 +126,7 @@ def valid_ssl_ciphers(arg: Any) -> str:
     return arg
 
 
+@add_validator_magic
 def valid_url(arg: Any) -> str:
     # XXX: VERY primitive
     return check_re_match(arg, "HTTP(S) URL", r"^https?://[\[\w]+\S*")
