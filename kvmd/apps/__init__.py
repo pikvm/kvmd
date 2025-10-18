@@ -218,31 +218,57 @@ def _init_config(config_path: str, override_options: list[str], **load_flags: bo
         raise SystemExit(f"ConfigError: {ex}")
 
 
+def _walk_dict(kv: Any, *path: str) -> dict:
+    if not isinstance(kv, dict):
+        raise TypeError("Not a dict on the top level")
+    passed: list[str] = []
+    for key in path:
+        if key not in kv:
+            return {}
+        kv = kv[key]
+        passed.append(key)
+        if not isinstance(kv, dict):
+            raise TypeError(f"Not a dict on the path: {'/'.join(passed) or '/'}")
+    return kv
+
+
+def _is_dict(kv: Any, *path: str) -> bool:
+    if not isinstance(kv, dict):
+        return False
+    for key in path:
+        if key not in kv:
+            return False
+        kv = kv[key]
+        if not isinstance(kv, dict):
+            return False
+    return True
+
+
 def _patch_raw(raw: dict) -> None:  # pylint: disable=too-many-branches
-    for (sub, cmd) in [("iface", "ip_cmd"), ("firewall", "iptables_cmd")]:
-        if isinstance(raw.get("otgnet"), dict):
-            if isinstance(raw["otgnet"].get(sub), dict):
+    if _is_dict(raw, "otgnet"):
+        for (sub, cmd) in [("iface", "ip_cmd"), ("firewall", "iptables_cmd")]:
+            if _is_dict(raw["otgnet"], sub):
                 if raw["otgnet"][sub].get(cmd):
                     raw["otgnet"].setdefault("commands", {})
                     raw["otgnet"]["commands"][cmd] = raw["otgnet"][sub][cmd]
                     del raw["otgnet"][sub][cmd]
 
-    if isinstance(raw.get("otg"), dict):
+    if _is_dict(raw, "otg"):
         for (old, new) in [
             ("msd", "msd"),
             ("acm", "serial"),
             ("drives", "drives"),
         ]:
             if old in raw["otg"]:
-                if not isinstance(raw["otg"].get("devices"), dict):
+                if not _is_dict(raw["otg"], "devices"):
                     raw["otg"]["devices"] = {}
                 raw["otg"]["devices"][new] = raw["otg"].pop(old)
 
-    if isinstance(raw.get("kvmd"), dict) and isinstance(raw["kvmd"].get("wol"), dict):
-        if not isinstance(raw["kvmd"].get("gpio"), dict):
+    if _is_dict(raw, "kvmd", "wol"):
+        if not _is_dict(raw["kvmd"], "gpio"):
             raw["kvmd"]["gpio"] = {}
         for section in ["drivers", "scheme"]:
-            if not isinstance(raw["kvmd"]["gpio"].get(section), dict):
+            if not _is_dict(raw["kvmd"]["gpio"], section):
                 raw["kvmd"]["gpio"][section] = {}
         raw["kvmd"]["gpio"]["drivers"]["__wol__"] = {
             "type": "wol",
@@ -255,30 +281,30 @@ def _patch_raw(raw: dict) -> None:  # pylint: disable=too-many-branches
             "switch": False,
         }
 
-    if isinstance(raw.get("kvmd"), dict) and isinstance(raw["kvmd"].get("streamer"), dict):
-        streamer_config = raw["kvmd"]["streamer"]
+    if _is_dict(raw, "kvmd", "streamer"):
+        streamer = raw["kvmd"]["streamer"]
 
-        desired_fps = streamer_config.get("desired_fps")
-        if desired_fps is not None and not isinstance(desired_fps, dict):
-            streamer_config["desired_fps"] = {"default": desired_fps}
+        desired_fps = streamer.get("desired_fps")
+        if desired_fps is not None and not _is_dict(desired_fps):
+            streamer["desired_fps"] = {"default": desired_fps}
 
-        max_fps = streamer_config.get("max_fps")
+        max_fps = streamer.get("max_fps")
         if max_fps is not None:
-            if not isinstance(streamer_config.get("desired_fps"), dict):
-                streamer_config["desired_fps"] = {}
-            streamer_config["desired_fps"]["max"] = max_fps
-            del streamer_config["max_fps"]
+            if not _is_dict(streamer, "desired_fps"):
+                streamer["desired_fps"] = {}
+            streamer["desired_fps"]["max"] = max_fps
+            del streamer["max_fps"]
 
-        resolution = streamer_config.get("resolution")
-        if resolution is not None and not isinstance(resolution, dict):
-            streamer_config["resolution"] = {"default": resolution}
+        resolution = streamer.get("resolution")
+        if resolution is not None and not _is_dict(resolution):
+            streamer["resolution"] = {"default": resolution}
 
-        available_resolutions = streamer_config.get("available_resolutions")
+        available_resolutions = streamer.get("available_resolutions")
         if available_resolutions is not None:
-            if not isinstance(streamer_config.get("resolution"), dict):
-                streamer_config["resolution"] = {}
-            streamer_config["resolution"]["available"] = available_resolutions
-            del streamer_config["available_resolutions"]
+            if not _is_dict(streamer, "resolution"):
+                streamer["resolution"] = {}
+            streamer["resolution"]["available"] = available_resolutions
+            del streamer["available_resolutions"]
 
 
 def _patch_dynamic(  # pylint: disable=too-many-locals
@@ -314,7 +340,7 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
         drivers: dict[str, type[BaseUserGpioDriver]] = {}  # Name to drivers
         for (driver, params) in {  # type: ignore
             "__gpio__": {},
-            **tools.rget(raw, "kvmd", "gpio", "drivers"),
+            **_walk_dict(raw, "kvmd", "gpio", "drivers"),
         }.items():
             with manual_validated(driver, "kvmd", "gpio", "drivers", "<key>"):
                 driver = valid_ugpio_driver(driver)
@@ -328,7 +354,7 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
             }
 
         path = ("kvmd", "gpio", "scheme")
-        for (channel, params) in tools.rget(raw, *path).items():
+        for (channel, params) in _walk_dict(raw, *path).items():
             with manual_validated(channel, *path, "<key>"):
                 channel = valid_ugpio_channel(channel)
 
