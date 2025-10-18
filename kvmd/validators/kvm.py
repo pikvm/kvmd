@@ -26,6 +26,7 @@ from . import add_validator_magic
 from . import raise_error
 from . import check_string_in_list
 
+from .basic import valid_stripped_string
 from .basic import valid_stripped_string_not_empty
 from .basic import valid_number
 from .basic import valid_string_list
@@ -44,9 +45,14 @@ def valid_atx_button(arg: Any) -> str:
 
 
 @add_validator_magic
-def valid_msd_image_name(arg: Any) -> str:
+def valid_msd_image_name(arg: Any, allow_eject: bool=False) -> str:
     name = "MSD image name"
-    arg = valid_stripped_string_not_empty(arg, name)
+    arg = valid_stripped_string(arg)
+    if len(arg) == 0:
+        if allow_eject:
+            return ""
+        else:
+            raise_error(arg, name)
     parts: list[str] = list(filter(None, arg.split("/")))
     if len(parts) == 0:
         raise_error(arg, name)

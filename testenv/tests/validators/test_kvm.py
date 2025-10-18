@@ -84,6 +84,16 @@ def test_ok__valid_msd_image_name(arg: Any, retval: str) -> None:
     assert valid_msd_image_name(arg) == retval
 
 
+@pytest.mark.parametrize("arg, retval", [
+    ("archlinux-2018.07.01-i686.iso", "archlinux-2018.07.01-i686.iso"),
+    ("/bar.iso/",                     "bar.iso"),
+    (" ",                             ""),
+    ("",                              ""),
+])
+def test_ok__valid_msd_image_name__allow_eject(arg: Any, retval: str) -> None:
+    assert valid_msd_image_name(arg, allow_eject=True) == retval
+
+
 @pytest.mark.parametrize("arg", [
     ".",
     "..",
