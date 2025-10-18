@@ -366,8 +366,15 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
             driver_type = valid_stripped_string_not_empty(params.get("type", "gpio"))
             driver_class = get_ugpio_driver_class(driver_type)
             drivers[driver] = driver_class
+
+            # Пустая строка нужна, чтобы увидеть добавленные драйверы в -M.
+            # Значение все равно будет перезаписано из raw при make_config(),
+            # поэтому нет никакой проблемы, что пустая строка является
+            # невалидным дефолтом.
+            driver_type_default = ("gpio" if driver == "__gpio__" else "")
+
             scheme["kvmd"]["gpio"]["drivers"][driver] = {
-                "type": Option(driver_type, type=valid_stripped_string_not_empty),
+                "type": Option(driver_type_default, type=valid_stripped_string_not_empty),
                 **driver_class.get_plugin_options()
             }
 
