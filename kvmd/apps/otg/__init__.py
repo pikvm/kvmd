@@ -112,7 +112,7 @@ class _GadgetConfig:
         self.__msd_instance = 0
         _mkdir(meta_path)
 
-    def add_audio_mic(self, start: bool) -> None:
+    def add_audio_mic(self, starter: list[str], start: bool) -> None:
         eps = 2
         func = "uac2.usb0"
         func_path = self.__create_function(func)
@@ -122,17 +122,17 @@ class _GadgetConfig:
         _write(join(func_path, "p_ssize"), 2)
         if start:
             self.__start_function(func, eps)
-        self.__create_meta(func, "Microphone", eps)
+        self.__create_meta(func, "Microphone", eps, starter)
 
-    def add_serial(self, start: bool) -> None:
+    def add_serial(self, starter: list[str], start: bool) -> None:
         eps = 3
         func = "acm.usb0"
         self.__create_function(func)
         if start:
             self.__start_function(func, eps)
-        self.__create_meta(func, "Serial Port", eps)
+        self.__create_meta(func, "Serial Port", eps, starter)
 
-    def add_ethernet(self, start: bool, driver: str, host_mac: str, kvm_mac: str) -> None:
+    def add_ethernet(self, starter: list[str], start: bool, driver: str, host_mac: str, kvm_mac: str) -> None:
         eps = 3
         if host_mac and kvm_mac and host_mac == kvm_mac:
             raise RuntimeError("Ethernet host_mac should not be equal to kvm_mac")
@@ -161,16 +161,16 @@ class _GadgetConfig:
             _symlink(self.__profile_path, join(self.__gadget_path, "os_desc", usb.G_PROFILE_NAME))
         if start:
             self.__start_function(func, eps)
-        self.__create_meta(func, "Ethernet", eps)
+        self.__create_meta(func, "Ethernet", eps, starter)
 
-    def add_keyboard(self, start: bool, remote_wakeup: bool) -> None:
-        self.__add_hid("Keyboard", start, remote_wakeup, make_keyboard_hid())
+    def add_keyboard(self, starter: list[str], start: bool, remote_wakeup: bool) -> None:
+        self.__add_hid("Keyboard", starter, start, remote_wakeup, make_keyboard_hid())
 
-    def add_mouse(self, start: bool, remote_wakeup: bool, absolute: bool, horizontal_wheel: bool) -> None:
+    def add_mouse(self, starter: list[str], start: bool, remote_wakeup: bool, absolute: bool, horizontal_wheel: bool) -> None:
         desc = ("Absolute" if absolute else "Relative") + " Mouse"
-        self.__add_hid(desc, start, remote_wakeup, make_mouse_hid(absolute, horizontal_wheel))
+        self.__add_hid(desc, starter, start, remote_wakeup, make_mouse_hid(absolute, horizontal_wheel))
 
-    def __add_hid(self, desc: str, start: bool, remote_wakeup: bool, hid: Hid) -> None:
+    def __add_hid(self, desc: str, starter: list[str], start: bool, remote_wakeup: bool, hid: Hid) -> None:
         eps = 1
         func = f"hid.usb{self.__hid_instance}"
         func_path = self.__create_function(func)
@@ -183,11 +183,12 @@ class _GadgetConfig:
         _write_bytes(join(func_path, "report_desc"), hid.report_descriptor)
         if start:
             self.__start_function(func, eps)
-        self.__create_meta(func, desc, eps)
+        self.__create_meta(func, desc, eps, starter)
         self.__hid_instance += 1
 
-    def add_msd(
+    def add_msd(  # pylint: disable=too-many-arguments
         self,
+        starter: list[str],
         start: bool,
         user: str,
         stall: bool,
@@ -220,7 +221,7 @@ class _GadgetConfig:
         if start:
             self.__start_function(func, eps)
         desc = ("Mass Storage Drive" if self.__msd_instance == 0 else f"Extra Drive #{self.__msd_instance}")
-        self.__create_meta(func, desc, eps)
+        self.__create_meta(func, desc, eps, starter)
         self.__msd_instance += 1
 
     def __create_function(self, func: str) -> str:
@@ -236,11 +237,12 @@ class _GadgetConfig:
         else:
             get_logger().info("Will not be started: No available endpoints")
 
-    def __create_meta(self, func: str, desc: str, eps: int) -> None:
+    def __create_meta(self, func: str, desc: str, eps: int, starter: list[str]) -> None:
         _write(join(self.__meta_path, f"{func}@meta.json"), json.dumps({
             "function": func,
             "description": desc,
             "endpoints": eps,
+            "starter": ["otg", "devices", *starter, "start"],
         }))
 
 
@@ -298,13 +300,15 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     if config.kvmd.hid.type == "otg":
         logger.info("===== HID-Keyboard =====")
-        gc.add_keyboard(cod.hid.keyboard.start, config.otg.remote_wakeup)
+        gc.add_keyboard(["hid", "keyboard"], cod.hid.keyboard.start, config.otg.remote_wakeup)
         logger.info("===== HID-Mouse =====")
         ckhm = config.kvmd.hid.mouse
-        gc.add_mouse(cod.hid.mouse.start, config.otg.remote_wakeup, ckhm.absolute, ckhm.horizontal_wheel)
+        gc.add_mouse(["hid", "mouse"], cod.hid.mouse.start,
+                     config.otg.remote_wakeup, ckhm.absolute, ckhm.horizontal_wheel)
         if config.kvmd.hid.mouse_alt.device:
             logger.info("===== HID-Mouse-Alt =====")
-            gc.add_mouse(cod.hid.mouse_alt.start, config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
+            gc.add_mouse(["hid", "mouse_alt"], cod.hid.mouse_alt.start,
+                         config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
 
     def make_inquiry_string(isc: Section) -> str:
         kwargs = isc._unpack()
@@ -315,6 +319,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
     if config.kvmd.msd.type == "otg":
         logger.info("===== MSD =====")
         gc.add_msd(
+            starter=["msd"],
             start=cod.msd.start,
             user=config.otg.user,
             inquiry_string_cdrom=make_inquiry_string(cod.msd.default.inquiry_string.cdrom),
@@ -325,6 +330,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
             for count in range(cod.drives.count):
                 logger.info("===== MSD Extra: %d =====", count + 1)
                 gc.add_msd(
+                    starter=["drives"],
                     start=cod.drives.start,
                     user="root",
                     inquiry_string_cdrom=make_inquiry_string(cod.drives.default.inquiry_string.cdrom),
@@ -334,15 +340,15 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     if cod.ethernet.enabled:
         logger.info("===== Ethernet =====")
-        gc.add_ethernet(**cod.ethernet._unpack(ignore=["enabled"]))
+        gc.add_ethernet(["ethernet"], **cod.ethernet._unpack(ignore=["enabled"]))
 
     if cod.serial.enabled:
         logger.info("===== Serial =====")
-        gc.add_serial(cod.serial.start)
+        gc.add_serial(["serial"], cod.serial.start)
 
     if cod.audio.enabled:
         logger.info("===== Microphone =====")
-        gc.add_audio_mic(cod.audio.start)
+        gc.add_audio_mic(["audio"], cod.audio.start)
 
     logger.info("===== Preparing complete =====")
 

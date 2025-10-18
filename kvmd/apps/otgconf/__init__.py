@@ -56,6 +56,7 @@ class _Function:
     desc:    str
     eps:     int
     enabled: bool
+    starter: list[str]
 
 
 class _GadgetControl:
@@ -116,6 +117,7 @@ class _GadgetControl:
                     desc=meta["description"],
                     eps=meta["endpoints"],
                     enabled=enabled,
+                    starter=meta["starter"],
                 )
 
     def __get_fsrc_path(self, func: str) -> str:
@@ -147,7 +149,8 @@ class _GadgetControl:
         print(f"# Endpoints used: {eps_used} of {self.__eps}")
         print(f"# Endpoints free: {self.__eps - eps_used}")
         for func in funcs:
-            print(f"{'+' if func.enabled else '-'} {func.name}  # [{func.eps}] {func.desc}")
+            print(f"{'+' if func.enabled else '-'} {func.name}"
+                  f"  # [{func.eps}]  {func.desc}  # {'/'.join(func.starter)}")
 
     def make_gpio_config(self) -> None:
         config = {
@@ -275,7 +278,7 @@ def _make_donor_config(donor: _Donor) -> dict:
     return {"otg": config}
 
 
-def _print_donor_tip(path: str) -> None:
+def _print_otg_tip(path: str) -> None:
     if sys.stdout.isatty() and sys.stderr.isatty():
         reset = "\033[39m"
         gray = f"{reset}\033[30;1m"
@@ -298,7 +301,7 @@ def _import_usb_ids(path: str) -> None:
     _print_donor_info(donor)
     with override_yaml_file(path) as config:
         yaml_merge(config, _make_donor_config(donor))
-    _print_donor_tip(path)
+    _print_otg_tip(path)
 
 
 # =====
