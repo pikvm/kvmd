@@ -134,11 +134,12 @@ def _cmd_delete(config: Section, options: argparse.Namespace) -> None:
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main(test_argv: (list[str] | None)=None, test_override: (dict | None)=None) -> None:
     (parent_parser, argv, config) = init(
         add_help=False,
         cli_logging=True,
-        argv=argv,
+        test_argv=test_argv,
+        test_override=test_override,
         load_auth=True,
     )
     parser = argparse.ArgumentParser(

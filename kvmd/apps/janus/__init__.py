@@ -26,12 +26,11 @@ from .runner import JanusRunner
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     config = init(
         prog="kvmd-Janus",
         description="Janus WebRTC Gateway Runner",
         check_run=True,
-        argv=argv,
     )[2].janus
 
     JanusRunner(

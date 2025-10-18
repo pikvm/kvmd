@@ -89,18 +89,17 @@ def _adopt_out2_ids(dest: Edid) -> None:
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:  # pylint: disable=too-many-branches,too-many-statements
+def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
     # (parent_parser, argv, _) = init(
     #     add_help=False,
     #     argv=argv,
     # )
-    if argv is None:
-        argv = sys.argv
     parser = argparse.ArgumentParser(
         prog="kvmd-edidconf",
         description="A simple and primitive KVMD EDID editor",
         # parents=[parent_parser],
     )
+    argv = sys.argv
 
     lane2 = ["v0", "v1", "v2", "v3"]
     lane4 = ["v4mini", "v4plus"]

@@ -29,12 +29,11 @@ from .server import MediaServer
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     config = init(
         prog="kvmd-media",
         description="The media proxy",
         check_run=True,
-        argv=argv,
     )[2].media
 
     def make_streamer(name: str, fmt: int) -> (MemsinkStreamerClient | None):

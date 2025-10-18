@@ -305,11 +305,10 @@ def _import_usb_ids(path: str) -> None:
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     (parent_parser, argv, config) = init(
         add_help=False,
         cli_logging=True,
-        argv=argv,
     )
     parser = argparse.ArgumentParser(
         prog="kvmd-otgconf",

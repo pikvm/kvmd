@@ -30,12 +30,11 @@ from .server import LocalHidServer
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     config = init(
         prog="kvmd-localhid",
         description=" Local HID to KVMD proxy",
         check_run=True,
-        argv=argv,
     )[2].localhid
 
     user_agent = htclient.make_user_agent("KVMD-LocalHID")

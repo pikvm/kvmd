@@ -21,7 +21,6 @@
 
 
 import contextlib
-import json
 
 from typing import Generator
 from typing import Callable
@@ -31,37 +30,6 @@ from typing import Any
 # =====
 class ConfigError(ValueError):
     pass
-
-
-# =====
-def build_raw_from_options(options: list[str]) -> dict[str, Any]:
-    raw: dict[str, Any] = {}
-    for option in options:
-        key: str
-        (key, value) = (option.split("=", 1) + [None])[:2]  # type: ignore
-        if len(key.strip()) == 0:
-            raise ConfigError(f"Empty option key (required 'key=value' instead of {option!r})")
-        if value is None:
-            raise ConfigError(f"No value for key {key!r}")
-
-        section = raw
-        subs = list(filter(None, map(str.strip, key.split("/"))))
-        for sub in subs[:-1]:
-            section.setdefault(sub, {})
-            section = section[sub]
-        section[subs[-1]] = _parse_value(value)
-    return raw
-
-
-def _parse_value(value: str) -> Any:
-    value = value.strip()
-    if (
-        not value.isdigit()
-        and value not in ["true", "false", "null"]
-        and not value.startswith(("{", "[", "\""))
-    ):
-        value = f"\"{value}\""
-    return json.loads(value)
 
 
 # =====

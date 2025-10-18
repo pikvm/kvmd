@@ -28,11 +28,10 @@ from .server import PstServer
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     config = init(
         prog="kvmd-pst",
         description="The KVMD persistent storage manager",
-        argv=argv,
         check_run=True,
     )[2]
 

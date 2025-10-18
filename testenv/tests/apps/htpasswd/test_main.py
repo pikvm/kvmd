@@ -56,12 +56,15 @@ def _htpasswd_fixture(request) -> Generator[KvmdHtpasswdFile, None, None]:  # ty
 
 
 def _run_htpasswd(cmd: list[str], htpasswd_path: str, int_type: str="htpasswd") -> None:
-    cmd = ["kvmd-htpasswd", *cmd, "--set-options"]
+    params: dict = {}
     if int_type != "htpasswd":  # By default
-        cmd.append("kvmd/auth/internal/type=" + int_type)
+        params["type"] = int_type
     if htpasswd_path:
-        cmd.append("kvmd/auth/internal/file=" + htpasswd_path)
-    main(cmd)
+        params["file"] = htpasswd_path
+    main(
+        test_argv=["kvmd-htpasswd", *cmd],
+        test_override={"kvmd": {"auth": {"internal": params}}},
+    )
 
 
 # =====

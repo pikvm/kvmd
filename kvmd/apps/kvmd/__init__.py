@@ -40,11 +40,10 @@ from .server import KvmdServer
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     config = init(
         prog="kvmd",
         description="The main PiKVM daemon",
-        argv=argv,
         check_run=True,
         load_auth=True,
         load_hid=True,

@@ -190,10 +190,9 @@ class _Service:  # pylint: disable=too-many-instance-attributes
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     (parent_parser, argv, config) = init(
         add_help=False,
-        argv=argv,
     )
     parser = argparse.ArgumentParser(
         prog="kvmd-otgnet",

@@ -46,7 +46,6 @@ from ..yamlconf import manual_validated
 from ..yamlconf import make_config
 from ..yamlconf import Section
 from ..yamlconf import Option
-from ..yamlconf import build_raw_from_options
 from ..yamlconf.loader import load_yaml_file
 from ..yamlconf.merger import yaml_merge
 from ..yamlconf.dumper import dump_yaml
@@ -109,13 +108,14 @@ def init(
     add_help: bool=True,
     check_run: bool=False,
     cli_logging: bool=False,
-    argv: (list[str] | None)=None,
+    test_argv: (list[str] | None)=None,
+    test_override: (dict | None)=None,
     **load: bool,
 ) -> tuple[argparse.ArgumentParser, list[str], Section]:
 
     _init_logging(cli_logging)
 
-    argv = (argv or sys.argv)
+    argv = (test_argv or sys.argv)
     assert len(argv) > 0
 
     parser = argparse.ArgumentParser(
@@ -126,8 +126,6 @@ def init(
     )
     parser.add_argument("-c", "--config", default="/etc/kvmd/main.yaml", type=valid_abs_file,
                         help="Set config file path", metavar="<file>")
-    parser.add_argument("-o", "--set-options", default=[], nargs="+",
-                        help="Override config options list (like sec/sub/opt=value)", metavar="<k=v>",)
     parser.add_argument("-m", "--dump-config", action="store_true",
                         help="View current configuration (include all overrides)")
     parser.add_argument("-M", "--dump-config-changes", action="store_true",
@@ -141,7 +139,7 @@ def init(
         print(dump_yaml(
             data=_init_config(
                 config_path=options.config,
-                override_options=options.set_options,
+                test_override=test_override,
                 load_auth=True,
                 load_hid=True,
                 load_atx=True,
@@ -152,7 +150,7 @@ def init(
             colored=sys.stdout.isatty(),
         ))
         raise SystemExit()
-    config = _init_config(options.config, options.set_options, **load)
+    config = _init_config(options.config, test_override, **load)
 
     if check_run and not options.run:
         raise SystemExit(
@@ -197,7 +195,7 @@ def _init_logging(cli: bool) -> None:
         ))
 
 
-def _init_config(config_path: str, override_options: list[str], **load_flags: bool) -> Section:
+def _init_config(config_path: str, test_override: (dict | None), **load_flags: bool) -> Section:
     config_path = os.path.expanduser(config_path)
     try:
         main: dict = load_yaml_file(config_path)
@@ -209,7 +207,8 @@ def _init_config(config_path: str, override_options: list[str], **load_flags: bo
 
     try:
         override = (main.pop("override", {}) or {})
-        yaml_merge(override, build_raw_from_options(override_options), "raw CLI options")
+        if test_override is not None:
+            yaml_merge(override, copy.deepcopy(test_override))
         _patch_raw(main)
         _patch_raw(override)
     except Exception as ex:

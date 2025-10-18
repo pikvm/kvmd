@@ -34,12 +34,11 @@ from .server import VncServer
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     config = init(
         prog="kvmd-vnc",
         description="VNC to KVMD proxy",
         check_run=True,
-        argv=argv,
     )[2].vnc
 
     user_agent = htclient.make_user_agent("KVMD-VNC")

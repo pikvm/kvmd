@@ -31,12 +31,11 @@ from .server import IpmiServer
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     config = init(
         prog="kvmd-ipmi",
         description="IPMI to KVMD proxy",
         check_run=True,
-        argv=argv,
     )[2].ipmi
 
     IpmiServer(

@@ -399,10 +399,9 @@ def _cmd_stop(config: Section) -> None:
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
+def main() -> None:
     (parent_parser, argv, config) = init(
         add_help=False,
-        argv=argv,
         load_hid=True,
         load_atx=True,
         load_msd=True,

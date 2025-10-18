@@ -101,8 +101,10 @@ def _cmd_cancel(config: Section) -> None:
 
 
 # =====
-def main(argv: (list[str] | None)=None) -> None:
-    (parent_parser, argv, config) = init(add_help=False, argv=argv)
+def main() -> None:
+    (parent_parser, argv, config) = init(
+        add_help=False,
+    )
     parser = argparse.ArgumentParser(
         prog="kvmd-watchdog",
         description="RTC-based hardware watchdog",
