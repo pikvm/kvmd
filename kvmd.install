@@ -120,14 +120,7 @@ EOF
 	fi
 
 	if [[ "$(vercmp "$2" 4.102)" -lt 0 ]]; then
-		if grep -q '^logging: !include logging.yaml' /etc/kvmd/main.yaml; then
-			sed -i -e '/^logging: !include logging.yaml/d' /etc/kvmd/main.yaml
-		else
-			rm -f /etc/kvmd/logging.yaml
-		fi
-		if grep -q '^override:' /etc/kvmd/main.yaml; then
-			sed -i -e '/^override:/d' /etc/kvmd/main.yaml
-		fi
+		rm -f /etc/kvmd/logging.yaml*
 	fi
 
 	# Some update deletes /etc/motd, WTF
