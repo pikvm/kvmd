@@ -73,18 +73,18 @@ def init(
     add_help: bool=True,
     check_run: bool=False,
     cli_logging: bool=False,
-    test_argv: (list[str] | None)=None,
+    test_args: (list[str] | None)=None,
     test_override: (dict | None)=None,
     **load: bool,
 ) -> InitAttrs:
 
     init_logging(cli_logging)
 
-    argv = (test_argv or sys.argv)
-    assert len(argv) > 0
+    prog = (prog or sys.argv[0])
+    args = (test_args or sys.argv[1:])  # Remove app name from sys.argv
 
     parser = argparse.ArgumentParser(
-        prog=(prog or argv[0]),
+        prog=prog,
         description=description,
         add_help=add_help,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -103,8 +103,8 @@ def init(
         parser.add_argument("--run", dest="run", action="store_true",
                             help="Run the service")
 
-    # Remove app name in argv[0], replace argv for child parser
-    (options, argv) = parser.parse_known_args(list(argv[1:]))
+    # Replace args for child parser
+    (options, args) = parser.parse_known_args(list(args))
     config_paths = ConfigPaths(
         main=options.main_config,
         override_dir=options.override_dir,
@@ -140,7 +140,7 @@ def init(
 
     return InitAttrs(
         parser=parser,
-        args=argv,
+        args=list(args),
         config=config,
         paths=ConfigPaths(
             main=options.main_config,

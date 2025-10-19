@@ -134,11 +134,11 @@ def _cmd_delete(config: Section, options: argparse.Namespace) -> None:
 
 
 # =====
-def main(test_argv: (list[str] | None)=None, test_override: (dict | None)=None) -> None:
+def main(test_args: (list[str] | None)=None, test_override: (dict | None)=None) -> None:
     ia = init(
         add_help=False,
         cli_logging=True,
-        test_argv=test_argv,
+        test_args=test_args,
         test_override=test_override,
         load_auth=True,
     )

@@ -62,7 +62,7 @@ def _run_htpasswd(cmd: list[str], htpasswd_path: str, int_type: str="htpasswd") 
     if htpasswd_path:
         params["file"] = htpasswd_path
     main(
-        test_argv=["kvmd-htpasswd", *cmd],
+        test_args=cmd,
         test_override={"kvmd": {"auth": {"internal": params}}},
     )
 
