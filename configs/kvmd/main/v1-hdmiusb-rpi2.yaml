@@ -2,8 +2,6 @@
 # Use override.yaml to modify required settings.
 # You can find a working configuration in /usr/share/kvmd/configs.default/kvmd.
 
-override: !include [override.d, override.yaml]
-
 kvmd:
     auth: !include auth.yaml
 

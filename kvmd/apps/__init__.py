@@ -124,8 +124,12 @@ def init(
         add_help=add_help,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("-c", "--config", default="/etc/kvmd/main.yaml", type=valid_abs_file,
-                        help="Set config file path", metavar="<file>")
+    parser.add_argument("--main-config", default="/etc/kvmd/main.yaml", type=valid_abs_file,
+                        help="Set the main default config", metavar="<file>")
+    parser.add_argument("--override-dir", default="/etc/kvmd/override.d", type=valid_abs_dir,
+                        help="Set the override.d directory", metavar="<dir>")
+    parser.add_argument("--override-config", default="/etc/kvmd/override.yaml", type=valid_abs_file,
+                        help="Set the override config", metavar="<file>")
     parser.add_argument("-m", "--dump-config", action="store_true",
                         help="View current configuration (include all overrides)")
     parser.add_argument("-M", "--dump-config-changes", action="store_true",
@@ -135,22 +139,24 @@ def init(
                             help="Run the service")
     (options, remaining) = parser.parse_known_args(argv)
 
-    if options.dump_config or options.dump_config_changes:
+    dump_only = (options.dump_config or options.dump_config_changes)
+    if dump_only:
+        load = dict.fromkeys(["load_auth", "load_hid", "load_atx", "load_msd", "load_gpio"], True)
+
+    config = _init_config(
+        main_config_path=options.main_config,
+        override_dir_path=options.override_dir,
+        override_config_path=options.override_config,
+        test_override=test_override,
+        **load,
+    )
+    if dump_only:
         print(dump_yaml(
-            data=_init_config(
-                config_path=options.config,
-                test_override=test_override,
-                load_auth=True,
-                load_hid=True,
-                load_atx=True,
-                load_msd=True,
-                load_gpio=True,
-            ),
+            data=config,
             only_changed=options.dump_config_changes,
             colored=sys.stdout.isatty(),
         ))
         raise SystemExit()
-    config = _init_config(options.config, test_override, **load)
 
     if check_run and not options.run:
         raise SystemExit(
@@ -195,24 +201,45 @@ def _init_logging(cli: bool) -> None:
         ))
 
 
-def _init_config(config_path: str, test_override: (dict | None), **load_flags: bool) -> Section:
-    config_path = os.path.expanduser(config_path)
+def _checkload_yaml_file(path: str) -> dict:
     try:
-        main: dict = load_yaml_file(config_path)
+        raw: dict = load_yaml_file(path)
     except Exception as ex:
-        raise SystemExit(f"ConfigError: Can't read config file {config_path!r}:\n{tools.efmt(ex)}")
+        raise SystemExit(f"ConfigError: Can't read config file {path!r}:\n{tools.efmt(ex)}")
+    if raw is None:
+        return {}
+    elif not isinstance(raw, dict):
+        raise SystemExit(f"ConfigError: Top-level of the file {path!r} must be a dictionary")
+    return raw
 
-    if not isinstance(main, dict):
-        raise SystemExit(f"ConfigError: Top-level of the file {config_path!r} must be a dictionary")
 
-    try:
-        override = (main.pop("override", {}) or {})
-        if test_override is not None:
-            yaml_merge(override, copy.deepcopy(test_override))
-        _patch_raw(main)
-        _patch_raw(override)
-    except Exception as ex:
-        raise SystemExit(f"ConfigError: {tools.efmt(ex)}")
+def _init_config(
+    main_config_path: str,
+    override_dir_path: str,
+    override_config_path: str,
+    test_override: (dict | None),
+    **load_flags: bool,
+) -> Section:
+
+    # Stage 1: Top-priority, considered as default
+    main: dict = _checkload_yaml_file(main_config_path)
+
+    # Stage 2: Directory for partial overrides
+    override: dict = {}
+    for name in sorted(os.listdir(override_dir_path)):
+        path = os.path.join(override_dir_path, name)
+        if os.path.isfile(path) or os.path.islink(path):
+            yaml_merge(override, _checkload_yaml_file(path))
+
+    # Stage 3: Manual overrides
+    yaml_merge(override, _checkload_yaml_file(override_config_path))
+
+    # Stage 4: Test overrides
+    if test_override is not None:
+        yaml_merge(override, copy.deepcopy(test_override))
+
+    _patch_raw(main)
+    _patch_raw(override)
 
     scheme = _get_config_scheme()
     try:
