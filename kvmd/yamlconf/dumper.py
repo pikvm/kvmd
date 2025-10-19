@@ -194,8 +194,23 @@ def override_yaml_file(path: str, validator: Callable[[str], None]) -> Generator
     handler = _YamlHandler()
     handler.Representer = _ConfigRepresenter
     with tools.atomic_file_edit(path) as tmp_path:
+        # It seems ruamel.yaml can't keep comments for empty file
+        # without any significant data, se we add an empty dict
+        # to be an "anchor" for our future commits.
+        # FIXME: Is there a good way to handle this?
+        empty = True
+        with open(tmp_path) as file:
+            for line in map(str.strip, file.readline()):
+                if len(line) != 0 and not line.startswith("#"):
+                    empty = False
+                    break
+        if empty:
+            with open(tmp_path, "a") as file:
+                file.write("\n{}")
+
         with open(tmp_path) as file:
             doc = handler.load(file)
+
         try:  # pylint: disable=no-else-raise
             yield doc
         except Exception:  # pylint: disable=try-except-raise
