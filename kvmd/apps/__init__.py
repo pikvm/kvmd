@@ -103,7 +103,8 @@ def init(
         parser.add_argument("--run", dest="run", action="store_true",
                             help="Run the service")
 
-    (options, remaining) = parser.parse_known_args(argv)
+    # Remove app name in argv[0], replace argv for child parser
+    (options, argv) = parser.parse_known_args(list(argv[1:]))
     config_paths = ConfigPaths(
         main=options.main_config,
         override_dir=options.override_dir,
@@ -139,7 +140,7 @@ def init(
 
     return InitAttrs(
         parser=parser,
-        args=remaining[1:],  # Remove app name for child parsers
+        args=argv,
         config=config,
         paths=ConfigPaths(
             main=options.main_config,
