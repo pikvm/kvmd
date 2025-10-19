@@ -200,10 +200,11 @@ def override_yaml_file(path: str, validator: Callable[[str], None]) -> Generator
         # FIXME: Is there a good way to handle this?
         empty = True
         with open(tmp_path) as file:
-            for line in map(str.strip, file.readline()):
-                if len(line) != 0 and not line.startswith("#"):
-                    empty = False
-                    break
+            for line in map(str.strip, file.readlines()):
+                if len(line) == 0 or line.startswith("#"):
+                    continue
+                empty = False
+                break
         if empty:
             with open(tmp_path, "a") as file:
                 file.write("\n{}")
