@@ -31,6 +31,7 @@ import shlex
 
 from typing import Generator
 from typing import TypeVar
+from typing import Any
 
 
 # =====
@@ -59,6 +60,32 @@ def sorted_kvs(dct: dict[_DictKeyT, _DictValueT]) -> list[tuple[_DictKeyT, _Dict
 
 def swapped_kvs(dct: dict[_DictKeyT, _DictValueT]) -> dict[_DictValueT, _DictKeyT]:
     return {value: key for (key, value) in dct.items()}
+
+
+def walk_dict(kvs: Any, *path: str) -> dict:
+    if not isinstance(kvs, dict):
+        raise TypeError("Not a dict on the top level")
+    passed: list[str] = []
+    for key in path:
+        if key not in kvs:
+            return {}
+        kvs = kvs[key]
+        passed.append(key)
+        if not isinstance(kvs, dict):
+            raise TypeError(f"Not a dict on the path: {'/'.join(passed) or '/'}")
+    return kvs
+
+
+def is_dict(kvs: Any, *path: str) -> bool:
+    if not isinstance(kvs, dict):
+        return False
+    for key in path:
+        if key not in kvs:
+            return False
+        kvs = kvs[key]
+        if not isinstance(kvs, dict):
+            return False
+    return True
 
 
 # =====
