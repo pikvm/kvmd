@@ -25,7 +25,6 @@ import os
 import json
 import contextlib
 import dataclasses
-import textwrap
 import argparse
 import time
 
@@ -35,10 +34,12 @@ import pyudev
 import usb.core
 import usb.util
 
+from ... import tools
+
+from ...yamlconf import ConfigError
 from ...yamlconf.dumper import YamlHexInt
 from ...yamlconf.dumper import YamlInlinedItemsList
 from ...yamlconf.dumper import dump_yaml
-from ...yamlconf.dumper import override_yaml_file
 from ...yamlconf.merger import yaml_merge
 
 from ...validators.basic import valid_stripped_string_not_empty
@@ -47,6 +48,7 @@ from ... import usb
 from ... import env
 
 from .. import init
+from .. import override_checked
 
 
 # =====
@@ -278,32 +280,6 @@ def _make_donor_config(donor: _Donor) -> dict:
     return {"otg": config}
 
 
-def _print_otg_tip(path: str) -> None:
-    if sys.stdout.isatty() and sys.stderr.isatty():
-        reset = "\033[39m"
-        gray = f"{reset}\033[30;1m"
-        blue = f"{reset}\033[34m"
-    else:
-        gray = blue = reset = ""
-    print(file=sys.stderr)
-    print(textwrap.dedent(f"""
-        {gray}# Note: The config has been stored in the following path:
-        #    {blue}{path}{gray}
-        # You can also manually edit this file for your needs.
-        # Please note that a {blue}reboot{gray} is required to apply this.{reset}
-    """).strip(), file=sys.stderr)
-
-
-def _import_usb_ids(path: str) -> None:
-    donor = _find_donor()
-    if donor is None:
-        raise SystemExit("Can't find any appropriate USB device connected to PiKVM like keyboard or mouse")
-    _print_donor_info(donor)
-    with override_yaml_file(path) as config:
-        yaml_merge(config, _make_donor_config(donor))
-    _print_otg_tip(path)
-
-
 # =====
 def main() -> None:
     (parent_parser, argv, config) = init(
@@ -327,7 +303,15 @@ def main() -> None:
     options = parser.parse_args(argv[1:])
 
     if options.import_usb_ids:
-        _import_usb_ids(options.override_path)
+        donor = _find_donor()
+        if donor is None:
+            raise SystemExit("Can't find any appropriate USB device connected to PiKVM like keyboard or mouse")
+        _print_donor_info(donor)
+        try:
+            with override_checked(parent_parser.config_paths) as doc:
+                yaml_merge(doc, _make_donor_config(donor))
+        except ConfigError as ex:
+            raise SystemExit("\n" + tools.efmt(ex))
         return
 
     gc = _GadgetControl(

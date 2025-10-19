@@ -23,10 +23,13 @@
 import sys
 import os
 import copy
+import dataclasses
+import contextlib
 import argparse
 import logging
 import logging.config
 
+from typing import Generator
 from typing import Any
 
 from .. import tools
@@ -49,6 +52,7 @@ from ..yamlconf import Option
 from ..yamlconf.loader import load_yaml_file
 from ..yamlconf.merger import yaml_merge
 from ..yamlconf.dumper import dump_yaml
+from ..yamlconf.dumper import override_yaml_file
 
 from ..validators.basic import valid_stripped_string
 from ..validators.basic import valid_stripped_string_not_empty
@@ -102,6 +106,13 @@ from ..validators.hw import valid_otg_ethernet
 
 
 # =====
+@dataclasses.dataclass(frozen=True)
+class ConfigPaths:
+    main: str
+    override_dir: str
+    override: str
+
+
 def init(
     prog: (str | None)=None,
     description: (str | None)=None,
@@ -137,18 +148,24 @@ def init(
     if check_run:
         parser.add_argument("--run", dest="run", action="store_true",
                             help="Run the service")
+
     (options, remaining) = parser.parse_known_args(argv)
+    parser.config_paths = ConfigPaths(
+        main=options.main_config,
+        override_dir=options.override_dir,
+        override=options.override_config,
+    )
+    del options.main_config
+    del options.override_dir
+    del options.override_config
 
     dump_only = (options.dump_config or options.dump_config_changes)
-    if dump_only:
-        load = dict.fromkeys(["load_auth", "load_hid", "load_atx", "load_msd", "load_gpio"], True)
 
     try:
         config = _init_config(
-            main_config_path=options.main_config,
-            override_dir_path=options.override_dir,
-            override_config_path=options.override_config,
+            config_paths=parser.config_paths,
             test_override=test_override,
+            load_all=dump_only,
             **load,
         )
     except ConfigError as ex:
@@ -170,6 +187,26 @@ def init(
         )
 
     return (parser, remaining, config)
+
+
+@contextlib.contextmanager
+def override_checked(config_paths: ConfigPaths) -> Generator[Any]:
+    def validator(path: str) -> None:
+        _init_config(
+            config_paths=ConfigPaths(
+                main=config_paths.main,
+                override_dir=config_paths.override_dir,
+                override=path,
+            ),
+            test_override={},
+            load_all=True,
+        )
+
+    try:
+        with override_yaml_file(config_paths.override, validator) as doc:
+            yield doc
+    except ConfigError as ex:
+        raise ConfigError(f"The resulting override turns invalid and will be discarded:\n{tools.efmt(ex)}")
 
 
 # =====
@@ -218,25 +255,23 @@ def _checkload_yaml_file(path: str) -> dict:
 
 
 def _init_config(
-    main_config_path: str,
-    override_dir_path: str,
-    override_config_path: str,
+    config_paths: ConfigPaths,
     test_override: (dict | None),
-    **load_flags: bool,
+    **load: bool,  # Pass load_all=True to test full configuration
 ) -> Section:
 
     # Stage 1: Top-priority, considered as default
-    main: dict = _checkload_yaml_file(main_config_path)
+    main: dict = _checkload_yaml_file(config_paths.main)
 
     # Stage 2: Directory for partial overrides
     override: dict = {}
-    for name in sorted(os.listdir(override_dir_path)):
-        path = os.path.join(override_dir_path, name)
+    for name in sorted(os.listdir(config_paths.override_dir)):
+        path = os.path.join(config_paths.override_dir, name)
         if os.path.isfile(path) or os.path.islink(path):
             yaml_merge(override, _checkload_yaml_file(path))
 
     # Stage 3: Manual overrides
-    yaml_merge(override, _checkload_yaml_file(override_config_path))
+    yaml_merge(override, _checkload_yaml_file(config_paths.override))
 
     # Stage 4: Test overrides
     if test_override is not None:
@@ -248,7 +283,7 @@ def _init_config(
     scheme = _get_config_scheme()
     try:
         config = make_config(main, override, scheme)
-        if _patch_dynamic(main, override, config, scheme, **load_flags):
+        if _patch_dynamic(main, override, config, scheme, **load):
             config = make_config(main, override, scheme)
         return config
     except UnknownPluginError as ex:
@@ -361,7 +396,11 @@ def _patch_dynamic(  # pylint: disable=too-many-locals
     load_atx: bool=False,
     load_msd: bool=False,
     load_gpio: bool=False,
+    load_all: bool=False,
 ) -> bool:
+
+    if load_all:
+        load_auth = load_hid = load_atx = load_msd = load_gpio = True
 
     rebuild = False
 

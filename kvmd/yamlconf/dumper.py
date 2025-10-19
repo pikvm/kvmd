@@ -24,6 +24,7 @@ import io
 import textwrap
 import contextlib
 
+from typing import Callable
 from typing import Generator
 from typing import Any
 
@@ -189,12 +190,17 @@ def dump_yaml(data: Any, only_changed: bool=False, colored: bool=False) -> str:
 
 
 @contextlib.contextmanager
-def override_yaml_file(path: str) -> Generator[Any]:
+def override_yaml_file(path: str, validator: Callable[[str], None]) -> Generator[Any]:
     handler = _YamlHandler()
     handler.Representer = _ConfigRepresenter
     with tools.atomic_file_edit(path) as tmp_path:
         with open(tmp_path) as file:
             doc = handler.load(file)
-        yield doc
-        with open(tmp_path, "w") as file:
-            file.write(handler.dump_as_string(doc))
+        try:  # pylint: disable=no-else-raise
+            yield doc
+        except Exception:  # pylint: disable=try-except-raise
+            raise
+        else:  # Makes pylint happy
+            with open(tmp_path, "w") as file:
+                file.write(handler.dump_as_string(doc))
+            validator(tmp_path)
