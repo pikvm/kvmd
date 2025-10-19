@@ -143,13 +143,17 @@ def init(
     if dump_only:
         load = dict.fromkeys(["load_auth", "load_hid", "load_atx", "load_msd", "load_gpio"], True)
 
-    config = _init_config(
-        main_config_path=options.main_config,
-        override_dir_path=options.override_dir,
-        override_config_path=options.override_config,
-        test_override=test_override,
-        **load,
-    )
+    try:
+        config = _init_config(
+            main_config_path=options.main_config,
+            override_dir_path=options.override_dir,
+            override_config_path=options.override_config,
+            test_override=test_override,
+            **load,
+        )
+    except ConfigError as ex:
+        raise SystemExit(tools.efmt(ex))
+
     if dump_only:
         print(dump_yaml(
             data=config,
@@ -205,11 +209,11 @@ def _checkload_yaml_file(path: str) -> dict:
     try:
         raw: dict = load_yaml_file(path)
     except Exception as ex:
-        raise SystemExit(f"ConfigError: Can't read config file {path!r}:\n{tools.efmt(ex)}")
+        raise ConfigError(f"Can't read config file {path!r}:\n{tools.efmt(ex)}")
     if raw is None:
         return {}
     elif not isinstance(raw, dict):
-        raise SystemExit(f"ConfigError: Top-level of the file {path!r} must be a dictionary")
+        raise ConfigError(f"Top-level of the file {path!r} must be a dictionary")
     return raw
 
 
@@ -247,8 +251,8 @@ def _init_config(
         if _patch_dynamic(main, override, config, scheme, **load_flags):
             config = make_config(main, override, scheme)
         return config
-    except (ConfigError, UnknownPluginError) as ex:
-        raise SystemExit(f"ConfigError: {ex}")
+    except UnknownPluginError as ex:
+        raise ConfigError(str(ex))  # We don't want to know too much about exception
 
 
 def _walk_dict(kv: Any, *path: str) -> dict:
