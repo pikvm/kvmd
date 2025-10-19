@@ -36,7 +36,7 @@ def main() -> None:
         prog="kvmd-ipmi",
         description="IPMI to KVMD proxy",
         check_run=True,
-    )[2].ipmi
+    ).config.ipmi
 
     IpmiServer(
         auth_manager=IpmiAuthManager(**config.auth._unpack()),

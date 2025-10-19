@@ -191,18 +191,16 @@ class _Service:  # pylint: disable=too-many-instance-attributes
 
 # =====
 def main() -> None:
-    (parent_parser, argv, config) = init(
-        add_help=False,
-    )
+    ia = init(add_help=False)
     parser = argparse.ArgumentParser(
         prog="kvmd-otgnet",
         description="Control KVMD OTG network",
-        parents=[parent_parser],
+        parents=[ia.parser],
     )
     parser.set_defaults(cmd=(lambda *_: parser.print_help()))
     subparsers = parser.add_subparsers()
 
-    service = _Service(config)
+    service = _Service(ia.config)
 
     cmd_start_parser = subparsers.add_parser("start", help="Start OTG network")
     cmd_start_parser.set_defaults(cmd=service.start)
@@ -210,5 +208,5 @@ def main() -> None:
     cmd_stop_parser = subparsers.add_parser("stop", help="Stop OTG network")
     cmd_stop_parser.set_defaults(cmd=service.stop)
 
-    options = parser.parse_args(argv[1:])
+    options = parser.parse_args(ia.args)
     options.cmd()

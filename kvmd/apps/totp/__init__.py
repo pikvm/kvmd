@@ -78,14 +78,14 @@ def _cmd_delete(config: Section, _: argparse.Namespace) -> None:
 
 # =====
 def main() -> None:
-    (parent_parser, argv, config) = init(
+    ia = init(
         add_help=False,
         cli_logging=True,
     )
     parser = argparse.ArgumentParser(
         prog="kvmd-totp",
         description="Manage KVMD TOTP secret",
-        parents=[parent_parser],
+        parents=[ia.parser],
     )
     parser.set_defaults(cmd=(lambda *_: parser.print_help()))
     subparsers = parser.add_subparsers()
@@ -102,5 +102,5 @@ def main() -> None:
     cmd_delete_parser = subparsers.add_parser("del", help="Remove TOTP secret and disable 2FA auth")
     cmd_delete_parser.set_defaults(cmd=_cmd_delete)
 
-    options = parser.parse_args(argv[1:])
-    options.cmd(config, options)
+    options = parser.parse_args(ia.args)
+    options.cmd(ia.config, options)

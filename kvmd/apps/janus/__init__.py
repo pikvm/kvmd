@@ -31,7 +31,7 @@ def main() -> None:
         prog="kvmd-Janus",
         description="Janus WebRTC Gateway Runner",
         check_run=True,
-    )[2].janus
+    ).config.janus
 
     JanusRunner(
         **config.stun._unpack(),

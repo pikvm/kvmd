@@ -35,7 +35,7 @@ def main() -> None:
         prog="kvmd-localhid",
         description=" Local HID to KVMD proxy",
         check_run=True,
-    )[2].localhid
+    ).config.localhid
 
     user_agent = htclient.make_user_agent("KVMD-LocalHID")
 

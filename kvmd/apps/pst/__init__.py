@@ -33,7 +33,7 @@ def main() -> None:
         prog="kvmd-pst",
         description="The KVMD persistent storage manager",
         check_run=True,
-    )[2]
+    ).config
 
     PstServer(
         **config.pst._unpack(ignore="server"),

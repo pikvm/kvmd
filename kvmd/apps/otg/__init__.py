@@ -400,7 +400,7 @@ def _cmd_stop(config: Section) -> None:
 
 # =====
 def main() -> None:
-    (parent_parser, argv, config) = init(
+    ia = init(
         add_help=False,
         load_hid=True,
         load_atx=True,
@@ -409,7 +409,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="kvmd-otg",
         description="Control KVMD OTG device",
-        parents=[parent_parser],
+        parents=[ia.parser],
     )
     parser.set_defaults(cmd=(lambda *_: parser.print_help()))
     subparsers = parser.add_subparsers()
@@ -420,8 +420,8 @@ def main() -> None:
     cmd_stop_parser = subparsers.add_parser("stop", help="Stop OTG")
     cmd_stop_parser.set_defaults(cmd=_cmd_stop)
 
-    options = parser.parse_args(argv[1:])
+    options = parser.parse_args(ia.args)
     try:
-        options.cmd(config)
+        options.cmd(ia.config)
     except ValidatorError as ex:
         raise SystemExit(str(ex))

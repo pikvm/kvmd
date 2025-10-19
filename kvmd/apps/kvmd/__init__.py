@@ -50,7 +50,7 @@ def main() -> None:
         load_atx=True,
         load_msd=True,
         load_gpio=True,
-    )[2]
+    ).config
 
     msd_kwargs = config.kvmd.msd._unpack(ignore=["type"])
     if config.kvmd.msd.type == "otg":

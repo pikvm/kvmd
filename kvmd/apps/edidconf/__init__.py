@@ -90,16 +90,16 @@ def _adopt_out2_ids(dest: Edid) -> None:
 
 # =====
 def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
-    # (parent_parser, argv, _) = init(
+    # ia = init(
     #     add_help=False,
-    #     argv=argv,
+    #     cli_logging=True,
     # )
     parser = argparse.ArgumentParser(
         prog="kvmd-edidconf",
         description="A simple and primitive KVMD EDID editor",
-        # parents=[parent_parser],
+        # parents=[ia.parser],
     )
-    argv = sys.argv
+    args = sys.argv[1:]  # ia.args
 
     lane2 = ["v0", "v1", "v2", "v3"]
     lane4 = ["v4mini", "v4plus"]
@@ -139,7 +139,7 @@ def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
                         help="The video device", metavar="<device>")
     parser.add_argument("--presets", dest="presets_path", default="/usr/share/kvmd/configs.default/kvmd/edid",
                         help="Presets directory", metavar="<dir>")
-    options = parser.parse_args(argv[1:])
+    options = parser.parse_args(args)
 
     base: (Edid | None) = None
     if options.import_preset:

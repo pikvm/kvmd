@@ -54,7 +54,7 @@ def _set_param(gadget: str, instance: int, param: str, value: str) -> None:
 
 # =====
 def main() -> None:
-    (parent_parser, argv, config) = init(
+    ia = init(
         add_help=False,
         cli_logging=True,
         load_msd=True,
@@ -62,7 +62,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="kvmd-otgmsd",
         description="KVMD OTG-MSD low-level hand tool",
-        parents=[parent_parser],
+        parents=[ia.parser],
     )
     parser.add_argument("-i", "--instance", default=0, type=valid_int_f0,
                         metavar="<N>", help="Drive instance (0 for KVMD drive)")
@@ -76,14 +76,14 @@ def main() -> None:
                         help="Eject the image")
     parser.add_argument("--unlock", action="store_true",
                         help="Does nothing, just for backward compatibility")
-    options = parser.parse_args(argv[1:])
+    options = parser.parse_args(ia.args)
 
-    if config.kvmd.msd.type != "otg":
+    if ia.config.kvmd.msd.type != "otg":
         raise SystemExit(f"Error: KVMD MSD not using 'otg'"
-                         f" (now configured {config.kvmd.msd.type!r})")
+                         f" (now configured {ia.config.kvmd.msd.type!r})")
 
-    set_param = (lambda param, value: _set_param(config.otg.gadget, options.instance, param, value))
-    get_param = (lambda param: _get_param(config.otg.gadget, options.instance, param))
+    set_param = (lambda param, value: _set_param(ia.config.otg.gadget, options.instance, param, value))
+    get_param = (lambda param: _get_param(ia.config.otg.gadget, options.instance, param))
 
     if options.eject:
         set_param("forced_eject", "")

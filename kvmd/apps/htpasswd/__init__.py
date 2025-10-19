@@ -135,7 +135,7 @@ def _cmd_delete(config: Section, options: argparse.Namespace) -> None:
 
 # =====
 def main(test_argv: (list[str] | None)=None, test_override: (dict | None)=None) -> None:
-    (parent_parser, argv, config) = init(
+    ia = init(
         add_help=False,
         cli_logging=True,
         test_argv=test_argv,
@@ -145,7 +145,7 @@ def main(test_argv: (list[str] | None)=None, test_override: (dict | None)=None) 
     parser = argparse.ArgumentParser(
         prog="kvmd-htpasswd",
         description="Manage KVMD users (htpasswd auth only)",
-        parents=[parent_parser],
+        parents=[ia.parser],
     )
     parser.set_defaults(cmd=(lambda *_: parser.print_help()))
     subparsers = parser.add_subparsers()
@@ -170,8 +170,8 @@ def main(test_argv: (list[str] | None)=None, test_override: (dict | None)=None) 
     sub.add_argument("-q", "--quiet", action="store_true", help="Don't show invalidation note")
     sub.set_defaults(cmd=_cmd_delete)
 
-    options = parser.parse_args(argv[1:])
+    options = parser.parse_args(ia.args)
     try:
-        options.cmd(config, options)
+        options.cmd(ia.config, options)
     except ValidatorError as ex:
         raise SystemExit(str(ex))

@@ -39,7 +39,7 @@ def main() -> None:
         prog="kvmd-vnc",
         description="VNC to KVMD proxy",
         check_run=True,
-    )[2].vnc
+    ).config.vnc
 
     user_agent = htclient.make_user_agent("KVMD-VNC")
 

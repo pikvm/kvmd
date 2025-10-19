@@ -34,7 +34,7 @@ def main() -> None:
         prog="kvmd-media",
         description="The media proxy",
         check_run=True,
-    )[2].media
+    ).config.media
 
     def make_streamer(name: str, fmt: int) -> (MemsinkStreamerClient | None):
         if getattr(config.memsink, name).sink:

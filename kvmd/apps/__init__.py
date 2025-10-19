@@ -54,9 +54,17 @@ from ._scheme import patch_raw
 # =====
 @dataclasses.dataclass(frozen=True)
 class ConfigPaths:
-    main: str
+    main:         str
     override_dir: str
-    override: str
+    override:     str
+
+
+@dataclasses.dataclass(frozen=True)
+class InitAttrs:
+    parser: argparse.ArgumentParser
+    args:   list[str]
+    config: Section
+    paths:  ConfigPaths
 
 
 def init(
@@ -68,7 +76,7 @@ def init(
     test_argv: (list[str] | None)=None,
     test_override: (dict | None)=None,
     **load: bool,
-) -> tuple[argparse.ArgumentParser, list[str], Section]:
+) -> InitAttrs:
 
     init_logging(cli_logging)
 
@@ -96,20 +104,17 @@ def init(
                             help="Run the service")
 
     (options, remaining) = parser.parse_known_args(argv)
-    parser.config_paths = ConfigPaths(
+    config_paths = ConfigPaths(
         main=options.main_config,
         override_dir=options.override_dir,
         override=options.override_config,
     )
-    del options.main_config
-    del options.override_dir
-    del options.override_config
 
     dump_only = (options.dump_config or options.dump_config_changes)
 
     try:
         config = _init_config(
-            config_paths=parser.config_paths,
+            config_paths=config_paths,
             test_override=test_override,
             load_all=dump_only,
             **load,
@@ -132,7 +137,16 @@ def init(
             "Make sure you understand exactly what you are doing!"
         )
 
-    return (parser, remaining, config)
+    return InitAttrs(
+        parser=parser,
+        args=remaining[1:],  # Remove app name for child parsers
+        config=config,
+        paths=ConfigPaths(
+            main=options.main_config,
+            override_dir=options.override_dir,
+            override=options.override_config,
+        ),
+    )
 
 
 @contextlib.contextmanager
