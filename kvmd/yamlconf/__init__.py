@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import enum
 import contextlib
 
 from typing import Generator
@@ -33,44 +34,15 @@ class ConfigError(ValueError):
 
 
 # =====
-class Section(dict):
-    def __init__(self) -> None:
-        dict.__init__(self)
-        self.__options: dict[str, "Option"] = {}
-
-    def _unpack(self, ignore: (list[str] | None)=None) -> dict[str, Any]:
-        if ignore is None:
-            ignore = []
-        unpacked: dict[str, Any] = {}
-        for (key, value) in self.items():
-            if key not in ignore:
-                if isinstance(value, Section):
-                    unpacked[key] = value._unpack()
-                else:  # Option
-                    unpacked[self._get_unpack_as(key)] = value  # pylint: disable=protected-access
-        return unpacked
-
-    def _set_option(self, key: str, option: "Option") -> None:
-        self.__options[key] = option
-
-    def _get_default(self, key: str) -> Any:
-        return self.__options[key].default
-
-    def _get_unpack_as(self, key: str) -> str:
-        return (self.__options[key].unpack_as or key)
-
-    def _get_hint(self, key: str) -> str:
-        return self.__options[key].hint
-
-    def __getattribute__(self, key: str) -> Any:
-        if key in self:
-            return self[key]
-        else:  # For pickling
-            return dict.__getattribute__(self, key)
-
-
 class Stub:
     pass
+
+
+class Hint(enum.Enum):
+    NONE = ""
+    HEX  = "hex"
+    OCT  = "oct"
+    INLINED_ITEMS = "inlined_items"
 
 
 class Option:
@@ -83,7 +55,7 @@ class Option:
         if_none: Any=Stub,
         if_empty: Any=Stub,
         unpack_as: str="",
-        hint: str="",
+        hint: Hint=Hint.NONE,
     ) -> None:
 
         self.default = default
@@ -98,6 +70,41 @@ class Option:
             f"<Option(default={self.default}, type={self.type}, if_none={self.if_none},"
             f" if_empty={self.if_empty}, unpack_as={self.unpack_as}, hint={self.hint})>"
         )
+
+
+class Section(dict):
+    def __init__(self) -> None:
+        dict.__init__(self)
+        self.__options: dict[str, Option] = {}
+
+    def _unpack(self, ignore: (list[str] | None)=None) -> dict[str, Any]:
+        if ignore is None:
+            ignore = []
+        unpacked: dict[str, Any] = {}
+        for (key, value) in self.items():
+            if key not in ignore:
+                if isinstance(value, Section):
+                    unpacked[key] = value._unpack()
+                else:  # Option
+                    unpacked[self._get_unpack_as(key)] = value  # pylint: disable=protected-access
+        return unpacked
+
+    def _set_option(self, key: str, option: Option) -> None:
+        self.__options[key] = option
+
+    def _get_default(self, key: str) -> Any:
+        return self.__options[key].default
+
+    def _get_unpack_as(self, key: str) -> str:
+        return (self.__options[key].unpack_as or key)
+
+    def _get_hint(self, key: str) -> Hint:
+        return self.__options[key].hint
+
+    def __getattribute__(self, key: str) -> Any:
+        if key in self:
+            return self[key]
+        return dict.__getattribute__(self, key)  # For pickling
 
 
 # =====

@@ -34,8 +34,9 @@ from ..plugins.ugpio import UserGpioModes
 from ..plugins.ugpio import BaseUserGpioDriver
 from ..plugins.ugpio import get_ugpio_driver_class
 
-from ..yamlconf import Section
+from ..yamlconf import Hint
 from ..yamlconf import Option
+from ..yamlconf import Section
 from ..yamlconf import manual_validated
 from ..yamlconf.merger import yaml_merge
 
@@ -268,7 +269,7 @@ def make_config_scheme() -> dict:
             "server": {
                 "unix":              Option("/run/kvmd/kvmd.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "unix_rm":           Option(True,  type=valid_bool),
-                "unix_mode":         Option(0o660, type=valid_unix_mode, hint="oct"),
+                "unix_mode":         Option(0o660, type=valid_unix_mode, hint=Hint.OCT),
                 "heartbeat":         Option(15.0,  type=valid_float_f01),
                 "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
@@ -424,7 +425,7 @@ def make_config_scheme() -> dict:
                     "header": {
                         "title": Option("GPIO", type=valid_ugpio_view_title),
                     },
-                    "table": Option([], type=valid_ugpio_view_table, hint="inlined_items"),
+                    "table": Option([], type=valid_ugpio_view_table, hint=Hint.INLINED_ITEMS),
                 },
             },
 
@@ -439,7 +440,7 @@ def make_config_scheme() -> dict:
             "server": {
                 "unix":              Option("/run/kvmd/media.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "unix_rm":           Option(True,  type=valid_bool),
-                "unix_mode":         Option(0o660, type=valid_unix_mode, hint="oct"),
+                "unix_mode":         Option(0o660, type=valid_unix_mode, hint=Hint.OCT),
                 "heartbeat":         Option(15.0,  type=valid_float_f01),
                 "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
@@ -465,7 +466,7 @@ def make_config_scheme() -> dict:
             "server": {
                 "unix":              Option("/run/kvmd/pst.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "unix_rm":           Option(True,  type=valid_bool),
-                "unix_mode":         Option(0o660, type=valid_unix_mode, hint="oct"),
+                "unix_mode":         Option(0o660, type=valid_unix_mode, hint=Hint.OCT),
                 "heartbeat":         Option(15.0,  type=valid_float_f01),
                 "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
@@ -481,14 +482,14 @@ def make_config_scheme() -> dict:
         },
 
         "otg": {
-            "vendor_id":      Option(0x1D6B, type=valid_otg_id, hint="hex"),  # Linux Foundation
-            "product_id":     Option(0x0104, type=valid_otg_id, hint="hex"),  # Multifunction Composite Gadget
+            "vendor_id":      Option(0x1D6B, type=valid_otg_id, hint=Hint.HEX),  # Linux Foundation
+            "product_id":     Option(0x0104, type=valid_otg_id, hint=Hint.HEX),  # Multifunction Composite Gadget
             "manufacturer":   Option("PiKVM", type=valid_stripped_string),
             "product":        Option("PiKVM Composite Device", type=valid_stripped_string),
             "serial":         Option("CAFEBABE", type=valid_stripped_string, if_none=None),
             "config":         Option(None,   type=valid_stripped_string, if_none=None),
-            "device_version": Option(-1,     type=valid_number.mk(min=-1, max=0xFFFF), hint="hex"),
-            "usb_version":    Option(0x0200, type=valid_otg_id, hint="hex"),
+            "device_version": Option(-1,     type=valid_number.mk(min=-1, max=0xFFFF), hint=Hint.HEX),
+            "usb_version":    Option(0x0200, type=valid_otg_id, hint=Hint.HEX),
             "max_power":      Option(250,    type=valid_number.mk(min=50, max=500)),
             "remote_wakeup":  Option(True,   type=valid_bool),
 

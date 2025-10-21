@@ -35,8 +35,8 @@ from .. import tools
 from ..plugins import UnknownPluginError
 
 from ..yamlconf import ConfigError
-from ..yamlconf import make_config
 from ..yamlconf import Section
+from ..yamlconf import make_config
 from ..yamlconf.loader import load_yaml_file
 from ..yamlconf.merger import yaml_merge
 from ..yamlconf.dumper import dump_yaml

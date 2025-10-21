@@ -43,6 +43,7 @@ import pygments.formatters
 from .. import tools
 
 from . import ConfigError
+from . import Hint
 from . import Section
 
 
@@ -140,17 +141,17 @@ class _ConfigRepresenter(_SimpleRepresenter):
         self.__depth -= 1
         return node
 
-    def __get_hinted(self, value: Any, hint: str) -> Any:
+    def __get_hinted(self, value: Any, hint: Hint) -> Any:
         match hint:
-            case "hex" if isinstance(value, int):
+            case Hint.HEX if isinstance(value, int):
                 return YamlHexInt(value)
-            case "oct" if isinstance(value, int):
+            case Hint.OCT if isinstance(value, int):
                 return YamlOctInt(value)
-            case "inlined_items" if isinstance(value, list):
+            case Hint.INLINED_ITEMS if isinstance(value, list):
                 return YamlInlinedItemsList(value)
         return value
 
-    def __make_comment(self, default: Any, hint: str) -> str:
+    def __make_comment(self, default: Any, hint: Hint) -> str:
         text = self.__handler.dump_as_string(self.__get_hinted(default, hint))
         text = text.rstrip()
         if text.endswith("\n..."):
