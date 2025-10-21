@@ -42,6 +42,7 @@ import pygments.formatters
 
 from .. import tools
 
+from . import ConfigError
 from . import Section
 
 
@@ -194,23 +195,17 @@ def override_yaml_file(path: str, validator: Callable[[str], None]) -> Generator
     handler = _YamlHandler()
     handler.Representer = _ConfigRepresenter
     with tools.atomic_file_edit(path) as tmp_path:
-        # It seems ruamel.yaml can't keep comments for empty file
-        # without any significant data, se we add an empty dict
-        # to be an "anchor" for our future commits.
-        # FIXME: Is there a good way to handle this?
-        empty = True
+        # ruamel.yaml can't keep comments for an empty file
+        # but there is a trick: we can create a new CommentedMap()
+        # and assign the entire file content to it as comment.
         with open(tmp_path) as file:
-            for line in map(str.strip, file.readlines()):
-                if len(line) == 0 or line.startswith("#"):
-                    continue
-                empty = False
-                break
-        if empty:
-            with open(tmp_path, "a") as file:
-                file.write("\n{}")
-
-        with open(tmp_path) as file:
-            doc = handler.load(file)
+            content = file.read()
+            doc = handler.load(content)
+            if doc is None:
+                doc = CommentedMap()
+                doc.yaml_set_start_comment(content)
+            elif not isinstance(doc, dict):
+                raise ConfigError(f"The root in {path!r} should be a dictionary")
 
         try:  # pylint: disable=no-else-raise
             yield doc
@@ -218,5 +213,5 @@ def override_yaml_file(path: str, validator: Callable[[str], None]) -> Generator
             raise
         else:  # Makes pylint happy
             with open(tmp_path, "w") as file:
-                file.write(handler.dump_as_string(doc))
+                handler.dump(doc)
             validator(tmp_path)
