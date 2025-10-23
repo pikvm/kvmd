@@ -24,6 +24,7 @@ import base64
 
 from aiohttp.web import Request
 from aiohttp.web import Response
+from aiohttp.web import HTTPFound
 
 from ....htserver import UnauthorizedError
 from ....htserver import ForbiddenError
@@ -37,6 +38,7 @@ from ....validators.auth import valid_user
 from ....validators.auth import valid_passwd
 from ....validators.auth import valid_expire
 from ....validators.auth import valid_auth_token
+from ....validators.auth import valid_login_redirect
 
 from ..auth import AuthManager
 
@@ -114,13 +116,18 @@ class AuthApi:
     @exposed_http("POST", "/auth/login", auth_required=False, allow_usc=False)
     async def __login_handler(self, req: Request) -> Response:
         if self.__auth_manager.is_auth_enabled():
-            credentials = await req.post()
+            params = await req.post()
+            redirect = valid_login_redirect(params.get("redirect", ""))
             token = await self.__auth_manager.login(
-                user=valid_user(credentials.get("user", "")),
-                passwd=valid_passwd(credentials.get("passwd", "")),
-                expire=valid_expire(credentials.get("expire", "0")),
+                user=valid_user(params.get("user", "")),
+                passwd=valid_passwd(params.get("passwd", "")),
+                expire=valid_expire(params.get("expire", "0")),
             )
             if token:
+                if redirect:
+                    ex = HTTPFound(location=redirect)
+                    ex.set_cookie(_COOKIE_AUTH_TOKEN, token)
+                    raise ex
                 return make_json_response(set_cookies={_COOKIE_AUTH_TOKEN: token})
             raise ForbiddenError()
         return make_json_response()

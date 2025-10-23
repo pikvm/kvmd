@@ -27,6 +27,7 @@ from .basic import valid_number
 
 from . import add_validator_magic
 from . import check_re_match
+from . import check_string_in_list
 
 
 # =====
@@ -53,3 +54,8 @@ def valid_expire(arg: Any) -> int:
 @add_validator_magic
 def valid_auth_token(arg: Any) -> str:
     return check_re_match(arg, "auth token", r"^[0-9a-f]{64}$", hide=True)
+
+
+@add_validator_magic
+def valid_login_redirect(arg: Any) -> str:
+    return check_string_in_list(arg, "login redirect", ["", "/", "/kvm", "/kvm/"])

@@ -30,6 +30,7 @@ from kvmd.validators.auth import valid_users_list
 from kvmd.validators.auth import valid_passwd
 from kvmd.validators.auth import valid_expire
 from kvmd.validators.auth import valid_auth_token
+from kvmd.validators.auth import valid_login_redirect
 
 
 # =====
@@ -143,3 +144,33 @@ def test_ok__valid_auth_token(arg: Any) -> None:
 def test_fail__valid_auth_token(arg: Any) -> None:
     with pytest.raises(ValidatorError):
         print(valid_auth_token(arg))
+
+
+# =====
+@pytest.mark.parametrize("arg", [
+    "",
+    "/",
+    "/kvm",
+    "/kvm/",
+    "/ ",
+])
+def test_ok__valid_login_redirect(arg: Any) -> None:
+    assert valid_login_redirect(arg) == arg.strip()
+
+
+@pytest.mark.parametrize("arg", [
+    "/test",
+    "test",
+    "kvm/"
+    "kvm//"
+    "//kvm",
+    "//kvm//",
+    "kvm",
+    "//",
+    "..",
+    "http://google.com",
+    None,
+])
+def test_fail__valid_login_redirect(arg: Any) -> None:
+    with pytest.raises(ValidatorError):
+        print(valid_login_redirect(arg))
