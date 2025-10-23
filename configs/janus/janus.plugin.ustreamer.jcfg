@@ -7,5 +7,4 @@ acap: {
 }
 aplay: {
 	device = "plughw:UAC2Gadget,0"
-	check = "/run/kvmd/otg/uac2.usb0@meta.json"
 }
