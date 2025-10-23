@@ -42,6 +42,7 @@ from ..yamlconf.merger import yaml_merge
 from ..yamlconf.dumper import dump_yaml
 from ..yamlconf.dumper import override_yaml_file
 
+from ..validators.os import valid_abs_path
 from ..validators.os import valid_abs_file
 from ..validators.os import valid_abs_dir
 
@@ -55,6 +56,7 @@ from ._scheme import patch_raw
 @dataclasses.dataclass(frozen=True)
 class ConfigPaths:
     main:         str
+    legacy_auth:  str
     override_dir: str
     override:     str
 
@@ -89,8 +91,10 @@ def init(
         add_help=add_help,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--main-config", default="/etc/kvmd/main.yaml", type=valid_abs_file,
+    parser.add_argument("--main-config", default="/usr/lib/kvmd/main.yaml", type=valid_abs_file,
                         help="Set the main default config", metavar="<file>")
+    parser.add_argument("--legacy-auth-config", default="/etc/kvmd/auth.yaml", type=valid_abs_path,
+                        help="Set the auth config, which is applied before override (don't use it)")
     parser.add_argument("--override-dir", default="/etc/kvmd/override.d", type=valid_abs_dir,
                         help="Set the override.d directory", metavar="<dir>")
     parser.add_argument("--override-config", default="/etc/kvmd/override.yaml", type=valid_abs_file,
@@ -107,6 +111,7 @@ def init(
     (options, args) = parser.parse_known_args(list(args))
     config_paths = ConfigPaths(
         main=options.main_config,
+        legacy_auth=options.legacy_auth_config,
         override_dir=options.override_dir,
         override=options.override_config,
     )
@@ -142,11 +147,7 @@ def init(
         parser=parser,
         args=list(args),
         config=config,
-        paths=ConfigPaths(
-            main=options.main_config,
-            override_dir=options.override_dir,
-            override=options.override_config,
-        ),
+        paths=config_paths,
     )
 
 
@@ -156,6 +157,7 @@ def override_checked(config_paths: ConfigPaths) -> Generator[Any]:
         _init_config(
             config_paths=ConfigPaths(
                 main=config_paths.main,
+                legacy_auth=config_paths.legacy_auth,
                 override_dir=config_paths.override_dir,
                 override=path,
             ),
@@ -191,9 +193,13 @@ def _init_config(
 
     # Stage 1: Top-priority, considered as default
     main: dict = _checkload_yaml_file(config_paths.main)
+    override: dict = {}
+
+    # Stage 1.5: Legacy auth.yaml config, it shouln't be used anymore
+    if os.path.isfile(config_paths.legacy_auth) or os.path.islink(config_paths.legacy_auth):
+        yaml_merge(override, {"kvmd": {"auth": _checkload_yaml_file(config_paths.legacy_auth)}})
 
     # Stage 2: Directory for partial overrides
-    override: dict = {}
     for name in sorted(os.listdir(config_paths.override_dir)):
         path = os.path.join(config_paths.override_dir, name)
         if os.path.isfile(path) or os.path.islink(path):

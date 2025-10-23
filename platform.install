@@ -1,0 +1,29 @@
+# shellcheck disable=SC2148
+
+# arg 1: the new package version
+post_install() {
+	post_upgrade "$1" ""
+}
+
+# arg 1: the new package version
+# arg 2: the old package version
+post_upgrade() {
+	echo "==> Patching platform ..."
+
+	if [[ "$(vercmp "$2" 4.106)" -lt 0 ]]; then
+		# Keep local modifications of etc configs
+		for i in \
+			/etc/sysctl.d/99-kvmd.conf \
+			/etc/udev/rules.d/99-kvmd.rules \
+			/etc/modules-load.d/kvmd.conf \
+			/etc/kvmd/auth.yaml \
+		; do
+			if [ -e "$i".pacsave ]; then
+				mv "$i".pacsave "$i"
+			fi
+		done
+		rm -f \
+			/etc/kvmd/main.yaml.pacnew \
+			/etc/kvmd/auth.yaml.pacnew
+	fi
+}

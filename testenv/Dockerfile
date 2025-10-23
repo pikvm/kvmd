@@ -116,6 +116,7 @@ RUN mkdir -p \
 		/etc/kvmd/{nginx,vnc} \
 		/var/lib/kvmd/msd \
 		/var/lib/kvmd/pst/data \
+		/usr/lib/kvmd \
 		/opt/vc/bin
 
 COPY testenv/fakes/vcgencmd /usr/bin/

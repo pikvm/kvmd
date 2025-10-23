@@ -51,7 +51,7 @@ fi
 source <(dos2unix < /boot/pikvm.txt)
 
 # shellcheck disable=SC1091
-source /usr/share/kvmd/platform || true
+source /usr/lib/kvmd/platform || true
 
 rw
 

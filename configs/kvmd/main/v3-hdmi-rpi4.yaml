@@ -3,8 +3,6 @@
 # You can find a working configuration in /usr/share/kvmd/configs.default/kvmd.
 
 kvmd:
-    auth: !include auth.yaml
-
     info:
         fan:
             unix: /run/kvmd/fan.sock
