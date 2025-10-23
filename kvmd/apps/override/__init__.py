@@ -91,7 +91,7 @@ def main() -> None:
     except ConfigError as ex:
         raise SystemExit(tools.efmt(ex))
     try:
-        with override_checked(ia.paths) as doc:
+        with override_checked(ia.cps) as doc:
             yaml_merge(doc, raw)
     except ConfigError as ex:
         raise SystemExit(tools.efmt(ex))

@@ -308,7 +308,7 @@ def main() -> None:
             raise SystemExit("Can't find any appropriate USB device connected to PiKVM like keyboard or mouse")
         _print_donor_info(donor)
         try:
-            with override_checked(ia.paths) as doc:
+            with override_checked(ia.cps) as doc:
                 yaml_merge(doc, _make_donor_config(donor))
         except ConfigError as ex:
             raise SystemExit("\n" + tools.efmt(ex))

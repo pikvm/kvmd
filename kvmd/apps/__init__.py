@@ -66,7 +66,7 @@ class InitAttrs:
     parser: argparse.ArgumentParser
     args:   list[str]
     config: Section
-    paths:  ConfigPaths
+    cps:    ConfigPaths
 
 
 def init(
@@ -94,7 +94,7 @@ def init(
     parser.add_argument("--main-config", default="/usr/lib/kvmd/main.yaml", type=valid_abs_file,
                         help="Set the main default config", metavar="<file>")
     parser.add_argument("--legacy-auth-config", default="/etc/kvmd/auth.yaml", type=valid_abs_path,
-                        help="Set the auth config, which is applied before override (don't use it)")
+                        help="Set the auth config, which is applied before override (don't use it)", metavar="<file>")
     parser.add_argument("--override-dir", default="/etc/kvmd/override.d", type=valid_abs_dir,
                         help="Set the override.d directory", metavar="<dir>")
     parser.add_argument("--override-config", default="/etc/kvmd/override.yaml", type=valid_abs_file,
@@ -109,7 +109,7 @@ def init(
 
     # Replace args for child parser
     (options, args) = parser.parse_known_args(list(args))
-    config_paths = ConfigPaths(
+    cps = ConfigPaths(
         main=options.main_config,
         legacy_auth=options.legacy_auth_config,
         override_dir=options.override_dir,
@@ -120,7 +120,7 @@ def init(
 
     try:
         config = _init_config(
-            config_paths=config_paths,
+            cps=cps,
             test_override=test_override,
             load_all=dump_only,
             **load,
@@ -147,18 +147,18 @@ def init(
         parser=parser,
         args=list(args),
         config=config,
-        paths=config_paths,
+        cps=cps,
     )
 
 
 @contextlib.contextmanager
-def override_checked(config_paths: ConfigPaths) -> Generator[Any]:
+def override_checked(cps: ConfigPaths) -> Generator[Any]:
     def validator(path: str) -> None:
         _init_config(
-            config_paths=ConfigPaths(
-                main=config_paths.main,
-                legacy_auth=config_paths.legacy_auth,
-                override_dir=config_paths.override_dir,
+            cps=ConfigPaths(
+                main=cps.main,
+                legacy_auth=cps.legacy_auth,
+                override_dir=cps.override_dir,
                 override=path,
             ),
             test_override={},
@@ -166,7 +166,7 @@ def override_checked(config_paths: ConfigPaths) -> Generator[Any]:
         )
 
     try:
-        with override_yaml_file(config_paths.override, validator) as doc:
+        with override_yaml_file(cps.override, validator) as doc:
             yield doc
     except ConfigError as ex:
         raise ConfigError(f"The resulting override turns invalid and will be discarded:\n{tools.efmt(ex)}")
@@ -186,27 +186,27 @@ def _checkload_yaml_file(path: str) -> dict:
 
 
 def _init_config(
-    config_paths: ConfigPaths,
+    cps: ConfigPaths,
     test_override: (dict | None),
     **load: bool,  # Pass load_all=True to test full configuration
 ) -> Section:
 
     # Stage 1: Top-priority, considered as default
-    main: dict = _checkload_yaml_file(config_paths.main)
+    main: dict = _checkload_yaml_file(cps.main)
     override: dict = {}
 
     # Stage 1.5: Legacy auth.yaml config, it shouln't be used anymore
-    if os.path.isfile(config_paths.legacy_auth) or os.path.islink(config_paths.legacy_auth):
-        yaml_merge(override, {"kvmd": {"auth": _checkload_yaml_file(config_paths.legacy_auth)}})
+    if os.path.isfile(cps.legacy_auth) or os.path.islink(cps.legacy_auth):
+        yaml_merge(override, {"kvmd": {"auth": _checkload_yaml_file(cps.legacy_auth)}})
 
     # Stage 2: Directory for partial overrides
-    for name in sorted(os.listdir(config_paths.override_dir)):
-        path = os.path.join(config_paths.override_dir, name)
+    for name in sorted(os.listdir(cps.override_dir)):
+        path = os.path.join(cps.override_dir, name)
         if os.path.isfile(path) or os.path.islink(path):
             yaml_merge(override, _checkload_yaml_file(path))
 
     # Stage 3: Manual overrides
-    yaml_merge(override, _checkload_yaml_file(config_paths.override))
+    yaml_merge(override, _checkload_yaml_file(cps.override))
 
     # Stage 4: Test overrides
     if test_override is not None:
