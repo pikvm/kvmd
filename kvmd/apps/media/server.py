@@ -24,6 +24,7 @@ import asyncio
 import dataclasses
 
 from aiohttp.web import Request
+from aiohttp.web import Response
 from aiohttp.web import WebSocketResponse
 
 from ...logging import get_logger
@@ -33,6 +34,7 @@ from ... import aiotools
 
 from ...htserver import exposed_http
 from ...htserver import exposed_ws
+from ...htserver import make_json_response
 from ...htserver import WsSession
 from ...htserver import HttpServer
 
@@ -41,12 +43,13 @@ from ...clients.streamer import StreamerPermError
 from ...clients.streamer import StreamerFormats
 from ...clients.streamer import BaseStreamerClient
 
+from ...validators import ValidatorError
+from ...validators.basic import valid_stripped_string
+
 
 # =====
 @dataclasses.dataclass
 class _Source:
-    type:         str
-    fmt:          str
     streamer:     BaseStreamerClient
     meta:         dict = dataclasses.field(default_factory=dict)
     clients:      dict[WsSession, "_Client"] = dataclasses.field(default_factory=dict)
@@ -65,7 +68,9 @@ class _Client:
 
 
 class MediaServer(HttpServer):
-    __K_VIDEO = "video"
+    __EV_MEDIA = "media"
+
+    __T_VIDEO = "video"
 
     __F_H264 = "h264"
     __F_JPEG = "jpeg"
@@ -80,61 +85,83 @@ class MediaServer(HttpServer):
 
         super().__init__()
 
-        self.__srcs: list[_Source] = []
+        self.__media: dict[str, dict[str, _Source]] = {self.__T_VIDEO: {}}
         if h264_streamer:
-            self.__srcs.append(_Source(self.__K_VIDEO, self.__F_H264, h264_streamer, {"profile_level_id": "42E01F"}))
+            self.__media[self.__T_VIDEO][self.__F_H264] = _Source(h264_streamer, {"profile_level_id": "42E01F"})
         if jpeg_streamer:
-            self.__srcs.append(_Source(self.__K_VIDEO, self.__F_JPEG, jpeg_streamer))
+            self.__media[self.__T_VIDEO][self.__F_JPEG] = _Source(jpeg_streamer)
 
     # =====
 
+    @exposed_http("GET", "/")
+    async def __state_handler(self, _: Request) -> Response:
+        return make_json_response({
+            self.__EV_MEDIA: self.__get_media_info(),
+        })
+
     @exposed_http("GET", "/ws")
     async def __ws_handler(self, req: Request) -> WebSocketResponse:
-        async with self._ws_session(req) as ws:
-            media: dict = {self.__K_VIDEO: {}}
-            for src in self.__srcs:
-                media[src.type][src.fmt] = src.meta
-            await ws.send_event("media", media)
+        v_fmt = valid_stripped_string(req.query.get(self.__T_VIDEO, ""))
+        if v_fmt not in ["", *self.__media[self.__T_VIDEO]]:
+            raise ValidatorError("Unsupported video type")
+
+        async with self._ws_session(req, pure=bool(v_fmt)) as ws:
+            if v_fmt:  # Pure request for simplified API without any info
+                if not self.__start_stream(ws, self.__T_VIDEO, v_fmt):
+                    raise RuntimeError("We shouldn't be here")
+            else:
+                await ws.send_event(self.__EV_MEDIA, self.__get_media_info())
             return (await self._ws_loop(ws))
 
     @exposed_ws(0)
     async def __ws_bin_ping_handler(self, ws: WsSession, _: bytes) -> None:
-        await ws.send_bin(255, b"")  # Ping-pong
+        if not ws.kwargs["pure"]:  # Don't spoil pure data
+            await ws.send_bin(255, b"")  # Ping-pong
 
     @exposed_ws(1)
     async def __ws_bin_key_handler(self, ws: WsSession, _: bytes) -> None:
-        for src in self.__srcs:
-            if ws in src.clients:
-                if src.is_diff():
-                    src.key_required = True
-                break
+        for srcs in self.__media.values():
+            for src in srcs.values():
+                if ws in src.clients:
+                    if src.is_diff():
+                        src.key_required = True
+                    break
 
     @exposed_ws("start")
     async def __ws_start_handler(self, ws: WsSession, event: dict) -> None:
         try:
-            req_type = str(event.get("type"))
-            req_fmt = str(event.get("format"))
+            m_type = str(event.get("type"))
+            m_fmt = str(event.get("format"))
         except Exception:
             return
-        src: (_Source | None) = None
-        for cand in self.__srcs:
-            if ws in cand.clients:
-                return  # Don't allow any double streaming
-            if (cand.type, cand.fmt) == (req_type, req_fmt):
-                src = cand
-        if src:
-            client = _Client(ws, src, asyncio.Queue(self.__Q_SIZE))
-            client.sender = aiotools.create_deadly_task(str(ws), self.__sender(client))
-            src.clients[ws] = client
-            get_logger(0).info("Streaming %s to %s ...", src.streamer, ws)
+        self.__start_stream(ws, m_type, m_fmt)  # TODO: Handle discard
+
+    def __get_media_info(self) -> dict:
+        info: dict = {}
+        for (m_type, srcs) in self.__media.items():
+            info[m_type] = {}
+            for (m_fmt, src) in srcs.items():
+                info[m_type][m_fmt] = src.meta
+        return info
+
+    def __start_stream(self, ws: WsSession, m_type: str, m_fmt: str) -> bool:
+        src: (_Source | None) = self.__media.get(m_type, {}).get(m_fmt)
+        if src is None:
+            return False
+        client = _Client(ws, src, asyncio.Queue(self.__Q_SIZE))
+        client.sender = aiotools.create_deadly_task(str(ws), self.__sender(client))
+        src.clients[ws] = client
+        get_logger(0).info("Streaming %s to %s ...", src.streamer, ws)
+        return True
 
     # =====
 
     async def _init_app(self) -> None:
         logger = get_logger(0)
-        for src in self.__srcs:
-            logger.info("Starting streamer %s ...", src.streamer)
-            aiotools.create_deadly_task(str(src.streamer), self.__streamer(src))
+        for srcs in self.__media.values():
+            for src in srcs.values():
+                logger.info("Starting streamer %s ...", src.streamer)
+                aiotools.create_deadly_task(str(src.streamer), self.__streamer(src))
         self._add_exposed(self)
 
     async def _on_shutdown(self) -> None:
@@ -146,12 +173,13 @@ class MediaServer(HttpServer):
         logger.info("On-Shutdown complete")
 
     async def _on_ws_closed(self, ws: WsSession) -> None:
-        for src in self.__srcs:
-            client = src.clients.pop(ws, None)
-            if client and client.sender:
-                get_logger(0).info("Closed stream for %s", ws)
-                client.sender.cancel()
-                return
+        for srcs in self.__media.values():
+            for src in srcs.values():
+                client = src.clients.pop(ws, None)
+                if client and client.sender:
+                    get_logger(0).info("Closed stream for %s", ws)
+                    client.sender.cancel()
+                    return
 
     # =====
 
@@ -165,7 +193,10 @@ class MediaServer(HttpServer):
             has_key = (not need_key or has_key or frame["key"])
             if has_key:
                 try:
-                    await client.ws.send_bin(1, frame["key"].to_bytes() + frame["data"])
+                    if client.ws.kwargs["pure"]:  # Simplified interface for a scripting
+                        await client.ws.send_bin_raw(frame["data"])
+                    else:  # Regular interface for the Web UI
+                        await client.ws.send_bin(1, frame["key"].to_bytes() + frame["data"])
                 except Exception:
                     pass
 

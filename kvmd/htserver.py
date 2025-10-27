@@ -332,6 +332,9 @@ class WsSession:
     async def send_bin(self, op: int, data: bytes) -> None:
         await send_ws_bin(self.wsr, op, data)
 
+    async def send_bin_raw(self, data: bytes) -> None:
+        await self.wsr.send_bytes(data)
+
 
 class HttpServer:
     def __init__(self) -> None:
