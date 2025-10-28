@@ -252,12 +252,11 @@ def _print_donor_info(donor: _Donor) -> None:
 
 
 def _make_donor_config(donor: _Donor) -> dict:
-    cdrom = {
+    inq = {
         "vendor":   None,
         "product":  "GENERIC",
         "revision": "1.00",
     }
-    flash = {**cdrom, "product": "Flash Drive"}
     config = {
         "vendor_id":      YamlHexInt(donor.vendor_id),
         "product_id":     YamlHexInt(donor.product_id),
@@ -268,12 +267,12 @@ def _make_donor_config(donor: _Donor) -> dict:
         "device_version": (donor.device_version or YamlHexInt(donor.device_version)),
         "devices": {
             "msd": {"default": {"inquiry_string": {
-                "cdrom": cdrom,
-                "flash": flash,
+                "cdrom": inq,
+                "flash": inq,
             }}},
             "drives": {"default": {"inquiry_string": {
-                "cdrom": cdrom,
-                "flash": flash,
+                "cdrom": inq,
+                "flash": inq,
             }}},
         },
     }
