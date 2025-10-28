@@ -214,5 +214,5 @@ def override_yaml_file(path: str, validator: Callable[[str], None]) -> Generator
             raise
         else:  # Makes pylint happy
             with open(tmp_path, "w") as file:
-                handler.dump(doc)
+                handler.dump(doc, file)
             validator(tmp_path)
