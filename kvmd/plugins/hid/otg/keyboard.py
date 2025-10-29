@@ -51,7 +51,7 @@ class KeyboardProcess(BaseDeviceProcess):
             **kwargs,
         )
 
-        self.__pressed_modifiers: set[UsbKey] = set()
+        self.__pressed_mods: set[UsbKey] = set()
         self.__pressed_keys: list[UsbKey | None] = [None] * 6
 
     def cleanup(self) -> None:
@@ -98,13 +98,13 @@ class KeyboardProcess(BaseDeviceProcess):
         return self.__make_report()
 
     def __process_modifier_event(self, event: ModifierEvent) -> Generator[bytes, None, None]:
-        if event.modifier in self.__pressed_modifiers:
+        if event.mod in self.__pressed_mods:
             # Ранее нажатый модификатор отжимаем
-            self.__pressed_modifiers.remove(event.modifier)
+            self.__pressed_mods.remove(event.mod)
             yield self.__make_report()
         if event.state:
             # Нажимаем если нужно
-            self.__pressed_modifiers.add(event.modifier)
+            self.__pressed_mods.add(event.mod)
             yield self.__make_report()
 
     def __process_key_event(self, event: KeyEvent) -> Generator[bytes, None, None]:
@@ -124,10 +124,10 @@ class KeyboardProcess(BaseDeviceProcess):
     # =====
 
     def __make_report(self) -> bytes:
-        return make_keyboard_report(self.__pressed_modifiers, self.__pressed_keys)
+        return make_keyboard_report(self.__pressed_mods, self.__pressed_keys)
 
     def __clear_modifiers(self) -> None:
-        self.__pressed_modifiers.clear()
+        self.__pressed_mods.clear()
 
     def __clear_keys(self) -> None:
         self.__pressed_keys = [None] * 6

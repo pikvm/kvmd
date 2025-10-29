@@ -42,7 +42,7 @@ class SymmapModifiers:
     CTRL: int = 0x4
 
 
-def build_symmap(path: str) -> dict[int, dict[int, int]]:  # x11 keysym -> [(symmap_modifiers, evdev_code), ...]
+def build_symmap(path: str) -> dict[int, dict[int, int]]:  # x11 keysym -> [(symmap_mods, evdev_code), ...]
     # https://github.com/qemu/qemu/blob/95a9457fd44ad97c518858a4e1586a5498f9773c/ui/keymaps.c
     logger = get_logger()
 
@@ -67,7 +67,7 @@ def build_symmap(path: str) -> dict[int, dict[int, int]]:  # x11 keysym -> [(sym
                         logger.error("Invalid modifier key at mapping %s: %s / %s", src, evdev_code, key)
                         continue
 
-                    modifiers = (
+                    mods = (
                         0
                         | (SymmapModifiers.SHIFT if key.shift else 0)
                         | (SymmapModifiers.ALTGR if key.altgr else 0)
@@ -75,7 +75,7 @@ def build_symmap(path: str) -> dict[int, dict[int, int]]:  # x11 keysym -> [(sym
                     )
                     if code not in symmap:
                         symmap[code] = {}
-                    symmap[code].setdefault(modifiers, evdev_code)
+                    symmap[code].setdefault(mods, evdev_code)
     return symmap
 
 

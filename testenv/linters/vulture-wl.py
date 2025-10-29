@@ -26,7 +26,7 @@ _DriveImage.complete
 
 _AtxApiPart.switch_power
 
-_UsbKey.arduino_modifier_code
+_UsbKey.arduino_mod_code
 
 _KeyMapping.web_name
 _KeyMapping.evdev_name

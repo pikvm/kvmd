@@ -90,22 +90,22 @@ def text_to_evdev_keys(  # pylint: disable=too-many-branches
             except Exception:
                 continue
 
-        for (modifiers, key) in keys.items():
-            if modifiers & SymmapModifiers.CTRL:
+        for (mods, key) in keys.items():
+            if mods & SymmapModifiers.CTRL:
                 # Not supported yet
                 continue
 
-            if modifiers & SymmapModifiers.SHIFT and not shift:
+            if mods & SymmapModifiers.SHIFT and not shift:
                 yield (ecodes.KEY_LEFTSHIFT, True)
                 shift = True
-            elif not (modifiers & SymmapModifiers.SHIFT) and shift:
+            elif not (mods & SymmapModifiers.SHIFT) and shift:
                 yield (ecodes.KEY_LEFTSHIFT, False)
                 shift = False
 
-            if modifiers & SymmapModifiers.ALTGR and not altgr:
+            if mods & SymmapModifiers.ALTGR and not altgr:
                 yield (ecodes.KEY_RIGHTALT, True)
                 altgr = True
-            elif not (modifiers & SymmapModifiers.ALTGR) and altgr:
+            elif not (mods & SymmapModifiers.ALTGR) and altgr:
                 yield (ecodes.KEY_RIGHTALT, False)
                 altgr = False
 

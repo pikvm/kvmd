@@ -38,12 +38,12 @@ import mako.template
 @dataclasses.dataclass(frozen=True)
 class _UsbKey:
     code: int
-    is_modifier: bool
+    is_mod: bool
 
     @property
-    def arduino_modifier_code(self) -> int:
+    def arduino_mod_code(self) -> int:
         # https://github.com/NicoHood/HID/blob/4bf6cd6/src/HID-APIs/DefaultKeyboardAPI.hpp#L31
-        assert self.is_modifier
+        assert self.is_mod
         code = self.code
         offset = 0
         while not (code & 0x1):
@@ -103,9 +103,9 @@ def _parse_x11_names(names: str) -> set[_X11Key]:
 
 
 def _parse_usb_key(key: str) -> _UsbKey:
-    is_modifier = key.startswith("^")
-    code = int((key[1:] if is_modifier else key), 16)
-    return _UsbKey(code, is_modifier)
+    is_mod = key.startswith("^")
+    code = int((key[1:] if is_mod else key), 16)
+    return _UsbKey(code, is_mod)
 
 
 def _parse_ps2_key(key: str) -> (_Ps2Key | None):

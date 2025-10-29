@@ -113,7 +113,7 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
 
         # Эти состояния шарить не обязательно - бекенд исключает дублирующиеся события.
         # Все это нужно только чтобы не посылать лишние события в сокет KVMD
-        self.__modifiers = 0
+        self.__mods = 0
         self.__mouse_buttons: dict[int, bool] = {}
         self.__mouse_move = (-1, -1, -1, -1)  # (width, height, X, Y)
 
@@ -517,19 +517,19 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
         (state, code) = await self._read_struct("key event", "? xx L")
         state = bool(state)
 
-        is_modifier = self.__switch_modifiers_x11(code, state)
+        is_mod = self.__switch_modifiers_x11(code, state)
         variants = self.__symmap.get(code)
         fake_shift = False
 
         if variants:
-            if is_modifier:
+            if is_mod:
                 key = variants.get(0)
             else:
-                key = variants.get(self.__modifiers)
+                key = variants.get(self.__mods)
                 if key is None:
                     key = variants.get(0)
 
-                if key is None and self.__modifiers == 0 and SymmapModifiers.SHIFT in variants:
+                if key is None and self.__mods == 0 and SymmapModifiers.SHIFT in variants:
                     # JUMP doesn't send shift events:
                     #   - https://github.com/pikvm/pikvm/issues/820
                     key = variants[SymmapModifiers.SHIFT]
@@ -553,9 +553,9 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
         if mod == 0:
             return False
         if state:
-            self.__modifiers |= mod
+            self.__mods |= mod
         else:
-            self.__modifiers &= ~mod
+            self.__mods &= ~mod
         return True
 
     def __switch_modifiers_evdev(self, key: int, state: bool) -> bool:
@@ -569,9 +569,9 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
         if mod == 0:
             return False
         if state:
-            self.__modifiers |= mod
+            self.__mods |= mod
         else:
-            self.__modifiers &= ~mod
+            self.__mods &= ~mod
         return True
 
     async def __handle_pointer_event(self) -> None:

@@ -33,8 +33,8 @@ class McuKey:
 
 @dataclasses.dataclass(frozen=True)
 class UsbKey:
-    code:        int
-    is_modifier: bool
+    code:   int
+    is_mod: bool
 
 
 @dataclasses.dataclass(frozen=True)
@@ -45,7 +45,7 @@ class Key:
 <%! import operator %>
 KEYMAP: dict[int, Key] = {
 % for km in sorted(keymap, key=operator.attrgetter("mcu_code")):
-    ecodes.${km.evdev_name}: Key(mcu=McuKey(code=${km.mcu_code}), usb=UsbKey(code=${km.usb_key.code}, is_modifier=${km.usb_key.is_modifier})),
+    ecodes.${km.evdev_name}: Key(mcu=McuKey(code=${km.mcu_code}), usb=UsbKey(code=${km.usb_key.code}, is_mod=${km.usb_key.is_mod})),
 % endfor
 }
 

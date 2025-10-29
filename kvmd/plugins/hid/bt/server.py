@@ -111,7 +111,7 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
             "scroll": False,
             "num": False,
         }, notifier)
-        self.__modifiers: set[UsbKey] = set()
+        self.__mods: set[UsbKey] = set()
         self.__keys: list[UsbKey | None] = [None] * 6
         self.__mouse_buttons = 0
 
@@ -231,11 +231,11 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
                     self.__send_mouse_state(0, 0, 0)
 
                 elif isinstance(event, ModifierEvent):
-                    if event.modifier in self.__modifiers:  # Ранее нажатый модификатор отжимаем
-                        self.__modifiers.remove(event.modifier)
+                    if event.mod in self.__mods:  # Ранее нажатый модификатор отжимаем
+                        self.__mods.remove(event.mod)
                         self.__send_keyboard_state()
                     if event.state:  # Нажимаем если нужно
-                        self.__modifiers.add(event.modifier)
+                        self.__mods.add(event.mod)
                         self.__send_keyboard_state()
 
                 elif isinstance(event, KeyEvent):
@@ -266,7 +266,7 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
     def __send_keyboard_state(self) -> None:
         for client in list(self.__clients.values()):
             if client.int_sock is not None:
-                report = make_keyboard_report(self.__modifiers, self.__keys)
+                report = make_keyboard_report(self.__mods, self.__keys)
                 self.__send_report(client, "keyboard", b"\xA1\x01" + report)
 
     def __send_mouse_state(self, move_x: int, move_y: int, wheel_y: int) -> None:
@@ -284,7 +284,7 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
             self.__close_client_pair(client)
 
     def __clear_modifiers(self) -> None:
-        self.__modifiers.clear()
+        self.__mods.clear()
 
     def __clear_keys(self) -> None:
         self.__keys = [None] * 6

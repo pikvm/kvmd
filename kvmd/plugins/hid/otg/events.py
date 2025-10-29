@@ -52,21 +52,21 @@ class KeyEvent(BaseEvent):
     state: bool
 
     def __post_init__(self) -> None:
-        assert (not self.key.is_modifier)
+        assert (not self.key.is_mod)
 
 
 @dataclasses.dataclass(frozen=True)
 class ModifierEvent(BaseEvent):
-    modifier: UsbKey
-    state:    bool
+    mod:   UsbKey
+    state: bool
 
     def __post_init__(self) -> None:
-        assert self.modifier.is_modifier
+        assert self.mod.is_mod
 
 
 def make_keyboard_event(key: int, state: bool) -> (KeyEvent | ModifierEvent):
     usb_key = KEYMAP[key].usb
-    if usb_key.is_modifier:
+    if usb_key.is_mod:
         return ModifierEvent(usb_key, state)
     return KeyEvent(usb_key, state)
 
@@ -85,20 +85,20 @@ def get_led_num(flags: int) -> bool:
 
 
 def make_keyboard_report(
-    pressed_modifiers: set[UsbKey],
+    pressed_mods: set[UsbKey],
     pressed_keys: list[UsbKey | None],
 ) -> bytes:
 
-    modifiers = 0
-    for modifier in pressed_modifiers:
-        modifiers |= modifier.code
+    mods = 0
+    for mod in pressed_mods:
+        mods |= mod.code
 
     assert len(pressed_keys) == 6
     keys = [
         (0 if key is None else key.code)
         for key in pressed_keys
     ]
-    return bytes([modifiers, 0] + keys)
+    return bytes([mods, 0] + keys)
 
 
 # =====
