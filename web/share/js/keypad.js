@@ -34,18 +34,8 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 	var __keys = {};
 	var __hold_timers = {};
 
-	var __fix_win_altgr = false;
-	var __altgr_ctrl_timer = null;
-
 	var __init__ = function() {
 		__el_keypad.addEventListener("contextmenu", (ev) => ev.preventDefault());
-
-		if (__apply_fixes) {
-			__fix_win_altgr = tools.browser.is_win;
-			if (__fix_win_altgr) {
-				tools.info(`Keymap at ${__el_keypad.id}: enabled Fix-Win-AltGr`);
-			}
-		}
 
 		for (let el_key of [].slice.call(__el_keypad.getElementsByClassName("key"))) {
 			if (el_key.hasAttribute("data-allow-autohold")) {
@@ -77,7 +67,7 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 
 	self.releaseAll = function() {
 		for (let code in __keys) {
-			if (__isActive(__keys[code][0])) {
+			if (__isCodeActive(code)) {
 				self.emit(code, false);
 			}
 		}
@@ -88,7 +78,7 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 			let el_key = __keys[code][0];
 			__stopHoldTimer(el_key);
 
-			if (__fix_win_altgr && apply_fixes) {
+			if (apply_fixes && __apply_fixes && tools.browser.is_win) {
 				if (!__fixWinAltgr(code, state)) {
 					return;
 				}
@@ -106,26 +96,33 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 		};
 	};
 
+	var __altgr_ctrl_timer = null;
+
 	var __fixWinAltgr = function(code, state) {
 		// https://github.com/pikvm/pikvm/issues/375
 		// https://github.com/novnc/noVNC/blob/84f102d6/core/input/keyboard.js
 		if (state) {
 			if (__altgr_ctrl_timer) {
+				// Если у нас было отложенное нажатие Ctrl, и новая клавиша не Alt,
+				// то выстреливаем Ctrl немедленно.
 				clearTimeout(__altgr_ctrl_timer);
 				__altgr_ctrl_timer = null;
 				if (code !== "AltRight") {
 					self.emit("ControlLeft", true, false);
 				}
 			}
-			if (code === "ControlLeft" && !__isActive(__keys["ControlLeft"][0])) {
+			if (code === "ControlLeft" && !__isCodeActive("ControlLeft")) {
+				// Если пришел новый Ctrl, откладываем его нажатие на 50ms...
 				__altgr_ctrl_timer = setTimeout(function() {
 					__altgr_ctrl_timer = null;
 					self.emit("ControlLeft", true, false);
 				}, 50);
-				return false; // Stop handling
+				return false; // ... и больше не делаем вообще ничего
 			}
 		} else {
 			if (__altgr_ctrl_timer) {
+				// Если Ctrl был отложен, но что-то отпустили,
+				// то выстреливаем Ctrl немедленно.
 				clearTimeout(__altgr_ctrl_timer);
 				__altgr_ctrl_timer = null;
 				self.emit("ControlLeft", true, false);
@@ -203,6 +200,11 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 				__process(el_key, false);
 			}
 		}
+	};
+
+	var __isCodeActive = function(code) {
+		let keys = __keys[code];
+		return (keys !== undefined && keys.length > 0 && __isActive(keys[0]));
 	};
 
 	var __isActive = function(el_key, cls=null) {
