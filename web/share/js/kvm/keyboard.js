@@ -125,11 +125,6 @@ export function Keyboard(__recordWsEvent) {
 		$("hid-keyboard-led").title = title;
 	};
 
-	var __keyboardHandler = function(ev, state) {
-		ev.preventDefault();
-		__keypad.emitByKeyEvent(ev, state);
-	};
-
 	var __sendKey = function(code, state) {
 		tools.debug("Keyboard: key", (state ? "pressed:" : "released:"), code);
 		if ($("hid-keyboard-swap-cc-switch").checked) {
@@ -152,6 +147,107 @@ export function Keyboard(__recordWsEvent) {
 		}
 		delete ev.event.finish;
 		__recordWsEvent(ev);
+	};
+
+	var __magic_key = null; // TODO
+	var __magic_pressed = false;
+	var __magic_pressed_ts = 0;
+	var __magic_started = false;
+	var __magic_fired_once = false;
+	var __magic_mods = [];
+	var __all_mods = {
+		"ControlLeft": "Ctrl L",
+		"ControlRight": "Ctrl R",
+		"AltLeft": (tools.browser.is_mac ? "Option L" : "Alt L"),
+		"AltRight": (tools.browser.is_mac ? "Option R" : "Alt R"),
+		"ShiftLeft": "Shift L",
+		"ShiftRight": "Shift R",
+		"MetaLeft": (tools.browser.is_mac ? "Cmd L" : "Meta L"),
+		"MetaRight": (tools.browser.is_mac ? "Cmd R" : "Meta R"),
+	};
+
+	var __isModifier = function(code) {
+		return (code in __all_mods);
+	};
+
+	var __startMagic = function() {
+		__magic_started = true;
+		__drawMagicOverStream();
+	};
+
+	var __addNewMagicModifier = function(code) {
+		if (!__magic_mods.includes(code)) {
+			__magic_mods.push(code);
+			__drawMagicOverStream();
+			return true;
+		}
+		return false;
+	};
+
+	var __drawMagicOverStream = function(code=null) {
+		let html = "";
+		if (__magic_started) {
+			html += "<span>Shortcut &rarr;</span>";
+		}
+		for (let mod of __magic_mods) {
+			html += `<span>${__all_mods[mod]}</span>`;
+		}
+		if (code) {
+			html += `<span>${code}</span>`;
+		}
+		$("stream-keyboard-magic").innerHTML = html;
+	};
+
+	var __releaseMagicModifiers = function() {
+		while (__magic_mods.length > 0) {
+			let code = __magic_mods.pop();
+			__keypad.emitByCode(code, false, false);
+		}
+		__magic_started = false;
+		__magic_fired_once = false;
+		__magic_mods = [];
+		setTimeout(function() {
+			if (!__magic_started) {
+				__drawMagicOverStream();
+			}
+		}, 100);
+	};
+
+	var __keyboardHandler = function(ev, state) {
+		ev.preventDefault();
+		if (__magic_key !== null && ev.code === __magic_key) {
+			let now_ts = new Date().getTime();
+			__magic_pressed = state;
+			if (state) {
+				if (__magic_started) {
+					if (now_ts - __magic_pressed_ts < 250) {
+						__releaseMagicModifiers();
+					}
+				} else {
+					__startMagic();
+				}
+			} else if (__magic_fired_once) {
+				__releaseMagicModifiers();
+			}
+			__magic_pressed_ts = now_ts;
+		} else {
+			if (__magic_started) {
+				if (__isModifier(ev.code)) {
+					if (state && __addNewMagicModifier(ev.code)) {
+						__keypad.emitByKeyEvent(ev, state);
+					}
+				} else {
+					__drawMagicOverStream(state ? ev.code : null);
+					__keypad.emitByKeyEvent(ev, state);
+					__magic_fired_once = true;
+					if (!__magic_pressed) {
+						__releaseMagicModifiers();
+					}
+				}
+			} else {
+				__keypad.emitByKeyEvent(ev, state);
+			}
+		}
 	};
 
 	__init__();
