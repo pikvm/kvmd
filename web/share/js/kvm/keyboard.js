@@ -92,7 +92,7 @@ export function Keyboard(__recordWsEvent) {
 	};
 
 	self.emit = function(code, state) {
-		__keypad.emitByCode(code, state);
+		__keypad.emit(code, state);
 	};
 
 	var __updateOnlineLeds = function() {
@@ -125,28 +125,30 @@ export function Keyboard(__recordWsEvent) {
 		$("hid-keyboard-led").title = title;
 	};
 
-	var __sendKey = function(code, state) {
-		tools.debug("Keyboard: key", (state ? "pressed:" : "released:"), code);
-		if ($("hid-keyboard-swap-cc-switch").checked) {
-			if (code === "ControlLeft") {
-				code = "CapsLock";
-			} else if (code === "CapsLock") {
-				code = "ControlLeft";
+	/************************************************************************/
+
+	var __keyboardHandler = function(ev, state) {
+		ev.preventDefault();
+		if (ev.repeat) {
+			return;
+		}
+		let code = ev.code;
+
+		// https://github.com/pikvm/pikvm/issues/819
+		if (code === "IntlBackslash" && ["`", "~"].includes(ev.key)) {
+			code = "Backquote";
+		} else if (code === "Backquote" && ["§", "±"].includes(ev.key)) {
+			code = "IntlBackslash";
+		}
+
+		// Mac CMD key fix
+		if (tools.browser.is_mac) {
+			if (!__magic_pressed && !state && ["MetaLeft", "MetaRight"].includes(code)) {
+				self.releaseAll();
 			}
 		}
-		let ev = {
-			"event_type": "key",
-			"event": {
-				"key": code,
-				"state": state,
-				"finish": $("hid-keyboard-bad-link-switch").checked,
-			},
-		};
-		if (__ws && !$("hid-mute-switch").checked) {
-			__ws.sendHidEvent(ev);
-		}
-		delete ev.event.finish;
-		__recordWsEvent(ev);
+
+		__keypad.emit(code, state);
 	};
 
 	var __magic_key = null; // TODO
@@ -200,8 +202,7 @@ export function Keyboard(__recordWsEvent) {
 
 	var __releaseMagicModifiers = function() {
 		while (__magic_mods.length > 0) {
-			let code = __magic_mods.pop();
-			__keypad.emitByCode(code, false, false);
+			__innerSendKey(__magic_mods.pop(), false, false);
 		}
 		__magic_started = false;
 		__magic_fired_once = false;
@@ -213,9 +214,15 @@ export function Keyboard(__recordWsEvent) {
 		}, 100);
 	};
 
-	var __keyboardHandler = function(ev, state) {
-		ev.preventDefault();
-		if (__magic_key !== null && ev.code === __magic_key) {
+	var __sendKey = function(code, state) {
+		if ($("hid-keyboard-swap-cc-switch").checked) {
+			if (code === "ControlLeft") {
+				code = "CapsLock";
+			} else if (code === "CapsLock") {
+				code = "ControlLeft";
+			}
+		}
+		if (__magic_key !== null && code === __magic_key) {
 			let now_ts = new Date().getTime();
 			__magic_pressed = state;
 			if (state) {
@@ -232,22 +239,39 @@ export function Keyboard(__recordWsEvent) {
 			__magic_pressed_ts = now_ts;
 		} else {
 			if (__magic_started) {
-				if (__isModifier(ev.code)) {
-					if (state && __addNewMagicModifier(ev.code)) {
-						__keypad.emitByKeyEvent(ev, state);
+				if (__isModifier(code)) {
+					if (state && __addNewMagicModifier(code)) {
+						__innerSendKey(code, state, false);
 					}
 				} else {
-					__drawMagicOverStream(state ? ev.code : null);
-					__keypad.emitByKeyEvent(ev, state);
+					__drawMagicOverStream(state ? code : null);
+					__innerSendKey(code, state, false);
 					__magic_fired_once = true;
 					if (!__magic_pressed) {
 						__releaseMagicModifiers();
 					}
 				}
 			} else {
-				__keypad.emitByKeyEvent(ev, state);
+				__innerSendKey(code, state, true);
 			}
 		}
+	};
+
+	var __innerSendKey = function(code, state, allow_finish) {
+		tools.debug("Keyboard: key", (state ? "pressed:" : "released:"), code);
+		let ev = {
+			"event_type": "key",
+			"event": {
+				"key": code,
+				"state": state,
+				"finish": (allow_finish && $("hid-keyboard-bad-link-switch").checked),
+			},
+		};
+		if (__ws && !$("hid-mute-switch").checked) {
+			__ws.sendHidEvent(ev);
+		}
+		delete ev.event.finish;
+		__recordWsEvent(ev);
 	};
 
 	__init__();

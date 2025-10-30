@@ -34,7 +34,6 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 	var __keys = {};
 	var __hold_timers = {};
 
-	var __fix_mac_cmd = false;
 	var __fix_win_altgr = false;
 	var __altgr_ctrl_timer = null;
 
@@ -42,10 +41,6 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 		__el_keypad.addEventListener("contextmenu", (ev) => ev.preventDefault());
 
 		if (__apply_fixes) {
-			__fix_mac_cmd = tools.browser.is_mac;
-			if (__fix_mac_cmd) {
-				tools.info(`Keymap at ${__el_keypad.id}: enabled Fix-Mac-CMD`);
-			}
 			__fix_win_altgr = tools.browser.is_win;
 			if (__fix_win_altgr) {
 				tools.info(`Keymap at ${__el_keypad.id}: enabled Fix-Win-AltGr`);
@@ -83,30 +78,12 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 	self.releaseAll = function() {
 		for (let code in __keys) {
 			if (__isActive(__keys[code][0])) {
-				self.emitByCode(code, false);
+				self.emit(code, false);
 			}
 		}
 	};
 
-	self.emitByKeyEvent = function(ev, state) {
-		if (ev.repeat) {
-			return;
-		}
-
-		let code = ev.code;
-		if (__apply_fixes) {
-			// https://github.com/pikvm/pikvm/issues/819
-			if (code === "IntlBackslash" && ["`", "~"].includes(ev.key)) {
-				code = "Backquote";
-			} else if (code === "Backquote" && ["§", "±"].includes(ev.key)) {
-				code = "IntlBackslash";
-			}
-		}
-
-		self.emitByCode(code, state);
-	};
-
-	self.emitByCode = function(code, state, apply_fixes=true) {
+	self.emit = function(code, state, apply_fixes=true) {
 		if (code in __keys) {
 			let el_key = __keys[code][0];
 			__stopHoldTimer(el_key);
@@ -115,9 +92,6 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 				if (!__fixWinAltgr(code, state)) {
 					return;
 				}
-			}
-			if (__fix_mac_cmd && apply_fixes) {
-				__fixMacCmd(code, state);
 			}
 
 			if (state && !__isActive(el_key)) {
@@ -132,16 +106,6 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 		};
 	};
 
-	var __fixMacCmd = function(code, state) {
-		if ((code === "MetaLeft" || code === "MetaRight") && !state) {
-			for (code in __keys) {
-				if (__isActive(__keys[code][0])) {
-					self.emitByCode(code, false, false);
-				}
-			}
-		}
-	};
-
 	var __fixWinAltgr = function(code, state) {
 		// https://github.com/pikvm/pikvm/issues/375
 		// https://github.com/novnc/noVNC/blob/84f102d6/core/input/keyboard.js
@@ -150,13 +114,13 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 				clearTimeout(__altgr_ctrl_timer);
 				__altgr_ctrl_timer = null;
 				if (code !== "AltRight") {
-					self.emitByCode("ControlLeft", true, false);
+					self.emit("ControlLeft", true, false);
 				}
 			}
 			if (code === "ControlLeft" && !__isActive(__keys["ControlLeft"][0])) {
 				__altgr_ctrl_timer = setTimeout(function() {
 					__altgr_ctrl_timer = null;
-					self.emitByCode("ControlLeft", true, false);
+					self.emit("ControlLeft", true, false);
 				}, 50);
 				return false; // Stop handling
 			}
@@ -164,7 +128,7 @@ export function Keypad(__el_keypad, __sendKey, __apply_fixes) {
 			if (__altgr_ctrl_timer) {
 				clearTimeout(__altgr_ctrl_timer);
 				__altgr_ctrl_timer = null;
-				self.emitByCode("ControlLeft", true, false);
+				self.emit("ControlLeft", true, false);
 			}
 		}
 		return true; // Continue handling
