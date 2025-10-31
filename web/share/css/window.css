@@ -34,6 +34,11 @@ div.window {
 	background-color: var(--cs-window-default-bg);
 	padding: 30px 9px 9px 9px;
 }
+div.window-elegant {
+	padding-top: 23px;
+	padding-left: 2px;
+	padding-right: 2px;
+}
 div.window-resizable {
 	resize: both;
 }
