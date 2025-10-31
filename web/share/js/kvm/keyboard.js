@@ -185,7 +185,7 @@ export function Keyboard(__recordWsEvent) {
 		__keypad.emit(code, state);
 	};
 
-	var __magic_key = null; // TODO
+	var __magic_key = (new URL(window.location.href)).searchParams.get("magic");
 	var __magic_pressed = false;
 	var __magic_pressed_ts = 0;
 	var __magic_started = false;
