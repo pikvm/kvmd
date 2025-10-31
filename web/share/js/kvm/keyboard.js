@@ -35,7 +35,7 @@ export function Keyboard(__recordWsEvent) {
 	var __keypad = null;
 
 	var __init__ = function() {
-		__keypad = new Keypad($("keyboard-window"), __sendKey, true);
+		__keypad = new Keypad($("keyboard-window"), __sendKey);
 
 		$("hid-keyboard-led").title = "Keyboard free";
 
@@ -127,6 +127,8 @@ export function Keyboard(__recordWsEvent) {
 
 	/************************************************************************/
 
+	var __altgr_ctrl_timer = null;
+
 	var __keyboardHandler = function(ev, state) {
 		ev.preventDefault();
 		if (ev.repeat) {
@@ -145,6 +147,38 @@ export function Keyboard(__recordWsEvent) {
 		if (tools.browser.is_mac) {
 			if (!__magic_pressed && !state && ["MetaLeft", "MetaRight"].includes(code)) {
 				self.releaseAll();
+			}
+		}
+
+		// https://github.com/pikvm/pikvm/issues/375
+		// https://github.com/novnc/noVNC/blob/84f102d6/core/input/keyboard.js
+		if (tools.browser.is_win) {
+			if (state) {
+				if (__altgr_ctrl_timer) {
+					// Если у нас было отложенное нажатие Ctrl, и новая клавиша не Alt,
+					// то выстреливаем Ctrl немедленно.
+					clearTimeout(__altgr_ctrl_timer);
+					__altgr_ctrl_timer = null;
+					if (code !== "AltRight") {
+						__keypad.emit("ControlLeft", true);
+					}
+				}
+				if (code === "ControlLeft" && !__keypad.isCodeActive("ControlLeft")) {
+					// Если пришел новый Ctrl, откладываем его нажатие на 50ms...
+					__altgr_ctrl_timer = setTimeout(function() {
+						__altgr_ctrl_timer = null;
+						__keypad.emit("ControlLeft", true);
+					}, 50);
+					return; // ... и больше не делаем вообще ничего
+				}
+			} else {
+				if (__altgr_ctrl_timer) {
+					// Если Ctrl был отложен, но что-то отпустили,
+					// то выстреливаем Ctrl немедленно.
+					clearTimeout(__altgr_ctrl_timer);
+					__altgr_ctrl_timer = null;
+					__keypad.emit("ControlLeft", true);
+				}
 			}
 		}
 
