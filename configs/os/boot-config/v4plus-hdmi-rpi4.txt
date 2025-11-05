@@ -2,6 +2,7 @@
 # See /boot/overlays/README for all available options
 initramfs initramfs-linux.img followkernel
 
+dtoverlay=cma,cma-192
 hdmi_force_hotplug=1
 gpu_mem=192
 enable_uart=1
