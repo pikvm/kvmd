@@ -268,6 +268,7 @@ def parse_ws_event(msg: str) -> tuple[str, dict]:
 
 # =====
 _REQUEST_AUTH_INFO = "_kvmd_auth_info"
+_REQUEST_AUTH_TOKEN = "_kvmd_auth_token"
 
 
 def _format_P(req: BaseRequest, *_, **__) -> str:  # type: ignore  # pylint: disable=invalid-name
@@ -277,8 +278,13 @@ def _format_P(req: BaseRequest, *_, **__) -> str:  # type: ignore  # pylint: dis
 AccessLogger._format_P = staticmethod(_format_P)  # type: ignore  # pylint: disable=protected-access
 
 
-def set_request_auth_info(req: BaseRequest, info: str) -> None:
+def set_request_auth_info(req: BaseRequest, info: str, token: str="") -> None:
     setattr(req, _REQUEST_AUTH_INFO, info)
+    setattr(req, _REQUEST_AUTH_TOKEN, token)
+
+
+def _get_request_auth_token(req: BaseRequest) -> str:
+    return str(getattr(req, _REQUEST_AUTH_TOKEN, ""))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -313,7 +319,8 @@ def get_request_unix_credentials(req: BaseRequest) -> (RequestUnixCredentials | 
 # =====
 @dataclasses.dataclass(frozen=True)
 class WsSession:
-    wsr: WebSocketResponse
+    wsr:    WebSocketResponse
+    token:  str
     kwargs: dict[str, Any] = dataclasses.field(hash=False)
 
     def __str__(self) -> str:
@@ -410,7 +417,7 @@ class HttpServer:
         assert self.__ws_heartbeat is not None
         wsr = WebSocketResponse(heartbeat=self.__ws_heartbeat)
         await wsr.prepare(req)
-        ws = WsSession(wsr, kwargs)
+        ws = WsSession(wsr, _get_request_auth_token(req), kwargs)
 
         async with self.__ws_sessions_lock:
             self.__ws_sessions.append(ws)

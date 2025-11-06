@@ -64,7 +64,7 @@ async def _check_token(auth_manager: AuthManager, _: HttpExposed, req: Request) 
     if token:
         user = auth_manager.check(valid_auth_token(token))
         if user:
-            set_request_auth_info(req, f"{user} (token)")
+            set_request_auth_info(req, f"{user} (token)", token=token)
             return True
         set_request_auth_info(req, "- (token)")
         raise ForbiddenError()

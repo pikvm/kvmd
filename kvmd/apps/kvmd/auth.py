@@ -43,12 +43,15 @@ from ...htserver import RequestUnixCredentials
 # =====
 @dataclasses.dataclass(frozen=True)
 class _Session:
-    user:      str
-    expire_ts: int
+    user:       str
+    expire_req: int
+    expire_ts:  int
+    ws_started: int
 
     def __post_init__(self) -> None:
         assert self.user == self.user.strip()
         assert self.user
+        assert self.expire_req >= 0
         assert self.expire_ts >= 0
 
 
@@ -57,6 +60,7 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
         self,
         enabled: bool,
         expire: int,
+        extend: bool,
         usc_users: list[str],
         usc_groups: list[str],
         unauth_paths: list[str],
@@ -82,6 +86,10 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
         if expire > 0:
             logger.info("Maximum user session time is limited: %s",
                         self.__format_seconds(expire))
+
+        self.__extend = extend
+        if extend:
+            logger.info("Enabled WS-based session extending")
 
         self.__usc_uids = self.__load_usc_uids(usc_users, usc_groups)
         if self.__usc_uids:
@@ -161,7 +169,9 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
             token = self.__make_new_token()
             session = _Session(
                 user=user,
+                expire_req=expire,
                 expire_ts=self.__make_expire_ts(expire),
+                ws_started=0,
             )
             self.__sessions[token] = session
             get_logger(0).info("Logged in user %r; expire=%s, sessions_now=%d",
@@ -247,6 +257,29 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
                                        session.user,
                                        self.__get_sessions_number(session.user))
         return None
+
+    def start_ws_session(self, token: str) -> None:
+        self.__renew_ws_session(token, True)  # Infinite until stop_ws_session()
+
+    def stop_ws_session(self, token: str) -> None:
+        self.__renew_ws_session(token, False)  # Invalidate if needed
+
+    def __renew_ws_session(self, token: str, start: bool) -> None:
+        if self.__enabled and self.__extend:
+            session = self.__sessions.get(token)
+            if session is not None:
+                ws_started = session.ws_started + (1 if start else -1)
+
+                expire_ts = 0
+                if ws_started <= 0:
+                    expire_ts = self.__make_expire_ts(session.expire_req)
+
+                self.__sessions[token] = _Session(
+                    user=session.user,
+                    expire_req=session.expire_req,
+                    expire_ts=expire_ts,
+                    ws_started=ws_started,
+                )
 
     @aiotools.atomic_fg
     async def cleanup(self) -> None:

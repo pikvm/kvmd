@@ -71,6 +71,7 @@ async def _get_configured_manager(
     manager = AuthManager(
         enabled=True,
         expire=0,
+        extend=False,
         usc_users=[],
         usc_groups=[],
         unauth_paths=unauth_paths,
@@ -324,6 +325,7 @@ async def test_ok__disabled() -> None:
         manager = AuthManager(
             enabled=False,
             expire=0,
+            extend=False,
             usc_users=[],
             usc_groups=[],
             unauth_paths=[],

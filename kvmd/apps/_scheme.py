@@ -278,6 +278,7 @@ def make_config_scheme() -> dict:
             "auth": {
                 "enabled": Option(True, type=valid_bool),
                 "expire":  Option(0,    type=valid_expire),
+                "extend":  Option(False, type=valid_bool),
 
                 "usc": {
                     "users":       Option([], type=valid_users_list),  # PiKVM username has a same regex as a UNIX username
