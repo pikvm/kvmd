@@ -308,7 +308,10 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	var __closeFrame = function(frame) {
-		if (!tools.browser.is_firefox) {
+		// XXX: Note at 2025.11.06: It seems it causes memory leak in Firefox.
+		// But flickering is fixed on upstream so I commented this workaround for now.
+		//
+		// if (!tools.browser.is_firefox) {
 			// FIXME: On Firefox, image is flickering when we're closing the frame for some reason.
 			// So we're just not performing the close() and it seems there is no problems here
 			// because Firefox is implementing some auto-closing logic. With auto-close,
@@ -318,7 +321,7 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeH
 			//  - The problem is not observed on nightly Firefox 140.
 			//  - It's also not observed with hardware accelleration on 138.
 			frame.close();
-		}
+		// }
 	};
 
 	var __logInfo = (...args) => tools.info("Stream [Media]:", ...args);
