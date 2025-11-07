@@ -172,7 +172,7 @@ class MediaServer(HttpServer):
         await self._close_all_wss()
         logger.info("On-Shutdown complete")
 
-    async def _on_ws_closed(self, ws: WsSession) -> None:
+    def _on_ws_removed(self, ws: WsSession) -> None:
         for srcs in self.__media.values():
             for src in srcs.values():
                 client = src.clients.pop(ws, None)

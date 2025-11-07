@@ -304,12 +304,12 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
                     logger.exception("Cleanup error on %s", sub.name)
         logger.info("On-Cleanup complete")
 
-    async def _on_ws_opened(self, ws: WsSession) -> None:
+    def _on_ws_added(self, ws: WsSession) -> None:
         self.__auth_manager.start_ws_session(ws.token)
         self.__hid.clear_events()
         self.__streamer_notifier.notify()
 
-    async def _on_ws_closed(self, ws: WsSession) -> None:
+    def _on_ws_removed(self, ws: WsSession) -> None:
         self.__auth_manager.stop_ws_session(ws.token)
         self.__hid.clear_events()
         self.__streamer_notifier.notify()
