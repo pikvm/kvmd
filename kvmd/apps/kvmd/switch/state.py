@@ -50,7 +50,7 @@ class _UnitInfo:
 
 # =====
 class StateCache:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
-    __FW_VERSION = 8
+    __FW_VERSION = 9
 
     __FULL    = 0xFFFF
     __SUMMARY = 0x01
