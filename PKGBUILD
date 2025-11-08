@@ -79,6 +79,7 @@ depends=(
 	python-ldap
 	python-zstandard
 	python-mako
+	"python-luma-core>=2.5.2"
 	python-luma-oled
 	python-pyusb
 	python-pyudev

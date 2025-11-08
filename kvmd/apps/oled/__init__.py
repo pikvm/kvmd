@@ -26,10 +26,7 @@ import sys
 import os
 import signal
 import argparse
-import logging
 import time
-
-import usb.core
 
 from luma.core import cmdline as luma_cmdline
 
@@ -41,20 +38,13 @@ from ... import htclient
 
 from ...clients.kvmd import KvmdClient
 
+from .. import init
+
 from .screen import Screen
 from .sensors import Sensors
 
 
 # =====
-def _detect_geometry() -> dict:
-    with open("/proc/device-tree/model") as file:
-        is_cm4 = ("Compute Module 4" in file.read())
-    has_usb = bool(list(usb.core.find(find_all=True)))
-    if is_cm4 and has_usb:
-        return {"height": 64, "rotate": 2}
-    return {"height": 32, "rotate": 0}
-
-
 def _get_data_path(subdir: str, name: str) -> str:
     if not name.startswith("@"):
         return name  # Just a regular system path
@@ -65,7 +55,7 @@ def _get_data_path(subdir: str, name: str) -> str:
 
 
 async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many-branches,too-many-statements
-    logger = get_logger()
+    logger = get_logger(0)
 
     device = luma_cmdline.create_device(options)
     device.cleanup = (lambda _: None)
@@ -169,17 +159,13 @@ async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many
 
 # =====
 def main() -> None:
-    logging.captureWarnings(True)
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger().handlers[0].setFormatter(logging.Formatter(
-        "-- {levelname:>7} -- {message}",
-        style="{",
-    ))
-    logging.getLogger("PIL").setLevel(logging.ERROR)
-
-    parser = luma_cmdline.create_parser(description="Display FQDN and IP on the OLED")
-    parser.set_defaults(**_detect_geometry())
-
+    ia = init(add_help=False)
+    parser = argparse.ArgumentParser(
+        prog="kvmd-oled",
+        description="Display some info on PiKVM OLED display",
+        parents=[ia.parser],
+    )
+    luma_cmdline.create_parser("", parser=parser)
     parser.add_argument("--font", default="@ProggySquare.ttf", type=(lambda arg: _get_data_path("fonts", arg)), help="Font path")
     parser.add_argument("--font-size", default=16, type=int, help="Font size")
     parser.add_argument("--font-spacing", default=2, type=int, help="Font line spacing")
@@ -191,15 +177,28 @@ def main() -> None:
     parser.add_argument("--pipe", action="store_true", help="Read and display lines from stdin until EOF, wait a single interval and exit")
     parser.add_argument("--fill", action="store_true", help="Fill the display with 0xFF")
     parser.add_argument("--clear-on-exit", action="store_true", help="Clear display on exit")
-    parser.add_argument("--contrast", default=64, type=int, help="Set OLED contrast, values from 0 to 255")
-    parser.add_argument("--low-contrast", default=1, type=int, help="Set OLED contrast when device is used")
+    # Compatibility options below
+    parser.add_argument("--contrast", type=int, help="Set OLED contrast, values from 0 to 255")
+    parser.add_argument("--low-contrast", type=int, help="Set OLED contrast when device is used")
     parser.add_argument("--fahrenheit", action="store_true", help="Display temperature in Fahrenheit instead of Celsius")
-    parser.add_argument("--kvmd-unix", default="/run/kvmd/kvmd.sock", help="Ask some info from KVMD like a clients count")
-    parser.add_argument("--kvmd-timeout", default=5.0, type=float, help="Timeout for KVMD requests")
-    options = parser.parse_args(sys.argv[1:])
+    # parser.add_argument("--kvmd-unix", help="Ask some info from KVMD like a clients count")
+    # parser.add_argument("--kvmd-timeout", type=float, help="Timeout for KVMD requests")
+    parser.set_defaults(
+        width=ia.config.oled.width,
+        height=ia.config.oled.height,
+        rotate=ia.config.oled.rotate,
+        fahrenheit=ia.config.oled.fahrenheit,
+        low_contrast=ia.config.oled.contrast.low,
+        contrast=ia.config.oled.contrast.normal,
+        kvmd_unix=ia.config.oled.kvmd.unix,
+        kvmd_timeout=ia.config.oled.kvmd.timeout,
+    )
+    options = parser.parse_args(ia.args)
     if options.config:
-        config = luma_cmdline.load_config(options.config)
-        options = parser.parse_args(config + sys.argv[1:])
+        options = parser.parse_args(
+            luma_cmdline.load_config(options.config)
+            + ia.args
+        )
     options.contrast = min(max(options.contrast, 0), 255)
     options.low_contrast = min(max(options.low_contrast, 0), 255)
 

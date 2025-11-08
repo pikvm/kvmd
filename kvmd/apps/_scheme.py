@@ -780,4 +780,21 @@ def make_config_scheme() -> dict:
             "timeout":  Option(300, type=valid_int_f1),
             "interval": Option(30,  type=valid_int_f1),
         },
+
+        "oled": {
+            "width":      Option(128,   type=valid_int_f1),
+            "height":     Option(32,    type=valid_int_f1),
+            "rotate":     Option(0,     type=valid_number.mk(min=0, max=3)),
+            "fahrenheit": Option(False, type=valid_bool),
+
+            "contrast": {
+                "low":    Option(1,  type=valid_number.mk(min=0, max=255)),
+                "normal": Option(64, type=valid_number.mk(min=0, max=255)),
+            },
+
+            "kvmd": {
+                "unix":    Option("/run/kvmd/kvmd.sock", type=valid_abs_path, unpack_as="unix_path"),
+                "timeout": Option(5.0, type=valid_float_f01),
+            },
+        },
     }

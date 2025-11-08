@@ -84,7 +84,7 @@ class Sensors:
             self.__kvmd_task.cancel()
 
     async def __kvmd_task_loop(self) -> None:
-        logger = get_logger()
+        logger = get_logger(0)
         assert self.__kvmd
         while True:
             try:

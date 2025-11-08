@@ -92,3 +92,8 @@ vnc:
             sink: "kvmd::ustreamer::jpeg"
         h264:
             sink: "kvmd::ustreamer::h264"
+
+
+oled:
+    height: 64
+    rotate: 2
