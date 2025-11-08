@@ -22,6 +22,10 @@ SpiDev.no_cs
 SpiDev.cshigh
 SpiDev.max_speed_hz
 
+Pwm.get_period_ns
+Pwm.get_polarity
+Pwm.set_polarity
+
 _DriveImage.complete
 
 _AtxApiPart.switch_power

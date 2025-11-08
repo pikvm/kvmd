@@ -24,8 +24,6 @@
 from typing import Callable
 from typing import Any
 
-from periphery import PWM
-
 from ...logging import get_logger
 
 from ... import tools
@@ -35,6 +33,8 @@ from ...yamlconf import Option
 
 from ...validators.basic import valid_int_f0
 from ...validators.hw import valid_gpio_pin
+
+from ...pwm import Pwm
 
 from . import GpioDriverOfflineError
 from . import UserGpioModes
@@ -62,7 +62,7 @@ class Plugin(BaseUserGpioDriver):
         self.__duty_cycle_release = duty_cycle_release
 
         self.__channels: dict[int, (bool | None)] = {}
-        self.__pwms: dict[int, PWM] = {}
+        self.__pwms: dict[int, Pwm] = {}
 
     @classmethod
     def get_plugin_options(cls) -> dict:
@@ -89,11 +89,11 @@ class Plugin(BaseUserGpioDriver):
         for (pin, initial) in self.__channels.items():
             try:
                 logger.info("Probing pwm chip %d channel %d ...", self.__chip, pin)
-                pwm = PWM(self.__chip, pin)
+                pwm = Pwm(self.__chip, pin)
                 self.__pwms[pin] = pwm
-                pwm.period_ns = self.__period
-                pwm.duty_cycle_ns = self.__get_duty_cycle(bool(initial))
-                pwm.enable()
+                pwm.set_period_ns(self.__period)
+                pwm.set_duty_cycle_ns(self.__get_duty_cycle(bool(initial)))
+                pwm.set_enabled(True)
             except Exception as ex:
                 logger.error("Can't get PWM chip %d channel %d: %s",
                              self.__chip, pin, tools.efmt(ex))
@@ -101,21 +101,23 @@ class Plugin(BaseUserGpioDriver):
     async def cleanup(self) -> None:
         for (pin, pwm) in self.__pwms.items():
             try:
-                pwm.disable()
-                pwm.close()
+                try:
+                    pwm.set_enabled(False)
+                finally:
+                    pwm.close()
             except Exception as ex:
                 get_logger(0).error("Can't cleanup PWM chip %d channel %d: %s",
                                     self.__chip, pin, tools.efmt(ex))
 
     async def read(self, pin: str) -> bool:
         try:
-            return (self.__pwms[int(pin)].duty_cycle_ns == self.__duty_cycle_push)
+            return (self.__pwms[int(pin)].get_duty_cycle_ns() == self.__duty_cycle_push)
         except Exception:
             raise GpioDriverOfflineError(self)
 
     async def write(self, pin: str, state: bool) -> None:
         try:
-            self.__pwms[int(pin)].duty_cycle_ns = self.__get_duty_cycle(state)
+            self.__pwms[int(pin)].set_duty_cycle_ns(self.__get_duty_cycle(state))
         except Exception:
             raise GpioDriverOfflineError(self)
 
@@ -123,6 +125,6 @@ class Plugin(BaseUserGpioDriver):
         return (self.__duty_cycle_push if state else self.__duty_cycle_release)
 
     def __str__(self) -> str:
-        return f"PWM({self._instance_name})"
+        return f"Pwm({self._instance_name})"
 
     __repr__ = __str__
