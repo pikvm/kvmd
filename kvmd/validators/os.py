@@ -110,5 +110,5 @@ def valid_command(arg: Any) -> list[str]:
     cmd = valid_options(arg, name="command")
     if len(cmd) == 0:
         raise_error(arg, "command")
-    cmd[0] = valid_abs_file(cmd[0], name="command entry point")
+    cmd[0] = valid_abs_path(cmd[0], name="command entry point")
     return cmd

@@ -55,8 +55,6 @@ from ..validators.auth import valid_users_list
 from ..validators.auth import valid_expire
 
 from ..validators.os import valid_abs_path
-from ..validators.os import valid_abs_file
-from ..validators.os import valid_abs_dir
 from ..validators.os import valid_unix_mode
 from ..validators.os import valid_options
 from ..validators.os import valid_command
@@ -306,10 +304,10 @@ def make_config_scheme() -> dict:
             },
 
             "info": {  # Accessed via global config, see kvmd/info for details
-                "meta":   Option("/etc/kvmd/meta.yaml",    type=valid_abs_file),
-                "extras": Option("/usr/share/kvmd/extras", type=valid_abs_dir),
+                "meta":   Option("/etc/kvmd/meta.yaml",    type=valid_abs_path),
+                "extras": Option("/usr/share/kvmd/extras", type=valid_abs_path),
                 "hw": {
-                    "platform":      Option("/usr/lib/kvmd/platform", type=valid_abs_file, unpack_as="platform_path"),
+                    "platform":      Option("/usr/lib/kvmd/platform", type=valid_abs_path, unpack_as="platform_path"),
                     "vcgencmd_cmd":  Option(["/usr/bin/vcgencmd"], type=valid_command),
                     "ignore_past":   Option(False, type=valid_bool),
                     "state_poll":    Option(5.0,   type=valid_float_f01),
@@ -334,7 +332,7 @@ def make_config_scheme() -> dict:
 
             "hid": {
                 "type": Option("", type=valid_stripped_string_not_empty),
-                "keymap": Option("/usr/share/kvmd/keymaps/en-us", type=valid_abs_file),
+                "keymap": Option("/usr/share/kvmd/keymaps/en-us", type=valid_abs_path),
                 # Dynamic content
             },
 
@@ -651,7 +649,7 @@ def make_config_scheme() -> dict:
             },
 
             "auth": {
-                "file": Option("/etc/kvmd/ipmipasswd", type=valid_abs_file, unpack_as="path"),
+                "file": Option("/etc/kvmd/ipmipasswd", type=valid_abs_path, unpack_as="path"),
             },
 
             "sol": {
@@ -665,7 +663,7 @@ def make_config_scheme() -> dict:
         "vnc": {
             "desired_fps":     Option(30, type=valid_stream_fps),
             "mouse_output":    Option("usb", type=valid_hid_mouse_output),
-            "keymap":          Option("/usr/share/kvmd/keymaps/en-us", type=valid_abs_file),
+            "keymap":          Option("/usr/share/kvmd/keymaps/en-us", type=valid_abs_path),
             "scroll_rate":     Option(4,   type=valid_number.mk(min=1, max=30)),
 
             "server": {
@@ -685,8 +683,8 @@ def make_config_scheme() -> dict:
                     "ciphers": Option("ALL:@SECLEVEL=0", type=valid_ssl_ciphers, if_empty=""),
                     "timeout": Option(30.0, type=valid_float_f01),
                     "x509": {
-                        "cert": Option("/etc/kvmd/vnc/ssl/server.crt", type=valid_abs_file, if_empty=""),
-                        "key":  Option("/etc/kvmd/vnc/ssl/server.key", type=valid_abs_file, if_empty=""),
+                        "cert": Option("/etc/kvmd/vnc/ssl/server.crt", type=valid_abs_path, if_empty=""),
+                        "key":  Option("/etc/kvmd/vnc/ssl/server.key", type=valid_abs_path, if_empty=""),
                     },
                 },
             },
@@ -719,7 +717,7 @@ def make_config_scheme() -> dict:
             "auth": {
                 "vncauth": {
                     "enabled": Option(False, type=valid_bool, unpack_as="vncpass_enabled"),
-                    "file":    Option("/etc/kvmd/vncpasswd", type=valid_abs_file, unpack_as="vncpass_path"),
+                    "file":    Option("/etc/kvmd/vncpasswd", type=valid_abs_path, unpack_as="vncpass_path"),
                 },
                 "vencrypt": {
                     "enabled": Option(True, type=valid_bool, unpack_as="vencrypt_enabled"),

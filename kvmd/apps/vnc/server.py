@@ -76,8 +76,7 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
 
         desired_fps: int,
         mouse_output: str,
-        keymap_name: str,
-        symmap: dict[int, dict[int, int]],
+        keymap_path: str,
         scroll_rate: int,
 
         kvmd: KvmdClient,
@@ -98,7 +97,6 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
             tls_timeout=tls_timeout,
             x509_cert_path=x509_cert_path,
             x509_key_path=x509_key_path,
-            symmap=symmap,
             scroll_rate=scroll_rate,
             vncpasses=vncpasses,
             vencrypt=vencrypt,
@@ -108,7 +106,7 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
 
         self.__desired_fps = desired_fps
         self.__mouse_output = mouse_output
-        self.__keymap_name = keymap_name
+        self.__keymap_path = keymap_path
 
         self.__kvmd = kvmd
         self.__streamers = streamers
@@ -391,9 +389,10 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
             logger = get_logger(0)
             logger.info("%s [main]: Printing %d characters ...", self._remote, len(self.__clipboard))
             try:
+                default_kn = os.path.basename(self.__keymap_path)  # Get keymap name from the last component
                 (keymap_name, available) = await self.__kvmd_session.hid.get_keymaps()
-                if self.__keymap_name in available:
-                    keymap_name = self.__keymap_name
+                if default_kn in available:
+                    keymap_name = default_kn
                 await self.__kvmd_session.hid.print(self.__clipboard, 0, keymap_name)
             except Exception:
                 logger.exception("%s [main]: Can't print characters", self._remote)
@@ -436,6 +435,10 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
                            self._remote, quality, self.__desired_fps)
         await self.__kvmd_session.streamer.set_params(quality, self.__desired_fps)
 
+    async def _load_symmap_cache(self) -> dict[int, dict[int, int]]:
+        get_logger(0).info("%s [main]: Building symmap cache ...", self._remote)
+        return build_symmap(self.__keymap_path)
+
 
 # =====
 class VncServer:  # pylint: disable=too-many-instance-attributes
@@ -472,9 +475,6 @@ class VncServer:  # pylint: disable=too-many-instance-attributes
         self.__host = network.get_listen_host(host)
         self.__port = port
         self.__max_clients = max_clients
-
-        keymap_name = os.path.basename(keymap_path)
-        symmap = build_symmap(keymap_path)
 
         self.__vncpass_enabled = vncpass_enabled
         self.__vncpass_path = vncpass_path
@@ -519,8 +519,7 @@ class VncServer:  # pylint: disable=too-many-instance-attributes
                     x509_key_path=x509_key_path,
                     desired_fps=desired_fps,
                     mouse_output=mouse_output,
-                    keymap_name=keymap_name,
-                    symmap=symmap,
+                    keymap_path=keymap_path,
                     scroll_rate=scroll_rate,
                     kvmd=kvmd,
                     streamers=streamers,

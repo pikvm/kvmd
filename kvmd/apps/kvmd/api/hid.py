@@ -32,6 +32,8 @@ from typing import Callable
 from aiohttp.web import Request
 from aiohttp.web import Response
 
+from ....logging import get_logger
+
 from ....keyboard.mappings import WEB_TO_EVDEV
 from ....keyboard.keysym import build_symmap
 from ....keyboard.printer import text_to_evdev_keys
@@ -70,8 +72,7 @@ class HidApi:
         self.__hid = hid
 
         self.__keymaps_dir_path = os.path.dirname(keymap_path)
-        self.__default_keymap_name = os.path.basename(keymap_path)
-        self.__ensure_symmap(self.__default_keymap_name)
+        self.__default_kn = os.path.basename(keymap_path)
 
     # =====
 
@@ -112,13 +113,17 @@ class HidApi:
 
     async def get_keymaps(self) -> dict:  # Ugly hack to generate hid_keymaps_state (see server.py)
         keymaps: set[str] = set()
-        for keymap_name in os.listdir(self.__keymaps_dir_path):
-            path = os.path.join(self.__keymaps_dir_path, keymap_name)
-            if os.access(path, os.R_OK) and stat.S_ISREG(os.stat(path).st_mode):
-                keymaps.add(keymap_name)
+        try:
+            for keymap_name in os.listdir(self.__keymaps_dir_path):
+                path = os.path.join(self.__keymaps_dir_path, keymap_name)
+                if os.access(path, os.R_OK) and stat.S_ISREG(os.stat(path).st_mode):
+                    keymaps.add(keymap_name)
+        except Exception:
+            keymaps = set()
+            get_logger(0).exception("Can't load keymaps list")
         return {
             "keymaps": {
-                "default": self.__default_keymap_name,
+                "default": self.__default_kn,
                 "available": sorted(keymaps),
             },
         }
@@ -133,7 +138,7 @@ class HidApi:
         limit = valid_int_f0(req.query.get("limit", 1024))
         if limit > 0:
             text = text[:limit]
-        symmap = self.__ensure_symmap(req.query.get("keymap", self.__default_keymap_name))
+        symmap = self.__ensure_symmap(req.query.get("keymap", self.__default_kn))
         slow = valid_bool(req.query.get("slow", False))
         delay = float(valid_number(
             arg=req.query.get("delay", (0.02 if slow else 0)),

@@ -22,7 +22,7 @@
 
 from ...yamlconf import Option
 
-from ...validators.os import valid_abs_file
+from ...validators.os import valid_abs_path
 
 from ...crypto import KvmdHtpasswdFile
 
@@ -37,7 +37,7 @@ class Plugin(BaseAuthService):
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "file": Option("/etc/kvmd/htpasswd", type=valid_abs_file, unpack_as="path"),
+            "file": Option("/etc/kvmd/htpasswd", type=valid_abs_path, unpack_as="path"),
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:

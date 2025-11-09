@@ -140,18 +140,15 @@ def test_fail__valid_unix_mode(arg: Any) -> None:
     (["/bin/true", 1, 2, 3], ["/bin/true", "1", "2", "3"]),
     ("/bin/true, 1, 2, 3,",  ["/bin/true", "1", "2", "3"]),
     ("/bin/true",            ["/bin/true"]),
+    ("/bin/blahblahblah",    ["/bin/blahblahblah"]),
 ])
 def test_ok__valid_command(arg: Any, retval: list[str]) -> None:
     assert valid_command(arg) == retval
 
 
 @pytest.mark.parametrize("arg", [
-    ["/bin/blahblahblah"],
-    ["/bin/blahblahblah", 1, 2, 3],
     [" "],
     [],
-    "/bin/blahblahblah, 1, 2, 3,",
-    "/bin/blahblahblah",
     " ",
 ])
 def test_fail__valid_command(arg: Any) -> None:
