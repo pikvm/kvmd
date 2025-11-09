@@ -75,12 +75,12 @@ export function Keyboard(__recordWsEvent) {
 			null,
 			["<None>", ""],
 		]) {
-			if ((tools.browser.is_apple || tools.browser.is_win) && kv[1].startsWith("Meta")) {
-				continue;
-			}
 			if (kv === null) {
 				tools.selector.addSeparator(__el_magic, 8);
 			} else {
+				if ((tools.browser.is_apple || tools.browser.is_win) && kv[1].startsWith("Meta")) {
+					continue;
+				}
 				tools.selector.addOption(__el_magic, kv[0], kv[1], (kv[1] === sel));
 			}
 		}
