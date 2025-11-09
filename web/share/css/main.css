@@ -147,7 +147,7 @@ select[size]::-webkit-scrollbar-thumb {
 	}
 }
 select:not([size]) {
-	padding-right: 25px;
+	padding: 4px 25px 4px 8px;
 }
 button.small {
 	font-size: 12px;

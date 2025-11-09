@@ -33,6 +33,7 @@ export function Keyboard(__recordWsEvent) {
 	var __online = true;
 
 	var __keypad = null;
+	var __el_magic = null;
 
 	var __init__ = function() {
 		__keypad = new Keypad($("keyboard-window"), __sendKey);
@@ -54,6 +55,38 @@ export function Keyboard(__recordWsEvent) {
 
 		tools.storage.bindSimpleSwitch($("hid-keyboard-bad-link-switch"), "hid.keyboard.bad_link", false);
 		tools.storage.bindSimpleSwitch($("hid-keyboard-swap-cc-switch"), "hid.keyboard.swap_cc", false);
+
+		__el_magic = $("hid-keyboard-magic-selector");
+		let alt = (tools.browser.is_apple ? "Option" : "Alt");
+		let meta = (tools.browser.is_win ? "Win" : "Meta");
+		let sel = tools.storage.get("hid.keyboard.magic", (tools.browser.is_apple ? "AltRight" : "ControlRight"));
+		for (let kv of [
+			["Ctrl Left", "ControlLeft"],
+			[`${alt} Left`, "AltLeft"],
+			["Shift Left", "ShiftLeft"],
+			[`${meta} Left`, "MetaLeft"],
+			null,
+			["Ctrl Right", "ControlRight"],
+			[`${alt} Right`, "AltRight"],
+			["Shift Right", "ShiftRight"],
+			[`${meta} Right`, "MetaRight"],
+			null,
+			["Menu Key", "ContextMenu"],
+			null,
+			["<None>", ""],
+		]) {
+			if ((tools.browser.is_apple || tools.browser.is_win) && kv[1].startsWith("Meta")) {
+				continue;
+			}
+			if (kv === null) {
+				tools.selector.addSeparator(__el_magic, 8);
+			} else {
+				tools.selector.addOption(__el_magic, kv[0], kv[1], (kv[1] === sel));
+			}
+		}
+		__el_magic.addEventListener("change", function() {
+			tools.storage.set("hid.keyboard.magic", __el_magic.value);
+		});
 	};
 
 	/************************************************************************/
@@ -185,7 +218,6 @@ export function Keyboard(__recordWsEvent) {
 		__keypad.emit(code, state);
 	};
 
-	var __magic_key = (new URL(window.location.href)).searchParams.get("magic");
 	var __magic_pressed = false;
 	var __magic_pressed_ts = 0;
 	var __magic_started = false;
@@ -194,12 +226,12 @@ export function Keyboard(__recordWsEvent) {
 	var __all_mods = {
 		"ControlLeft": "Ctrl L",
 		"ControlRight": "Ctrl R",
-		"AltLeft": (tools.browser.is_mac ? "Option L" : "Alt L"),
-		"AltRight": (tools.browser.is_mac ? "Option R" : "Alt R"),
+		"AltLeft": (tools.browser.is_apple ? "Option L" : "Alt L"),
+		"AltRight": (tools.browser.is_apple ? "Option R" : "Alt R"),
 		"ShiftLeft": "Shift L",
 		"ShiftRight": "Shift R",
-		"MetaLeft": (tools.browser.is_mac ? "Cmd L" : "Meta L"),
-		"MetaRight": (tools.browser.is_mac ? "Cmd R" : "Meta R"),
+		"MetaLeft": (tools.browser.is_apple ? "Cmd L" : "Meta L"),
+		"MetaRight": (tools.browser.is_apple ? "Cmd R" : "Meta R"),
 	};
 
 	var __isModifier = function(code) {
@@ -256,7 +288,7 @@ export function Keyboard(__recordWsEvent) {
 				code = "ControlLeft";
 			}
 		}
-		if (__magic_key !== null && code === __magic_key) {
+		if (code === __el_magic.value) {
 			let now_ts = new Date().getTime();
 			__magic_pressed = state;
 			if (state) {

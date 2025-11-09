@@ -96,6 +96,7 @@ export var browser = new function() {
 		"is_ios": is_ios,
 		"is_android": is_android,
 		"is_mobile": (is_ios || is_android),
+		"is_apple": (is_mac || is_ios),
 	};
 
 	console.log("===== BB flags:", flags);
