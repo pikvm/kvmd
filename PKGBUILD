@@ -114,8 +114,11 @@ depends=(
 	parted
 	e2fsprogs
 	openssh
+	# FIXME:
+	#   - https://archlinuxarm.org/forum/viewtopic.php?f=15&t=17007&p=72789
+	#   - https://github.com/pikvm/pikvm/issues/1375
+	wpa_supplicant-pikvm
 	run-parts
-	"wpa_supplicant>=2:2.11-3"
 
 	# fsck for /boot
 	dosfstools
@@ -135,7 +138,6 @@ conflicts=(
 	platformio
 	avrdude-pikvm
 	kvmd-oled
-	wpa_supplicant-pikvm
 
 	# See kvmd/crypto.py
 	python-bcrypt
