@@ -39,6 +39,14 @@ export function Msd() {
 	var __init__ = function() {
 		$("msd-led").title = "Unknown state";
 
+		tools.radio.clickValue("msd-sorting-radio", tools.storage.get("msd.sorting", "name"));
+		tools.radio.setOnClick("msd-sorting-radio", function() {
+			tools.storage.set("msd.sorting", tools.radio.getValue("msd-sorting-radio"));
+			if (__state && __state.drive && __state.storage && __state.storage.images !== undefined) {
+				__updateImageSelector(__state.drive, __state.storage.images);
+			}
+		}, false);
+
 		tools.selector.addOption($("msd-image-selector"), "\u2500 Not selected \u2500", "");
 		$("msd-image-selector").onchange = __selectImage;
 
@@ -232,7 +240,15 @@ export function Msd() {
 		let sel = "";
 		let el = $("msd-image-selector");
 		el.options.length = 1;
-		for (let name of Object.keys(images).sort()) {
+
+		let names = Object.keys(images);
+		if (tools.radio.getValue("msd-sorting-radio") === "mtime") {
+			names = names.sort((a, b) => (images[b].mod_ts - images[a].mod_ts));
+		} else {
+			names = names.sort();
+		}
+
+		for (let name of names) {
 			tools.selector.addSeparator(el);
 			tools.selector.addOption(el, name, name);
 			tools.selector.addComment(el, __makeImageSelectorInfo(images[name]));
