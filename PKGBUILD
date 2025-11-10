@@ -117,6 +117,8 @@ depends=(
 	# FIXME:
 	#   - https://archlinuxarm.org/forum/viewtopic.php?f=15&t=17007&p=72789
 	#   - https://github.com/pikvm/pikvm/issues/1375
+	# Update at 2025.11.10: Still not fixed.
+	#   - https://github.com/pikvm/pikvm/issues/1604
 	wpa_supplicant-pikvm
 	run-parts
 
