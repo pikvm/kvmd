@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import dataclasses
 import enum
 import contextlib
 
@@ -35,6 +36,11 @@ class ConfigError(ValueError):
 
 # =====
 class Stub:
+    pass
+
+
+@dataclasses.dataclass(slots=True, frozen=True)
+class Dynamic:
     pass
 
 
