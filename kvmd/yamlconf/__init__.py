@@ -136,11 +136,11 @@ def make_config(
 
     config = Section()
 
-    def make_full_path(key: str) -> tuple[str, ...]:
-        return _path + (key,)
+    def make_full_path(*kwargs: str) -> tuple[str, ...]:
+        return _path + kwargs
 
-    def make_full_name(key: str) -> str:
-        return "/".join(make_full_path(key))
+    def make_full_name(*kwargs: str) -> str:
+        return "/".join(make_full_path(*kwargs))
 
     def validate_one(key: str) -> None:
         if isinstance(scheme[key], Option):
