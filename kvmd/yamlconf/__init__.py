@@ -142,7 +142,7 @@ def make_config(
     def make_full_name(key: str) -> str:
         return "/".join(make_full_path(key))
 
-    for key in scheme:
+    def validate_one(key: str) -> None:
         if isinstance(scheme[key], Option):
             option: Option = scheme[key]
             if key in main and option.default != main[key]:
@@ -173,4 +173,8 @@ def make_config(
         else:
             raise RuntimeError(f"Incorrect scheme definition for key {make_full_name(key)!r}:"
                                f" the value is {type(scheme[key])!r}, not dict() or Option()")
+
+    for key in scheme:
+        validate_one(key)
+
     return config
