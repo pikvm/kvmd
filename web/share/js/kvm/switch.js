@@ -305,11 +305,21 @@ export function Switch() {
 	var __applySummary = function(summary) {
 		let active = summary.active_port;
 		if (!__state.summary || __state.summary.active_port !== active) {
+			let caption = "";
 			if (active < 0 || active >= __state.model.ports.length) {
-				$("switch-active-port").innerText = "N/A";
+				caption = "N/A";
 			} else {
-				$("switch-active-port").innerText = "p" + summary.active_id;
+				caption = "p" + summary.active_id;
+				let pa = __state.model.ports[summary.active_port];
+				if (pa && pa.name.length > 0) {
+					let name = pa.name;
+					if (name.length > 8) {
+						name = name.slice(0, 8) + "~";
+					}
+					caption += " " + name;
+				}
 			}
+			$("switch-active-port").innerText = caption;
 			for (let port = 0; port < __state.model.ports.length; ++port) {
 				__setLedState($(`__switch-port-led-p${port}`), "green", (port === active));
 			}
