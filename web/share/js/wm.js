@@ -459,11 +459,12 @@ function __WindowManager() {
 			let el_menu = el_bt.parentElement.querySelector(".menu");
 			if (el_bt === el_a && window.getComputedStyle(el_menu, null).visibility === "hidden") {
 				let rect = el_menu.getBoundingClientRect();
-				let offset = self.getViewGeometry().right - (rect.left + el_menu.clientWidth + 2); // + 2 is ugly hack
+				let offset = self.getViewGeometry().right - (rect.left + el_menu.offsetWidth);
 				if (offset < 0) {
 					el_menu.style.right = "0px";
 				} else {
-					el_menu.style.removeProperty("right");
+					// Fixes the menu on their place when opened
+					el_menu.style.right = `${offset}px`;
 				}
 
 				el_bt.classList.add("menu-button-pressed");
