@@ -188,6 +188,9 @@ def make_config(
     elif dynamic_schema:
         for key in extra_keys:
             validate_one(key, dynamic_schema[0])
+    # TODO: add an "anything-goes" marker to permit non-validated extra keys,
+    #       then update schema to use this marker everywhere we expect free-form dynamic content
+    #       and finally make unexpected extra keys illegal
     # elif extra_keys:
     #     raise RuntimeError(f"Invalid data at path {make_full_name()!r}: "
     #                        f"unknown keys: {extra_keys}")
