@@ -45,7 +45,6 @@ from ....validators.auth import valid_auth_token
 
 from ..auth import AuthManager
 
-
 # =====
 _COOKIE_AUTH_TOKEN = "auth_token"
 
