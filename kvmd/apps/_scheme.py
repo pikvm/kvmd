@@ -26,6 +26,7 @@ from ..tools import walk_dict
 from ..tools import is_dict
 
 from ..plugins.auth import get_auth_service_class
+from ..plugins.oauth import get_oauth_provider_class
 from ..plugins.hid import get_hid_class
 from ..plugins.atx import get_atx_class
 from ..plugins.msd import get_msd_class
@@ -50,7 +51,6 @@ from ..validators.basic import valid_int_f1
 from ..validators.basic import valid_float_f0
 from ..validators.basic import valid_float_f01
 from ..validators.basic import valid_string_list
-from ..validators.basic import valid_dict
 
 from ..validators.auth import valid_user
 from ..validators.auth import valid_users_list
@@ -178,12 +178,32 @@ def patch_dynamic(  # pylint: disable=too-many-locals
     if load_all:
         load_auth = load_hid = load_atx = load_msd = load_gpio = True
 
+    if load_gpio or load_auth:
+        raw = copy.deepcopy(main)
+        yaml_merge(raw, override)
+
     rebuild = False
 
     if load_auth:
         scheme["kvmd"]["auth"]["internal"].update(get_auth_service_class(config.kvmd.auth.internal.type).get_plugin_options())
         if config.kvmd.auth.external.type:
             scheme["kvmd"]["auth"]["external"].update(get_auth_service_class(config.kvmd.auth.external.type).get_plugin_options())
+        if config.kvmd.auth.flows:
+            for (flow, params) in walk_dict(raw, "kvmd", "auth", "flows").items():
+                scheme["kvmd"]["auth"]["flows"][flow] = {
+                    "enabled":   Option(False, type=valid_bool),
+                    "providers": {},  # Dynamic content
+                }
+                # FIXME: dirty, OAuth details leak into generic code
+                # XXX: how does this interact with dynamic schema keys code that I wrote?
+                if flow == "oauth" and params.get("enabled"):
+                    for (provider, params) in walk_dict(params, "providers").items():
+                        provider_type = valid_stripped_string_not_empty(params.get("type", "oauth2"))
+                        provider_class = get_oauth_provider_class(provider_type)
+                        scheme["kvmd"]["auth"]["flows"][flow]["providers"][provider] = {
+                            "type": Option(provider_type, type=valid_stripped_string_not_empty),
+                            **provider_class.get_plugin_options(),
+                        }
         rebuild = True
 
     for (load, section, get_class) in [
@@ -196,9 +216,6 @@ def patch_dynamic(  # pylint: disable=too-many-locals
             rebuild = True
 
     if load_gpio:
-        raw = copy.deepcopy(main)
-        yaml_merge(raw, override)
-
         driver: str
         drivers: dict[str, type[BaseUserGpioDriver]] = {}  # Name to drivers
         for (driver, params) in {  # type: ignore
@@ -324,11 +341,12 @@ def make_config_scheme() -> dict:
                 },
 
                 "flows": {
-                    # Dynamic content ("oauth", ...)
+                    # Dynamic content
                     Dynamic(): {
-                        "enabled": Option(False, type=valid_bool),
-                        Dynamic(): Option({}, type=valid_dict),
-                        # Dynamic content ("providers" for oauth, ...)
+                        "enabled":   Option(False, type=valid_bool),
+                        "providers": {
+                            # Dynamic content
+                        },
                     }
                 },
             },
