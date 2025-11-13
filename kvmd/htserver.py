@@ -349,8 +349,43 @@ class WsSession:
         await self.wsr.send_bytes(data)
 
 
-class HttpServer:
+class HttpRouterBase:
     def __init__(self) -> None:
+        self._app: Application | None = None
+
+    # =====
+
+    def _add_exposed(self, *objs: object) -> None:
+        for obj in objs:
+            for http_exposed in _get_exposed_http(obj):
+                self.__add_exposed_http(http_exposed)
+
+    def __add_exposed_http(self, exposed: HttpExposed) -> None:
+        assert self._app is not None
+
+        async def wrapper(req: Request) -> Response:
+            try:
+                await self._check_request_auth(exposed, req)
+                return (await exposed.handler(req))
+            except IsBusyError as ex:
+                return make_json_exception(ex, 409)
+            except (ValidatorError, OperationError) as ex:
+                return make_json_exception(ex, 400)
+            except HttpError as ex:
+                return make_json_exception(ex)
+        self._app.router.add_route(exposed.method, exposed.path, wrapper)
+
+    # =====
+
+    async def _check_request_auth(self, exposed: HttpExposed, req: Request) -> None:
+        pass
+
+    # =====
+
+
+class HttpServer(HttpRouterBase):
+    def __init__(self) -> None:
+        super().__init__()
         self.__ws_heartbeat: (float | None) = None
         self.__ws_handlers: dict[str, Callable] = {}
         self.__ws_bin_handlers: dict[int, Callable] = {}
@@ -387,24 +422,10 @@ class HttpServer:
     # =====
 
     def _add_exposed(self, *objs: object) -> None:
+        super()._add_exposed(*objs)
         for obj in objs:
-            for http_exposed in _get_exposed_http(obj):
-                self.__add_exposed_http(http_exposed)
             for ws_exposed in _get_exposed_ws(obj):
                 self.__add_exposed_ws(ws_exposed)
-
-    def __add_exposed_http(self, exposed: HttpExposed) -> None:
-        async def wrapper(req: Request) -> Response:
-            try:
-                await self._check_request_auth(exposed, req)
-                return (await exposed.handler(req))
-            except IsBusyError as ex:
-                return make_json_exception(ex, 409)
-            except (ValidatorError, OperationError) as ex:
-                return make_json_exception(ex, 400)
-            except HttpError as ex:
-                return make_json_exception(ex)
-        self.__app.router.add_route(exposed.method, exposed.path, wrapper)
 
     def __add_exposed_ws(self, exposed: WsExposed) -> None:
         if exposed.binary:
@@ -514,7 +535,7 @@ class HttpServer:
     # =====
 
     async def __make_app(self) -> Application:
-        self.__app = Application(middlewares=[normalize_path_middleware(  # pylint: disable=attribute-defined-outside-init
+        self._app = Application(middlewares=[normalize_path_middleware(
             append_slash=False,
             remove_slash=True,
             merge_slashes=True,
@@ -522,14 +543,14 @@ class HttpServer:
 
         async def on_shutdown(_: Application) -> None:
             await self._on_shutdown()
-        self.__app.on_shutdown.append(on_shutdown)
+        self._app.on_shutdown.append(on_shutdown)
 
         async def on_cleanup(_: Application) -> None:
             await self._on_cleanup()
-        self.__app.on_cleanup.append(on_cleanup)
+        self._app.on_cleanup.append(on_cleanup)
 
         await self._init_app()
-        return self.__app
+        return self._app
 
     def __run_app_print(self, text: str) -> None:
         logger = get_logger(0)
