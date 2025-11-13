@@ -136,6 +136,8 @@ run: testenv $(TESTENV_GPIO)
 			&& ln -s /testenv/web.css /etc/kvmd/web.css \
 			&& mkdir -p /etc/kvmd/override.d \
 			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
+			&& cp -r /usr/share/kvmd/configs.default/kvmd/override.d -T /etc/kvmd/override.d \
+			&& cp /usr/share/kvmd/configs.default/kvmd/override.yaml /etc/kvmd/override.d/99-override.yaml \
 			&& python -m kvmd.apps.ngxmkconf /etc/kvmd/nginx/nginx.conf.mako /etc/kvmd/nginx/nginx.conf \
 			&& nginx -c /etc/kvmd/nginx/nginx.conf -g 'user http; error_log stderr;' \
 			&& ln -s $(TESTENV_VIDEO) /dev/kvmd-video \
