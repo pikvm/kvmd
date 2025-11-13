@@ -44,6 +44,7 @@ def main() -> None:
             "kvmd.plugins",
             "kvmd.plugins.auth",
             "kvmd.plugins.flows",
+            "kvmd.plugins.oauth",
             "kvmd.plugins.hid",
             "kvmd.plugins.hid._mcu",
             "kvmd.plugins.hid.otg",
