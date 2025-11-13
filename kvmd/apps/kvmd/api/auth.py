@@ -22,9 +22,12 @@
 
 import base64
 
+from typing import Any
+
 from aiohttp.web import Request
 from aiohttp.web import Response
 from aiohttp.web import HTTPFound
+from aiohttp.web import HTTPNotFound
 
 from ....htserver import UnauthorizedError
 from ....htserver import ForbiddenError
@@ -143,3 +146,34 @@ class AuthApi:
     @exposed_http("GET", "/auth/check", allow_usc=False)
     async def __check_handler(self, _: Request) -> Response:
         return make_json_response()
+
+    @exposed_http("GET", "/auth/flows", auth_required=False, allow_usc=False)
+    async def __flows_list_handler(self, _: Request) -> Response:
+        return make_json_response(result={
+            "flows": list(self.__auth_manager.flow_managers.keys()),
+        })
+
+    @exposed_http("GET", "/auth/flow/{name}/check", auth_required=False, allow_usc=False)
+    async def __flow_check_handler(self, req: Request) -> Response:
+        name = req.match_info["name"]
+        plugin = self.__auth_manager.flow_managers.get(name)
+        response: dict[str, Any] = {}
+        if plugin is None:
+            response.update({"enabled": False})
+        else:
+            response.update({"enabled": True})
+            # TODO: perhaps invoke the flow plugin for additional data
+            #       and merge this handler with OAuth-specific /auth/flow/oauth/providers?
+            #       (see oauth.Plugin.__oauth_providers())
+            # response |= await plugin.check(req)
+        response["available"] = response["enabled"]
+        return make_json_response(result=response)
+
+    @exposed_http("GET", "/auth/flow/{name}/{subpath:.+}", auth_required=False, allow_usc=False)
+    async def __flow_req_handler(self, req: Request) -> Response:
+        name = req.match_info["name"]
+        subpath = req.match_info["subpath"]
+        plugin = self.__auth_manager.flow_managers.get(name)
+        if plugin is None:
+            raise HTTPNotFound(reason=f"Auth method \"{name}\" does not exist")
+        return await plugin.dispatch(req, subpath)
