@@ -172,8 +172,7 @@ class AuthApi:
     @exposed_http("GET", "/auth/flow/{name}/{subpath:.+}", auth_required=False, allow_usc=False)
     async def __flow_req_handler(self, req: Request) -> Response:
         name = req.match_info["name"]
-        subpath = req.match_info["subpath"]
         plugin = self.__auth_manager.flow_managers.get(name)
         if plugin is None:
             raise HTTPNotFound(reason=f"Auth method \"{name}\" does not exist")
-        return await plugin.dispatch(req, subpath)
+        return await plugin.dispatch(req, None)
