@@ -138,7 +138,7 @@ class _DebouncedValue:
         self.__loop = loop
 
         self.__queue: "asyncio.Queue[bool]" = asyncio.Queue()  # type: ignore
-        self.__task = loop.create_task(self.__consumer_task_loop())
+        self.__task = asyncio.run_coroutine_threadsafe(self.__consumer_task_loop(), loop)
 
     def set(self, value: bool) -> None:
         if self.__loop.is_running():
