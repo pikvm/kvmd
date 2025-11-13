@@ -100,3 +100,5 @@ RequestUnixCredentials.pid
 RequestUnixCredentials.gid
 
 KvmdClientWs.send_mouse_relative_event
+
+Request._match_info
