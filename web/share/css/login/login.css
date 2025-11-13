@@ -46,8 +46,12 @@ img#login-logo {
 	height: 30px;
 }
 
-button#login-button {
-	width: 100%;
+button.login-button {
+    width: 100%;
+}
+
+button.login-button-secondary {
+    width: 100%;
 }
 
 input[type="text"]#user-input,
