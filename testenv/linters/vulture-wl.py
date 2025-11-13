@@ -102,3 +102,7 @@ RequestUnixCredentials.gid
 KvmdClientWs.send_mouse_relative_event
 
 Request._match_info
+
+# flows.oauth.User -- entire class unused right now, probably will be needed later
+flows.oauth.User.__provider
+flows.oauth.User.__provider_data
