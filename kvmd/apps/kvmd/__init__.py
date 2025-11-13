@@ -89,6 +89,12 @@ def main() -> None:
             ext_kwargs=(config.auth.external._unpack(ignore=["type"]) if config.auth.external.type else {}),
 
             totp_secret_path=config.auth.totp.secret.file,
+
+            flows={
+                k: v._unpack(ignore=["enabled"]) if v.enabled else None
+                for k, v
+                in config.auth.flows.items()
+            },
         ),
         info_manager=InfoManager(global_config),
         log_reader=(LogReader() if config.log_reader.enabled else None),
