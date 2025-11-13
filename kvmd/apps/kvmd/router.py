@@ -52,9 +52,13 @@ class HttpRouter(HttpRouterBase):
     def add_exposed(self, *objs: object) -> None:
         self._add_exposed(*objs)
 
-    async def dispatch(self, req: Request, subpath: str) -> Response:
+    async def dispatch(self, req: Request, subpath: str | None) -> Response:
         assert self._app is not None
-        subreq = req.clone(rel_url='/' + subpath.removeprefix('/'))
+        subreq = (
+            req.clone(rel_url="/" + subpath.removeprefix("/"))
+            if subpath is not None
+            else req.clone()
+        )
         match_info = await self._app.router.resolve(subreq)
         if match_info.handler is None:
             # XXX can this happen?
