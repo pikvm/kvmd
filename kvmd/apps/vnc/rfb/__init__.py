@@ -98,7 +98,7 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
         self.__vencrypt = vencrypt
         self.__none_auth_only = none_auth_only
 
-        self.__symmap: dict[int, dict[int, int]] = {}
+        self.__symmap: (dict[int, dict[int, int]] | None) = None
 
         self.__rfb_version = 0
         self._encodings = RfbClientEncodings(frozenset())
