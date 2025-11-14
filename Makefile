@@ -14,6 +14,7 @@ USTREAMER_MIN_VERSION ?= $(shell grep -o 'ustreamer>=[^"]\+' PKGBUILD | sed 's/u
 DEFAULT_PLATFORM ?= v2-hdmi-rpi4
 
 DOCKER ?= docker
+DOCKER_BUILD ?= build
 
 
 # =====
@@ -48,7 +49,7 @@ all:
 
 
 testenv:
-	$(DOCKER) build \
+	$(DOCKER) $(DOCKER_BUILD) \
 			$(if $(call optbool,$(NC)),--no-cache,) \
 			--rm \
 			--tag $(TESTENV_IMAGE) \
