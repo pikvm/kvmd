@@ -1,4 +1,4 @@
-/*****************************************************************************
+# ========================================================================== #
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
@@ -17,46 +17,49 @@
 #    You should have received a copy of the GNU General Public License       #
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
-*****************************************************************************/
+# ========================================================================== #
 
 
-div#login-box {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	text-align: center;
-	min-height: 100vh;
-}
+from yarl import URL  # FIXME: remove this
 
-div#login {
-	text-align: left;
-	outline: none;
-	word-wrap: break-word;
-	max-width: 400px;
-	border: var(--border-window-default-thin);
-	border-radius: 8px;
-	box-sizing: border-box;
-	box-shadow: var(--shadow-big);
-	background-color: var(--cs-window-default-bg);
-	padding: 15px;
-}
+from .. import BasePlugin
+from .. import get_plugin_class
 
-img#login-logo {
-	height: 30px;
-}
 
-button.login-button {
-    width: 100%;
-}
+# =====
+class OAuthError(Exception):
+    pass
 
-button.login-button-secondary {
-    width: 100%;
-}
 
-input[type="text"]#user-input,
-input[type="password"]#passwd-input,
-input[type="text"]#code-input {
-	text-align: center;
-	border: thin;
-}
+class BaseOAuthProvider(BasePlugin):
+    def __init__(self, long_name: str) -> None:
+        self.__long_name = long_name
+
+    def get_long_name(self) -> str:
+        return self.__long_name
+
+    def is_redirect_from_provider(self, request_query: dict) -> bool:
+        raise NotImplementedError
+
+    def get_authorize_url(self, redirect_url: URL, session: dict) -> str:
+        raise NotImplementedError
+
+    async def get_user_info(
+        self,
+        oauth_session: dict,
+        request_query: dict,
+        redirect_url: URL,
+    ) -> str:
+
+        raise NotImplementedError
+
+    def register_new_session(self) -> dict:
+        raise NotImplementedError
+
+    def is_valid_session(self, oauth_session: dict) -> bool:
+        raise NotImplementedError
+
+
+# =====
+def get_oauth_provider_class(name: str) -> type[BaseOAuthProvider]:
+    return get_plugin_class("oauth", name)  # type: ignore

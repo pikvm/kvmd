@@ -37,6 +37,7 @@ from ..plugins.ugpio import get_ugpio_driver_class
 from ..yamlconf import Hint
 from ..yamlconf import Option
 from ..yamlconf import Section
+from ..yamlconf import Dynamic
 from ..yamlconf import manual_validated
 from ..yamlconf.merger import yaml_merge
 
@@ -49,6 +50,7 @@ from ..validators.basic import valid_int_f1
 from ..validators.basic import valid_float_f0
 from ..validators.basic import valid_float_f01
 from ..validators.basic import valid_string_list
+from ..validators.basic import valid_dict
 
 from ..validators.auth import valid_user
 from ..validators.auth import valid_users_list
@@ -300,6 +302,15 @@ def make_config_scheme() -> dict:
                     "secret": {
                         "file": Option("/etc/kvmd/totp.secret", type=valid_abs_path, if_empty=""),
                     },
+                },
+
+                "flows": {
+                    # Dynamic content ("oauth", ...)
+                    Dynamic(): {
+                        "enabled": Option(False, type=valid_bool),
+                        Dynamic(): Option({}, type=valid_dict),
+                        # Dynamic content ("providers" for oauth, ...)
+                    }
                 },
             },
 
