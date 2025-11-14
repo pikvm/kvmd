@@ -93,7 +93,9 @@ tox: testenv
 			&& cp /usr/share/kvmd/configs.default/kvmd/edid/v2.hex /etc/kvmd/switch-edid.hex \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /usr/lib/kvmd/main.yaml \
 			&& mkdir -p /etc/kvmd/override.d \
-			&& cp /src/testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
+			&& cp /src/testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.d/00-platform.yaml \
+			&& cp -r /usr/share/kvmd/configs.default/kvmd/override.d -T /etc/kvmd/override.d \
+			&& cp /usr/share/kvmd/configs.default/kvmd/override.yaml -T /etc/kvmd/override.yaml \
 			&& cd /src \
 			&& $(if $(CMD),$(CMD),tox -q -c testenv/tox.ini $(if $(E),-e $(E),-p auto)) \
 		"
@@ -139,9 +141,9 @@ run: testenv gpio
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /usr/lib/kvmd/main.yaml \
 			&& ln -s /testenv/web.css /etc/kvmd/web.css \
 			&& mkdir -p /etc/kvmd/override.d \
-			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
+			&& cp /src/testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.d/00-platform.yaml \
 			&& cp -r /usr/share/kvmd/configs.default/kvmd/override.d -T /etc/kvmd/override.d \
-			&& cp /usr/share/kvmd/configs.default/kvmd/override.yaml /etc/kvmd/override.d/99-override.yaml \
+			&& cp /usr/share/kvmd/configs.default/kvmd/override.yaml -T /etc/kvmd/override.yaml \
 			&& python -m kvmd.apps.ngxmkconf /etc/kvmd/nginx/nginx.conf.mako /etc/kvmd/nginx/nginx.conf \
 			&& nginx -c /etc/kvmd/nginx/nginx.conf -g 'user http; error_log stderr;' \
 			&& ln -s $(TESTENV_VIDEO) /dev/kvmd-video \
@@ -168,7 +170,9 @@ run-cfg: testenv
 			&& cp /usr/share/kvmd/configs.default/kvmd/edid/v2.hex /etc/kvmd/switch-edid.hex \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /usr/lib/kvmd/main.yaml \
 			&& mkdir -p /etc/kvmd/override.d \
-			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
+			&& cp /src/testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.d/00-platform.yaml \
+			&& cp -r /usr/share/kvmd/configs.default/kvmd/override.d -T /etc/kvmd/override.d \
+			&& cp /usr/share/kvmd/configs.default/kvmd/override.yaml -T /etc/kvmd/override.yaml \
 			&& $(if $(CMD),$(CMD),python -m kvmd.apps.kvmd -m) \
 		"
 
@@ -192,7 +196,9 @@ run-ipmi: testenv
 			&& cp /usr/share/kvmd/configs.default/kvmd/edid/v2.hex /etc/kvmd/switch-edid.hex \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /usr/lib/kvmd/main.yaml \
 			&& mkdir -p /etc/kvmd/override.d \
-			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
+			&& cp /src/testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.d/00-platform.yaml \
+			&& cp -r /usr/share/kvmd/configs.default/kvmd/override.d -T /etc/kvmd/override.d \
+			&& cp /usr/share/kvmd/configs.default/kvmd/override.yaml -T /etc/kvmd/override.yaml \
 			&& $(if $(CMD),$(CMD),python -m kvmd.apps.ipmi --run) \
 		"
 
@@ -217,7 +223,9 @@ run-vnc: testenv
 			&& cp /usr/share/kvmd/configs.default/kvmd/edid/v2.hex /etc/kvmd/switch-edid.hex \
 			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /usr/lib/kvmd/main.yaml \
 			&& mkdir -p /etc/kvmd/override.d \
-			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.yaml \
+			&& cp /src/testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.d/00-platform.yaml \
+			&& cp -r /usr/share/kvmd/configs.default/kvmd/override.d -T /etc/kvmd/override.d \
+			&& cp /usr/share/kvmd/configs.default/kvmd/override.yaml -T /etc/kvmd/override.yaml \
 			&& $(if $(CMD),$(CMD),python -m kvmd.apps.vnc --run) \
 		"
 
