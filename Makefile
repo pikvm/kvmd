@@ -4,12 +4,10 @@ TESTENV_IMAGE ?= kvmd-testenv
 TESTENV_HID ?= /dev/ttyS10
 TESTENV_VIDEO ?= /dev/video0
 TESTENV_RELAY ?=
-#TESTENV_RELAY ?= $(if $(shell ls /dev/hidraw0 2>/dev/null || true),/dev/hidraw0,)
+# TESTENV_RELAY ?= $(if $(shell ls /dev/hidraw0 2>/dev/null || true),/dev/hidraw0,)
 
 TESTENV_GPIO_MODULE = /sys/module/gpio_mockup
 TESTENV_GPIO = /dev/$(call -basename,$(call -dirname,$(wildcard $(TESTENV_GPIO_MODULE)/drivers/*/*/*/dev)))
-
-LIBGPIOD_VERSION ?= 1.6.3
 
 USTREAMER_MIN_VERSION ?= $(shell grep -o 'ustreamer>=[^"]\+' PKGBUILD | sed 's/ustreamer>=//g')
 
@@ -20,7 +18,7 @@ DOCKER_BUILD ?= build
 
 
 # =====
-define optbool
+define -optbool
 $(filter $(shell echo $(1) | tr A-Z a-z),yes on 1)
 endef
 
@@ -31,6 +29,7 @@ endef
 define -basename
 $(notdir $(patsubst %/,%,$(1)))
 endef
+
 
 # =====
 all:
@@ -59,7 +58,7 @@ all:
 
 testenv:
 	$(DOCKER) $(DOCKER_BUILD) \
-			$(if $(call optbool,$(NC)),--no-cache,) \
+			$(if $(call -optbool,$(NC)),--no-cache,) \
 			--rm \
 			--tag $(TESTENV_IMAGE) \
 			--build-arg LIBGPIOD_VERSION=$(LIBGPIOD_VERSION) \
@@ -113,6 +112,7 @@ $(TESTENV_GPIO_MODULE):
 gpio: $(TESTENV_GPIO_MODULE)
 	test -c "$(TESTENV_GPIO)"
 
+
 .NOTPARALLEL: run
 run: testenv gpio
 	- $(DOCKER) run --rm --name kvmd \
@@ -157,28 +157,9 @@ run: testenv gpio
 		"
 
 
-run-cfg: testenv
-	- $(DOCKER) run --rm --name kvmd-cfg \
-			--volume `pwd`/testenv/run:/run/kvmd:rw \
-			--volume `pwd`/testenv:/testenv:ro \
-			--volume `pwd`/kvmd:/kvmd:ro \
-			--volume `pwd`/extras:/usr/share/kvmd/extras:ro \
-			--volume `pwd`/configs:/usr/share/kvmd/configs.default:ro \
-			--volume `pwd`/contrib/keymaps:/usr/share/kvmd/keymaps:ro \
-		-it $(TESTENV_IMAGE) /bin/bash -c " \
-			cp -a /testenv/.ssl/nginx /etc/kvmd/nginx/ssl \
-			&& cp -a /testenv/.ssl/vnc /etc/kvmd/vnc/ssl \
-			&& cp /testenv/platform /usr/lib/kvmd \
-			&& cp /usr/share/kvmd/configs.default/kvmd/*.yaml /etc/kvmd \
-			&& cp /usr/share/kvmd/configs.default/kvmd/*passwd /etc/kvmd \
-			&& cp /usr/share/kvmd/configs.default/kvmd/*.secret /etc/kvmd \
-			&& cp /usr/share/kvmd/configs.default/kvmd/edid/v2.hex /etc/kvmd/switch-edid.hex \
-			&& cp /usr/share/kvmd/configs.default/kvmd/main/$(if $(P),$(P),$(DEFAULT_PLATFORM)).yaml /usr/lib/kvmd/main.yaml \
-			&& mkdir -p /etc/kvmd/override.d \
-			&& cp /testenv/$(if $(P),$(P),$(DEFAULT_PLATFORM)).override.yaml /etc/kvmd/override.d/00-platform.yaml \
-			&& cp /usr/share/kvmd/configs.default/kvmd/override.yaml -T /etc/kvmd/override.yaml \
-			&& $(if $(CMD),$(CMD),python -m kvmd.apps.kvmd -m) \
-		"
+.NOTPARALLEL: shell
+shell: testenv gpio
+	$(MAKE) run CMD=bash
 
 
 run-ipmi: testenv
