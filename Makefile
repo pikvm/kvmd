@@ -7,7 +7,7 @@ TESTENV_RELAY ?=
 #TESTENV_RELAY ?= $(if $(shell ls /dev/hidraw0 2>/dev/null || true),/dev/hidraw0,)
 
 TESTENV_GPIO_MODULE = /sys/module/gpio_mockup
-TESTENV_GPIO = /dev/$(notdir $(dir $(wildcard $(TESTENV_GPIO_MODULE)/drivers/*/*/*/dev)))
+TESTENV_GPIO = /dev/$(call -basename,$(call -dirname,$(wildcard $(TESTENV_GPIO_MODULE)/drivers/*/*/*/dev)))
 
 LIBGPIOD_VERSION ?= 1.6.3
 
@@ -24,6 +24,13 @@ define optbool
 $(filter $(shell echo $(1) | tr A-Z a-z),yes on 1)
 endef
 
+define -dirname
+$(patsubst %/,%,$(dir $(1)))
+endef
+
+define -basename
+$(notdir $(patsubst %/,%,$(1)))
+endef
 
 # =====
 all:
@@ -128,7 +135,7 @@ run: testenv gpio
 		-it $(TESTENV_IMAGE) /bin/bash -c " \
 			mkdir -p /tmp/kvmd-nginx \
 			&& mount -t debugfs none /sys/kernel/debug \
-			&& test -d /sys/kernel/debug/gpio-mockup/$(notdir $(TESTENV_GPIO))/ || (echo \"Missing GPIO mockup\" && exit 1) \
+			&& test -d /sys/kernel/debug/gpio-mockup/$(call -basename,$(TESTENV_GPIO))/ || (echo \"Missing GPIO mockup\" && exit 1) \
 			&& (socat PTY,link=$(TESTENV_HID) PTY,link=/dev/ttyS11 &) \
 			&& cp -r /usr/share/kvmd/configs.default/nginx/* /etc/kvmd/nginx \
 			&& cp -a /testenv/.ssl/nginx /etc/kvmd/nginx/ssl \
