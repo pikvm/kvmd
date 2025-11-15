@@ -37,6 +37,7 @@ from ..plugins import UnknownPluginError
 from ..yamlconf import ConfigError
 from ..yamlconf import Section
 from ..yamlconf import make_config
+from ..yamlconf.loader import list_yaml_dir
 from ..yamlconf.loader import load_yaml_file
 from ..yamlconf.merger import yaml_merge
 from ..yamlconf.dumper import dump_yaml
@@ -200,10 +201,8 @@ def _init_config(
         yaml_merge(override, {"kvmd": {"auth": _checkload_yaml_file(cps.legacy_auth)}})
 
     # Stage 2: Directory for partial overrides
-    for name in sorted(os.listdir(cps.override_dir)):
-        path = os.path.join(cps.override_dir, name)
-        if os.path.isfile(path) or os.path.islink(path):
-            yaml_merge(override, _checkload_yaml_file(path))
+    for path in list_yaml_dir(cps.override_dir):
+        yaml_merge(override, _checkload_yaml_file(path))
 
     # Stage 3: Manual overrides
     yaml_merge(override, _checkload_yaml_file(cps.override))
