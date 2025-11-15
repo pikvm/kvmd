@@ -45,6 +45,16 @@ def load_yaml_file(path: str) -> Any:
             raise ValueError(f"Invalid YAML in the file {path!r}:\n{tools.efmt(ex)}") from None
 
 
+def list_yaml_dir(dir: str) -> list[str]:
+    return list(
+        path
+        for file in sorted(os.listdir(dir))
+        if file.endswith(".yaml")
+        for path in (os.path.join(dir, file),)
+        if os.path.isfile(path) or os.path.islink(path)
+    )
+
+
 # =====
 class _YamlLoader(yaml.SafeLoader):
     def __init__(self, file: IO) -> None:
@@ -69,10 +79,8 @@ class _YamlLoader(yaml.SafeLoader):
             assert inc, inc
             inc_path = os.path.join(self.__root, inc)
             if os.path.isdir(inc_path):
-                for child in sorted(os.listdir(inc_path)):
-                    child_path = os.path.join(inc_path, child)
-                    if os.path.isfile(child_path) or os.path.islink(child_path):
-                        yaml_merge(tree, (load_yaml_file(child_path) or {}), child_path)
+                for child_path in list_yaml_dir(inc_path):
+                    yaml_merge(tree, (load_yaml_file(child_path) or {}), child_path)
             else:  # Try file
                 yaml_merge(tree, (load_yaml_file(inc_path) or {}), inc_path)
         return tree
