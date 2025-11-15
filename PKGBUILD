@@ -205,7 +205,7 @@ package_kvmd() {
 	install -Dm600 -t "$pkgdir/etc/kvmd" "$_cfg_default/kvmd"/*passwd
 	install -Dm600 -t "$pkgdir/etc/kvmd" "$_cfg_default/kvmd"/*.secret
 	install -Dm644 -t "$pkgdir/etc/kvmd" "$_cfg_default/kvmd"/web.css
-	mkdir -p "$pkgdir/etc/kvmd/override.d"
+	install -Dm644 -t "$pkgdir/etc/kvmd/override.d" "$_cfg_default/kvmd/override.d"/*
 
 	mkdir -p "$pkgdir/var/lib/kvmd/"{msd,pst}
 	chmod 1775 "$pkgdir/var/lib/kvmd/pst"
