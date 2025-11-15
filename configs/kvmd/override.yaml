@@ -5,7 +5,8 @@
 #    * https://docs.pikvm.org/config                                          #
 #                                                                             #
 #  This file uses YAML syntax. All overridden parameters will be applied      #
-#  AFTER other configs and "!include" directives, and BEFORE validation.      #
+#  AFTER all other configs and BEFORE validation.                             #
+#                                                                             #
 #  Values must be combined under common sections.                             #
 #                                                                             #
 ###############################################################################
