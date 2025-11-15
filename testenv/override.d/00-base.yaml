@@ -1,0 +1,54 @@
+kvmd:
+    auth:
+        usc:
+            users: [root]
+
+    server:
+        unix_mode: 0666
+
+    atx:
+        device: /dev/kvmd-gpio
+
+    hid:
+        keyboard:
+            device: /dev/null
+        mouse:
+            device: /dev/null
+#            absolute_win98_fix: true
+        mouse_alt:
+            device: /dev/null
+        noop: true
+
+    msd:
+        remount_cmd: /bin/true
+
+pst:
+    remount_cmd: /bin/true
+
+vnc:
+    keymap: /usr/share/kvmd/keymaps/ru
+
+    auth:
+        vncauth:
+            enabled: true
+
+    memsink:
+        h264:
+            sink: ""
+
+otgnet:
+    commands:
+        post_start_cmd:
+            - "/bin/true"
+        pre_stop_cmd:
+            - "/bin/true"
+
+nginx:
+    http:
+        port: 8080
+    https:
+        port: 4430
+
+janus:
+    cmd:
+        - "/bin/true"
