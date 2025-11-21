@@ -115,7 +115,7 @@ function __oauthButton(shortName, longName) {
 }
 
 function __oauthLogin(shortName) {
-	tools.currentOpen(`/api/auth/flow/oauth/login/${shortName}`);
+	tools.currentOpen(`api/auth/flow/oauth/login/${shortName}`);
 }
 
 function __login() {
