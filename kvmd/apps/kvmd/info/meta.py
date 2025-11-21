@@ -43,7 +43,7 @@ class MetaInfoSubmanager(BaseInfoSubmanager):
         try:
             meta = ((await aiotools.run_async(load_yaml_file, self.__meta_path)) or {})
             if meta["server"]["host"] == "@auto":
-                meta["server"]["host"] = socket.getfqdn()
+                meta["server"]["host"] = await aiotools.run_async(socket.getfqdn)
             return meta
         except Exception:
             get_logger(0).exception("Can't parse meta")
