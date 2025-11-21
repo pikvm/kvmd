@@ -256,11 +256,7 @@ export var tools = new function() {
 				}
 			},
 			"getValue": function(el) {
-				if (el.step % 1 === 0) {
-					return parseInt(el.value);
-				} else {
-					return parseFloat(el.value);
-				}
+				return el.valueAsNumber;
 			},
 		};
 	};
