@@ -36,6 +36,9 @@ from ... import aiotools
 from ...plugins.auth import BaseAuthService
 from ...plugins.auth import get_auth_service_class
 
+from ...plugins.flows import BaseAuthFlowService
+from ...plugins.flows import get_auth_flow_service_class
+
 from ...htserver import HttpExposed
 from ...htserver import RequestUnixCredentials
 
@@ -55,7 +58,7 @@ class _Session:
         assert self.expire_ts >= 0
 
 
-class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attributes
+class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attributes,too-many-locals
     def __init__(
         self,
         enabled: bool,
@@ -73,6 +76,8 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
         ext_kwargs: dict,
 
         totp_secret_path: str,
+
+        flows: dict[str, dict | None],
     ) -> None:
 
         logger = get_logger(0)
@@ -114,6 +119,14 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
             self.__ext_service = get_auth_service_class(ext_type)(**ext_kwargs)
             logger.info("Using external auth service %r",
                         self.__ext_service.get_plugin_name())
+
+        self.flow_managers: dict[str, BaseAuthFlowService] = {}
+        for flow, flow_kwargs in flows.items():
+            if flow_kwargs is not None:
+                get_logger().info("Using custom auth flow service %r", flow)
+                self.flow_managers[flow] = get_auth_flow_service_class(flow)(manager=self, **flow_kwargs)
+            else:
+                get_logger().info("Custom auth flow service %r is disabled in config", flow)
 
         self.__totp_secret_path = totp_secret_path
 
@@ -166,14 +179,7 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
         assert self.__enabled
 
         if (await self.authorize(user, passwd)):
-            token = self.__make_new_token()
-            session = _Session(
-                user=user,
-                expire_req=expire,
-                expire_ts=self.__make_expire_ts(expire),
-                ws_started=0,
-            )
-            self.__sessions[token] = session
+            session, token = self.__create_session(user, expire)
             get_logger(0).info("Logged in user %r; expire=%s, sessions_now=%d",
                                session.user,
                                self.__format_expire_ts(session.expire_ts),
@@ -181,6 +187,29 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
             return token
 
         return None
+
+    async def login_external(self, user: str) -> (str | None):
+        assert user == user.strip()
+        assert user
+        assert self.__enabled
+
+        session, token = self.__create_session(user, 0)
+        get_logger(0).info("Logged in user %r externally; expire=%s, sessions_now=%d",
+                           session.user,
+                           self.__format_expire_ts(session.expire_ts),
+                           self.__get_sessions_number(session.user))
+        return token
+
+    def __create_session(self, user: str, expire: int) -> tuple[_Session, str]:
+        token = self.__make_new_token()
+        session = _Session(
+            user=user,
+            expire_req=expire,
+            expire_ts=self.__make_expire_ts(expire),
+            ws_started=0,
+        )
+        self.__sessions[token] = session
+        return session, token
 
     def __make_new_token(self) -> str:
         for _ in range(10):
