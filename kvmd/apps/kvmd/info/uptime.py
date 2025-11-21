@@ -20,63 +20,56 @@
 # ========================================================================== #
 
 
-import socket
-import dataclasses
-import errno
+import os
+import datetime
 
-import netifaces
+from typing import AsyncGenerator
 
+from ....logging import get_logger
 
-# =====
-class NoIfacesError(Exception):
-    pass
+from .... import env
+from .... import aiotools
 
-
-# =====
-@dataclasses.dataclass(frozen=True)
-class FirstIface:
-    name: str
-    ip:   str
+from .base import BaseInfoSubmanager
 
 
 # =====
-def is_ipv6_enabled() -> bool:
-    if not socket.has_ipv6:
-        # If the socket library has no support for IPv6,
-        # then the question is moot as we can't use IPv6 anyways.
-        return False
-    try:
-        with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as sock:
-            sock.bind(("::1", 0))
-        return True
-    except OSError as ex:
-        if ex.errno in [errno.EADDRNOTAVAIL, errno.EAFNOSUPPORT]:
-            return False
-        if ex.errno == errno.EADDRINUSE:
-            return True
-        raise
+class UptimeInfoSubmanager(BaseInfoSubmanager):
+    __RESOLUTION = 5  # Seconds
 
+    def __init__(self) -> None:
+        self.__notifier = aiotools.AioNotifier()
 
-def get_listen_host(host: str) -> str:
-    if len(host) == 0:
-        return ("::" if is_ipv6_enabled() else "0.0.0.0")
-    return host
+    async def get_state(self) -> dict:
+        total = await self.__read_uptime_file()
+        uptime = datetime.timedelta(seconds=total)
+        days = uptime.days
+        (hours, rem) = divmod(uptime.seconds, 3600)
+        (mins, secs) = divmod(rem, 60)
+        return {
+            "total": total,
+            "parts": {
+                "days": days,
+                "hours": hours,
+                "minutes": mins,
+                "seconds": secs,
+            },
+        }
 
+    async def trigger_state(self) -> None:
+        self.__notifier.notify()
 
-def get_first_iface() -> FirstIface:
-    gws = netifaces.gateways()
-    if "default" in gws:
-        for proto in [socket.AF_INET, socket.AF_INET6]:
-            if proto in gws["default"]:
-                iface = gws["default"][proto][1]
-                addrs = netifaces.ifaddresses(iface)
-                return FirstIface(iface, addrs[proto][0]["addr"])
+    async def poll_state(self) -> AsyncGenerator[(dict | None), None]:
+        while True:
+            await self.__notifier.wait(timeout=self.__RESOLUTION)
+            yield (await self.get_state())
 
-    for iface in netifaces.interfaces():
-        if not iface.startswith(("lo", "docker")):
-            addrs = netifaces.ifaddresses(iface)
-            for proto in [socket.AF_INET, socket.AF_INET6]:
-                if proto in addrs:
-                    return FirstIface(iface, addrs[proto][0]["addr"])
+    # =====
 
-    raise NoIfacesError()
+    async def __read_uptime_file(self) -> int:
+        path = os.path.join(f"{env.PROCFS_PREFIX}/proc/uptime")
+        try:
+            return int(float((await aiotools.read_file(path)).split()[0]))
+        except Exception as ex:
+            get_logger(0).error("Can't read system uptime: %s", ex)
+        return 0

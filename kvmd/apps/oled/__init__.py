@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # ========================================================================== #
 #                                                                            #
 #    KVMD-OLED - A small OLED daemon for PiKVM.                              #
@@ -123,8 +122,7 @@ async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many
                 await screen.set_swimming(60, 3)
 
                 async def draw_and_sleep(text: str) -> None:
-                    clients = sensors.get_clients_count()
-                    await screen.set_contrast(options.low_contrast if clients > 0 else options.contrast)
+                    await screen.set_contrast(options.low_contrast if sensors.has_clients() else options.contrast)
                     await screen.draw_text(sensors.render(text))
                     await asyncio.sleep(options.interval)
 

@@ -32,6 +32,7 @@ from .system import SystemInfoSubmanager
 from .meta import MetaInfoSubmanager
 from .extras import ExtrasInfoSubmanager
 from .health import HealthInfoSubmanager
+from .uptime import UptimeInfoSubmanager
 from .fan import FanInfoSubmanager
 
 
@@ -44,6 +45,7 @@ class InfoManager:
             "meta":   MetaInfoSubmanager(config.kvmd.info.meta),
             "extras": ExtrasInfoSubmanager(config),
             "health": HealthInfoSubmanager(**config.kvmd.info.hw._unpack(ignore="platform")),
+            "uptime": UptimeInfoSubmanager(),
             "fan":    FanInfoSubmanager(**config.kvmd.info.fan._unpack()),
         }
         self.__queue: "asyncio.Queue[tuple[str, (dict | None)]]" = asyncio.Queue()
@@ -88,6 +90,7 @@ class InfoManager:
         #   - meta   -- Partial, nullable
         #   - extras -- Partial, nullable
         #   - health -- Partial
+        #   - uptime -- Partial
         #   - fan    -- Partial
         # ===========================
 

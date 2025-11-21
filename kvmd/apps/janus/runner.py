@@ -1,13 +1,11 @@
 import asyncio
 import asyncio.subprocess
-import socket
 import dataclasses
-
-import netifaces
 
 from ... import tools
 from ... import aiotools
 from ... import aioproc
+from ... import network
 
 from ...logging import get_logger
 
@@ -93,30 +91,14 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
             await asyncio.sleep(self.__check_interval)
 
     async def __get_netcfg(self) -> _Netcfg:
-        src_ip = (self.__get_default_ip() or "0.0.0.0")
+        try:
+            src_ip = network.get_first_iface().ip
+        except Exception as ex:
+            get_logger().error("Can't get default IP: %s", tools.efmt(ex))
+            src_ip = "0.0.0.0"
         info = await self.__stun.get_info(src_ip, 0)
         # В текущей реализации _Netcfg() это копия StunInfo()
         return _Netcfg(**dataclasses.asdict(info))
-
-    def __get_default_ip(self) -> str:
-        try:
-            gws = netifaces.gateways()
-            if "default" in gws:
-                for proto in [socket.AF_INET, socket.AF_INET6]:
-                    if proto in gws["default"]:
-                        iface = gws["default"][proto][1]
-                        addrs = netifaces.ifaddresses(iface)
-                        return addrs[proto][0]["addr"]
-
-            for iface in netifaces.interfaces():
-                if not iface.startswith(("lo", "docker")):
-                    addrs = netifaces.ifaddresses(iface)
-                    for proto in [socket.AF_INET, socket.AF_INET6]:
-                        if proto in addrs:
-                            return addrs[proto][0]["addr"]
-        except Exception as ex:
-            get_logger().error("Can't get default IP: %s", tools.efmt(ex))
-        return ""
 
     # =====
 
