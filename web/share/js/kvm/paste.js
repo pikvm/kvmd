@@ -81,7 +81,7 @@ export function Paste(__recorder) {
 				tools.el.setEnabled($("hid-pak-keymap-selector"), false);
 
 				let keymap = $("hid-pak-keymap-selector").value;
-				let delay = $("hid-pak-delay-slider").value;
+				let delay = tools.slider.getValue($("hid-pak-delay-slider"));
 
 				tools.debug(`HID: paste-as-keys ${keymap}: ${text}`);
 

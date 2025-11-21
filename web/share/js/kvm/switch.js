@@ -113,7 +113,7 @@ export function Switch() {
 				+ color.green.toString(16).padStart(2, "0")
 				+ color.blue.toString(16).padStart(2, "0")
 			);
-			$(`switch-color-${role}-brightness-slider`).value = color.brightness;
+			tools.slider.setValue($(`switch-color-${role}-brightness-slider`), color.brightness);
 		}
 		__state.colors = colors;
 	};
@@ -122,7 +122,7 @@ export function Switch() {
 		let el_color = $(`switch-color-${role}-input`);
 		let el_brightness = $(`switch-color-${role}-brightness-slider`);
 		let color = __state.colors[role];
-		let brightness = parseInt(el_brightness.value);
+		let brightness = tools.slider.getValue(el_brightness);
 		let rgbx = (
 			el_color.value.slice(1)
 			+ ":" + brightness.toString(16).padStart(2, "0")
@@ -135,7 +135,7 @@ export function Switch() {
 				+ color.green.toString(16).padStart(2, "0")
 				+ color.blue.toString(16).padStart(2, "0")
 			);
-			el_brightness.value = color.brightness;
+			tools.slider.setValue(el_brightness, color.brightness);
 		});
 	};
 
