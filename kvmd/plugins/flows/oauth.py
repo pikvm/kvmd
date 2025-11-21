@@ -46,6 +46,7 @@ from ...apps.kvmd.auth import AuthManager
 from ...apps.kvmd.api.auth import _COOKIE_AUTH_TOKEN
 
 from ..oauth import BaseOAuthProvider, get_oauth_provider_class
+from ..oauth import OAuthError
 from . import BaseAuthFlowService
 
 
@@ -123,12 +124,16 @@ class OAuthApi:
             raise HTTPUnauthorized(reason="Authorization Code is missing")
 
         redirect_url = request.url.with_path(f"/api/auth/oauth/callback/{provider}").with_scheme("https")
-        user = await self.__plugin.get_user_info(
-            provider=provider,
-            oauth_session=oauth_session,
-            request_query=dict(request.query),
-            redirect_url=redirect_url
-        )
+        # FIXME: better exception handling, this throws OAuthError if the inner subrequest fails
+        try:
+            user = await self.__plugin.get_user_info(
+                provider=provider,
+                oauth_session=oauth_session,
+                request_query=dict(request.query),
+                redirect_url=redirect_url
+            )
+        except OAuthError as e:
+            raise HTTPUnauthorized(reason=f"OAuth error: {e}")
         if not user:
             raise ForbiddenError()
 
