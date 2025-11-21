@@ -123,7 +123,8 @@ class OAuthApi:
         if not self.__plugin.is_redirect_from_provider(provider=provider, request_query=dict(request.query)):
             raise HTTPUnauthorized(reason="Authorization Code is missing")
 
-        redirect_url = request.url.with_path(f"/api/auth/oauth/callback/{provider}").with_scheme("https")
+        # FIXME: why is this not just redirect_url = request.url?
+        redirect_url = request.url.with_path(f"/api/auth/flow/oauth/callback/{provider}").with_scheme("https")
         # FIXME: better exception handling, this throws OAuthError if the inner subrequest fails
         try:
             user = await self.__plugin.get_user_info(
