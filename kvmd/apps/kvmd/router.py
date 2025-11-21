@@ -55,7 +55,7 @@ class HttpRouter(HttpRouterBase):
     async def dispatch(self, req: Request, subpath: str | None) -> Response:
         assert self._app is not None
         subreq = (
-            req.clone(rel_url="/" + subpath.removeprefix("/"))
+            req.clone(rel_url="/" + subpath.lstrip("/"))
             if subpath is not None
             else req.clone()
         )
