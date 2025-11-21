@@ -112,7 +112,8 @@ class Plugin(BaseOAuthProvider):  # pylint: disable=too-many-instance-attributes
                 if not stored_state.is_valid():
                     self.__states.remove(stored_state)
                     return False
-        return True
+                return True
+        return False
 
     async def get_user_info(
             self,
