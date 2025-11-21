@@ -110,7 +110,7 @@ class Plugin(BaseOAuthProvider):  # pylint: disable=too-many-instance-attributes
         for stored_state in self.__states:
             if oauth_session["state"] == stored_state.get_value():
                 if not stored_state.is_valid():
-                    self.__states.pop(oauth_session["state"])
+                    self.__states.remove(stored_state)
                     return False
         return True
 
