@@ -50,24 +50,24 @@ export function Streamer() {
 		tools.slider.setParams($("stream-quality-slider"), 5, 100, 5, 80, function(value) {
 			$("stream-quality-value").innerText = `${value}%`;
 		});
-		tools.slider.setOnUpDelayed($("stream-quality-slider"), 1000, (value) => __sendParam("quality", value));
+		$("stream-quality-slider").onchange = ((ev) => __sendParam("quality", ev.target.valueAsNumber));
 
 		tools.slider.setParams($("stream-h264-bitrate-slider"), 25, 20000, 25, 5000, function(value) {
 			$("stream-h264-bitrate-value").innerText = value;
 		});
-		tools.slider.setOnUpDelayed($("stream-h264-bitrate-slider"), 1000, (value) => __sendParam("h264_bitrate", value));
+		$("stream-h264-bitrate-slider").onchange = ((ev) => __sendParam("h264_bitrate", ev.target.valueAsNumber));
 
 		tools.slider.setParams($("stream-h264-gop-slider"), 0, 60, 1, 30, function(value) {
 			$("stream-h264-gop-value").innerText = value;
 		});
-		tools.slider.setOnUpDelayed($("stream-h264-gop-slider"), 1000, (value) => __sendParam("h264_gop", value));
+		$("stream-h264-gop-slider").onchange = ((ev) => __sendParam("h264_gop", ev.target.valueAsNumber));
 
 		tools.slider.setParams($("stream-desired-fps-slider"), 0, 120, 1, 0, function(value) {
 			$("stream-desired-fps-value").innerText = (value === 0 ? "Unlimited" : value);
 		});
-		tools.slider.setOnUpDelayed($("stream-desired-fps-slider"), 1000, (value) => __sendParam("desired_fps", value));
+		$("stream-desired-fps-slider").onchange = ((ev) => __sendParam("desired_fps", ev.target.valueAsNumber));
 
-		$("stream-resolution-selector").onchange = (() => __sendParam("resolution", $("stream-resolution-selector").value));
+		$("stream-resolution-selector").onchange = ((ev) => __sendParam("resolution", ev.target.value));
 
 		tools.radio.setOnClick("stream-mode-radio", __clickModeRadio, false);
 
@@ -139,10 +139,10 @@ export function Streamer() {
 		wm.setAspectRatio($("stream-window"), geo.width, geo.height);
 	};
 
-	self.ensureDeps = function(callback) {
+	self.ensureDeps = function(cb) {
 		JanusStreamer.ensure_janus(function(avail) {
 			__janus_imported = avail;
-			callback();
+			cb();
 		});
 	};
 

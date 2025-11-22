@@ -48,7 +48,7 @@ export var tools = new function() {
 		window.open(ROOT_PREFIX + url, "_blank");
 	};
 
-	self.httpRequest = function(method, url, params, callback, body=null, content_type=null, timeout=15000) {
+	self.httpRequest = function(method, url, params, cb, body=null, content_type=null, timeout=15000) {
 		url = ROOT_PREFIX + url;
 		if (params) {
 			params = new URLSearchParams(params);
@@ -63,19 +63,19 @@ export var tools = new function() {
 		}
 		http.onreadystatechange = function() {
 			if (http.readyState === 4) {
-				callback(http);
+				cb(http);
 			}
 		};
 		http.timeout = timeout;
 		http.send(body);
 	};
 
-	self.httpGet = function(url, params, callback, body=null, content_type=null, timeout=15000) {
-		self.httpRequest("GET", url, params, callback, body, content_type, timeout);
+	self.httpGet = function(url, params, cb, body=null, content_type=null, timeout=15000) {
+		self.httpRequest("GET", url, params, cb, body, content_type, timeout);
 	};
 
-	self.httpPost = function(url, params, callback, body=null, content_type=null, timeout=15000) {
-		self.httpRequest("POST", url, params, callback, body, content_type, timeout);
+	self.httpPost = function(url, params, cb, body=null, content_type=null, timeout=15000) {
+		self.httpRequest("POST", url, params, cb, body, content_type, timeout);
 	};
 
 	self.makeWsUrl = function(url) {
@@ -151,28 +151,28 @@ export var tools = new function() {
 
 	self.el = new function() {
 		return {
-			"setOnClick": function(el, callback, prevent_default=true) {
+			"setOnClick": function(el, cb, prevent_default=true) {
 				el.onclick = el.ontouchend = function(ev) {
 					if (prevent_default) {
 						ev.preventDefault();
 					}
-					callback();
+					cb();
 				};
 			},
-			"setOnDown": function(el, callback, prevent_default=true) {
+			"setOnDown": function(el, cb, prevent_default=true) {
 				el.onmousedown = el.ontouchstart = function(ev) {
 					if (prevent_default) {
 						ev.preventDefault();
 					}
-					callback(ev);
+					cb(ev);
 				};
 			},
-			"setOnUp": function(el, callback, prevent_default=true) {
+			"setOnUp": function(el, cb, prevent_default=true) {
 				el.onmouseup = el.ontouchend = function(ev) {
 					if (prevent_default) {
 						ev.preventDefault();
 					}
-					callback();
+					cb();
 				};
 			},
 			"setEnabled": function(el, enabled) {
@@ -193,46 +193,16 @@ export var tools = new function() {
 
 	self.slider = new function() {
 		return {
-			"setOnUpDelayed": function(el, delay, execute_callback) {
-				el.__execution_timer = null;
-				el.__pressed = false;
-				el.__postponed = null;
-
-				let clear_timer = function() {
-					if (el.__execution_timer) {
-						clearTimeout(el.__execution_timer);
-						el.__execution_timer = null;
-					}
-				};
-
-				el.onmousedown = el.ontouchstart = function() {
-					clear_timer();
-					el.__pressed = true;
-				};
-
-				el.onmouseup = el.ontouchend = function(ev) {
-					let value = self.slider.getValue(el);
-					ev.preventDefault();
-					clear_timer();
-					el.__execution_timer = setTimeout(function() {
-						el.__pressed = false;
-						if (el.__postponed !== null) {
-							self.slider.setValue(el, el.__postponed);
-							el.__postponed = null;
-						}
-						execute_callback(value);
-					}, delay);
-				};
-			},
-			"setParams": function(el, min, max, step, value, display_callback=null) {
+			"setParams": function(el, min, max, step, value, display_cb=null) {
 				el.min = min;
 				el.max = max;
 				el.step = step;
 				el.value = value;
-				if (display_callback) {
-					el.oninput = el.onchange = () => display_callback(self.slider.getValue(el));
-					display_callback(self.slider.getValue(el));
-					el.__display_callback = display_callback;
+				if (display_cb) {
+					el.addEventListener("input", () => display_cb(el.valueAsNumber));
+					el.addEventListener("change", () => display_cb(el.valueAsNumber));
+					display_cb(el.valueAsNumber);
+					el.__display_cb = display_cb;
 				}
 			},
 			"setRange": function(el, min, max) {
@@ -245,18 +215,11 @@ export var tools = new function() {
 			},
 			"setValue": function(el, value, force=false) {
 				if (el.value != value || force) {
-					if (el.__pressed) {
-						el.__postponed = value;
-					} else {
-						el.value = value;
-						if (el.__display_callback) {
-							el.__display_callback(value);
-						}
+					el.value = value;
+					if (el.__display_cb) {
+						el.__display_cb(value);
 					}
 				}
-			},
-			"getValue": function(el) {
-				return el.valueAsNumber;
 			},
 		};
 	};
@@ -297,9 +260,9 @@ export var tools = new function() {
 					</label>
 				`;
 			},
-			"setOnClick": function(name, callback, prevent_default=true) {
+			"setOnClick": function(name, cb, prevent_default=true) {
 				for (let el of $$$(`input[type="radio"][name="${CSS.escape(name)}"]`)) {
-					self.el.setOnClick(el, callback, prevent_default);
+					self.el.setOnClick(el, cb, prevent_default);
 				}
 			},
 			"getValue": function(name) {
@@ -435,41 +398,50 @@ export var tools = new function() {
 
 	self.storage = new function() {
 		return {
-			"get": function(key, default_value) {
+			"get": function(key, def) {
 				let value = window.localStorage.getItem(key);
-				return (value !== null ? value : `${default_value}`);
+				return (value !== null ? value : `${def}`);
 			},
 			"set": (key, value) => window.localStorage.setItem(key, value),
 
-			"getInt": (key, default_value) => parseInt(self.storage.get(key, default_value)),
+			"getInt": (key, def) => parseInt(self.storage.get(key, def)),
 			"setInt": (key, value) => self.storage.set(key, value),
 
-			"getBool": (key, default_value) => !!parseInt(self.storage.get(key, (default_value ? "1" : "0"))),
+			"getBool": (key, def) => !!parseInt(self.storage.get(key, (def ? "1" : "0"))),
 			"setBool": (key, value) => self.storage.set(key, (value ? "1" : "0")),
 
-			"bindSimpleSwitch": function(el, key, default_value, callback=null) {
-				let value = self.storage.getBool(key, default_value);
+			"bindSimpleSwitch": function(el, key, def, cb=null) {
+				let value = self.storage.getBool(key, def);
 				el.checked = value;
-				if (callback) {
-					callback(value);
+				if (cb) {
+					cb(value);
 				}
 				self.el.setOnClick(el, function() {
-					if (callback) {
-						callback(el.checked);
+					if (cb) {
+						cb(el.checked);
 					}
 					self.storage.setBool(key, el.checked);
 				}, false);
+			},
+
+			"bindSimpleSlider": function(el, key, min, max, step, def, cb=null) {
+				self.slider.setParams(el, min, max, step, self.storage.get(key, def), function (value) {
+					if (cb) {
+						cb(value);
+					}
+					self.storage.set(key, value);
+				});
 			},
 		};
 	};
 
 	self.config = new function() {
 		return {
-			"get": function(key, default_value) {
+			"get": function(key, def) {
 				let value = window.getComputedStyle(document.documentElement).getPropertyValue(`--config-ui--${key}`);
-				return (value || default_value);
+				return (value || def);
 			},
-			"getBool": (key, default_value) => !!parseInt(self.config.get(key, (default_value ? "1" : "0"))),
+			"getBool": (key, def) => !!parseInt(self.config.get(key, (def ? "1" : "0"))),
 		};
 	};
 

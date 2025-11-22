@@ -45,9 +45,8 @@ export function Paste(__recorder) {
 			$("hid-pak-text").style.setProperty("-webkit-text-security", (value ? "disc" : "none"));
 		});
 
-		tools.slider.setParams($("hid-pak-delay-slider"), 0, 200, 20, tools.storage.getInt("hid.pak.delay", 20), function (value) {
+		tools.storage.bindSimpleSlider($("hid-pak-delay-slider"), "hid.pak.delay", 0, 200, 20, 20, function (value) {
 			$("hid-pak-delay-value").innerText = value + " ms";
-			tools.storage.setInt("hid.pak.delay", value);
 		});
 
 		$("hid-pak-keymap-selector").addEventListener("change", function() {
@@ -81,7 +80,7 @@ export function Paste(__recorder) {
 				tools.el.setEnabled($("hid-pak-keymap-selector"), false);
 
 				let keymap = $("hid-pak-keymap-selector").value;
-				let delay = tools.slider.getValue($("hid-pak-delay-slider"));
+				let delay = $("hid-pak-delay-slider").valueAsNumber;
 
 				tools.debug(`HID: paste-as-keys ${keymap}: ${text}`);
 

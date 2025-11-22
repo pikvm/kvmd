@@ -438,22 +438,22 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	var __logError = (...args) => tools.error("Stream [Janus]:", ...args);
 }
 
-JanusStreamer.ensure_janus = function(callback) {
+JanusStreamer.ensure_janus = function(cb) {
 	if (_Janus === null) {
 		import("./janus.js").then((module) => {
 			module.Janus.init({
 				"debug": "all",
 				"callback": function() {
 					_Janus = module.Janus;
-					callback(true);
+					cb(true);
 				},
 			});
 		}).catch((ex) => {
 			tools.error("Stream: Can't import Janus module:", ex);
-			callback(false);
+			cb(false);
 		});
 	} else {
-		callback(true);
+		cb(true);
 	}
 };
 

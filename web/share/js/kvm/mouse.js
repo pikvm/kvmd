@@ -48,19 +48,16 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __init__ = function() {
 		__keypad = new Keypad($("stream-mouse-buttons"), __sendButton);
 
-		tools.slider.setParams($("hid-mouse-sens-slider"), 0.1, 1.9, 0.1, tools.storage.get("hid.mouse.sens", 1.0), function (value) {
+		tools.storage.bindSimpleSlider($("hid-mouse-sens-slider"), "hid.mouse.sens", 0.1, 1.9, 0.1, 1.0, function (value) {
 			$("hid-mouse-sens-value").innerText = value.toFixed(1);
-			tools.storage.set("hid.mouse.sens", value);
 		});
 
-		tools.slider.setParams($("hid-mouse-scroll-slider"), 1, 25, 1, tools.storage.get("hid.mouse.scroll_rate", 5), function (value) {
+		tools.storage.bindSimpleSlider($("hid-mouse-scroll-slider"), "hid.mouse.scroll_rate", 1, 25, 1, 5, function (value) {
 			$("hid-mouse-scroll-value").innerText = value;
-			tools.storage.set("hid.mouse.scroll_rate", value);
 		});
 
-		tools.slider.setParams($("hid-mouse-rate-slider"), 10, 100, 10, tools.storage.get("hid.mouse.rate", 10), function (value) {
+		tools.storage.bindSimpleSlider($("hid-mouse-rate-slider"), "hid.mouse.rate", 10, 100, 10, 10, function (value) {
 			$("hid-mouse-rate-value").innerText = value + " ms";
-			tools.storage.set("hid.mouse.rate", value);
 			if (__timer) {
 				clearInterval(__timer);
 			}
@@ -306,7 +303,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	/************************************************************************/
 
 	var __sendOrPlanRelativeMove = function(delta) {
-		let sens = tools.slider.getValue($("hid-mouse-sens-slider"));
+		let sens = $("hid-mouse-sens-slider").valueAsNumber;
 		delta = {
 			"x": Math.min(Math.max(-127, Math.floor(delta.x * sens)), 127),
 			"y": Math.min(Math.max(-127, Math.floor(delta.y * sens)), 127),
@@ -348,7 +345,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 	var __sendScroll = function(delta) {
 		// Send a single scroll step defined by rate
-		let rate = tools.slider.getValue($("hid-mouse-scroll-slider"));
+		let rate = $("hid-mouse-scroll-slider").valueAsNumber;
 		for (let dir of ["x", "y"]) {
 			if (delta[dir]) {
 				delta[dir] = Math.sign(delta[dir]) * (-rate);
