@@ -350,7 +350,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
 
     async def __stream_snapshoter(self) -> None:
         await self.__snapshoter.run(
-            is_live=(lambda: bool(self.__get_stream_clients)),
+            is_live=(lambda: bool(self.__get_stream_clients())),
             notifier=self.__streamer_notifier,
         )
 
