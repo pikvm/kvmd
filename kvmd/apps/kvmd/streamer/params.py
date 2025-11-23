@@ -22,6 +22,8 @@
 
 import copy
 
+from ....logging import get_logger
+
 
 # =====
 class Params:
@@ -75,6 +77,22 @@ class Params:
             self.__limits[self.__H264_BITRATE] = {"min": h264_bitrate_min, "max": h264_bitrate_max}
             self.__params[self.__H264_GOP] = min(max(h264_gop, h264_gop_min), h264_gop_max)
             self.__limits[self.__H264_GOP] = {"min": h264_gop_min, "max": h264_gop_max}
+
+    def get_applied(self, ss: (dict | None)) -> dict:
+        applied = self.get_params()
+        try:
+            if ss:
+                applied[self.__DESIRED_FPS] = ss["source"]["desired_fps"]
+                if self.__has_resolution:
+                    applied[self.__RESOLUTION] = "{width}x{height}".format(**ss["source"]["resolution"])
+                if self.__has_quality:
+                    applied[self.__QUALITY] = ss["encoder"]["quality"]
+                if self.__has_h264 and "h264" in ss:
+                    applied[self.__H264_BITRATE] = ss["h264"]["bitrate"]
+                    applied[self.__H264_GOP] = ss["h264"]["gop"]
+        except Exception:
+            get_logger().exception("Invalid streamer response: %s", ss)
+        return applied
 
     def get_features(self) -> dict:
         return {

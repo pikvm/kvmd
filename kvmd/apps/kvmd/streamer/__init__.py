@@ -140,11 +140,13 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
     # =====
 
     async def get_state(self) -> dict:
+        ss = await self.__get_streamer_state()
         return {
             "features": self.__params.get_features(),
             "limits": self.__params.get_limits(),
             "params": self.__params.get_params(),
-            "streamer": (await self.__get_streamer_state()),
+            "applied": self.__params.get_applied(ss),
+            "streamer": ss,
             "snapshot": self.__get_snapshot_state(),
         }
 
@@ -154,8 +156,9 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
     async def poll_state(self) -> AsyncGenerator[dict, None]:
         # ==== Granularity table ====
         #   - features -- Full
-        #   - limits   -- Partial, paired with params
+        #   - limits   -- Partial
         #   - params   -- Partial, paired with limits
+        #   - applied  -- Partial, paired with limits
         #   - streamer -- Partial, nullable
         #   - snapshot -- Partial
         # ===========================
@@ -188,9 +191,14 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
             if mask & self.__ST_PARAMS:
                 check_update("params", self.__params.get_params())
             if mask & self.__ST_STREAMER:
-                check_update("streamer", await self.__get_streamer_state())
+                ss = await self.__get_streamer_state()
+                check_update("streamer", ss)
+                check_update("applied", self.__params.get_applied(ss))
             if mask & self.__ST_SNAPSHOT:
                 check_update("snapshot", self.__get_snapshot_state())
+
+            if "params" in new or "applied" in new:
+                new["limits"] = self.__params.get_limits()
 
             if new and prev != new:
                 prev.update(copy.deepcopy(new))
