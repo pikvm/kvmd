@@ -233,7 +233,7 @@ export function Streamer() {
 				tools.slider.setRange($("stream-h264-gop-slider"), l.h264_gop.min, l.h264_gop.max);
 			}
 
-			// tools.feature.setEnabled($("stream-quality"), f.quality); // Only on s.encoder.quality
+			tools.feature.setEnabled($("stream-quality"), f.quality);
 			tools.feature.setEnabled($("stream-resolution"), f.resolution);
 			tools.feature.setEnabled($("stream-h264-bitrate"), f.h264);
 			tools.feature.setEnabled($("stream-h264-gop"), f.h264);
@@ -253,27 +253,30 @@ export function Streamer() {
 			tools.radio.clickValue("stream-mode-radio", mode);
 		}
 
+		if (state.applied) {
+			let a = state.applied;
+			if (a.resolution !== undefined) {
+				let el = $("stream-resolution-selector");
+				if (!tools.selector.hasValue(el, a.resolution)) {
+					tools.selector.addOption(el, a.resolution, a.resolution);
+				}
+				el.value = a.resolution;
+			}
+			if (a.quality !== undefined) {
+				tools.slider.setValue($("stream-quality-slider"), Math.max(a.quality, 1));
+			}
+			if (a.desired_fps !== undefined) {
+				tools.slider.setValue($("stream-desired-fps-slider"), a.desired_fps);
+			}
+			if (a.h264_bitrate !== undefined) {
+				tools.slider.setValue($("stream-h264-bitrate-slider"), a.h264_bitrate);
+				tools.slider.setValue($("stream-h264-gop-slider"), a.h264_gop); // Following together with bitrate
+			}
+		}
+
 		if (state.streamer) {
 			let s = state.streamer;
 			__res = s.source.resolution;
-
-			{
-				let res = `${__res.width}x${__res.height}`;
-				let el = $("stream-resolution-selector");
-				if (!tools.selector.hasValue(el, res)) {
-					tools.selector.addOption(el, res, res);
-				}
-				el.value = res;
-			}
-			tools.slider.setValue($("stream-quality-slider"), Math.max(s.encoder.quality, 1));
-			tools.slider.setValue($("stream-desired-fps-slider"), s.source.desired_fps);
-			if (s.h264 && s.h264.bitrate) {
-				tools.slider.setValue($("stream-h264-bitrate-slider"), s.h264.bitrate);
-				tools.slider.setValue($("stream-h264-gop-slider"), s.h264.gop); // Following together with gop
-			}
-
-			tools.feature.setEnabled($("stream-quality"), (s.encoder.quality > 0));
-
 			__streamer.ensureStream(s);
 		}
 	};
