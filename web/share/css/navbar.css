@@ -20,6 +20,25 @@
 *****************************************************************************/
 
 
+button#navbar-show-button {
+	top: 100px;
+    right: 0;
+    width: 16px;
+    height: 35px;
+	line-height: 8px;
+    font-size: 4px;
+	padding-left: 5px;
+    position: absolute;
+	border: var(--border-navbar-menu-active-2px);
+	border-right: none;
+	border-radius: 8px 0 0 8px;
+    z-index: 2147483645;
+	transition: right 0.25s ease 0s;
+}
+button#navbar-show-button.navbar-show-button-hidden {
+	right: -16px !important;
+}
+
 ul#navbar {
 	box-shadow: var(--shadow-small);
 	list-style-type: none;
@@ -30,44 +49,64 @@ ul#navbar {
 	top: 0;
 	width: 100%;
 	z-index: 2147483646;
+	transition: top 0.25s ease 0s;
+}
+ul#navbar.navbar-hidden {
+	top: -50px !important;
 }
 
 ul#navbar li.right {
+	height: 50px;
 	border-left: var(--border-navbar-item-thin);
 	float: right;
 }
 
 ul#navbar li.left {
+	height: 50px;
 	border-right: var(--border-navbar-item-thin);
 	float: left;
 }
 
-ul#navbar li a#logo {
-	height: 50px; /* Чтобы вертикальные разделители не вылезали за пределы навбара */
-	line-height: 50px;
+ul#navbar li .menu-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	height: 100%;
 	outline: none;
-	cursor: pointer;
-	display: inline-block;
 	color: var(--cs-navbar-default-fg);
-	padding-left: 16px;
-	padding-right: 16px;
-	text-decoration: none;
-}
-
-ul#navbar li a.menu-button {
-	height: 50px; /* То же самое */
-	line-height: 50px;
-	outline: none;
-	cursor: pointer;
-	display: inline-block;
-	color: var(--cs-navbar-default-fg);
-	padding-left: 16px;
-	padding-right: 16px;
 	text-decoration: none;
 	position: relative;
+	padding-left: 14px;
+	padding-right: 14px;
+}
+ul#navbar li .menu-item img {
+	height: 20px;
 }
 
-/*ul#navbar li a.menu-button:before {
+ul#navbar li .menu-action {
+	cursor: pointer;
+}
+ul#navbar li .menu-action:hover {
+	background-color: var(--cs-navbar-item-hovered-bg);
+}
+
+ul#navbar li .menu-button {
+	cursor: pointer;
+}
+ul#navbar li .menu-button:hover:not(.menu-button-pressed) {
+	background-color: var(--cs-navbar-item-hovered-bg);
+}
+
+ul#navbar li .menu-button-pressed {
+	box-shadow: var(--shadow-navbar-item-pressed);
+	background-color: var(--cs-navbar-item-pressed-bg) !important;
+}
+ul#navbar li .menu-button:hover:not(.menu-button-pressed) {
+	background-color: var(--cs-navbar-item-hovered-bg);
+}
+
+/*ul#navbar li .menu-button:before {
 	content: "";
 	position: absolute;
 	top: calc(100% - 10px);
@@ -76,31 +115,6 @@ ul#navbar li a.menu-button {
 	border-bottom: 10px solid var(--cs-navbar-item-pressed-bg);
 	border-left: 10px solid transparent;
 }*/
-
-ul#navbar li a#logo:hover:not(.active),
-ul#navbar li a.menu-button:hover:not(.active) {
-	background-color: var(--cs-navbar-item-hovered-bg);
-}
-
-ul#navbar li a#logo img {
-	margin-top: -2px;
-	height: 24px;
-}
-
-ul#navbar li a.menu-button span,
-ul#navbar li a.menu-button img {
-	vertical-align: middle;
-	height: 20px;
-}
-ul#navbar li a.menu-button span:not(:last-child),
-ul#navbar li a.menu-button img:not(:last-child) {
-	margin-right: 10px;
-}
-
-ul#navbar li a.menu-button-pressed {
-	box-shadow: var(--shadow-navbar-item-pressed);
-	background-color: var(--cs-navbar-item-pressed-bg) !important;
-}
 
 ul#navbar li div.menu {
 	visibility: hidden;

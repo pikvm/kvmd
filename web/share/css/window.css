@@ -42,7 +42,7 @@ div.window-elegant {
 div.window-resizable {
 	resize: both;
 }
-div.window-active {
+div.window-active:not(.window-full-tab) {
 	border: var(--border-window-active-2px) !important;
 }
 div.window-resizable.window-active:not(.window-full-tab)::after {
@@ -55,44 +55,6 @@ div.window-resizable.window-active:not(.window-full-tab)::after {
 	right: 0;
 	bottom: 0;
 	position: absolute;
-}
-div.window:fullscreen {
-	border: 0px;
-	border-radius: 0px;
-	resize: none !important;
-	position: absolute !important;
-	top: 0px !important;
-	left: 0px !important;
-	width: 100% !important;
-	height: 100% !important;
-	padding: 0px !important;
-
-	/* Ignore stream's resize_hook() */
-	aspect-ratio: unset !important;
-	max-width: unset !important;
-	max-height: unset !important;
-}
-div.window:fullscreen::after {
-	display: none;
-}
-div.window:-webkit-full-screen {
-	border: 0px;
-	border-radius: 0px;
-	resize: none !important;
-	position: absolute !important;
-	top: 0px !important;
-	left: 0px !important;
-	width: 100% !important;
-	height: 100% !important;
-	padding: 0px !important;
-
-	/* Ignore stream's resize_hook() */
-	aspect-ratio: unset !important;
-	max-width: unset !important;
-	max-height: unset !important;
-}
-div.window:-webkit-full-screen::after {
-	display: none;
 }
 div.window.window-full-tab {
 	border: 0px;
@@ -122,12 +84,6 @@ div.window div.window-header {
 	color: var(--cs-window-header-default-fg);
 	border-bottom: var(--border-default-thin);
 }
-div.window:fullscreen div.window-header {
-	display: none !important;
-}
-div.window:-webkit-full-screen div.window-header {
-	display: none !important;
-}
 
 div.window div.window-header div.window-grab {
 	overflow: hidden;
@@ -155,7 +111,7 @@ div.window div.window-header div.window-buttons {
 }
 
 div.window div.window-header div.window-buttons button.window-button-full-screen,
-div.window div.window-header div.window-buttons button.window-button-enter-full-tab,
+div.window div.window-header div.window-buttons button.window-button-full-tab,
 div.window div.window-header div.window-buttons button.window-button-original,
 div.window div.window-header div.window-buttons button.window-button-maximize,
 div.window div.window-header div.window-buttons button.window-button-close {
@@ -175,22 +131,4 @@ div.window[data-centered] div.window-header div.window-buttons button.window-but
 }
 div.window[data-maximized] div.window-header div.window-buttons button.window-button-maximize {
 	color: var(--cs-window-button-special-fg);
-}
-
-div.window button.window-button-exit-full-tab {
-	width: 50px;
-	height: 10px;
-	left: calc(50% - 25px);
-	font-size: 8px;
-	position: absolute;
-	opacity: 0.5;
-	border-radius: 0px;
-	visibility: hidden;
-	z-index: 1;
-}
-div.window button.window-button-exit-full-tab:hover {
-	opacity: 1;
-}
-div.window.window-full-tab button.window-button-exit-full-tab {
-	visibility: visible !important;
 }

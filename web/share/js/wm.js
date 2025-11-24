@@ -43,6 +43,8 @@ function __WindowManager() {
 
 	var __catch_menu_esc = false;
 
+	var __el_full_tab = null;
+
 	var __init__ = function() {
 		for (let el of $$("menu-button")) {
 			el.parentElement.querySelector(".menu").tabIndex = -1;
@@ -150,22 +152,35 @@ function __WindowManager() {
 			}
 
 			{
-				let el_enter = el_win.querySelector(".window-header .window-button-enter-full-tab");
-				let el_exit = el_win.querySelector(".window-button-exit-full-tab");
-				if (el_enter && el_exit) {
-					el_enter.title = "Stretch to the entire tab";
-					tools.el.setOnClick(el_enter, () => self.setFullTabWindow(el_win, true));
-					tools.el.setOnClick(el_exit, () => self.setFullTabWindow(el_win, false));
+				let el = el_win.querySelector(".window-header .window-button-full-tab");
+				if (el) {
+					el.title = "Stretch to the entire tab";
+					tools.el.setOnClick(el, () => self.setFullTabWindow(el_win, true));
 				}
 			}
 
 			{
 				let el = el_win.querySelector(".window-header .window-button-full-screen");
-				if (el && el_win.requestFullscreen) {
+				if (el && el_win.requestFullscreen && !__el_full_tab) {
 					el.title = "Go to full-screen mode";
 					tools.el.setOnClick(el, function() {
-						__setFullScreenWindow(el_win);
-						__activateWindow(el_win);
+						self.setFullTabWindow(el_win, true);
+						document.documentElement.requestFullscreen().then(function() {
+							__activateWindow(el_win); // Почему-то теряется фокус
+							if (navigator.keyboard && navigator.keyboard.lock) {
+								navigator.keyboard.lock();
+							} else {
+								let html = (
+									"Shortcuts like Alt+Tab and Ctrl+W might not be captured.<br>"
+									+ "For best keyboard handling use any browser with<br><a target=\"_blank\""
+									+ " href=\"https://developer.mozilla.org/en-US/docs/Web"
+									+ "/API/Keyboard_API#Browser_compatibility\">keyboard lock support from this list</a>.<br><br>"
+									+ "In Chrome use HTTPS and enable <i>system-keyboard-lock</i><br>"
+									+ "by putting at URL <i>chrome://flags/#system-keyboard-lock</i>"
+								);
+								self.modal("The Keyboard Lock API is not supported", html, true, false, "full-screen");
+							}
+						});
 					});
 				}
 			}
@@ -211,11 +226,6 @@ function __WindowManager() {
 			}, 100);
 		});
 
-		window.addEventListener("resize", __organizeWindowsOnBrowserResize);
-		window.addEventListener("orientationchange", __organizeWindowsOnBrowserResize);
-
-		document.addEventListener("fullscreenchange", __onFullScreenChange);
-
 		document.addEventListener("keyup", function(ev) {
 			if (__catch_menu_esc && ev.code === "Escape") {
 				ev.preventDefault();
@@ -223,6 +233,28 @@ function __WindowManager() {
 				__activateLastWindow();
 			}
 		});
+
+		if ($("navbar")) {
+			tools.el.setOnClick($("navbar-show-button"), () => __setNavbarVisible(true));
+			tools.el.setOnClick($("navbar-hide-button"), () => __setNavbarVisible(false));
+			tools.el.setOnClick($("navbar-normalize-button"), function() {
+				if (document.fullscreenElement) {
+					document.exitFullscreen();
+				}
+				if (__el_full_tab) {
+					self.setFullTabWindow(__el_full_tab, false);
+				}
+			});
+		}
+
+		document.addEventListener("fullscreenchange", function () {
+			if (!document.fullscreenElement && __el_full_tab) {
+				self.setFullTabWindow(__el_full_tab, false);
+			}
+		});
+
+		window.addEventListener("resize", __organizeAllWindows);
+		window.addEventListener("orientationchange", __organizeAllWindows);
 	};
 
 	/************************************************************************/
@@ -408,9 +440,10 @@ function __WindowManager() {
 	};
 
 	self.getViewGeometry = function() {
-		let el_navbar = $("navbar");
+		let el = $("navbar");
+		let hidden = (!el || el.classList.contains("navbar-hidden"));
 		return {
-			"top": (el_navbar ? el_navbar.clientHeight : 0), // Navbar height
+			"top": (hidden ? 0 : el.clientHeight), // Navbar height
 			"bottom": Math.max(document.documentElement.clientHeight, window.innerHeight || 0),
 			"left": 0,
 			"right": Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
@@ -423,11 +456,16 @@ function __WindowManager() {
 	};
 
 	self.setFullTabWindow = function(el_win, enabled) {
-		el_win.classList.toggle("window-full-tab", enabled);
-		let el_navbar = $("navbar");
-		if (el_navbar) {
-			tools.hidden.setVisible(el_navbar, !enabled);
+		if (!el_win || __el_full_tab && enabled || !__el_full_tab && !enabled) {
+			return;
 		}
+		el_win.classList.toggle("window-full-tab", enabled);
+		__el_full_tab = (enabled ? el_win : null);
+		if ($("navbar")) {
+			__setNavbarVisible(!enabled);
+			tools.hidden.setVisible($("navbar-full-controls"), enabled);
+		}
+		__organizeAllWindows();
 		setTimeout(() => __activateWindow(el_win), 100);
 	};
 
@@ -441,6 +479,16 @@ function __WindowManager() {
 		el_win.style.maxHeight = "fit-content";
 		el_win.style.aspectRatio = `${width} / ${height}`;
 		__organizeWindow(el_win, true, false);
+	};
+
+	var __setNavbarVisible = function(visible) {
+		if ($("navbar")) {
+			$("navbar").classList.toggle("navbar-hidden", !visible);
+			$("navbar-show-button").classList.toggle("navbar-show-button-hidden", visible);
+		}
+		__closeAllMenues();
+		__organizeAllWindows();
+		__activateLastWindow();
 	};
 
 	var __closeWindow = function(el_win) {
@@ -533,7 +581,7 @@ function __WindowManager() {
 		}
 	};
 
-	var __organizeWindowsOnBrowserResize = function() {
+	var __organizeAllWindows = function() {
 		for (let el_win of $$("window")) {
 			if (el_win.style.visibility === "visible") {
 				__organizeWindow(el_win);
@@ -755,39 +803,6 @@ function __WindowManager() {
 
 		el_grab.addEventListener("mousedown", startMoving);
 		el_grab.addEventListener("touchstart", startMoving);
-	};
-
-	var __onFullScreenChange = function(ev) {
-		let el_win = ev.target;
-		if (!document.fullscreenElement) {
-			let rect = el_win.__before_full_screen_rect;
-			if (rect) {
-				el_win.style.width = rect.width + "px";
-				el_win.style.height = rect.height + "px";
-				el_win.style.top = rect.top + "px";
-				el_win.style.left = rect.left + "px";
-			}
-		}
-	};
-
-	var __setFullScreenWindow = function(el_win) {
-		el_win.__before_full_screen_rect = el_win.getBoundingClientRect();
-		el_win.requestFullscreen().then(function() {
-			el_win.focus(el_win); // Почему-то теряется фокус
-			if (navigator.keyboard && navigator.keyboard.lock) {
-				navigator.keyboard.lock();
-			} else {
-				let html = (
-					"Shortcuts like Alt+Tab and Ctrl+W might not be captured.<br>"
-					+ "For best keyboard handling use any browser with<br><a target=\"_blank\""
-					+ " href=\"https://developer.mozilla.org/en-US/docs/Web"
-					+ "/API/Keyboard_API#Browser_compatibility\">keyboard lock support from this list</a>.<br><br>"
-					+ "In Chrome use HTTPS and enable <i>system-keyboard-lock</i><br>"
-					+ "by putting at URL <i>chrome://flags/#system-keyboard-lock</i>"
-				);
-				self.modal("The Keyboard Lock API is not supported", html, true, false, "full-screen");
-			}
-		});
 	};
 
 	__init__();

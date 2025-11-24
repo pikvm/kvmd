@@ -1,5 +1,5 @@
 li.right#system-dropdown
-	a.menu-button(href="#")
+	.menu-item.menu-button(href="#")
 		+navbar_led("link-led", "led-link")
 		+navbar_led("stream-led", "led-video")
 		+navbar_led("hid-keyboard-led", "led-hid-keyboard")
@@ -115,8 +115,6 @@ li.right#system-dropdown
 					+menu_switch_td2("page-close-ask-switch", true, true) Ask page close confirmation:
 				tr
 					+menu_switch_td2("page-full-tab-stream-switch", true, false) Expand for the entire tab by default:
-				tr
-					+menu_switch_td2("page-full-screen-frame-switch", true, false) Show the blue frame at full screen:
 				tr
 					+menu_switch_td2("stream-suspend-switch", true, false) Suspend stream when tab is not active:
 

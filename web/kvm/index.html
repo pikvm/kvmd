@@ -58,10 +58,14 @@
     </script>
   </head>
   <body class="body-no-select">
+    <button class="navbar-show-button-hidden" id="navbar-show-button">&#9679;</button>
     <ul id="navbar">
-      <li class="left"><a id="logo" href="../">&larr;&nbsp;&nbsp;<img class="svg-gray" src="../share/svg/logo.svg" alt="&amp;pi;-kvm"></a></li>
+      <li class="left"><a class="menu-item menu-action" href="../">
+          <div>&larr;</div><img class="svg-gray" src="../share/svg/logo.svg" alt="&amp;pi;-kvm"></a></li>
       <div class="hidden" id="hw-health-dropdown">
-        <li class="left"><a class="menu-button" href="#"><img class="hidden" id="hw-health-undervoltage-led" src="../share/svg/led-undervoltage.svg"><img class="hidden" id="hw-health-overheating-led" src="../share/svg/led-overheating.svg"></a>
+        <li class="left">
+          <div class="menu-item menu-button" href="#"><img class="hidden" id="hw-health-undervoltage-led" src="../share/svg/led-undervoltage.svg"><img class="hidden" id="hw-health-overheating-led" src="../share/svg/led-overheating.svg">
+          </div>
           <div class="menu">
                 <div class="text">
                   <table>
@@ -109,7 +113,9 @@
         </li>
       </div>
       <div class="hidden" id="fan-health-dropdown">
-        <li class="left"><a class="menu-button" href="#"><img class="hidden" id="fan-health-led" src="../share/svg/led-fan.svg"></a>
+        <li class="left">
+          <div class="menu-item menu-button" href="#"><img class="hidden" id="fan-health-led" src="../share/svg/led-fan.svg">
+          </div>
           <div class="menu">
                 <div class="text">
                   <table>
@@ -140,7 +146,17 @@
           </div>
         </li>
       </div>
-      <li class="right" id="system-dropdown"><a class="menu-button" href="#"><img class="led-gray" id="link-led" src="../share/svg/led-link.svg"><img class="led-gray" id="stream-led" src="../share/svg/led-video.svg"><img class="led-gray" id="hid-keyboard-led" src="../share/svg/led-hid-keyboard.svg"><img class="led-gray" id="hid-mouse-led" src="../share/svg/led-hid-mouse.svg"><span>System</span></a>
+      <div class="hidden" id="navbar-full-controls">
+        <li class="right">
+          <div class="menu-item">
+            <button id="navbar-hide-button">&#9650;</button>
+            <button id="navbar-normalize-button">&#10005;</button>
+          </div>
+        </li>
+      </div>
+      <li class="right" id="system-dropdown">
+        <div class="menu-item menu-button" href="#"><img class="led-gray" id="link-led" src="../share/svg/led-link.svg"><img class="led-gray" id="stream-led" src="../share/svg/led-video.svg"><img class="led-gray" id="hid-keyboard-led" src="../share/svg/led-hid-keyboard.svg"><img class="led-gray" id="hid-mouse-led" src="../share/svg/led-hid-mouse.svg"><span>System</span>
+        </div>
         <div class="menu" id="system-menu">
           <table class="kv">
             <tr>
@@ -433,16 +449,6 @@
                           </td>
                     </tr>
                     <tr>
-                          <td>Show the blue frame at full screen:
-                          </td>
-                          <td align="right">
-                            <div class="switch-box">
-                              <input type="checkbox" id="page-full-screen-frame-switch">
-                              <label for="page-full-screen-frame-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                          </td>
-                    </tr>
-                    <tr>
                           <td>Suspend stream when tab is not active:
                           </td>
                           <td align="right">
@@ -524,7 +530,9 @@
           </div>
         </div>
       </li>
-      <li class="right feature-disabled" id="atx-dropdown"><a class="menu-button" href="#"><img class="led-gray" id="atx-power-led" src="../share/svg/led-atx-power.svg"><img class="led-gray" id="atx-hdd-led" src="../share/svg/led-atx-hdd.svg"><span>ATX</span></a>
+      <li class="right feature-disabled" id="atx-dropdown">
+        <div class="menu-item menu-button" href="#"><img class="led-gray" id="atx-power-led" src="../share/svg/led-atx-power.svg"><img class="led-gray" id="atx-hdd-led" src="../share/svg/led-atx-hdd.svg"><span>ATX</span>
+        </div>
         <div class="menu">
           <div class="text"><b>Control the server's power<br></b><sub>Use the short click for ACPI shutdown</sub></div>
           <hr>
@@ -549,7 +557,9 @@
           </div>
         </div>
       </li>
-      <li class="right feature-disabled" id="msd-dropdown"><a class="menu-button" href="#"><img class="led-gray" id="msd-led" src="../share/svg/led-msd.svg"><span>Drive</span></a>
+      <li class="right feature-disabled" id="msd-dropdown">
+        <div class="menu-item menu-button" href="#"><img class="led-gray" id="msd-led" src="../share/svg/led-msd.svg"><span>Drive</span>
+        </div>
         <div class="menu" id="msd-menu">
           <div class="text"><b>Mass Storage Drive: </b><span id="msd-status"></span><br></div>
           <hr>
@@ -762,7 +772,9 @@
           </div>
         </div>
       </li>
-      <li class="right" id="macro-dropdown"><a class="menu-button" href="#"><img class="led-gray" id="hid-recorder-led" src="../share/svg/led-gear.svg"><span>Macro</span></a>
+      <li class="right" id="macro-dropdown">
+        <div class="menu-item menu-button" href="#"><img class="led-gray" id="hid-recorder-led" src="../share/svg/led-gear.svg"><span>Macro</span>
+        </div>
         <div class="menu">
           <div class="text"><b>Record and play HID/ATX/GPIO actions<br></b><sub>For security reasons, the record will not be saved on the PiKVM</sub></div>
           <hr>
@@ -805,7 +817,9 @@
           </div>
         </div>
       </li>
-      <li class="right" id="text-dropdown"><a class="menu-button" href="#"><img class="feature-disabled" id="stream-ocr-led" src="../share/svg/led-gear.svg"><span>Text</span></a>
+      <li class="right" id="text-dropdown">
+        <div class="menu-item menu-button" href="#"><img class="feature-disabled" id="stream-ocr-led" src="../share/svg/led-gear.svg"><span>Text</span>
+        </div>
         <div class="menu" id="text-menu" style="width: 360px">
           <div class="text"><b>Paste text as keypress sequence<br></b><sub>Please note that PiKVM cannot switch the keyboard layout</sub></div>
           <hr>
@@ -884,7 +898,8 @@
           </div>
         </div>
       </li>
-      <li class="right" id="shortcuts-dropdown"><a class="menu-button" href="#">Shortcuts</a>
+      <li class="right" id="shortcuts-dropdown">
+        <div class="menu-item menu-button" href="#">Shortcuts</div>
         <div class="menu" id="shortcuts-menu">
           <div class="text"><b>Quick keyboard shortcuts<br></b><sub>Also see <i>System &rarr; Show keyboard</i></sub></div>
           <hr>
@@ -963,10 +978,13 @@
               </table>
         </div>
       </li>
-      <li class="right feature-disabled" id="gpio-dropdown"><a class="menu-button" id="gpio-menu-button" href="#"><span>GPIO</span></a>
+      <li class="right feature-disabled" id="gpio-dropdown">
+        <div class="menu-item menu-button" id="gpio-menu-button" href="#"><span>GPIO</span></div>
         <div class="menu" id="gpio-menu"></div>
       </li>
-      <li class="right feature-disabled" id="switch-dropdown"><a class="menu-button" id="switch-menu-button" href="#"><img class="led-gray" id="switch-atx-power-led" src="../share/svg/led-atx-power.svg"><img class="led-gray" id="switch-atx-hdd-led" src="../share/svg/led-atx-hdd.svg"><span>Switch <i><sub id="switch-active-port"></sub></i></span></a>
+      <li class="right feature-disabled" id="switch-dropdown">
+        <div class="menu-item menu-button" id="switch-menu-button" href="#"><img class="led-gray" id="switch-atx-power-led" src="../share/svg/led-atx-power.svg"><img class="led-gray" id="switch-atx-hdd-led" src="../share/svg/led-atx-hdd.svg"><span>Switch <i><sub id="switch-active-port"></sub></i></span>
+        </div>
         <div class="menu" id="switch-menu">
           <table style="border-spacing: 0px">
             <tr>
@@ -1031,14 +1049,13 @@
         <div class="window-grab">MJPEG</div>
         <div class="window-buttons">
           <button class="window-button-full-screen">&#10530;</button>
-          <button class="window-button-enter-full-tab">&#9650;</button>
+          <button class="window-button-full-tab">&#9650;</button>
           <button class="window-button-original">&bull;</button>
           <button class="window-button-maximize">&#9744;</button>
           <button class="window-button-close"><b>&times;</b></button>
         </div>
       </div>
       <div id="stream-info"></div>
-      <button class="window-button-exit-full-tab">&#9660;</button>
       <div class="stream-box-offline" id="stream-box">
         <div id="stream-keyboard-magic"></div><img id="stream-image" src="../share/png/blank-stream.png">
         <video class="hidden" id="stream-video" disablePictureInPicture="true" autoplay playsinline muted></video>

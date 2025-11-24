@@ -84,13 +84,21 @@ mixin menu_spoiler(title)
 		div(class="spoiler")
 			block
 
+button#navbar-show-button.navbar-show-button-hidden &#9679;
 
 ul#navbar
 	li.left
-		a(id="logo" href=root_prefix) &larr;&nbsp;&nbsp;
+		a.menu-item.menu-action(href=root_prefix)
+			div &larr;
 			img.svg-gray(src=`${svg_dir}/logo.svg` alt="&pi;-kvm")
 
 	include navbar-health.pug
+
+	.hidden#navbar-full-controls
+		li.right
+			.menu-item
+				button(id="navbar-hide-button") &#9650;
+				button(id="navbar-normalize-button") &#10005;
 
 	include navbar-system.pug
 	include navbar-atx.pug

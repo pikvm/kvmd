@@ -54,7 +54,7 @@ div.window div.window-header div.window-grab {
 	height: 35px !important;
 }
 div.window div.window-header button.window-button-full-screen,
-div.window div.window-header button.window-button-enter-full-tab,
+div.window div.window-header button.window-button-full-tab,
 div.window div.window-header button.window-button-original,
 div.window div.window-header button.window-button-maximize,
 div.window div.window-header button.window-button-close {
@@ -73,8 +73,11 @@ div.window div.window-header button.window-button-close {
 
 /* ===== navbar.css ===== */
 
-ul#navbar li a#logo:hover:not(.active),
-ul#navbar li a.menu-button:hover:not(.active) {
+ul#navbar li .menu-action:hover {
+	background-color: var(--cs-navbar-item-hovered-bg);
+}
+
+ul#navbar li .menu-button:hover:not(.menu-button-pressed) {
 	background-color: var(--cs-navbar-default-bg);
 }
 
