@@ -6,7 +6,7 @@ li.right#system-dropdown
 		+navbar_led("hid-mouse-led", "led-hid-mouse")
 		span System
 
-	.menu#system-menu
+	.hidden.menu#system-menu
 		table.kv
 			tr
 				td.value
@@ -138,5 +138,6 @@ li.right#system-dropdown
 		hr
 
 		.buttons.buttons-row
-			button.row50(data-force-hide-menu data-show-window="keyboard-window") &bull; Show keyboard
-			button.row50#hid-reset-button(disabled) Reset HID
+			button.row33(data-force-hide-menu data-show-window="keyboard-window") &bull; Keyboard
+			button.row33(data-force-hide-menu data-show-window="mouse-window") &bull; Mouse
+			button.row33#hid-reset-button(disabled) Reset HID

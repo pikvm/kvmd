@@ -10,12 +10,12 @@ mixin about_tab(name, title, checked=false)
 				span.code-comment No data
 
 
-.window#about-window(data-show-centered)
+.hidden.window#about-window(data-show-centered)
 	.window-header
 		.window-grab About
 		.window-buttons
 			button.window-button-original &bull;
-			button.window-button-close #[b &times;]
+			button.window-button-close &#10005;
 
 	#about
 		table

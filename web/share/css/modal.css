@@ -21,7 +21,6 @@
 
 
 div.modal {
-	visibility: hidden;
 	position: fixed;
 	left: 0;
 	top: 0;

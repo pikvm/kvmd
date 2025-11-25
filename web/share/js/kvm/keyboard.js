@@ -40,15 +40,12 @@ export function Keyboard(__recordWsEvent) {
 
 		$("hid-keyboard-led").title = "Keyboard free";
 
-		$("keyboard-window").onkeydown = (ev) => __keyboardHandler(ev, true);
-		$("keyboard-window").onkeyup = (ev) => __keyboardHandler(ev, false);
-		$("keyboard-window").onfocus = __updateOnlineLeds;
-		$("keyboard-window").onblur = __updateOnlineLeds;
-
-		$("stream-window").onkeydown = (ev) => __keyboardHandler(ev, true);
-		$("stream-window").onkeyup = (ev) => __keyboardHandler(ev, false);
-		$("stream-window").onfocus = __updateOnlineLeds;
-		$("stream-window").onblur = __updateOnlineLeds;
+		for (let el of [$("keyboard-window"), $("mouse-window"), $("stream-window")]) {
+			el.onkeydown = (ev) => __keyboardHandler(ev, true);
+			el.onkeyup = (ev) => __keyboardHandler(ev, false);
+			el.addEventListener("focus", __updateOnlineLeds);
+			el.addEventListener("blur", __updateOnlineLeds);
+		}
 
 		window.addEventListener("focusin", __updateOnlineLeds);
 		window.addEventListener("focusout", __updateOnlineLeds);
@@ -132,6 +129,7 @@ export function Keyboard(__recordWsEvent) {
 		let is_captured = (
 			$("stream-window").classList.contains("window-active")
 			|| $("keyboard-window").classList.contains("window-active")
+			|| $("mouse-window").classList.contains("window-active")
 		);
 		let led = "led-gray";
 		let title = "Keyboard free";

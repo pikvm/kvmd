@@ -44,8 +44,11 @@ input[type=file]:active::file-selector-button {
 
 /* ===== window.css ===== */
 
-div.window {
+div.window:not(.window-full-tab) {
 	padding-top: 45px !important;
+}
+div.window.window-elegant:not(.window-full-tab) {
+	padding-top: 38px !important;
 }
 div.window div.window-header {
 	height: 35px !important;
@@ -53,12 +56,11 @@ div.window div.window-header {
 div.window div.window-header div.window-grab {
 	height: 35px !important;
 }
-div.window div.window-header button.window-button-full-screen,
-div.window div.window-header button.window-button-full-tab,
-div.window div.window-header button.window-button-original,
-div.window div.window-header button.window-button-maximize,
-div.window div.window-header button.window-button-close {
+div.window div.window-header div.window-buttons button {
 	height: 40px !important;
+}
+div.window div.window-header div.window-buttons button img {
+	height: 30px !important;
 }
 
 
@@ -72,6 +74,10 @@ div.window div.window-header button.window-button-close {
 
 
 /* ===== navbar.css ===== */
+
+button#navbar-show-button {
+	width: 50px !important;
+}
 
 ul#navbar li .menu-action:hover {
 	background-color: var(--cs-navbar-item-hovered-bg);

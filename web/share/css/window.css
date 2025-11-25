@@ -21,7 +21,6 @@
 
 
 div.window {
-	visibility: hidden;
 	outline: none;
 	overflow: hidden;
 	position: fixed;
@@ -34,18 +33,21 @@ div.window {
 	background-color: var(--cs-window-default-bg);
 	padding: 30px 9px 9px 9px;
 }
-div.window-elegant {
+div.window[data-always-on-top] {
+	z-index: 2147483643;
+}
+div.window.window-elegant {
 	padding-top: 23px;
 	padding-left: 2px;
 	padding-right: 2px;
 }
-div.window-resizable {
+div.window.window-resizable {
 	resize: both;
 }
-div.window-active:not(.window-full-tab) {
+div.window.window-active:not(.window-full-tab) {
 	border: var(--border-window-active-2px) !important;
 }
-div.window-resizable.window-active:not(.window-full-tab)::after {
+div.window.window-resizable.window-active:not(.window-full-tab)::after {
 	content: "";
 	width: 0;
 	height: 0;
@@ -103,6 +105,7 @@ div.window div.window-header-grabbed {
 }
 
 div.window div.window-header div.window-buttons {
+	display: flex;
 	position: absolute;
 	top: -2px;
 	right: 0;
@@ -110,11 +113,7 @@ div.window div.window-header div.window-buttons {
 	background-color: var(--cs-window-default-bg);
 }
 
-div.window div.window-header div.window-buttons button.window-button-full-screen,
-div.window div.window-header div.window-buttons button.window-button-full-tab,
-div.window div.window-header div.window-buttons button.window-button-original,
-div.window div.window-header div.window-buttons button.window-button-maximize,
-div.window div.window-header div.window-buttons button.window-button-close {
+div.window div.window-header div.window-buttons button {
 	line-height: 1px;
 	border: none;
 	border-radius: 0px;
@@ -125,6 +124,9 @@ div.window div.window-header div.window-buttons button.window-button-close {
 	margin-left: 1px;
 	color: var(--cs-window-closer-default-fg);
 	display: inline-block;
+}
+div.window div.window-header div.window-buttons button img {
+	height: 20px;
 }
 div.window[data-centered] div.window-header div.window-buttons button.window-button-original {
 	color: var(--cs-window-button-special-fg);

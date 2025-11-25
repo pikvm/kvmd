@@ -58,7 +58,7 @@
     </script>
   </head>
   <body class="body-no-select">
-    <button class="navbar-show-button-hidden" id="navbar-show-button">&#9679;</button>
+    <button class="hidden" id="navbar-show-button" data-show-navbar data-on-full-tab>&bull;&nbsp;&bull;&nbsp;&bull;</button>
     <ul id="navbar">
       <li class="left"><a class="menu-item menu-action" href="../">
           <div>&larr;</div><img class="svg-gray" src="../share/svg/logo.svg" alt="&amp;pi;-kvm"></a></li>
@@ -66,7 +66,7 @@
         <li class="left">
           <div class="menu-item menu-button" href="#"><img class="hidden" id="hw-health-undervoltage-led" src="../share/svg/led-undervoltage.svg"><img class="hidden" id="hw-health-overheating-led" src="../share/svg/led-overheating.svg">
           </div>
-          <div class="menu">
+          <div class="hidden menu">
                 <div class="text">
                   <table>
                     <tr>
@@ -116,7 +116,7 @@
         <li class="left">
           <div class="menu-item menu-button" href="#"><img class="hidden" id="fan-health-led" src="../share/svg/led-fan.svg">
           </div>
-          <div class="menu">
+          <div class="hidden menu">
                 <div class="text">
                   <table>
                     <tr>
@@ -146,7 +146,14 @@
           </div>
         </li>
       </div>
-      <div class="hidden" id="navbar-full-controls">
+      <div class="hidden" id="navbar-stream-info" data-on-full-tab>
+        <li class="left">
+          <div class="menu-item">
+            <div id="stream-info"></div>
+          </div>
+        </li>
+      </div>
+      <div class="hidden" id="navbar-full-controls" data-on-full-tab>
         <li class="right">
           <div class="menu-item">
             <button id="navbar-hide-button">&#9650;</button>
@@ -157,7 +164,7 @@
       <li class="right" id="system-dropdown">
         <div class="menu-item menu-button" href="#"><img class="led-gray" id="link-led" src="../share/svg/led-link.svg"><img class="led-gray" id="stream-led" src="../share/svg/led-video.svg"><img class="led-gray" id="hid-keyboard-led" src="../share/svg/led-hid-keyboard.svg"><img class="led-gray" id="hid-mouse-led" src="../share/svg/led-hid-mouse.svg"><span>System</span>
         </div>
-        <div class="menu" id="system-menu">
+        <div class="hidden menu" id="system-menu">
           <table class="kv">
             <tr>
               <td class="value">Runtime settings &amp; tools</td>
@@ -525,15 +532,16 @@
           </table>
           <hr>
           <div class="buttons buttons-row">
-            <button class="row50" data-force-hide-menu data-show-window="keyboard-window">&bull; Show keyboard</button>
-            <button class="row50" id="hid-reset-button" disabled>Reset HID</button>
+            <button class="row33" data-force-hide-menu data-show-window="keyboard-window">&bull; Keyboard</button>
+            <button class="row33" data-force-hide-menu data-show-window="mouse-window">&bull; Mouse</button>
+            <button class="row33" id="hid-reset-button" disabled>Reset HID</button>
           </div>
         </div>
       </li>
       <li class="right feature-disabled" id="atx-dropdown">
         <div class="menu-item menu-button" href="#"><img class="led-gray" id="atx-power-led" src="../share/svg/led-atx-power.svg"><img class="led-gray" id="atx-hdd-led" src="../share/svg/led-atx-hdd.svg"><span>ATX</span>
         </div>
-        <div class="menu">
+        <div class="hidden menu">
           <div class="text"><b>Control the server's power<br></b><sub>Use the short click for ACPI shutdown</sub></div>
           <hr>
               <table class="kv">
@@ -560,7 +568,7 @@
       <li class="right feature-disabled" id="msd-dropdown">
         <div class="menu-item menu-button" href="#"><img class="led-gray" id="msd-led" src="../share/svg/led-msd.svg"><span>Drive</span>
         </div>
-        <div class="menu" id="msd-menu">
+        <div class="hidden menu" id="msd-menu">
           <div class="text"><b>Mass Storage Drive: </b><span id="msd-status"></span><br></div>
           <hr>
           <div class="hidden" id="msd-message-offline">
@@ -666,7 +674,7 @@
                 <button id="msd-download-button" disabled title="Download image"><b>&nbsp;&nbsp;&#x21E9;&nbsp;&nbsp;</b></button>
               </td>
               <td>
-                <button id="msd-remove-button" disabled title="Remove image"><b>&nbsp;&nbsp;&times;&nbsp;&nbsp;</b></button>
+                <button id="msd-remove-button" disabled title="Remove image"><b>&nbsp;&nbsp;&#10005;&nbsp;&nbsp;</b></button>
               </td>
             </tr>
           </table>
@@ -775,7 +783,7 @@
       <li class="right" id="macro-dropdown">
         <div class="menu-item menu-button" href="#"><img class="led-gray" id="hid-recorder-led" src="../share/svg/led-gear.svg"><span>Macro</span>
         </div>
-        <div class="menu">
+        <div class="hidden menu">
           <div class="text"><b>Record and play HID/ATX/GPIO actions<br></b><sub>For security reasons, the record will not be saved on the PiKVM</sub></div>
           <hr>
           <div class="buttons buttons-row">
@@ -820,7 +828,7 @@
       <li class="right" id="text-dropdown">
         <div class="menu-item menu-button" href="#"><img class="feature-disabled" id="stream-ocr-led" src="../share/svg/led-gear.svg"><span>Text</span>
         </div>
-        <div class="menu" id="text-menu" style="width: 360px">
+        <div class="hidden menu" id="text-menu" style="width: 360px">
           <div class="text"><b>Paste text as keypress sequence<br></b><sub>Please note that PiKVM cannot switch the keyboard layout</sub></div>
           <hr>
           <div class="text" style="margin-right: 20px">
@@ -900,7 +908,7 @@
       </li>
       <li class="right" id="shortcuts-dropdown">
         <div class="menu-item menu-button" href="#">Shortcuts</div>
-        <div class="menu" id="shortcuts-menu">
+        <div class="hidden menu" id="shortcuts-menu">
           <div class="text"><b>Quick keyboard shortcuts<br></b><sub>Also see <i>System &rarr; Show keyboard</i></sub></div>
           <hr>
           <div class="buttons">
@@ -980,12 +988,12 @@
       </li>
       <li class="right feature-disabled" id="gpio-dropdown">
         <div class="menu-item menu-button" id="gpio-menu-button" href="#"><span>GPIO</span></div>
-        <div class="menu" id="gpio-menu"></div>
+        <div class="hidden menu" id="gpio-menu"></div>
       </li>
       <li class="right feature-disabled" id="switch-dropdown">
         <div class="menu-item menu-button" id="switch-menu-button" href="#"><img class="led-gray" id="switch-atx-power-led" src="../share/svg/led-atx-power.svg"><img class="led-gray" id="switch-atx-hdd-led" src="../share/svg/led-atx-hdd.svg"><span>Switch <i><sub id="switch-active-port"></sub></i></span>
         </div>
-        <div class="menu" id="switch-menu">
+        <div class="hidden menu" id="switch-menu">
           <table style="border-spacing: 0px">
             <tr>
               <td>
@@ -1041,10 +1049,10 @@
         </div>
       </li>
     </ul>
-    <div class="window" id="stream-ocr-window">
+    <div class="hidden window" id="stream-ocr-window">
       <div class="hidden" id="stream-ocr-selection"></div>
     </div>
-    <div class="window window-elegant window-resizable" id="stream-window" data-show-maximized data-organize-hook>
+    <div class="hidden window window-elegant window-resizable" id="stream-window" data-show-maximized data-organize-hook>
       <div class="window-header" id="stream-window-header">
         <div class="window-grab">MJPEG</div>
         <div class="window-buttons">
@@ -1052,7 +1060,7 @@
           <button class="window-button-full-tab">&#9650;</button>
           <button class="window-button-original">&bull;</button>
           <button class="window-button-maximize">&#9744;</button>
-          <button class="window-button-close"><b>&times;</b></button>
+          <button class="window-button-close">&#10005;</button>
         </div>
       </div>
       <div id="stream-info"></div>
@@ -1062,35 +1070,13 @@
         <canvas class="hidden" id="stream-canvas"></canvas>
         <div id="stream-fullscreen-active"></div>
       </div>
-      <div class="keypad" id="stream-mouse-buttons" align="center">
-        <div class="keypad-block">
-          <div class="keypad-row">
-            <div class="key wide-3 left rounded-left" data-code="left" data-allow-autohold>
-              <div class="label"><b>&bull;</b><br>Left</div>
-            </div>
-            <div class="key wide-1 rounded-none" data-code="middle" data-allow-autohold>
-              <div class="label"><b>&bull;</b><br>Mid</div>
-            </div>
-            <div class="key wide-3 right rounded-right" data-code="right" data-allow-autohold>
-              <div class="label"><b>&bull;</b><br>Right</div>
-            </div>
-            <div class="empty" style="width: 30px"></div>
-            <div class="key small rounded-left" data-code="up" data-allow-autohold>
-              <div class="label"><b>&bull;</b><br>Up</div>
-            </div>
-            <div class="key small rounded-right" data-code="down" data-allow-autohold>
-              <div class="label"><b>&bull;</b><br>Down</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-    <div class="window" id="keyboard-window" data-show-centered>
+    <div class="hidden window" id="keyboard-window" data-show-centered>
       <div class="window-header" id="keyboard-window-header">
-        <div class="window-grab">Virtual Keyboard</div>
+        <div class="window-grab">Keyboard</div>
         <div class="window-buttons">
           <button class="window-button-original">&bull;</button>
-          <button class="window-button-close"><b>&times;</b></button>
+          <button class="window-button-close">&#10005;</button>
         </div>
       </div>
       <div class="keypad" id="keyboard-desktop" align="center">
@@ -2167,12 +2153,43 @@
         </div>
       </div>
     </div>
-    <div class="window" id="switch-window" data-show-centered style="width: min-content">
+    <div class="hidden window window-elegant" id="mouse-window" data-always-on-top data-save-position data-always-on-screen data-show-centered>
+      <div class="window-header">
+        <div class="window-grab">Mouse Buttons</div>
+        <div class="window-buttons">
+          <button class="hidden" id="mouse-window-navbar-button" data-show-navbar data-on-full-tab>NB</button>
+          <button id="mouse-window-keyboard-button" style="display: none" data-show-window="keyboard-window"><img class="led-gray" src="../share/svg/led-hid-keyboard.svg"></button>
+          <button class="window-button-close">&#10005;</button>
+        </div>
+      </div>
+      <div class="keypad" id="mouse-buttons" align="center">
+        <div class="keypad-block">
+          <div class="keypad-row">
+            <div class="key wide-1 left rounded-left" data-code="left" data-allow-autohold>
+              <div class="label"><b>&bull;</b><br>Left</div>
+            </div>
+            <div class="key wide-1 rounded-none" data-code="middle" data-allow-autohold>
+              <div class="label"><b>&bull;</b><br>Mid</div>
+            </div>
+            <div class="key wide-1 right rounded-right" data-code="right" data-allow-autohold>
+              <div class="label"><b>&bull;</b><br>Right</div>
+            </div>
+          </div>
+          <!--.keypad-row
+          .key.small.rounded-left(data-code="up" data-allow-autohold)
+          	.label <b>&bull;</b><br>Up
+          .key.small.rounded-right(data-code="down" data-allow-autohold)
+          	.label <b>&bull;</b><br>Down
+          -->
+        </div>
+      </div>
+    </div>
+    <div class="hidden window" id="switch-window" data-show-centered style="width: min-content">
       <div class="window-header">
         <div class="window-grab">Switch settings</div>
         <div class="window-buttons">
           <button class="window-button-original">&bull;</button>
-          <button class="window-button-close"><b>&times;</b></button>
+          <button class="window-button-close">&#10005;</button>
         </div>
       </div>
       <div class="tabs-box">
@@ -2317,12 +2334,12 @@
             </div>
       </div>
     </div>
-    <div class="window" id="about-window" data-show-centered>
+    <div class="hidden window" id="about-window" data-show-centered>
       <div class="window-header">
         <div class="window-grab">About</div>
         <div class="window-buttons">
           <button class="window-button-original">&bull;</button>
-          <button class="window-button-close"><b>&times;</b></button>
+          <button class="window-button-close">&#10005;</button>
         </div>
       </div>
       <div id="about">
@@ -3023,13 +3040,13 @@
         <p class="text credits"><a target="_blank" href="https://pikvm.org">PiKVM Project</a>&nbsp; | &nbsp;<a target="_blank" href="https://docs.pikvm.org">Documentation</a>&nbsp; | &nbsp;<a target="_blank" href="https://pikvm.org/support">Support</a></p>
       </div>
     </div>
-    <div class="window window-elegant window-resizable" id="webterm-window" data-show-centered style="display: flex; min-width: 720px; min-height: 480px">
+    <div class="hidden window window-elegant window-resizable" id="webterm-window" data-show-centered style="display: flex; min-width: 720px; min-height: 480px">
       <div class="window-header">
         <div class="window-grab">Terminal</div>
         <div class="window-buttons">
           <button class="window-button-original">&bull;</button>
           <button class="window-button-maximize">&#9744;</button>
-          <button class="window-button-close"><b>&times;</b></button>
+          <button class="window-button-close">&#10005;</button>
           <!-- Терминал глючит из-за зажимаемой клавиши ESC для выхода-->
           <!-- button(class="window-button-full-screen") &#10530;-->
         </div>

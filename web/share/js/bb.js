@@ -85,6 +85,9 @@ export var browser = new function() {
 
 	let is_android = /android/i.test(navigator.userAgent);
 
+	let force_desktop = (new URL(window.location.href)).searchParams.get("force_desktop");
+	let force_mobile = (new URL(window.location.href)).searchParams.get("force_mobile");
+
 	let flags = {
 		"is_opera": is_opera,
 		"is_firefox": is_firefox,
@@ -95,8 +98,8 @@ export var browser = new function() {
 		"is_win": is_win,
 		"is_ios": is_ios,
 		"is_android": is_android,
-		"is_mobile": (is_ios || is_android),
 		"is_apple": (is_mac || is_ios),
+		"is_mobile": ((is_ios || is_android || force_mobile) && !force_desktop),
 	};
 
 	console.log("===== BB flags:", flags);
@@ -112,7 +115,6 @@ export function checkBrowser(desktop_css, mobile_css) {
 	) {
 		let el_modal = document.createElement("div");
 		el_modal.className = "modal";
-		el_modal.style.visibility = "visible";
 		el_modal.innerHTML = `
 			<div class="modal-window">
 				<div class="modal-content">
@@ -134,17 +136,15 @@ export function checkBrowser(desktop_css, mobile_css) {
 		return false;
 
 	} else {
-		let force_desktop = (new URL(window.location.href)).searchParams.get("force_desktop");
-		let force_mobile = (new URL(window.location.href)).searchParams.get("force_mobile");
-		if ((force_desktop || !browser.is_mobile) && !force_mobile) {
-			__addCssLink("x-desktop.css");
-			if (desktop_css) {
-				__addCssLink(desktop_css);
-			}
-		} else {
+		if (browser.is_mobile) {
 			__addCssLink("x-mobile.css");
 			if (mobile_css) {
 				__addCssLink(mobile_css);
+			}
+		} else {
+			__addCssLink("x-desktop.css");
+			if (desktop_css) {
+				__addCssLink(desktop_css);
 			}
 		}
 		return true;

@@ -20,13 +20,14 @@
 *****************************************************************************/
 
 
+div#navbar-stream-info {
+	font-size: 0.8em;
+	font-family: monospace;
+}
+
 div#stream-window {
 	min-width: 400px;
 	min-height: 200px;
-}
-
-div#stream-info {
-	display: none;
 }
 
 div#stream-ocr-window {
@@ -103,8 +104,4 @@ canvas#stream-canvas {
 	object-fit: contain;
 	display: block;
 	background-color: black;
-}
-
-div#stream-mouse-buttons {
-	display: none;
 }

@@ -84,7 +84,8 @@ mixin menu_spoiler(title)
 		div(class="spoiler")
 			block
 
-button#navbar-show-button.navbar-show-button-hidden &#9679;
+
+button.hidden#navbar-show-button(data-show-navbar data-on-full-tab) &bull;&nbsp;&bull;&nbsp;&bull;
 
 ul#navbar
 	li.left
@@ -94,7 +95,12 @@ ul#navbar
 
 	include navbar-health.pug
 
-	.hidden#navbar-full-controls
+	.hidden#navbar-stream-info(data-on-full-tab)
+		li.left
+			.menu-item
+				#stream-info
+
+	.hidden#navbar-full-controls(data-on-full-tab)
 		li.right
 			.menu-item
 				button(id="navbar-hide-button") &#9650;

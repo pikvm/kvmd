@@ -1,0 +1,23 @@
+.hidden.window.window-elegant#mouse-window(data-always-on-top data-save-position data-always-on-screen data-show-centered)
+	.window-header
+		.window-grab Mouse Buttons
+		.window-buttons
+			button.hidden#mouse-window-navbar-button(data-show-navbar data-on-full-tab) NB
+			button#mouse-window-keyboard-button(style="display: none" data-show-window="keyboard-window")
+				img.led-gray(src=`${svg_dir}/led-hid-keyboard.svg`)
+			button.window-button-close &#10005;
+
+	.keypad#mouse-buttons(align="center")
+		.keypad-block
+			.keypad-row
+				.key.wide-1.left.rounded-left(data-code="left" data-allow-autohold)
+					.label #[b &bull;]#[br]Left
+				.key.wide-1.rounded-none(data-code="middle" data-allow-autohold)
+					.label #[b &bull;]#[br]Mid
+				.key.wide-1.right.rounded-right(data-code="right" data-allow-autohold)
+					.label #[b &bull;]#[br]Right
+			//.keypad-row
+				.key.small.rounded-left(data-code="up" data-allow-autohold)
+					.label #[b &bull;]#[br]Up
+				.key.small.rounded-right(data-code="down" data-allow-autohold)
+					.label #[b &bull;]#[br]Down

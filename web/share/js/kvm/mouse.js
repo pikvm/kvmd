@@ -46,7 +46,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __rel_deltas = [];
 
 	var __init__ = function() {
-		__keypad = new Keypad($("stream-mouse-buttons"), __sendButton);
+		__keypad = new Keypad($("mouse-buttons"), __sendButton);
 
 		tools.storage.bindSimpleSlider($("hid-mouse-sens-slider"), "hid.mouse.sens", 0.1, 1.9, 0.1, 1.0, function (value) {
 			$("hid-mouse-sens-value").innerText = value.toFixed(1);

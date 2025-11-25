@@ -121,7 +121,7 @@ export function Streamer() {
 
 	var __isStreamRequired = function() {
 		return (
-			wm.isWindowVisible($("stream-window"))
+			tools.hidden.isVisible($("stream-window"))
 			&& (
 				!$("stream-suspend-switch").checked
 				|| (document.visibilityState === "visible")
@@ -319,7 +319,9 @@ export function Streamer() {
 				title += "No stream from PiKVM";
 			}
 		}
-		el_grab.innerText = el_info.innerText = title;
+		el_grab.innerText = title;
+		// Заменяем только первое вхождение, всё ок
+		el_info.innerText = title.replace(" / ", "\n");
 	};
 
 	var __resetStream = function(mode=null) {

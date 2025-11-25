@@ -405,7 +405,7 @@ export var tools = new function() {
 			"set": (key, value) => window.localStorage.setItem(key, value),
 
 			"getInt": (key, def) => parseInt(self.storage.get(key, def)),
-			"setInt": (key, value) => self.storage.set(key, value),
+			"setInt": (key, value) => self.storage.set(key, Math.round(value)),
 
 			"getBool": (key, def) => !!parseInt(self.storage.get(key, (def ? "1" : "0"))),
 			"setBool": (key, value) => self.storage.set(key, (value ? "1" : "0")),

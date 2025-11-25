@@ -3,7 +3,7 @@ li.right.feature-disabled#msd-dropdown
 		+navbar_led("msd-led", "led-msd")
 		span Drive
 
-	.menu#msd-menu
+	.hidden.menu#msd-menu
 		.text
 			b Mass Storage Drive: 
 			span#msd-status
@@ -48,7 +48,7 @@ li.right.feature-disabled#msd-dropdown
 				td Image:
 				td(width="100%") #[select#msd-image-selector(disabled)]
 				td #[button#msd-download-button(disabled title="Download image") #[b &nbsp;&nbsp;&#x21E9;&nbsp;&nbsp;]]
-				td #[button#msd-remove-button(disabled title="Remove image") #[b &nbsp;&nbsp;&times;&nbsp;&nbsp;]]
+				td #[button#msd-remove-button(disabled title="Remove image") #[b &nbsp;&nbsp;&#10005;&nbsp;&nbsp;]]
 
 		table.kv
 			tr
