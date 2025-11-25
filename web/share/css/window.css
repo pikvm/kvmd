@@ -128,9 +128,9 @@ div.window div.window-header div.window-buttons button {
 div.window div.window-header div.window-buttons button img {
 	height: 20px;
 }
-div.window[data-x-wm-window-centered] div.window-header div.window-buttons button.window-button-original {
+div.window[data-x-wm-window-centered] div.window-header div.window-buttons button[data-wm-window-set-original] {
 	color: var(--cs-window-button-special-fg);
 }
-div.window[data-x-wm-window-maximized] div.window-header div.window-buttons button.window-button-maximize {
+div.window[data-x-wm-window-maximized] div.window-header div.window-buttons button[data-wm-window-set-maximized] {
 	color: var(--cs-window-button-special-fg);
 }

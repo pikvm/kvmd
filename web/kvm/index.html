@@ -58,7 +58,7 @@
     </script>
   </head>
   <body class="body-no-select">
-    <button class="hidden" id="navbar-show-button" data-wm-navbar-show data-wm-on-full-tab>&bull;&nbsp;&bull;&nbsp;&bull;</button>
+    <button class="hidden" id="navbar-show-button" data-wm-navbar-show data-wm-on-full-tab></button>
     <ul id="navbar">
       <li class="left"><a class="menu-item menu-action" href="../">
           <div>&larr;</div><img class="svg-gray" src="../share/svg/logo.svg" alt="&amp;pi;-kvm"></a></li>
@@ -156,8 +156,8 @@
       <div class="hidden" id="navbar-full-controls" data-wm-on-full-tab>
         <li class="right">
           <div class="menu-item">
-            <button id="navbar-hide-button">&#9650;</button>
-            <button id="navbar-normalize-button">&#10005;</button>
+            <button data-wm-navbar-close></button>
+            <button data-wm-normalize></button>
           </div>
         </li>
       </div>
@@ -1056,11 +1056,11 @@
       <div class="window-header" id="stream-window-header">
         <div class="window-grab">MJPEG</div>
         <div class="window-buttons">
-          <button class="window-button-full-screen">&#10530;</button>
-          <button class="window-button-full-tab">&#9650;</button>
-          <button class="window-button-original">&bull;</button>
-          <button class="window-button-maximize">&#9744;</button>
-          <button class="window-button-close">&#10005;</button>
+          <button data-wm-window-set-full-screen></button>
+          <button data-wm-window-set-full-tab></button>
+          <button data-wm-window-set-original></button>
+          <button data-wm-window-set-maximized></button>
+          <button data-wm-window-close></button>
         </div>
       </div>
       <div id="stream-info"></div>
@@ -1075,8 +1075,8 @@
       <div class="window-header" id="keyboard-window-header">
         <div class="window-grab">Keyboard</div>
         <div class="window-buttons">
-          <button class="window-button-original">&bull;</button>
-          <button class="window-button-close">&#10005;</button>
+          <button data-wm-window-set-original></button>
+          <button data-wm-window-close></button>
         </div>
       </div>
       <div class="keypad" id="keyboard-desktop" align="center">
@@ -2157,9 +2157,9 @@
       <div class="window-header">
         <div class="window-grab">Mouse</div>
         <div class="window-buttons">
-          <button class="hidden" id="mouse-window-navbar-button" data-wm-navbar-show data-wm-on-full-tab>NB</button>
+          <button class="hidden" id="mouse-window-navbar-button" data-wm-navbar-show data-wm-on-full-tab></button>
           <button id="mouse-window-keyboard-button" data-wm-window-show="keyboard-window"><img class="led-gray" src="../share/svg/led-hid-keyboard.svg"></button>
-          <button class="window-button-close">&#10005;</button>
+          <button data-wm-window-close></button>
         </div>
       </div>
       <div class="keypad" id="mouse-buttons" align="center">
@@ -2188,8 +2188,8 @@
       <div class="window-header">
         <div class="window-grab">Switch settings</div>
         <div class="window-buttons">
-          <button class="window-button-original">&bull;</button>
-          <button class="window-button-close">&#10005;</button>
+          <button data-wm-window-set-original></button>
+          <button data-wm-window-close></button>
         </div>
       </div>
       <div class="tabs-box">
@@ -2338,8 +2338,8 @@
       <div class="window-header">
         <div class="window-grab">About</div>
         <div class="window-buttons">
-          <button class="window-button-original">&bull;</button>
-          <button class="window-button-close">&#10005;</button>
+          <button data-wm-window-set-original></button>
+          <button data-wm-window-close></button>
         </div>
       </div>
       <div id="about">
@@ -3044,11 +3044,10 @@
       <div class="window-header">
         <div class="window-grab">Terminal</div>
         <div class="window-buttons">
-          <button class="window-button-original">&bull;</button>
-          <button class="window-button-maximize">&#9744;</button>
-          <button class="window-button-close">&#10005;</button>
-          <!-- Терминал глючит из-за зажимаемой клавиши ESC для выхода-->
-          <!-- button(class="window-button-full-screen") &#10530;-->
+          <button data-wm-window-set-original></button>
+          <button data-wm-window-set-maximized></button>
+          <button data-wm-window-close></button>
+          <!-- Без фуллскрина, так как терминал глючит из-за зажимаемой клавиши ESC для выхода-->
         </div>
       </div>
       <iframe id="webterm-iframe" src="" style="width: 100%; flex: 1"></iframe>

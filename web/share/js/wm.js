@@ -52,53 +52,45 @@ function __WindowManager() {
 				__makeWindowResizable(el_win);
 			}
 
-			{
-				let el = el_win.querySelector(".window-header .window-button-close");
-				if (el) {
-					el.title = "Close window";
-					tools.el.setOnClick(el, () => self.closeWindow(el_win));
-				}
+			for (let el of el_win.querySelectorAll("[data-wm-window-close]")) {
+				el.innerHTML = "&#10005;";
+				el.title = "Close window";
+				tools.el.setOnClick(el, () => self.closeWindow(el_win));
 			}
 
-			{
-				let el = el_win.querySelector(".window-header .window-button-maximize");
-				if (el) {
-					el.title = "Maximize window";
-					tools.el.setOnClick(el, function() {
-						__setWindowMca(el_win, true, false, false);
-						__organizeWindow(el_win);
-						__activateWindow(el_win);
-					});
-				}
+			for (let el of el_win.querySelectorAll("[data-wm-window-set-maximized]")) {
+				el.innerHTML = "&#9744;";
+				el.title = "Maximize window";
+				tools.el.setOnClick(el, function() {
+					__setWindowMca(el_win, true, false, false);
+					__organizeWindow(el_win);
+					__activateWindow(el_win);
+				});
 			}
 
-			{
-				let el = el_win.querySelector(".window-header .window-button-original");
-				if (el) {
-					el.title = "Reduce window to its original size and center it";
-					tools.el.setOnClick(el, function() {
-						__setWindowMca(el_win, false, true, false);
-						el_win.style.width = "";
-						el_win.style.height = "";
-						__organizeWindow(el_win);
-						__activateWindow(el_win);
-					});
-				}
+			for (let el of el_win.querySelectorAll("[data-wm-window-set-original]")) {
+				el.innerHTML = "&bull;";
+				el.title = "Reduce window to its original size and center it";
+				tools.el.setOnClick(el, function() {
+					__setWindowMca(el_win, false, true, false);
+					el_win.style.width = "";
+					el_win.style.height = "";
+					__organizeWindow(el_win);
+					__activateWindow(el_win);
+				});
 			}
 
-			{
-				let el = el_win.querySelector(".window-header .window-button-full-tab");
-				if (el) {
-					el.title = "Stretch to the entire tab";
-					tools.el.setOnClick(el, () => self.setFullTabWindow(el_win, true));
-				}
+			for (let el of el_win.querySelectorAll("[data-wm-window-set-full-tab]")) {
+				el.innerHTML = "&#9650;";
+				el.title = "Stretch to the entire tab";
+				tools.el.setOnClick(el, () => self.setFullTabWindow(el_win, true));
 			}
 
-			{
-				let el = el_win.querySelector(".window-header .window-button-full-screen");
-				if (el && el_win.requestFullscreen && !$$("window-full-tab").length) {
-					el.title = "Go to full-screen mode";
-					tools.el.setOnClick(el, function() {
+			for (let el of el_win.querySelectorAll("[data-wm-window-set-full-screen]")) {
+				el.innerHTML = "&#10530;";
+				el.title = "Go to full-screen mode";
+				tools.el.setOnClick(el, function() {
+					if (document.documentElement.requestFullscreen && !$$("window-full-tab").length) {
 						document.documentElement.requestFullscreen().then(function() {
 							self.setFullTabWindow(el_win, true);
 							__activateWindow(el_win); // Почему-то теряется фокус
@@ -120,13 +112,38 @@ function __WindowManager() {
 								}, 150); // Avoid ResizeObserver() hack
 							}
 						});
-					});
-				}
+					}
+				});
 			}
 		}
 
 		for (let el of $$$("[data-wm-window-show]")) {
 			tools.el.setOnClick(el, () => self.showWindow($(el.getAttribute("data-wm-window-show"))));
+		}
+
+		for (let el of $$$("[data-wm-navbar-show]")) {
+			el.innerHTML = "&bull;&nbsp;&bull;&nbsp;&bull;";
+			el.title = "Show navbar";
+			tools.el.setOnClick(el, () => __setNavbarVisible(true));
+		}
+
+		for (let el of $$$("[data-wm-navbar-close]")) {
+			el.innerHTML = "&#9650;";
+			el.title = "Close navbar";
+			tools.el.setOnClick(el, () => __setNavbarVisible(false));
+		}
+
+		for (let el of $$$("[data-wm-normalize]")) {
+			el.innerHTML = "&#10005;";
+			el.title = "Normalize browser window";
+			tools.el.setOnClick(el, function() {
+				if (document.fullscreenElement) {
+					document.exitFullscreen();
+				}
+				for (let el_win of $$("window-full-tab")) {
+					self.setFullTabWindow(el_win, false);
+				}
+			});
 		}
 
 		window.addEventListener("mouseup", __globalMouseButtonHandler);
@@ -172,21 +189,6 @@ function __WindowManager() {
 				__activateLastWindow();
 			}
 		});
-
-		if ($("navbar")) {
-			for (let el of $$$("[data-wm-navbar-show]")) {
-				tools.el.setOnClick(el, () => __setNavbarVisible(true));
-			}
-			tools.el.setOnClick($("navbar-hide-button"), () => __setNavbarVisible(false));
-			tools.el.setOnClick($("navbar-normalize-button"), function() {
-				if (document.fullscreenElement) {
-					document.exitFullscreen();
-				}
-				for (let el of $$("window-full-tab")) {
-					self.setFullTabWindow(el, false);
-				}
-			});
-		}
 
 		document.addEventListener("fullscreenchange", function () {
 			if (!document.fullscreenElement) {

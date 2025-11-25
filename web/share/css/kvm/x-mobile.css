@@ -56,6 +56,6 @@ button#navbar-show-button {
 	display: none !important;
 }
 
-div#mouse-window button.window-button-close {
+div#mouse-window button[data-wm-window-close] {
 	display: none !important;
 }

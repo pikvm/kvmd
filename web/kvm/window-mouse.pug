@@ -7,10 +7,10 @@
 	.window-header
 		.window-grab Mouse
 		.window-buttons
-			button.hidden#mouse-window-navbar-button(data-wm-navbar-show data-wm-on-full-tab) NB
+			button.hidden#mouse-window-navbar-button(data-wm-navbar-show data-wm-on-full-tab)
 			button#mouse-window-keyboard-button(data-wm-window-show="keyboard-window")
 				img.led-gray(src=`${svg_dir}/led-hid-keyboard.svg`)
-			button.window-button-close &#10005;
+			button(data-wm-window-close)
 
 	.keypad#mouse-buttons(align="center")
 		.keypad-block

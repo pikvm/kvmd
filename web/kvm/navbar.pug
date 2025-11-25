@@ -85,7 +85,7 @@ mixin menu_spoiler(title)
 			block
 
 
-button.hidden#navbar-show-button(data-wm-navbar-show data-wm-on-full-tab) &bull;&nbsp;&bull;&nbsp;&bull;
+button.hidden#navbar-show-button(data-wm-navbar-show data-wm-on-full-tab)
 
 ul#navbar
 	li.left
@@ -103,8 +103,8 @@ ul#navbar
 	.hidden#navbar-full-controls(data-wm-on-full-tab)
 		li.right
 			.menu-item
-				button(id="navbar-hide-button") &#9650;
-				button(id="navbar-normalize-button") &#10005;
+				button(data-wm-navbar-close)
+				button(data-wm-normalize)
 
 	include navbar-system.pug
 	include navbar-atx.pug

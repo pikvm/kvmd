@@ -19,8 +19,8 @@ mixin color_slider_tr(name, title)
 	.window-header
 		.window-grab Switch settings
 		.window-buttons
-			button.window-button-original &bull;
-			button.window-button-close &#10005;
+			button(data-wm-window-set-original)
+			button(data-wm-window-close)
 
 	.tabs-box
 		+switch_tab("edid", "EDIDs collection", true)
