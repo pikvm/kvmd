@@ -58,7 +58,7 @@
     </script>
   </head>
   <body class="body-no-select">
-    <button class="hidden" id="navbar-show-button" data-show-navbar data-on-full-tab>&bull;&nbsp;&bull;&nbsp;&bull;</button>
+    <button class="hidden" id="navbar-show-button" data-wm-navbar-show data-wm-on-full-tab>&bull;&nbsp;&bull;&nbsp;&bull;</button>
     <ul id="navbar">
       <li class="left"><a class="menu-item menu-action" href="../">
           <div>&larr;</div><img class="svg-gray" src="../share/svg/logo.svg" alt="&amp;pi;-kvm"></a></li>
@@ -146,14 +146,14 @@
           </div>
         </li>
       </div>
-      <div class="hidden" id="navbar-stream-info" data-on-full-tab>
+      <div class="hidden" id="navbar-stream-info" data-wm-on-full-tab>
         <li class="left">
           <div class="menu-item">
             <div id="stream-info"></div>
           </div>
         </li>
       </div>
-      <div class="hidden" id="navbar-full-controls" data-on-full-tab>
+      <div class="hidden" id="navbar-full-controls" data-wm-on-full-tab>
         <li class="right">
           <div class="menu-item">
             <button id="navbar-hide-button">&#9650;</button>
@@ -169,16 +169,16 @@
             <tr>
               <td class="value">Runtime settings &amp; tools</td>
               <td class="feature-disabled" id="system-tool-webterm">
-                <button class="small" data-force-hide-menu data-show-window="webterm-window">&bull; Term</button>
+                <button class="small" data-wm-menu-force-hide data-wm-window-show="webterm-window">&bull; Term</button>
               </td>
               <td id="system-tool-about">
-                <button class="small" data-force-hide-menu data-show-window="about-window">&bull; About</button>
+                <button class="small" data-wm-menu-force-hide data-wm-window-show="about-window">&bull; About</button>
               </td>
               <td id="system-tool-log">
-                <button class="small" id="open-log-button" data-force-hide-menu>&bull; Log</button>
+                <button class="small" id="open-log-button" data-wm-menu-force-hide>&bull; Log</button>
               </td>
               <td class="feature-disabled" id="system-tool-wol">
-                <button class="__gpio-button-__wol__ __gpio-button small" data-force-hide-menu data-channel="__wol__" data-confirm="Are you sure to send Wake-on-LAN packet to the server?">&bull; WoL</button>
+                <button class="__gpio-button-__wol__ __gpio-button small" data-wm-menu-force-hide data-gpio-channel="__wol__" data-gpio-confirm="Are you sure to send Wake-on-LAN packet to the server?">&bull; WoL</button>
               </td>
             </tr>
           </table>
@@ -306,8 +306,8 @@
           </table>
           <hr>
           <div class="buttons buttons-row">
-            <button class="row33" data-force-hide-menu data-show-window="stream-window">&bull; Show stream</button>
-            <button class="row33" id="stream-screenshot-button" data-force-hide-menu>&bull; Screenshot</button>
+            <button class="row33" data-wm-menu-force-hide data-wm-window-show="stream-window">&bull; Show stream</button>
+            <button class="row33" id="stream-screenshot-button" data-wm-menu-force-hide>&bull; Screenshot</button>
             <button class="row33" id="stream-reset-button">Reset stream</button>
           </div>
           <hr>
@@ -514,7 +514,7 @@
                   </td>
                   <td align="right">
                     <div class="switch-box">
-                      <input class="__gpio-switch-__v3_usb_breaker__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v3_usb_breaker__" data-channel="__v3_usb_breaker__" data-confirm-off="Turning off this switch will disconnect the main USB from the server.  Are you sure you want to continue?">
+                      <input class="__gpio-switch-__v3_usb_breaker__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v3_usb_breaker__" data-gpio-channel="__v3_usb_breaker__" data-gpio-confirm-off="Turning off this switch will disconnect the main USB from the server.  Are you sure you want to continue?">
                       <label for="__gpio-switch-__v3_usb_breaker__"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
                   </td>
@@ -524,7 +524,7 @@
                   </td>
                   <td align="right">
                     <div class="switch-box">
-                      <input class="__gpio-switch-__v4_locator__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v4_locator__" data-channel="__v4_locator__" data-confirm-off="">
+                      <input class="__gpio-switch-__v4_locator__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v4_locator__" data-gpio-channel="__v4_locator__" data-gpio-confirm-off="">
                       <label for="__gpio-switch-__v4_locator__"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
                   </td>
@@ -532,8 +532,8 @@
           </table>
           <hr>
           <div class="buttons buttons-row">
-            <button class="row33" data-force-hide-menu data-show-window="keyboard-window">&bull; Keyboard</button>
-            <button class="row33" data-force-hide-menu data-show-window="mouse-window">&bull; Mouse</button>
+            <button class="row33" data-wm-menu-force-hide data-wm-window-show="keyboard-window">&bull; Keyboard</button>
+            <button class="row33" data-wm-menu-force-hide data-wm-window-show="mouse-window">&bull; Mouse</button>
             <button class="row33" id="hid-reset-button" disabled>Reset HID</button>
           </div>
         </div>
@@ -558,10 +558,10 @@
               </table>
           <hr>
           <div class="buttons">
-            <button id="atx-power-button" disabled data-force-hide-menu>&bull; Click Power <sup><i>short</i></sup></button>
-            <button id="atx-power-button-long" disabled data-force-hide-menu>&bull; Click Power <sup><i>long</i></sup></button>
+            <button id="atx-power-button" disabled data-wm-menu-force-hide>&bull; Click Power <sup><i>short</i></sup></button>
+            <button id="atx-power-button-long" disabled data-wm-menu-force-hide>&bull; Click Power <sup><i>long</i></sup></button>
             <hr>
-            <button id="atx-reset-button" disabled data-force-hide-menu>&bull; Click Reset</button>
+            <button id="atx-reset-button" disabled data-wm-menu-force-hide>&bull; Click Reset</button>
           </div>
         </div>
       </li>
@@ -787,7 +787,7 @@
           <div class="text"><b>Record and play HID/ATX/GPIO actions<br></b><sub>For security reasons, the record will not be saved on the PiKVM</sub></div>
           <hr>
           <div class="buttons buttons-row">
-            <button class="row25" id="hid-recorder-record" disabled data-force-hide-menu>&bull; Rec</button>
+            <button class="row25" id="hid-recorder-record" disabled data-wm-menu-force-hide>&bull; Rec</button>
             <button class="row25" id="hid-recorder-stop" disabled>Stop</button>
             <button class="row25" id="hid-recorder-play" disabled>Play</button>
             <button class="row25" id="hid-recorder-clear" disabled>Clear</button>
@@ -832,12 +832,12 @@
           <div class="text"><b>Paste text as keypress sequence<br></b><sub>Please note that PiKVM cannot switch the keyboard layout</sub></div>
           <hr>
           <div class="text" style="margin-right: 20px">
-            <textarea id="hid-pak-text" data-focus placeholder="Enter your text here"></textarea>
+            <textarea id="hid-pak-text" data-wm-menu-focus placeholder="Enter your text here"></textarea>
           </div>
           <table class="kv">
             <tr>
               <td>
-                <button id="hid-pak-button" disabled data-force-hide-menu title="Ctrl+Enter when the text is focused">&bull; Paste</button>
+                <button id="hid-pak-button" disabled data-wm-menu-force-hide title="Ctrl+Enter when the text is focused">&bull; Paste</button>
               </td>
               <td>using a host keymap</td>
               <td>
@@ -883,7 +883,7 @@
             <table class="kv">
               <tr>
                 <td>
-                  <button id="stream-ocr-button" data-force-hide-menu>&bull; Select area</button>
+                  <button id="stream-ocr-button" data-wm-menu-force-hide>&bull; Select area</button>
                 </td>
                 <td>for</td>
                 <td>
@@ -913,39 +913,39 @@
           <hr>
           <div class="buttons">
             <div class="buttons-row">
-              <button class="row50" data-force-hide-menu data-shortcut="CapsLock">&bull; Caps Lock &nbsp;<img class="inline-lamp-small hid-keyboard-caps-led led-gray" src="../share/svg/led-square.svg"></button>
-              <button class="row50" data-force-hide-menu data-shortcut="MetaLeft">&bull; Left Win</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="CapsLock">&bull; Caps Lock &nbsp;<img class="inline-lamp-small hid-keyboard-caps-led led-gray" src="../share/svg/led-square.svg"></button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="MetaLeft">&bull; Left Win</button>
             </div>
             <hr>
             <div class="buttons-row">
-              <button class="row50" data-force-hide-menu data-shortcut="AltLeft ShiftLeft">&bull; Alt+Shift</button>
-              <button class="row50" data-force-hide-menu data-shortcut="ControlLeft KeyW">&bull; Ctrl+W</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="AltLeft ShiftLeft">&bull; Alt+Shift</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft KeyW">&bull; Ctrl+W</button>
             </div>
             <div class="buttons-row">
-              <button class="row50" data-force-hide-menu data-shortcut="ControlLeft ShiftLeft">&bull; Ctrl+Shift</button>
-              <button class="row50" data-force-hide-menu data-shortcut="AltLeft Tab">&bull; Alt+Tab</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft ShiftLeft">&bull; Ctrl+Shift</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="AltLeft Tab">&bull; Alt+Tab</button>
             </div>
             <div class="buttons-row">
-              <button class="row50" data-force-hide-menu data-shortcut="ShiftLeft ShiftRight">&bull; Shift+Shift</button>
-              <button class="row50" data-force-hide-menu data-shortcut="AltLeft Enter">&bull; Alt+Enter</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="ShiftLeft ShiftRight">&bull; Shift+Shift</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="AltLeft Enter">&bull; Alt+Enter</button>
             </div>
             <div class="buttons-row">
-              <button class="row50" data-force-hide-menu data-shortcut="MetaLeft Space">&bull; Win+Space</button>
-              <button class="row50" data-force-hide-menu data-shortcut="AltLeft F4">&bull; Alt+F4</button>
-            </div>
-            <hr>
-            <div class="buttons-row">
-              <button class="row50" data-force-hide-menu data-shortcut="ControlLeft AltLeft F1">&bull; Ctrl+Alt+F1</button>
-              <button class="row50" data-force-hide-menu data-shortcut="MetaLeft KeyL">&bull; Win+L</button>
-            </div>
-            <div class="buttons-row">
-              <button class="row50" data-force-hide-menu data-shortcut="ControlLeft AltLeft F2">&bull; Ctrl+Alt+F2</button>
-              <button class="row50" data-force-hide-menu data-shortcut="PrintScreen">&bull; Print Screen</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="MetaLeft Space">&bull; Win+Space</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="AltLeft F4">&bull; Alt+F4</button>
             </div>
             <hr>
             <div class="buttons-row">
-              <button class="row50" data-force-hide-menu data-shortcut="ControlLeft AltLeft Delete">&bull; Ctrl+Alt+Del</button>
-              <button class="row50" data-force-hide-menu data-shortcut="Power">&bull; Power</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft AltLeft F1">&bull; Ctrl+Alt+F1</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="MetaLeft KeyL">&bull; Win+L</button>
+            </div>
+            <div class="buttons-row">
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft AltLeft F2">&bull; Ctrl+Alt+F2</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="PrintScreen">&bull; Print Screen</button>
+            </div>
+            <hr>
+            <div class="buttons-row">
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft AltLeft Delete">&bull; Ctrl+Alt+Del</button>
+              <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="Power">&bull; Power</button>
             </div>
           </div>
           <hr>
@@ -956,19 +956,19 @@
           <hr>
           <div class="buttons">
             <div class="buttons-row">
-              <button class="row25" data-shortcut="AltLeft PrintScreen KeyF" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Call the OOM killer to kill a memory hog process">F</button>
-              <button class="row25" data-shortcut="AltLeft PrintScreen KeyM" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Dump current memory info to the console">M</button>
-              <button class="row25" data-shortcut="AltLeft PrintScreen KeyD" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Show all locks that are held">D</button>
-              <button class="row25" data-shortcut="AltLeft PrintScreen KeyT" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Dump a list of current tasks and their information to the console">T</button>
+              <button class="row25" data-keyboard-shortcut="AltLeft PrintScreen KeyF" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Call the OOM killer to kill a memory hog process">F</button>
+              <button class="row25" data-keyboard-shortcut="AltLeft PrintScreen KeyM" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Dump current memory info to the console">M</button>
+              <button class="row25" data-keyboard-shortcut="AltLeft PrintScreen KeyD" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Show all locks that are held">D</button>
+              <button class="row25" data-keyboard-shortcut="AltLeft PrintScreen KeyT" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Dump a list of current tasks and their information to the console">T</button>
             </div>
             <hr>
             <div class="buttons-row">
-              <button class="row16" data-shortcut="AltLeft PrintScreen KeyR" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Turn off keyboard raw mode, set it to XLATE">R</button>
-              <button class="row16" data-shortcut="AltLeft PrintScreen KeyE" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Send a SIGTERM to all processes, except for init">E</button>
-              <button class="row16" data-shortcut="AltLeft PrintScreen KeyI" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Send a SIGKILL to all processes, except for init">I</button>
-              <button class="row16" data-shortcut="AltLeft PrintScreen KeyS" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Attempt to sync all mounted filesystems">S</button>
-              <button class="row16" data-shortcut="AltLeft PrintScreen KeyU" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Attempt to remount all mounted filesystems read-only">U</button>
-              <button class="row16" data-shortcut="AltLeft PrintScreen KeyB" data-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Immediately reboot the system without syncing or unmounting disks">B</button>
+              <button class="row16" data-keyboard-shortcut="AltLeft PrintScreen KeyR" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Turn off keyboard raw mode, set it to XLATE">R</button>
+              <button class="row16" data-keyboard-shortcut="AltLeft PrintScreen KeyE" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Send a SIGTERM to all processes, except for init">E</button>
+              <button class="row16" data-keyboard-shortcut="AltLeft PrintScreen KeyI" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Send a SIGKILL to all processes, except for init">I</button>
+              <button class="row16" data-keyboard-shortcut="AltLeft PrintScreen KeyS" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Attempt to sync all mounted filesystems">S</button>
+              <button class="row16" data-keyboard-shortcut="AltLeft PrintScreen KeyU" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Attempt to remount all mounted filesystems read-only">U</button>
+              <button class="row16" data-keyboard-shortcut="AltLeft PrintScreen KeyB" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Immediately reboot the system without syncing or unmounting disks">B</button>
             </div>
           </div>
           <hr>
@@ -1001,7 +1001,7 @@
               </td>
               <td>
                 <div class="text">
-                  <button class="small" data-force-hide-menu data-show-window="switch-window">&bull; Settings</button>
+                  <button class="small" data-wm-menu-force-hide data-wm-window-show="switch-window">&bull; Settings</button>
                 </div>
               </td>
             </tr>
@@ -1052,7 +1052,7 @@
     <div class="hidden window" id="stream-ocr-window">
       <div class="hidden" id="stream-ocr-selection"></div>
     </div>
-    <div class="hidden window window-elegant window-resizable" id="stream-window" data-show-maximized data-organize-hook>
+    <div class="hidden window window-elegant window-resizable" id="stream-window" data-wm-window-show-maximized data-wm-organize-hook>
       <div class="window-header" id="stream-window-header">
         <div class="window-grab">MJPEG</div>
         <div class="window-buttons">
@@ -1071,7 +1071,7 @@
         <div id="stream-fullscreen-active"></div>
       </div>
     </div>
-    <div class="hidden window" id="keyboard-window" data-show-centered>
+    <div class="hidden window" id="keyboard-window" data-wm-window-show-centered>
       <div class="window-header" id="keyboard-window-header">
         <div class="window-grab">Keyboard</div>
         <div class="window-buttons">
@@ -1082,7 +1082,7 @@
       <div class="keypad" id="keyboard-desktop" align="center">
         <div class="keypad-block">
           <div class="keypad-row">
-                <div class="key small" data-code="Escape">
+                <div class="key small" data-keypad-code="Escape">
                   <div class="label">Esc
                   </div>
                 </div>
@@ -1091,22 +1091,22 @@
                   <div class="label">&nbsp;</div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F1">
+                <div class="key small" data-keypad-code="F1">
                   <div class="label">F1
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F2">
+                <div class="key small" data-keypad-code="F2">
                   <div class="label">F2
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F3">
+                <div class="key small" data-keypad-code="F3">
                   <div class="label">F3
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F4">
+                <div class="key small" data-keypad-code="F4">
                   <div class="label">F4
                   </div>
                 </div>
@@ -1115,22 +1115,22 @@
                   <div class="label">&nbsp;</div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F5">
+                <div class="key small" data-keypad-code="F5">
                   <div class="label">F5
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F6">
+                <div class="key small" data-keypad-code="F6">
                   <div class="label">F6
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F7">
+                <div class="key small" data-keypad-code="F7">
                   <div class="label">F7
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F8">
+                <div class="key small" data-keypad-code="F8">
                   <div class="label">F8
                   </div>
                 </div>
@@ -1139,333 +1139,333 @@
                   <div class="label">&nbsp;</div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F9">
+                <div class="key small" data-keypad-code="F9">
                   <div class="label">F9
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F10">
+                <div class="key small" data-keypad-code="F10">
                   <div class="label">F10
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F11">
+                <div class="key small" data-keypad-code="F11">
                   <div class="label">F11
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="F12">
+                <div class="key small" data-keypad-code="F12">
                   <div class="label">F12
                   </div>
                 </div>
           </div>
           <hr>
           <div class="keypad-row">
-                <div class="key " data-code="Backquote">
+                <div class="key " data-keypad-code="Backquote">
                   <div class="label">~<br>`
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit1">
+                <div class="key " data-keypad-code="Digit1">
                   <div class="label">!<br>1
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit2">
+                <div class="key " data-keypad-code="Digit2">
                   <div class="label">@<br>2
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit3">
+                <div class="key " data-keypad-code="Digit3">
                   <div class="label">#<br>3
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit4">
+                <div class="key " data-keypad-code="Digit4">
                   <div class="label">$<br>4
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit5">
+                <div class="key " data-keypad-code="Digit5">
                   <div class="label">%<br>5
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit6">
+                <div class="key " data-keypad-code="Digit6">
                   <div class="label">^<br>6
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit7">
+                <div class="key " data-keypad-code="Digit7">
                   <div class="label">&amp;<br>7
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit8">
+                <div class="key " data-keypad-code="Digit8">
                   <div class="label">*<br>8
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit9">
+                <div class="key " data-keypad-code="Digit9">
                   <div class="label">(<br>9
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit0">
+                <div class="key " data-keypad-code="Digit0">
                   <div class="label">)<br>0
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Minus">
+                <div class="key " data-keypad-code="Minus">
                   <div class="label">_<br>-
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Equal">
+                <div class="key " data-keypad-code="Equal">
                   <div class="label">+<br>=
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-1 right" data-code="Backspace">
+                <div class="key wide-1 right" data-keypad-code="Backspace">
                   <div class="label">&#8612;
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key wide-1 left" data-code="Tab">
+                <div class="key wide-1 left" data-keypad-code="Tab">
                   <div class="label">&#8676;<br>&#8677;
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyQ">
+                <div class="key single" data-keypad-code="KeyQ">
                   <div class="label">Q
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyW">
+                <div class="key single" data-keypad-code="KeyW">
                   <div class="label">W
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyE">
+                <div class="key single" data-keypad-code="KeyE">
                   <div class="label">E
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyR">
+                <div class="key single" data-keypad-code="KeyR">
                   <div class="label">R
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyT">
+                <div class="key single" data-keypad-code="KeyT">
                   <div class="label">T
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyY">
+                <div class="key single" data-keypad-code="KeyY">
                   <div class="label">Y
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyU">
+                <div class="key single" data-keypad-code="KeyU">
                   <div class="label">U
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyI">
+                <div class="key single" data-keypad-code="KeyI">
                   <div class="label">I
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyO">
+                <div class="key single" data-keypad-code="KeyO">
                   <div class="label">O
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyP">
+                <div class="key single" data-keypad-code="KeyP">
                   <div class="label">P
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="BracketLeft">
+                <div class="key " data-keypad-code="BracketLeft">
                   <div class="label">{<br>[
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="BracketRight">
+                <div class="key " data-keypad-code="BracketRight">
                   <div class="label">}<br>]
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Backslash">
+                <div class="key " data-keypad-code="Backslash">
                   <div class="label">|<br>&bsol;
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key wide-2 left small" data-code="CapsLock">
+                <div class="key wide-2 left small" data-keypad-code="CapsLock">
                   <div class="label"><img class="inline-lamp-small hid-keyboard-caps-led led-gray" src="../share/svg/led-square.svg"><br> Caps Lock
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyA">
+                <div class="key single" data-keypad-code="KeyA">
                   <div class="label">A
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyS">
+                <div class="key single" data-keypad-code="KeyS">
                   <div class="label">S
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyD">
+                <div class="key single" data-keypad-code="KeyD">
                   <div class="label">D
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyF">
+                <div class="key single" data-keypad-code="KeyF">
                   <div class="label">F
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyG">
+                <div class="key single" data-keypad-code="KeyG">
                   <div class="label">G
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyH">
+                <div class="key single" data-keypad-code="KeyH">
                   <div class="label">H
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyJ">
+                <div class="key single" data-keypad-code="KeyJ">
                   <div class="label">J
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyK">
+                <div class="key single" data-keypad-code="KeyK">
                   <div class="label">K
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyL">
+                <div class="key single" data-keypad-code="KeyL">
                   <div class="label">L
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Semicolon">
+                <div class="key " data-keypad-code="Semicolon">
                   <div class="label">:<br>;
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Quote">
+                <div class="key " data-keypad-code="Quote">
                   <div class="label">"<br>'
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-2 right small" data-code="Enter">
+                <div class="key wide-2 right small" data-keypad-code="Enter">
                   <div class="label">Enter<br>&crarr;
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key wide-3 left small" data-code="ShiftLeft" data-allow-autohold>
+                <div class="key wide-3 left small" data-keypad-code="ShiftLeft" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Shift
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyZ">
+                <div class="key single" data-keypad-code="KeyZ">
                   <div class="label">Z
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyX">
+                <div class="key single" data-keypad-code="KeyX">
                   <div class="label">X
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyC">
+                <div class="key single" data-keypad-code="KeyC">
                   <div class="label">C
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyV">
+                <div class="key single" data-keypad-code="KeyV">
                   <div class="label">V
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyB">
+                <div class="key single" data-keypad-code="KeyB">
                   <div class="label">B
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyN">
+                <div class="key single" data-keypad-code="KeyN">
                   <div class="label">N
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyM">
+                <div class="key single" data-keypad-code="KeyM">
                   <div class="label">M
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Comma">
+                <div class="key " data-keypad-code="Comma">
                   <div class="label">&lt;<br>,
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Period">
+                <div class="key " data-keypad-code="Period">
                   <div class="label">&gt;<br>.
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Slash">
+                <div class="key " data-keypad-code="Slash">
                   <div class="label">?<br>/
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-3 right small" data-code="ShiftRight" data-allow-autohold>
+                <div class="key wide-3 right small" data-keypad-code="ShiftRight" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Shift
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key wide-1 left small" data-code="ControlLeft" data-allow-autohold>
+                <div class="key wide-1 left small" data-keypad-code="ControlLeft" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Ctrl
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key wide-1 left small" data-code="MetaLeft" data-allow-autohold>
+                <div class="key wide-1 left small" data-keypad-code="MetaLeft" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Win
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key wide-1 left small" data-code="AltLeft" data-allow-autohold>
+                <div class="key wide-1 left small" data-keypad-code="AltLeft" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Alt
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key wide-4" data-code="Space">
+                <div class="key wide-4" data-keypad-code="Space">
                   <div class="label">
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key wide-1 right small" data-code="AltRight" data-allow-autohold>
+                <div class="key wide-1 right small" data-keypad-code="AltRight" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Alt
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key wide-1 right small" data-code="MetaRight" data-allow-autohold>
+                <div class="key wide-1 right small" data-keypad-code="MetaRight" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Win
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="ContextMenu">
+                <div class="key small" data-keypad-code="ContextMenu">
                   <div class="label"><br>Menu
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key wide-1 right small" data-code="ControlRight" data-allow-autohold>
+                <div class="key wide-1 right small" data-keypad-code="ControlRight" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Ctrl
                   </div>
                 </div>
@@ -1473,50 +1473,50 @@
         </div>
         <div class="keypad-block">
           <div class="keypad-row">
-                <div class="key small" data-code="PrintScreen" data-allow-autohold>
+                <div class="key small" data-keypad-code="PrintScreen" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Pt/Sq
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="ScrollLock">
+                <div class="key small" data-keypad-code="ScrollLock">
                   <div class="label"><img class="inline-lamp-small hid-keyboard-scroll-led led-gray" src="../share/svg/led-square.svg"><br> ScrLk
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Pause">
+                <div class="key small" data-keypad-code="Pause">
                   <div class="label">P/Brk
                   </div>
                 </div>
           </div>
           <hr>
           <div class="keypad-row">
-                <div class="key small" data-code="Insert">
+                <div class="key small" data-keypad-code="Insert">
                   <div class="label">Ins
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Home">
+                <div class="key small" data-keypad-code="Home">
                   <div class="label">Home
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="PageUp">
+                <div class="key small" data-keypad-code="PageUp">
                   <div class="label">PgUp
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="Delete">
+                <div class="key small" data-keypad-code="Delete">
                   <div class="label">Del
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="End">
+                <div class="key small" data-keypad-code="End">
                   <div class="label">End
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="PageDown">
+                <div class="key small" data-keypad-code="PageDown">
                   <div class="label">PgDn
                   </div>
                 </div>
@@ -1527,7 +1527,7 @@
                   <div class="label">&nbsp;</div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="ArrowUp">
+                <div class="key " data-keypad-code="ArrowUp">
                   <div class="label">&uarr;
                   </div>
                 </div>
@@ -1537,17 +1537,17 @@
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key " data-code="ArrowLeft">
+                <div class="key " data-keypad-code="ArrowLeft">
                   <div class="label">&larr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="ArrowDown">
+                <div class="key " data-keypad-code="ArrowDown">
                   <div class="label">&darr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="ArrowRight">
+                <div class="key " data-keypad-code="ArrowRight">
                   <div class="label">&rarr;
                   </div>
                 </div>
@@ -1567,45 +1567,45 @@
                   <div class="label">&nbsp;</div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Power">
+                <div class="key small" data-keypad-code="Power">
                   <div class="label">PWR
                   </div>
                 </div>
           </div>
           <hr>
           <div class="keypad-row">
-                <div class="key small" data-code="NumLock">
+                <div class="key small" data-keypad-code="NumLock">
                   <div class="label"><img class="inline-lamp-small hid-keyboard-num-led led-gray" src="../share/svg/led-square.svg"><br> NmLk
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="NumpadDivide">
+                <div class="key " data-keypad-code="NumpadDivide">
                   <div class="label">/
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="NumpadMultiply">
+                <div class="key " data-keypad-code="NumpadMultiply">
                   <div class="label">*
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="NumpadSubtract">
+                <div class="key " data-keypad-code="NumpadSubtract">
                   <div class="label">-
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="Numpad7">
+                <div class="key small" data-keypad-code="Numpad7">
                   <div class="label">7<br>Home
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Numpad8">
+                <div class="key small" data-keypad-code="Numpad8">
                   <div class="label">8<br>&uarr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Numpad9">
+                <div class="key small" data-keypad-code="Numpad9">
                   <div class="label">9<br>PgUp
                   </div>
                 </div>
@@ -1615,38 +1615,38 @@
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="Numpad4">
+                <div class="key small" data-keypad-code="Numpad4">
                   <div class="label">4<br>&larr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Numpad5">
+                <div class="key small" data-keypad-code="Numpad5">
                   <div class="label">5<br><br>
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Numpad6">
+                <div class="key small" data-keypad-code="Numpad6">
                   <div class="label">6<br>&rarr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="NumpadAdd">
+                <div class="key " data-keypad-code="NumpadAdd">
                   <div class="label">+
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="Numpad1">
+                <div class="key small" data-keypad-code="Numpad1">
                   <div class="label">1<br>End
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Numpad2">
+                <div class="key small" data-keypad-code="Numpad2">
                   <div class="label">2<br>&darr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="Numpad3">
+                <div class="key small" data-keypad-code="Numpad3">
                   <div class="label">3<br>PgDn
                   </div>
                 </div>
@@ -1656,7 +1656,7 @@
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="Numpad0">
+                <div class="key small" data-keypad-code="Numpad0">
                   <div class="label">0<br>Ins
                   </div>
                 </div>
@@ -1665,12 +1665,12 @@
                   <div class="label">&nbsp;</div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="NumpadDecimal">
+                <div class="key small" data-keypad-code="NumpadDecimal">
                   <div class="label">.<br>Del
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="NumpadEnter">
+                <div class="key small" data-keypad-code="NumpadEnter">
                   <div class="label">Ent
                   </div>
                 </div>
@@ -1678,38 +1678,38 @@
         </div>
         <div class="keypad-block">
           <div class="keypad-row">
-                <div class="key small" data-code="IntlBackslash">
+                <div class="key small" data-keypad-code="IntlBackslash">
                   <div class="label">&bsol;<br>|
                   </div>
                 </div>
           </div>
           <hr>
           <div class="keypad-row">
-                <div class="key small" data-code="IntlYen">
+                <div class="key small" data-keypad-code="IntlYen">
                   <div class="label">¥<br>_
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="IntlRo">
+                <div class="key small" data-keypad-code="IntlRo">
                   <div class="label">&bsol;<br>ろ
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="KanaMode" data-allow-autohold>
+                <div class="key small" data-keypad-code="KanaMode" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Kana
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="NonConvert" data-allow-autohold>
+                <div class="key small" data-keypad-code="NonConvert" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>N/Cnv
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key small" data-code="Convert" data-allow-autohold>
+                <div class="key small" data-keypad-code="Convert" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Cnv
                   </div>
                 </div>
@@ -1719,433 +1719,433 @@
       <div class="keypad" id="keyboard-mobile" align="center">
         <div class="keypad-block">
           <div class="keypad-row">
-                <div class="key small" data-code="Escape">
+                <div class="key small" data-keypad-code="Escape">
                   <div class="label">Esc
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-0 small rounded-left" data-code="F1">
+                <div class="key wide-0 small rounded-left" data-keypad-code="F1">
                   <div class="label">F1
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-none" data-code="F2">
+                <div class="key wide-0 small rounded-none" data-keypad-code="F2">
                   <div class="label">F2
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-none" data-code="F3">
+                <div class="key wide-0 small rounded-none" data-keypad-code="F3">
                   <div class="label">F3
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-right" data-code="F4">
+                <div class="key wide-0 small rounded-right" data-keypad-code="F4">
                   <div class="label">F4
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key wide-0 small rounded-left" data-code="F5">
+                <div class="key wide-0 small rounded-left" data-keypad-code="F5">
                   <div class="label">F5
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-none" data-code="F6">
+                <div class="key wide-0 small rounded-none" data-keypad-code="F6">
                   <div class="label">F6
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-none" data-code="F7">
+                <div class="key wide-0 small rounded-none" data-keypad-code="F7">
                   <div class="label">F7
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-right" data-code="F8">
+                <div class="key wide-0 small rounded-right" data-keypad-code="F8">
                   <div class="label">F8
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key wide-0 small rounded-left" data-code="F9">
+                <div class="key wide-0 small rounded-left" data-keypad-code="F9">
                   <div class="label">F9
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-none" data-code="F10">
+                <div class="key wide-0 small rounded-none" data-keypad-code="F10">
                   <div class="label">F10
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-none" data-code="F11">
+                <div class="key wide-0 small rounded-none" data-keypad-code="F11">
                   <div class="label">F11
                   </div>
                 </div>
-                <div class="key wide-0 small rounded-right" data-code="F12">
+                <div class="key wide-0 small rounded-right" data-keypad-code="F12">
                   <div class="label">F12
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="PrintScreen" data-allow-autohold>
+                <div class="key small" data-keypad-code="PrintScreen" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Pt/Sq
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="ScrollLock">
+                <div class="key small" data-keypad-code="ScrollLock">
                   <div class="label"><img class="inline-lamp-small hid-keyboard-scroll-led led-gray" src="../share/svg/led-square.svg"><br> ScrLk
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="Pause">
+                <div class="key small" data-keypad-code="Pause">
                   <div class="label">P/Brk
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="Insert">
+                <div class="key small" data-keypad-code="Insert">
                   <div class="label">Ins
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="Home">
+                <div class="key small" data-keypad-code="Home">
                   <div class="label">Home
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="End">
+                <div class="key small" data-keypad-code="End">
                   <div class="label">End
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="Delete">
+                <div class="key small" data-keypad-code="Delete">
                   <div class="label">Del
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key " data-code="Backquote">
+                <div class="key " data-keypad-code="Backquote">
                   <div class="label">~<br>`
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit1">
+                <div class="key " data-keypad-code="Digit1">
                   <div class="label">!<br>1
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit2">
+                <div class="key " data-keypad-code="Digit2">
                   <div class="label">@<br>2
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit3">
+                <div class="key " data-keypad-code="Digit3">
                   <div class="label">#<br>3
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit4">
+                <div class="key " data-keypad-code="Digit4">
                   <div class="label">$<br>4
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit5">
+                <div class="key " data-keypad-code="Digit5">
                   <div class="label">%<br>5
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit6">
+                <div class="key " data-keypad-code="Digit6">
                   <div class="label">^<br>6
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit7">
+                <div class="key " data-keypad-code="Digit7">
                   <div class="label">&amp;<br>7
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit8">
+                <div class="key " data-keypad-code="Digit8">
                   <div class="label">*<br>8
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit9">
+                <div class="key " data-keypad-code="Digit9">
                   <div class="label">(<br>9
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Digit0">
+                <div class="key " data-keypad-code="Digit0">
                   <div class="label">)<br>0
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Minus">
+                <div class="key " data-keypad-code="Minus">
                   <div class="label">_<br>-
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Equal">
+                <div class="key " data-keypad-code="Equal">
                   <div class="label">+<br>=
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-2 right" data-code="Backspace" style="width: 101px">
+                <div class="key wide-2 right" data-keypad-code="Backspace" style="width: 101px">
                   <div class="label">&#8612;
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key wide-1 left" data-code="Tab">
+                <div class="key wide-1 left" data-keypad-code="Tab">
                   <div class="label">&#8676;<br>&#8677;
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyQ">
+                <div class="key single" data-keypad-code="KeyQ">
                   <div class="label">Q
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyW">
+                <div class="key single" data-keypad-code="KeyW">
                   <div class="label">W
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyE">
+                <div class="key single" data-keypad-code="KeyE">
                   <div class="label">E
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyR">
+                <div class="key single" data-keypad-code="KeyR">
                   <div class="label">R
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyT">
+                <div class="key single" data-keypad-code="KeyT">
                   <div class="label">T
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyY">
+                <div class="key single" data-keypad-code="KeyY">
                   <div class="label">Y
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyU">
+                <div class="key single" data-keypad-code="KeyU">
                   <div class="label">U
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyI">
+                <div class="key single" data-keypad-code="KeyI">
                   <div class="label">I
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyO">
+                <div class="key single" data-keypad-code="KeyO">
                   <div class="label">O
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyP">
+                <div class="key single" data-keypad-code="KeyP">
                   <div class="label">P
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="BracketLeft">
+                <div class="key " data-keypad-code="BracketLeft">
                   <div class="label">{<br>[
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="BracketRight">
+                <div class="key " data-keypad-code="BracketRight">
                   <div class="label">}<br>]
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-1 left" data-code="Backslash" style="width: 78px">
+                <div class="key wide-1 left" data-keypad-code="Backslash" style="width: 78px">
                   <div class="label">|<br>&bsol;
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key wide-2 left small" data-code="CapsLock">
+                <div class="key wide-2 left small" data-keypad-code="CapsLock">
                   <div class="label"><img class="inline-lamp-small hid-keyboard-caps-led led-gray" src="../share/svg/led-square.svg"><br> Caps Lock
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyA">
+                <div class="key single" data-keypad-code="KeyA">
                   <div class="label">A
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyS">
+                <div class="key single" data-keypad-code="KeyS">
                   <div class="label">S
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyD">
+                <div class="key single" data-keypad-code="KeyD">
                   <div class="label">D
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyF">
+                <div class="key single" data-keypad-code="KeyF">
                   <div class="label">F
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyG">
+                <div class="key single" data-keypad-code="KeyG">
                   <div class="label">G
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyH">
+                <div class="key single" data-keypad-code="KeyH">
                   <div class="label">H
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyJ">
+                <div class="key single" data-keypad-code="KeyJ">
                   <div class="label">J
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyK">
+                <div class="key single" data-keypad-code="KeyK">
                   <div class="label">K
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyL">
+                <div class="key single" data-keypad-code="KeyL">
                   <div class="label">L
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Semicolon">
+                <div class="key " data-keypad-code="Semicolon">
                   <div class="label">:<br>;
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Quote">
+                <div class="key " data-keypad-code="Quote">
                   <div class="label">`<br>'
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-3 right small" data-code="Enter" style="width: 116px">
+                <div class="key wide-3 right small" data-keypad-code="Enter" style="width: 116px">
                   <div class="label">Enter<br>&crarr;
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key wide-3 left small" data-code="ShiftLeft" data-allow-autohold>
+                <div class="key wide-3 left small" data-keypad-code="ShiftLeft" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Shift
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyZ">
+                <div class="key single" data-keypad-code="KeyZ">
                   <div class="label">Z
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyX">
+                <div class="key single" data-keypad-code="KeyX">
                   <div class="label">X
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyC">
+                <div class="key single" data-keypad-code="KeyC">
                   <div class="label">C
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyV">
+                <div class="key single" data-keypad-code="KeyV">
                   <div class="label">V
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyB">
+                <div class="key single" data-keypad-code="KeyB">
                   <div class="label">B
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyN">
+                <div class="key single" data-keypad-code="KeyN">
                   <div class="label">N
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key single" data-code="KeyM">
+                <div class="key single" data-keypad-code="KeyM">
                   <div class="label">M
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Comma">
+                <div class="key " data-keypad-code="Comma">
                   <div class="label">&lt;<br>,
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Period">
+                <div class="key " data-keypad-code="Period">
                   <div class="label">&gt;<br>.
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Slash">
+                <div class="key " data-keypad-code="Slash">
                   <div class="label">?<br>/
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="PageUp">
+                <div class="key small" data-keypad-code="PageUp">
                   <div class="label">PgUp
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="ArrowUp">
+                <div class="key " data-keypad-code="ArrowUp">
                   <div class="label">&uarr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key small" data-code="PageDown">
+                <div class="key small" data-keypad-code="PageDown">
                   <div class="label">PgDn
                   </div>
                 </div>
           </div>
           <div class="keypad-row">
-                <div class="key wide-1 left small" data-code="ControlLeft" data-allow-autohold>
+                <div class="key wide-1 left small" data-keypad-code="ControlLeft" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Ctrl
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-1 left small" data-code="MetaLeft" data-allow-autohold>
+                <div class="key wide-1 left small" data-keypad-code="MetaLeft" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Win
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key wide-1 left small" data-code="AltLeft" data-allow-autohold>
+                <div class="key wide-1 left small" data-keypad-code="AltLeft" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Alt
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="Space" style="width: 190px">
+                <div class="key " data-keypad-code="Space" style="width: 190px">
                   <div class="label">
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key right small" data-code="AltRight" data-allow-autohold>
+                <div class="key right small" data-keypad-code="AltRight" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Alt
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key right small" data-code="MetaRight" data-allow-autohold>
+                <div class="key right small" data-keypad-code="MetaRight" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Win
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key small" data-code="ContextMenu">
+                <div class="key small" data-keypad-code="ContextMenu">
                   <div class="label"><br>Menu
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key right small" data-code="ShiftRight" data-allow-autohold>
+                <div class="key right small" data-keypad-code="ShiftRight" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Shift
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key right small" data-code="ControlRight" data-allow-autohold>
+                <div class="key right small" data-keypad-code="ControlRight" data-keypad-allow-autohold>
                   <div class="label"><b>&bull;</b><br>Ctrl
                   </div>
                 </div>
                     <div class="spacer"></div>
-                <div class="key " data-code="ArrowLeft">
+                <div class="key " data-keypad-code="ArrowLeft">
                   <div class="label">&larr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="ArrowDown">
+                <div class="key " data-keypad-code="ArrowDown">
                   <div class="label">&darr;
                   </div>
                 </div>
                     <div class="spacer-fixed"></div>
-                <div class="key " data-code="ArrowRight">
+                <div class="key " data-keypad-code="ArrowRight">
                   <div class="label">&rarr;
                   </div>
                 </div>
@@ -2153,38 +2153,38 @@
         </div>
       </div>
     </div>
-    <div class="hidden window window-elegant" id="mouse-window" data-always-on-top data-save-position data-always-on-screen data-show-centered>
+    <div class="hidden window window-elegant" id="mouse-window" data-wm-window-always-on-top data-wm-window-save-position data-wm-window-always-on-screen data-wm-window-show-centered>
       <div class="window-header">
-        <div class="window-grab">Mouse Buttons</div>
+        <div class="window-grab">Mouse</div>
         <div class="window-buttons">
-          <button class="hidden" id="mouse-window-navbar-button" data-show-navbar data-on-full-tab>NB</button>
-          <button id="mouse-window-keyboard-button" style="display: none" data-show-window="keyboard-window"><img class="led-gray" src="../share/svg/led-hid-keyboard.svg"></button>
+          <button class="hidden" id="mouse-window-navbar-button" data-wm-navbar-show data-wm-on-full-tab>NB</button>
+          <button id="mouse-window-keyboard-button" data-wm-window-show="keyboard-window"><img class="led-gray" src="../share/svg/led-hid-keyboard.svg"></button>
           <button class="window-button-close">&#10005;</button>
         </div>
       </div>
       <div class="keypad" id="mouse-buttons" align="center">
         <div class="keypad-block">
           <div class="keypad-row">
-            <div class="key wide-1 left rounded-left" data-code="left" data-allow-autohold>
+            <div class="key wide-1 left rounded-left" data-keypad-code="left" data-keypad-allow-autohold>
               <div class="label"><b>&bull;</b><br>Left</div>
             </div>
-            <div class="key wide-1 rounded-none" data-code="middle" data-allow-autohold>
+            <div class="key wide-1 rounded-none" data-keypad-code="middle" data-keypad-allow-autohold>
               <div class="label"><b>&bull;</b><br>Mid</div>
             </div>
-            <div class="key wide-1 right rounded-right" data-code="right" data-allow-autohold>
+            <div class="key wide-1 right rounded-right" data-keypad-code="right" data-keypad-allow-autohold>
               <div class="label"><b>&bull;</b><br>Right</div>
             </div>
           </div>
           <!--.keypad-row
-          .key.small.rounded-left(data-code="up" data-allow-autohold)
+          .key.small.rounded-left(data-keypad-code="up" data-keypad-allow-autohold)
           	.label <b>&bull;</b><br>Up
-          .key.small.rounded-right(data-code="down" data-allow-autohold)
+          .key.small.rounded-right(data-keypad-code="down" data-keypad-allow-autohold)
           	.label <b>&bull;</b><br>Down
           -->
         </div>
       </div>
     </div>
-    <div class="hidden window" id="switch-window" data-show-centered style="width: min-content">
+    <div class="hidden window" id="switch-window" data-wm-window-show-centered style="width: min-content">
       <div class="window-header">
         <div class="window-grab">Switch settings</div>
         <div class="window-buttons">
@@ -2334,7 +2334,7 @@
             </div>
       </div>
     </div>
-    <div class="hidden window" id="about-window" data-show-centered>
+    <div class="hidden window" id="about-window" data-wm-window-show-centered>
       <div class="window-header">
         <div class="window-grab">About</div>
         <div class="window-buttons">
@@ -3040,7 +3040,7 @@
         <p class="text credits"><a target="_blank" href="https://pikvm.org">PiKVM Project</a>&nbsp; | &nbsp;<a target="_blank" href="https://docs.pikvm.org">Documentation</a>&nbsp; | &nbsp;<a target="_blank" href="https://pikvm.org/support">Support</a></p>
       </div>
     </div>
-    <div class="hidden window window-elegant window-resizable" id="webterm-window" data-show-centered style="display: flex; min-width: 720px; min-height: 480px">
+    <div class="hidden window window-elegant window-resizable" id="webterm-window" data-wm-window-show-centered style="display: flex; min-width: 720px; min-height: 480px">
       <div class="window-header">
         <div class="window-grab">Terminal</div>
         <div class="window-buttons">

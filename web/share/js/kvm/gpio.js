@@ -144,7 +144,7 @@ export function Gpio(__recorder) {
 				<img
 					class="__gpio-led ${e_ch_class} inline-lamp-big led-gray"
 					src="${e_icon}"
-					data-color="${tools.escape(item.color)}"
+					data-gpio-color="${tools.escape(item.color)}"
 				/>
 			`;
 
@@ -162,8 +162,8 @@ export function Gpio(__recorder) {
 							type="checkbox"
 							id="${e_id}"
 							class="__gpio-switch ${e_ch_class}"
-							data-channel="${e_ch}"
-							data-confirm="${e_confirm}"
+							data-gpio-channel="${e_ch}"
+							data-gpio-confirm="${e_confirm}"
 						/>
 						<label for="${e_id}">
 							<span class="switch-inner"></span>
@@ -178,9 +178,9 @@ export function Gpio(__recorder) {
 					<td><button
 						disabled
 						class="__gpio-button ${e_ch_class}"
-						${item.hide ? "data-force-hide-menu" : ""}
-						data-channel="${e_ch}"
-						data-confirm="${e_confirm}"
+						${item.hide ? "data-wm-menu-force-hide" : ""}
+						data-gpio-channel="${e_ch}"
+						data-gpio-confirm="${e_confirm}"
 					>
 						${(item.hide ? "&bull; " : "") + tools.escape(item.text)}
 					</button></td>
@@ -193,7 +193,7 @@ export function Gpio(__recorder) {
 	};
 
 	var __setLedState = function(el, on) {
-		let color = el.getAttribute("data-color");
+		let color = el.getAttribute("data-gpio-color");
 		if (on) {
 			el.classList.add(`led-${color}`);
 			el.classList.remove("led-gray");
@@ -204,11 +204,11 @@ export function Gpio(__recorder) {
 	};
 
 	var __switchChannel = function(el) {
-		let ch = el.getAttribute("data-channel");
-		let confirm = el.getAttribute("data-confirm");
+		let ch = el.getAttribute("data-gpio-channel");
+		let confirm = el.getAttribute("data-gpio-confirm");
 		let to = (el.checked ? "1" : "0");
-		if (to === "0" && el.hasAttribute("data-confirm-off")) {
-			confirm = el.getAttribute("data-confirm-off");
+		if (to === "0" && el.hasAttribute("data-gpio-confirm-off")) {
+			confirm = el.getAttribute("data-gpio-confirm-off");
 		}
 		let act = () => {
 			__sendPost("api/gpio/switch", {"channel": ch, "state": to});
@@ -226,8 +226,8 @@ export function Gpio(__recorder) {
 	};
 
 	var __pulseChannel = function(el) {
-		let ch = el.getAttribute("data-channel");
-		let confirm = el.getAttribute("data-confirm");
+		let ch = el.getAttribute("data-gpio-channel");
+		let confirm = el.getAttribute("data-gpio-confirm");
 		let act = () => {
 			__sendPost("api/gpio/pulse", {"channel": ch});
 			__recorder.recordGpioPulseEvent(ch);

@@ -25,3 +25,7 @@
 button#mouse-window-navbar-button {
 	display: none !important;
 }
+
+button#mouse-window-keyboard-button {
+	display: none !important;
+}

@@ -9,10 +9,10 @@ li.right#text-dropdown
 			sub Please note that PiKVM cannot switch the keyboard layout
 		hr
 		.text(style="margin-right: 20px")
-			textarea#hid-pak-text(data-focus placeholder="Enter your text here")
+			textarea#hid-pak-text(data-wm-menu-focus placeholder="Enter your text here")
 		table.kv
 			tr
-				td #[button#hid-pak-button(disabled data-force-hide-menu title="Ctrl+Enter when the text is focused") &bull; Paste]
+				td #[button#hid-pak-button(disabled data-wm-menu-force-hide title="Ctrl+Enter when the text is focused") &bull; Paste]
 				td using a host keymap
 				td #[select#hid-pak-keymap-selector]
 		table.kv
@@ -33,7 +33,7 @@ li.right#text-dropdown
 			hr
 			table.kv
 				tr
-					td #[button#stream-ocr-button(data-force-hide-menu) &bull; Select area]
+					td #[button#stream-ocr-button(data-wm-menu-force-hide) &bull; Select area]
 					td for
 					td #[select#stream-ocr-lang-selector]
 					td text recognition

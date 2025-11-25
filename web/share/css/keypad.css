@@ -95,7 +95,7 @@ div.keypad div.pressed {
 	background-color: var(--cs-key-pressed-bg);
 }
 
-div.keypad div.pressed:not(div.holded):not(div.locked):hover[data-allow-autohold] {
+div.keypad div.pressed:not(div.holded):not(div.locked):hover[data-keypad-allow-autohold] {
 	/* :active is not working on Firefox and iOS */
 	background: linear-gradient(to top, var(--cs-key-holded-bg) 50%, var(--cs-key-pressed-bg) 0);
 	background-size: 100% 200%;

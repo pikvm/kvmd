@@ -1,23 +1,28 @@
-.hidden.window.window-elegant#mouse-window(data-always-on-top data-save-position data-always-on-screen data-show-centered)
+.hidden.window.window-elegant#mouse-window(
+	data-wm-window-always-on-top
+	data-wm-window-save-position
+	data-wm-window-always-on-screen
+	data-wm-window-show-centered
+)
 	.window-header
-		.window-grab Mouse Buttons
+		.window-grab Mouse
 		.window-buttons
-			button.hidden#mouse-window-navbar-button(data-show-navbar data-on-full-tab) NB
-			button#mouse-window-keyboard-button(style="display: none" data-show-window="keyboard-window")
+			button.hidden#mouse-window-navbar-button(data-wm-navbar-show data-wm-on-full-tab) NB
+			button#mouse-window-keyboard-button(data-wm-window-show="keyboard-window")
 				img.led-gray(src=`${svg_dir}/led-hid-keyboard.svg`)
 			button.window-button-close &#10005;
 
 	.keypad#mouse-buttons(align="center")
 		.keypad-block
 			.keypad-row
-				.key.wide-1.left.rounded-left(data-code="left" data-allow-autohold)
+				.key.wide-1.left.rounded-left(data-keypad-code="left" data-keypad-allow-autohold)
 					.label #[b &bull;]#[br]Left
-				.key.wide-1.rounded-none(data-code="middle" data-allow-autohold)
+				.key.wide-1.rounded-none(data-keypad-code="middle" data-keypad-allow-autohold)
 					.label #[b &bull;]#[br]Mid
-				.key.wide-1.right.rounded-right(data-code="right" data-allow-autohold)
+				.key.wide-1.right.rounded-right(data-keypad-code="right" data-keypad-allow-autohold)
 					.label #[b &bull;]#[br]Right
 			//.keypad-row
-				.key.small.rounded-left(data-code="up" data-allow-autohold)
+				.key.small.rounded-left(data-keypad-code="up" data-keypad-allow-autohold)
 					.label #[b &bull;]#[br]Up
-				.key.small.rounded-right(data-code="down" data-allow-autohold)
+				.key.small.rounded-right(data-keypad-code="down" data-keypad-allow-autohold)
 					.label #[b &bull;]#[br]Down

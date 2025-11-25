@@ -25,8 +25,8 @@ mixin menu_switch_td2_gpio(channel, confirm_off="")
 				type="checkbox"
 				id=`__gpio-switch-${channel}`
 				class=`__gpio-switch-${channel} gpio-switch`
-				data-channel=channel
-				data-confirm-off=confirm_off
+				data-gpio-channel=channel
+				data-gpio-confirm-off=confirm_off
 			)
 			label(for=`__gpio-switch-${channel}`)
 				span.switch-inner
@@ -85,7 +85,7 @@ mixin menu_spoiler(title)
 			block
 
 
-button.hidden#navbar-show-button(data-show-navbar data-on-full-tab) &bull;&nbsp;&bull;&nbsp;&bull;
+button.hidden#navbar-show-button(data-wm-navbar-show data-wm-on-full-tab) &bull;&nbsp;&bull;&nbsp;&bull;
 
 ul#navbar
 	li.left
@@ -95,12 +95,12 @@ ul#navbar
 
 	include navbar-health.pug
 
-	.hidden#navbar-stream-info(data-on-full-tab)
+	.hidden#navbar-stream-info(data-wm-on-full-tab)
 		li.left
 			.menu-item
 				#stream-info
 
-	.hidden#navbar-full-controls(data-on-full-tab)
+	.hidden#navbar-full-controls(data-wm-on-full-tab)
 		li.right
 			.menu-item
 				button(id="navbar-hide-button") &#9650;

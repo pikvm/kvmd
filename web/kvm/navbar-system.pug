@@ -12,17 +12,17 @@ li.right#system-dropdown
 				td.value
 					| Runtime settings &amp; tools
 				td.feature-disabled#system-tool-webterm
-					button.small(data-force-hide-menu data-show-window="webterm-window") &bull; Term
+					button.small(data-wm-menu-force-hide data-wm-window-show="webterm-window") &bull; Term
 				td#system-tool-about
-					button.small(data-force-hide-menu data-show-window="about-window") &bull; About
+					button.small(data-wm-menu-force-hide data-wm-window-show="about-window") &bull; About
 				td#system-tool-log
-					button.small#open-log-button(data-force-hide-menu) &bull; Log
+					button.small#open-log-button(data-wm-menu-force-hide) &bull; Log
 				td.feature-disabled#system-tool-wol
 					button(
-						data-force-hide-menu
+						data-wm-menu-force-hide
 						class="__gpio-button-__wol__ __gpio-button small"
-						data-channel="__wol__"
-						data-confirm="Are you sure to send Wake-on-LAN packet to the server?"
+						data-gpio-channel="__wol__"
+						data-gpio-confirm="Are you sure to send Wake-on-LAN packet to the server?"
 					) &bull; WoL
 		hr
 
@@ -68,8 +68,8 @@ li.right#system-dropdown
 		hr
 
 		.buttons.buttons-row
-			button.row33(data-force-hide-menu data-show-window="stream-window") &bull; Show stream
-			button.row33#stream-screenshot-button(data-force-hide-menu) &bull; Screenshot
+			button.row33(data-wm-menu-force-hide data-wm-window-show="stream-window") &bull; Show stream
+			button.row33#stream-screenshot-button(data-wm-menu-force-hide) &bull; Screenshot
 			button.row33#stream-reset-button Reset stream
 		hr
 
@@ -138,6 +138,6 @@ li.right#system-dropdown
 		hr
 
 		.buttons.buttons-row
-			button.row33(data-force-hide-menu data-show-window="keyboard-window") &bull; Keyboard
-			button.row33(data-force-hide-menu data-show-window="mouse-window") &bull; Mouse
+			button.row33(data-wm-menu-force-hide data-wm-window-show="keyboard-window") &bull; Keyboard
+			button.row33(data-wm-menu-force-hide data-wm-window-show="mouse-window") &bull; Mouse
 			button.row33#hid-reset-button(disabled) Reset HID

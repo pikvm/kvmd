@@ -29,7 +29,7 @@ div.progress {
 
 div.progress:before {
 	color: var(--cs-progress-default-fg);
-	content: attr(data-label);
+	content: attr(data-x-progress-label);
 	font-size: 0.8em;
 	position: absolute;
 	text-align: center;

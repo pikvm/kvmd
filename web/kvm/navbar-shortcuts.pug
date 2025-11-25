@@ -9,34 +9,34 @@ li.right#shortcuts-dropdown
 
 		.buttons
 			.buttons-row
-				button.row50(data-force-hide-menu data-shortcut="CapsLock")
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="CapsLock")
 					| &bull; Caps Lock &nbsp;
 					img.inline-lamp-small.hid-keyboard-caps-led.led-gray(src=`${svg_dir}/led-square.svg`)
-				button.row50(data-force-hide-menu data-shortcut="MetaLeft") &bull; Left Win
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="MetaLeft") &bull; Left Win
 			hr
 			.buttons-row
-				button.row50(data-force-hide-menu data-shortcut="AltLeft ShiftLeft") &bull; Alt+Shift
-				button.row50(data-force-hide-menu data-shortcut="ControlLeft KeyW") &bull; Ctrl+W
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="AltLeft ShiftLeft") &bull; Alt+Shift
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft KeyW") &bull; Ctrl+W
 			.buttons-row
-				button.row50(data-force-hide-menu data-shortcut="ControlLeft ShiftLeft") &bull; Ctrl+Shift
-				button.row50(data-force-hide-menu data-shortcut="AltLeft Tab") &bull; Alt+Tab
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft ShiftLeft") &bull; Ctrl+Shift
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="AltLeft Tab") &bull; Alt+Tab
 			.buttons-row
-				button.row50(data-force-hide-menu data-shortcut="ShiftLeft ShiftRight") &bull; Shift+Shift
-				button.row50(data-force-hide-menu data-shortcut="AltLeft Enter") &bull; Alt+Enter
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="ShiftLeft ShiftRight") &bull; Shift+Shift
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="AltLeft Enter") &bull; Alt+Enter
 			.buttons-row
-				button.row50(data-force-hide-menu data-shortcut="MetaLeft Space") &bull; Win+Space
-				button.row50(data-force-hide-menu data-shortcut="AltLeft F4") &bull; Alt+F4
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="MetaLeft Space") &bull; Win+Space
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="AltLeft F4") &bull; Alt+F4
 			hr
 			.buttons-row
-				button.row50(data-force-hide-menu data-shortcut="ControlLeft AltLeft F1") &bull; Ctrl+Alt+F1
-				button.row50(data-force-hide-menu data-shortcut="MetaLeft KeyL") &bull; Win+L
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft AltLeft F1") &bull; Ctrl+Alt+F1
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="MetaLeft KeyL") &bull; Win+L
 			.buttons-row
-				button.row50(data-force-hide-menu data-shortcut="ControlLeft AltLeft F2") &bull; Ctrl+Alt+F2
-				button.row50(data-force-hide-menu data-shortcut="PrintScreen") &bull; Print Screen
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft AltLeft F2") &bull; Ctrl+Alt+F2
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="PrintScreen") &bull; Print Screen
 			hr
 			.buttons-row
-				button.row50(data-force-hide-menu data-shortcut="ControlLeft AltLeft Delete") &bull; Ctrl+Alt+Del
-				button.row50(data-force-hide-menu data-shortcut="Power") &bull; Power
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft AltLeft Delete") &bull; Ctrl+Alt+Del
+				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="Power") &bull; Power
 		hr
 
 		.text
@@ -55,8 +55,8 @@ li.right#shortcuts-dropdown
 					}
 				each title, key in sysrq
 					button.row25(
-						data-shortcut=`AltLeft PrintScreen Key${key}`
-						data-shortcut-confirm="hid-sysrq-ask-switch"
+						data-keyboard-shortcut=`AltLeft PrintScreen Key${key}`
+						data-keyboard-shortcut-confirm="hid-sysrq-ask-switch"
 						style="text-align: center"
 						title=`${title}`
 					) #{key}
@@ -73,8 +73,8 @@ li.right#shortcuts-dropdown
 					}
 				each title, key in sysrq
 					button.row16(
-						data-shortcut=`AltLeft PrintScreen Key${key}`
-						data-shortcut-confirm="hid-sysrq-ask-switch"
+						data-keyboard-shortcut=`AltLeft PrintScreen Key${key}`
+						data-keyboard-shortcut-confirm="hid-sysrq-ask-switch"
 						style="text-align: center"
 						title=`${title}`
 					) #{key}

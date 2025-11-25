@@ -38,13 +38,13 @@ export function Keypad(__el_keypad, __sendKey) {
 		__el_keypad.addEventListener("contextmenu", (ev) => ev.preventDefault());
 
 		for (let el_key of [].slice.call(__el_keypad.getElementsByClassName("key"))) {
-			if (el_key.hasAttribute("data-allow-autohold")) {
+			if (el_key.hasAttribute("data-keypad-allow-autohold")) {
 				el_key.title = "Long left click or short right click for hold, middle for lock";
 			} else {
 				el_key.title = "Right click for hold, middle for lock";
 			}
 
-			let code = el_key.getAttribute("data-code");
+			let code = el_key.getAttribute("data-keypad-code");
 
 			tools.setDefault(__keys, code, []);
 			__keys[code].push(el_key);
@@ -132,13 +132,13 @@ export function Keypad(__el_keypad, __sendKey) {
 
 	var __startHoldTimer = function(el_key) {
 		__stopHoldTimer(el_key);
-		let code = el_key.getAttribute("data-code");
+		let code = el_key.getAttribute("data-keypad-code");
 		__hold_timers[code] = setTimeout(function() {
 			// Помимо прямой функции, hold timer используется для детектирования факта
 			// нажатия в рамках одной сессии press/release, чтобы не отпустить сразу же
 			// зажатую или заблокированную клавишу. Поэтому таймер инициализируется всегда,
-			// но основную функцию выполняет только если у него есть атрибут data-allow-autohold.
-			if (el_key.hasAttribute("data-allow-autohold")) {
+			// но основную функцию выполняет только если у него есть атрибут data-keypad-allow-autohold.
+			if (el_key.hasAttribute("data-keypad-allow-autohold")) {
 				__deactivate(el_key);
 				__activate(el_key, "holded");
 			}
@@ -146,7 +146,7 @@ export function Keypad(__el_keypad, __sendKey) {
 	};
 
 	var __stopHoldTimer = function(el_key) {
-		let code = el_key.getAttribute("data-code");
+		let code = el_key.getAttribute("data-keypad-code");
 		if (!__hold_timers[code]) {
 			return false;
 		}
@@ -200,12 +200,12 @@ export function Keypad(__el_keypad, __sendKey) {
 	};
 
 	var __resolveKeys = function(el_key) {
-		let code = el_key.getAttribute("data-code");
+		let code = el_key.getAttribute("data-keypad-code");
 		return __keys[code];
 	};
 
 	var __process = function(el_key, state) {
-		let code = el_key.getAttribute("data-code");
+		let code = el_key.getAttribute("data-keypad-code");
 		__sendKey(code, state);
 	};
 

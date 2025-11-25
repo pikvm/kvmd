@@ -125,8 +125,8 @@ function __WindowManager() {
 			}
 		}
 
-		for (let el of $$$("[data-show-window]")) {
-			tools.el.setOnClick(el, () => self.showWindow($(el.getAttribute("data-show-window"))));
+		for (let el of $$$("[data-wm-window-show]")) {
+			tools.el.setOnClick(el, () => self.showWindow($(el.getAttribute("data-wm-window-show"))));
 		}
 
 		window.addEventListener("mouseup", __globalMouseButtonHandler);
@@ -174,7 +174,7 @@ function __WindowManager() {
 		});
 
 		if ($("navbar")) {
-			for (let el of $$$("[data-show-navbar]")) {
+			for (let el of $$$("[data-wm-navbar-show]")) {
 				tools.el.setOnClick(el, () => __setNavbarVisible(true));
 			}
 			tools.el.setOnClick($("navbar-hide-button"), () => __setNavbarVisible(false));
@@ -331,21 +331,21 @@ function __WindowManager() {
 
 	var __setWindowMca = function(el_win, maximized, centered, adjusted) {
 		if (maximized !== null) {
-			el_win.toggleAttribute("data-maximized", maximized);
+			el_win.toggleAttribute("data-x-wm-window-maximized", maximized);
 			if (maximized) {
-				el_win.removeAttribute("data-centered");
+				el_win.removeAttribute("data-x-wm-window-centered");
 			}
 		}
 		if (centered !== null) {
-			el_win.toggleAttribute("data-centered", centered);
+			el_win.toggleAttribute("data-x-wm-window-centered", centered);
 			if (centered) {
-				el_win.removeAttribute("data-maximized");
+				el_win.removeAttribute("data-x-wm-window-maximized");
 			}
 		}
 		if (adjusted !== null) {
-			el_win.toggleAttribute("data-adjusted", adjusted);
+			el_win.toggleAttribute("data-x-wm-window-adjusted", adjusted);
 			if (adjusted) {
-				el_win.removeAttribute("data-maximized");
+				el_win.removeAttribute("data-x-wm-window-maximized");
 			}
 		}
 	};
@@ -358,10 +358,10 @@ function __WindowManager() {
 
 		__closeAllMenues();
 
-		if (!el_win.hasAttribute("data-adjusted")) {
-			if (el_win.hasAttribute("data-show-maximized") && !el_win.hasAttribute("data-centered")) {
+		if (!el_win.hasAttribute("data-x-wm-window-adjusted")) {
+			if (el_win.hasAttribute("data-wm-window-show-maximized") && !el_win.hasAttribute("data-x-wm-window-centered")) {
 				__setWindowMca(el_win, true, false, false);
-			} else if (el_win.hasAttribute("data-show-centered") && !el_win.hasAttribute("data-maximized")) {
+			} else if (el_win.hasAttribute("data-wm-window-show-centered") && !el_win.hasAttribute("data-x-wm-window-maximized")) {
 				__setWindowMca(el_win, false, true, false);
 			}
 		}
@@ -393,7 +393,7 @@ function __WindowManager() {
 
 	self.setFullTabWindow = function(el_win, enabled) {
 		el_win.classList.toggle("window-full-tab", enabled);
-		for (let el of $$$("[data-on-full-tab]")) {
+		for (let el of $$$("[data-wm-on-full-tab]")) {
 			tools.hidden.setVisible(el, enabled);
 		}
 		__setNavbarVisible(!enabled);
@@ -420,7 +420,7 @@ function __WindowManager() {
 	var __setNavbarVisible = function(visible) {
 		if ($("navbar")) {
 			tools.hidden.setVisible($("navbar"), visible);
-			for (let el of $$$("[data-show-navbar]")) {
+			for (let el of $$$("[data-wm-navbar-show]")) {
 				tools.hidden.setVisible(el, !visible);
 			}
 			__closeAllMenues();
@@ -453,7 +453,7 @@ function __WindowManager() {
 				let offset = self.getViewGeometry().right - (rect.left + el_menu.offsetWidth);
 				el_menu.style.right = Math.max(0, offset) + "px";
 
-				let el_focus = el_menu.querySelector("[data-focus]");
+				let el_focus = el_menu.querySelector("[data-wm-menu-focus]");
 				(el_focus !== null ? el_focus : el_menu).focus();
 				all_hidden &= false;
 			} else {
@@ -499,20 +499,20 @@ function __WindowManager() {
 
 		if (
 			ev.target.closest(".menu-button")
-			|| (ev.target.closest(".menu") && !ev.target.closest("[data-force-hide-menu]"))
+			|| (ev.target.closest(".menu") && !ev.target.closest("[data-wm-menu-force-hide]"))
 		) {
 			// Клик по кнопке вызова меню обрабатывается явно.
-			// Клик по чему-то внутри меню игнорируется, если это что-то не имеет data-force-hide-menu.
+			// Клик по чему-то внутри меню игнорируется, если это что-то не имеет data-wm-menu-force-hide.
 			return;
 		}
 
 		// Любой другой клик
 		setTimeout(function() {
-			// Тач-событие на хроме не долетает при data-force-hide-menu,
+			// Тач-событие на хроме не долетает при data-wm-menu-force-hide,
 			// судя по всему оно прерывается при закрытии меню.
 			// Откладываем обработку.
 			if (
-				!ev.target.hasAttribute("data-show-navbar")
+				!ev.target.hasAttribute("data-wm-navbar-show")
 				&& !ev.target.closest("#navbar") // Игнорируем клики по навбару
 				&& $$("window-full-tab").length // Только если у нас вообще есть распахнутые окна
 			) {
@@ -550,9 +550,9 @@ function __WindowManager() {
 			}
 		}
 
-		if (el_win.hasAttribute("data-maximized")) {
+		if (el_win.hasAttribute("data-x-wm-window-maximized")) {
 			__organizeMaximizeWindow(el_win);
-		} else if (el_win.hasAttribute("data-centered")) {
+		} else if (el_win.hasAttribute("data-x-wm-window-centered")) {
 			__organizeCenterWindow(el_win);
 		} else {
 			__organizeFitWindow(el_win);
@@ -584,7 +584,7 @@ function __WindowManager() {
 				el_win.style.height = "";
 				el_win.style.width = gw + "px";
 			}
-		} else if (!el_win.hasAttribute("data-organize-hook")) {
+		} else if (!el_win.hasAttribute("data-wm-organize-hook")) {
 			// FIXME: Можно было бы проверять наличие organize_hook,
 			// но эвент от обзервера приходит раньше чем настроятся хуки.
 			// По идее это надо бы глобально исправить.
@@ -663,7 +663,7 @@ function __WindowManager() {
 
 			if (
 				!el_win.classList.contains("modal")
-				&& !el_win.hasAttribute("data-always-on-top")
+				&& !el_win.hasAttribute("data-wm-window-always-on-top")
 				&& parseInt(el_win.style.zIndex) !== __top_z_index
 			) {
 				__top_z_index += 1;
@@ -691,7 +691,7 @@ function __WindowManager() {
 
 		let pos_path = `wm.windows.${tools.makeTextId(el_win.id)}.pos`;
 
-		if (el_win.hasAttribute("data-save-position")) {
+		if (el_win.hasAttribute("data-wm-window-save-position")) {
 			// TODO: Сейчас это используется только для мышиного окна,
 			// но если понадобится сохранять положения других окон,
 			// то надо сделать чтобы __setWindowMca() сбрасывал сохранения
@@ -740,14 +740,14 @@ function __WindowManager() {
 			el_win.style.top = top + "px";
 			el_win.style.left = left + "px";
 
-			if (el_win.hasAttribute("data-save-position")) {
+			if (el_win.hasAttribute("data-wm-window-save-position")) {
 				tools.storage.setInt(pos_path + ".top", top);
 				tools.storage.setInt(pos_path + ".left", left);
 			}
 
 			prev_pos = ev_pos;
 
-			if (el_win.hasAttribute("data-always-on-screen")) {
+			if (el_win.hasAttribute("data-wm-window-always-on-screen")) {
 				__organizeWindow(el_win);
 			}
 		}

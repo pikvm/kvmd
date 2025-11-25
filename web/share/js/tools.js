@@ -319,7 +319,7 @@ export var tools = new function() {
 	self.progress = new function() {
 		return {
 			"setValue": function(el, title, percent) {
-				el.setAttribute("data-label", title);
+				el.setAttribute("data-x-progress-label", title);
 				el.querySelector(".progress-value").style.width = `${percent}%`;
 			},
 			"setPercentOf": function(el, max, value) {

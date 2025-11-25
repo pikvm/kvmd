@@ -55,14 +55,14 @@ export function Hid(__getGeometry, __recorder) {
 		tools.el.setOnClick($("hid-connect-switch"), __clickConnectSwitch);
 		tools.el.setOnClick($("hid-reset-button"), __clickResetButton);
 
-		for (let el_shortcut of $$$("[data-shortcut]")) {
+		for (let el_shortcut of $$$("[data-keyboard-shortcut]")) {
 			tools.el.setOnClick(el_shortcut, function() {
 				let ask = false;
-				let confirm_id = el_shortcut.getAttribute("data-shortcut-confirm");
+				let confirm_id = el_shortcut.getAttribute("data-keyboard-shortcut-confirm");
 				if (confirm_id) {
 					ask = $(confirm_id).checked;
 				}
-				let codes = el_shortcut.getAttribute("data-shortcut").split(" ");
+				let codes = el_shortcut.getAttribute("data-keyboard-shortcut").split(" ");
 				if (ask) {
 					wm.confirm("Do you want to press this hotkey?", codes.join(" + ")).then(function(ok) {
 						if (ok) {
