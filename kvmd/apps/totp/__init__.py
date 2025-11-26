@@ -59,7 +59,7 @@ def _cmd_show(config: Section, options: argparse.Namespace) -> None:
     if len(secret) == 0:
         raise SystemExit("Error: TOTP secret is not configured")
     uri = pyotp.totp.TOTP(secret).provisioning_uri(
-        name=(options.name or socket.getfqdn()),
+        name=(options.name or socket.gethostname()),
         issuer_name="PiKVM",
     )
     qr = qrcode.QRCode()

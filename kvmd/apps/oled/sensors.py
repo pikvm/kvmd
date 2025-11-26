@@ -104,7 +104,7 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
     async def __fqdn_task_loop(self) -> None:
         while True:
             try:
-                self.__s_fqdn = await aiotools.run_async(socket.getfqdn)
+                self.__s_fqdn = socket.gethostname()
             except Exception:
                 self.__s_fqdn = ""
             await asyncio.sleep(3)
