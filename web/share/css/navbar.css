@@ -41,10 +41,6 @@ button#navbar-show-button.hidden {
 	/*right: -16px;*/
 }
 
-div#navbar-full-controls button {
-	width: 50px;
-}
-
 ul#navbar {
 	box-shadow: var(--shadow-small);
 	list-style-type: none;

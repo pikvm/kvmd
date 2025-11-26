@@ -100,11 +100,11 @@ ul#navbar
 			.menu-item
 				#stream-info
 
-	.hidden#navbar-full-controls(data-wm-on-full-tab)
+	.hidden(data-wm-on-full-tab)
 		li.right
 			.menu-item
-				button(data-wm-navbar-close)
-				button(data-wm-normalize)
+				button(data-wm-navbar-close style="width: 50px; height: 30px;")
+				button(data-wm-normalize style="width: 30px; height: 30px;")
 
 	include navbar-system.pug
 	include navbar-atx.pug
