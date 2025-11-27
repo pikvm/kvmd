@@ -233,10 +233,10 @@ function __WindowManager() {
 		inner += "<div class=\"modal-buttons buttons-row\">";
 		let bt_cls = ((ok && cancel) ? "row50": "row100");
 		if (cancel) {
-			inner += `<button class="modal-button-cancel ${bt_cls}">Cancel</button>`;
+			inner += `<button data-x-wm-modal-cancel class="${bt_cls}">Cancel</button>`;
 		}
 		if (ok) {
-			inner += `<button class="modal-button-ok ${bt_cls}">OK</button>`;
+			inner += `<button data-x-wm-modal-ok class="${bt_cls}">OK</button>`;
 		}
 		inner += "</div></div>";
 
@@ -246,8 +246,8 @@ function __WindowManager() {
 
 		let el_win = el_modal.querySelector(".modal-window");
 		let el_content = el_win.querySelector(".modal-content");
-		let el_ok_bt = el_win.querySelector(".modal-button-ok");
-		let el_cancel_bt = el_win.querySelector(".modal-button-cancel");
+		let el_ok_bt = el_win.querySelector("[data-x-wm-modal-ok]");
+		let el_cancel_bt = el_win.querySelector("[data-x-wm-modal-cancel]");
 
 		let key_pressed = "";
 		el_win.addEventListener("keydown", function (ev) {
