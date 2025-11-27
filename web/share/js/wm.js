@@ -89,31 +89,7 @@ function __WindowManager() {
 			for (let el of el_win.querySelectorAll("[data-wm-window-set-full-screen]")) {
 				el.innerHTML = "&#10530;";
 				el.title = "Go to full-screen mode";
-				tools.el.setOnClick(el, function() {
-					if (document.documentElement.requestFullscreen && !$$("window-full-tab").length) {
-						document.documentElement.requestFullscreen().then(function() {
-							self.setFullTabWindow(el_win, true);
-							__activateWindow(el_win); // Почему-то теряется фокус
-							if (navigator.keyboard && navigator.keyboard.lock) {
-								navigator.keyboard.lock();
-							} else {
-								setTimeout(function() {
-									let html = (
-										"Shortcuts like Alt+Tab and Ctrl+W might not be captured.<br>"
-										+ "For best keyboard handling use any browser with<br><a target=\"_blank\""
-										+ " href=\"https://developer.mozilla.org/en-US/docs/Web"
-										+ "/API/Keyboard_API#Browser_compatibility\">keyboard lock support from this list</a>.<br><br>"
-										+ "In Chrome use HTTPS and enable <i>system-keyboard-lock</i><br>"
-										+ "by putting at URL <i>chrome://flags/#system-keyboard-lock</i>.<br><br>"
-										+ "Also you can use <a target=\"_blank\" href=\"https://docs.pikvm.org/shortcuts/\">"
-										+ " PiKVM Shortcuts Composer</a>."
-									);
-									self.modal("The Keyboard Lock API is not supported", html, true, false, "full-screen");
-								}, 150); // Avoid ResizeObserver() hack
-							}
-						});
-					}
-				});
+				tools.el.setOnClick(el, () => __goFullScreenWindow(el_win));
 			}
 		}
 
@@ -417,6 +393,37 @@ function __WindowManager() {
 		el_win.style.maxHeight = "fit-content";
 		el_win.style.aspectRatio = `${width} / ${height}`;
 		__organizeWindow(el_win, true, false);
+	};
+
+	var __goFullScreenWindow = function(el_win) {
+		// Safari/Firefox:
+		//  - https://github.com/whatwg/fullscreen/pull/232
+		//  - https://github.com/mozilla/standards-positions/issues/196
+		//  - https://github.com/whatwg/fullscreen/issues/231
+		//  - https://bugzilla.mozilla.org/show_bug.cgi?id=700123
+		if (document.documentElement.requestFullscreen && !$$("window-full-tab").length) {
+			document.documentElement.requestFullscreen().then(function() {
+				self.setFullTabWindow(el_win, true);
+				__activateWindow(el_win); // Почему-то теряется фокус
+				if (navigator.keyboard && navigator.keyboard.lock) {
+					navigator.keyboard.lock();
+				} else {
+					setTimeout(function() {
+						let html = (
+							"Shortcuts like Alt+Tab and Ctrl+W might not be captured.<br>"
+							+ "For best keyboard handling use any browser with<br><a target=\"_blank\""
+							+ " href=\"https://developer.mozilla.org/en-US/docs/Web"
+							+ "/API/Keyboard_API#Browser_compatibility\">keyboard lock support from this list</a>.<br><br>"
+							+ "In Chrome use HTTPS and enable <i>system-keyboard-lock</i><br>"
+							+ "by putting at URL <i>chrome://flags/#system-keyboard-lock</i>.<br><br>"
+							+ "Also you can use <a target=\"_blank\" href=\"https://docs.pikvm.org/shortcuts/\">"
+							+ " PiKVM Shortcuts Composer</a>."
+						);
+						self.modal("The Keyboard Lock API is not supported", html, true, false, "full-screen");
+					}, 150); // Avoid ResizeObserver() hack
+				}
+			});
+		}
 	};
 
 	var __setNavbarVisible = function(visible) {
