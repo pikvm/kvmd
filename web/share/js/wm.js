@@ -500,6 +500,11 @@ function __WindowManager() {
 	};
 
 	var __globalMouseButtonHandler = function(ev) {
+		if (ev.target.closest(".modal-window")) {
+			// Игнорировать клики внутри модального окна
+			return;
+		}
+
 		if (ev.target.closest(".modal")) {
 			// Клик по модальному полю возвращает фокус в окно
 			__activateWindow(ev.target.closest(".modal"));
