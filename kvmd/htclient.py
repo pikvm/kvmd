@@ -70,15 +70,15 @@ async def download(
     app: str="KVMD",
 ) -> AsyncGenerator[aiohttp.ClientResponse, None]:
 
-    kwargs: dict = {
-        "headers": {"User-Agent": make_user_agent(app)},
-        "timeout": aiohttp.ClientTimeout(
+    async with aiohttp.ClientSession(
+        headers={"User-Agent": make_user_agent(app)},
+        timeout=aiohttp.ClientTimeout(
             connect=timeout,
             sock_connect=timeout,
             sock_read=(read_timeout if read_timeout is not None else timeout),
         ),
-    }
-    async with aiohttp.ClientSession(**kwargs) as session:
+    ) as session:
+
         async with session.get(url, verify_ssl=verify) as resp:  # type: ignore
             raise_not_200(resp)
             yield resp

@@ -70,13 +70,12 @@ class FanInfoSubmanager(BaseInfoSubmanager):
             if self.__unix_path:
                 if (await self.__notifier.wait(timeout=self.__state_poll)) > 0:
                     prev = {}
-                new = await self.get_state()
+                new = await self.get_state()  # Can be None
                 pure = copy.deepcopy(new)
-                if pure["state"] is not None:
-                    try:
-                        pure["state"]["service"]["now_ts"] = 0
-                    except Exception:
-                        pass
+                try:
+                    pure["state"]["service"]["now_ts"] = 0
+                except Exception:
+                    pass
                 if pure != prev:
                     prev = pure
                     yield new
@@ -93,7 +92,8 @@ class FanInfoSubmanager(BaseInfoSubmanager):
                     status = await sui.get_status(self.__daemon)
                     return (status[0] or status[1])
             except Exception as ex:
-                get_logger(0).error("Can't get info about the service %r: %s", self.__daemon, tools.efmt(ex))
+                get_logger(0).error("Can't get info about the service %r: %s",
+                                    self.__daemon, tools.efmt(ex))
         return False
 
     async def __get_fan_state(self) -> (dict | None):
@@ -107,11 +107,8 @@ class FanInfoSubmanager(BaseInfoSubmanager):
             return None
 
     def __make_http_session(self) -> aiohttp.ClientSession:
-        kwargs: dict = {
-            "headers": {
-                "User-Agent": htclient.make_user_agent("KVMD"),
-            },
-            "timeout": aiohttp.ClientTimeout(total=self.__timeout),
-            "connector": aiohttp.UnixConnector(path=self.__unix_path)
-        }
-        return aiohttp.ClientSession(**kwargs)
+        return aiohttp.ClientSession(
+            headers={"User-Agent": htclient.make_user_agent("KVMD")},
+            connector=aiohttp.UnixConnector(path=self.__unix_path),
+            timeout=aiohttp.ClientTimeout(total=self.__timeout),
+        )
