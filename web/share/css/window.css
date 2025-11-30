@@ -84,7 +84,11 @@ div.window div.window-header {
 	height: 20px;
 	font-size: 0.8em;
 	color: var(--cs-window-header-default-fg);
+	background-color: var(--cs-window-default-bg);
 	border-bottom: var(--border-default-thin);
+}
+div.window:not(.window-full-tab) div.window-header {
+	z-index: 1;
 }
 
 div.window div.window-header div.window-grab {
