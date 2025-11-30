@@ -39,16 +39,23 @@ class InfoApi:
     # =====
 
     @exposed_http("GET", "/info")
-    async def __common_state_handler(self, req: Request) -> Response:
-        fields = self.__valid_info_fields(req)
-        return make_json_response(await self.__info_manager.get_state(fields))
-
-    def __valid_info_fields(self, req: Request) -> list[str]:
+    async def __legacy_state_handler(self, req: Request) -> Response:
         available = self.__info_manager.get_subs()
         available.add("hw")
         default = set(available)
         default.remove("health")
-        return sorted(valid_info_fields(
+        fields = sorted(valid_info_fields(
             arg=req.query.get("fields", ",".join(default)),
             variants=(available),
         ) or available)
+        return make_json_response(await self.__info_manager.get_state_legacy(fields))
+
+    @exposed_http("GET", "/info2")
+    async def __state_handler(self, req: Request) -> Response:
+        available = self.__info_manager.get_subs()
+        default = set(available)
+        fields = sorted(valid_info_fields(
+            arg=req.query.get("fields", ",".join(default)),
+            variants=(available),
+        ) or available)
+        return make_json_response(await self.__info_manager.get_state(fields))

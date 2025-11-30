@@ -53,7 +53,7 @@ function __setAppText() {
 }
 
 function __loadKvmdInfo() {
-	tools.httpGet("api/info", {"fields": "auth,meta,extras"}, function(http) {
+	tools.httpGet("api/info2", {"fields": "auth,meta,extras"}, function(http) {
 		switch (http.status) {
 			case 200:
 				__showKvmdInfo(JSON.parse(http.responseText).result);

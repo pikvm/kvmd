@@ -54,8 +54,14 @@ class InfoManager:
         return set(self.__subs)
 
     async def get_state(self, fields: (list[str] | None)=None) -> dict:
-        fields_set = set(fields or list(self.__subs))
+        fields = sorted(set(fields or list(self.__subs)))
+        return dict(zip(fields, await asyncio.gather(*[
+            self.__subs[field].get_state()
+            for field in fields
+        ])))
 
+    async def get_state_legacy(self, fields: (list[str] | None)=None) -> dict:
+        fields_set = set(fields or list(self.__subs))
         hw = ("hw" in fields_set)  # Old for compatible
         system = ("system" in fields_set)
         if hw:
@@ -63,9 +69,10 @@ class InfoManager:
             fields_set.add("health")
             fields_set.add("system")
 
-        state = dict(zip(fields_set, await asyncio.gather(*[
+        fields = sorted(fields_set)
+        state = dict(zip(fields, await asyncio.gather(*[
             self.__subs[field].get_state()
-            for field in fields_set
+            for field in fields
         ])))
 
         if hw:
