@@ -595,8 +595,11 @@ function __WindowManager() {
 				el_win.style.height = gh + "px";
 			} else {
 				el_win.style.left = "";
-				el_win.style.height = "";
 				el_win.style.width = gw + "px";
+				// XXX: https://github.com/pikvm/pikvm/issues/1617
+				// fit-content нужен только для iOS.
+				// TODO: Проверить десктопный Safari/Webkit.
+				el_win.style.height = (tools.browser.is_ios ? "fit-content" : "");
 			}
 		} else if (!el_win.hasAttribute("data-wm-organize-hook")) {
 			// FIXME: Можно было бы проверять наличие organize_hook,
