@@ -88,14 +88,10 @@ class RedfishApi:
 
     @exposed_http("GET", "/redfish/v1/Systems/0")
     async def __server_handler(self, _: Request) -> Response:
-        (atx_state, info_state) = await asyncio.gather(*[
+        (atx_state, meta_host) = await asyncio.gather(*[
             self.__atx.get_state(),
-            self.__info_manager.get_state(["meta"]),
+            self.__info_manager.get_meta_server_host(),
         ])
-        try:
-            host = str(info_state["meta"].get("server", {})["host"])  # type: ignore
-        except Exception:
-            host = ""
         return make_json_response({
             "@odata.id": "/redfish/v1/Systems/0",
             "@odata.type": "#ComputerSystem.v1_10_0.ComputerSystem",
@@ -109,7 +105,7 @@ class RedfishApi:
                 },
             },
             "Id": "0",
-            "HostName": host,
+            "HostName": meta_host,
             "PowerState": ("On" if atx_state["leds"]["power"] else "Off"),  # type: ignore
             "Boot": {
                 "BootSourceOverrideEnabled": "Disabled",

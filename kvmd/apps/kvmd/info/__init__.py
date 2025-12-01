@@ -33,6 +33,7 @@ from .meta import MetaInfoSubmanager
 from .extras import ExtrasInfoSubmanager
 from .health import HealthInfoSubmanager
 from .uptime import UptimeInfoSubmanager
+from .node import NodeInfoSubmanager
 from .fan import FanInfoSubmanager
 
 
@@ -46,9 +47,13 @@ class InfoManager:
             "extras": ExtrasInfoSubmanager(config),
             "health": HealthInfoSubmanager(**config.kvmd.info.hw._unpack(ignore="platform")),
             "uptime": UptimeInfoSubmanager(),
+            "node":   NodeInfoSubmanager(),
             "fan":    FanInfoSubmanager(**config.kvmd.info.fan._unpack()),
         }
         self.__queue: "asyncio.Queue[tuple[str, (dict | None)]]" = asyncio.Queue()
+
+    async def get_meta_server_host(self) -> str:
+        return (await self.__subs["meta"].get_server_host())  # type: ignore
 
     def get_subs(self) -> set[str]:
         return set(self.__subs)
@@ -98,6 +103,7 @@ class InfoManager:
         #   - extras -- Partial, nullable
         #   - health -- Partial
         #   - uptime -- Partial
+        #   - node   -- Partial
         #   - fan    -- Partial
         # ===========================
 

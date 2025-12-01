@@ -53,7 +53,7 @@ function __setAppText() {
 }
 
 function __loadKvmdInfo() {
-	tools.httpGet("api/info2", {"fields": "auth,meta,extras"}, function(http) {
+	tools.httpGet("api/info2", {"fields": "auth,node,meta,extras"}, function(http) {
 		switch (http.status) {
 			case 200:
 				__showKvmdInfo(JSON.parse(http.responseText).result);
@@ -114,13 +114,8 @@ function __showKvmdInfo(info) {
 		tools.el.setOnClick($("logout-button"), __logout);
 	}
 
-	if (info.meta !== null && info.meta.server && info.meta.server.host) {
-		$("kvmd-meta-server-host").innerText = info.meta.server.host;
-		document.title = `${info.meta.server.host} | PiKVM Index`;
-	} else {
-		$("kvmd-meta-server-host").innerHTML = "<i>Invalid meta</i>";
-		document.title = "PiKVM Index";
-	}
+	$("kvmd-node-host").innerText = info.node.host;
+	document.title = `${info.node.host} | PiKVM Index`;
 }
 
 function __makeApp(id, path, icon, name) {

@@ -43,6 +43,7 @@ export function Info() {
 	self.setState = function(state) {
 		for (let key of Object.keys(state)) {
 			switch (key) {
+				case "node": __setStateNode(state.node); break;
 				case "meta": __setStateMeta(state.meta); break;
 				case "health": __setStateHealth(state.health); break;
 				case "fan": __setStateFan(state.fan); break;
@@ -52,17 +53,16 @@ export function Info() {
 		}
 	};
 
+	var __setStateNode = function(state) {
+		if (state !== null) {
+			$("kvmd-node-host").innerText = state.host;
+			document.title = `${state.host} | PiKVM Session`;
+		}
+	};
+
 	var __setStateMeta = function(state) {
 		if (state !== null) {
 			$("kvmd-meta-json").innerText = JSON.stringify(state, undefined, 4);
-
-			if (state.server && state.server.host) {
-				$("kvmd-meta-server-host").innerText = state.server.host;
-				document.title = `${state.server.host} | PiKVM Session`;
-			} else {
-				$("kvmd-meta-server-host").innerText = "";
-				document.title = "PiKVM Session";
-			}
 
 			for (let place of ["left", "right"]) {
 				if (state.tips && state.tips[place]) {

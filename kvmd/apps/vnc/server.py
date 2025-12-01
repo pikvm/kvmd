@@ -184,14 +184,8 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
 
     async def __process_ws_event(self, event_type: str, event: dict) -> None:
         if event_type == "info":
-            if "meta" in event:
-                host = ""
-                try:
-                    if isinstance(event["meta"]["server"]["host"], str):
-                        host = event["meta"]["server"]["host"].strip()
-                except Exception:
-                    pass
-                self.__info_host = host
+            if "node" in event:
+                self.__info_host = event["node"]["host"]
                 await self.__update_info()
 
         elif event_type == "switch":

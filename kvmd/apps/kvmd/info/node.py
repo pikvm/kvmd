@@ -21,12 +21,9 @@
 
 
 import socket
+import copy
 
 from typing import AsyncGenerator
-
-from ....logging import get_logger
-
-from ....yamlconf.loader import load_yaml_file
 
 from .... import aiotools
 
@@ -34,33 +31,23 @@ from .base import BaseInfoSubmanager
 
 
 # =====
-class MetaInfoSubmanager(BaseInfoSubmanager):
-    def __init__(self, meta_path: str) -> None:
-        self.__meta_path = meta_path
+class NodeInfoSubmanager(BaseInfoSubmanager):
+    def __init__(self) -> None:
         self.__notifier = aiotools.AioNotifier()
 
-    async def get_server_host(self) -> str:
-        meta = await self.get_state()
-        try:
-            host = str(meta.get("server", {})["host"]).strip()  # type: ignore
-        except Exception:
-            host = ""
-        return (host or socket.gethostname())
-
-    async def get_state(self) -> (dict | None):
-        try:
-            meta = ((await aiotools.run_async(load_yaml_file, self.__meta_path)) or {})
-            if meta["server"]["host"] == "@auto":
-                meta["server"]["host"] = socket.gethostname()
-            return meta
-        except Exception:
-            get_logger(0).exception("Can't parse meta")
-        return None
+    async def get_state(self) -> dict:
+        return {"host": socket.gethostname()}
 
     async def trigger_state(self) -> None:
-        self.__notifier.notify()
+        self.__notifier.notify(1)
 
     async def poll_state(self) -> AsyncGenerator[(dict | None), None]:
+        prev: dict = {}
         while True:
-            await self.__notifier.wait()
-            yield (await self.get_state())
+            if (await self.__notifier.wait(timeout=1)) > 0:
+                prev = {}
+            new = await self.get_state()
+            pure = copy.deepcopy(new)
+            if pure != prev:
+                prev = pure
+                yield new
