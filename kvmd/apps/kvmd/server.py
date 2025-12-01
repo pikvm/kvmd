@@ -184,7 +184,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
             StreamerApi(streamer, ocr),
             SwitchApi(switch),
             ExportApi(info_manager, atx, user_gpio),
-            RedfishApi(info_manager, atx),
+            RedfishApi(info_manager, atx, switch),
         ]
         self.__subsystems = [
             _Subsystem.make(auth_manager, "Auth manager"),
