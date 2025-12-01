@@ -1,5 +1,5 @@
 # You can write down any information and it will be available
-# at the address /api/info2 (if you use default nginx config).
+# at the address /api/info?legacy=0
 # To change PiKVM's hostname, use "hostnamectl hostname <new>".
 
 server:

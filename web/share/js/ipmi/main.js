@@ -31,7 +31,7 @@ export function main() {
 }
 
 function __loadKvmdInfo() {
-	tools.httpGet("api/info2", null, function(http) {
+	tools.httpGet("api/info", {"legacy": 0}, function(http) {
 		switch (http.status) {
 			case 200:
 				__showKvmdInfo(JSON.parse(http.responseText).result);

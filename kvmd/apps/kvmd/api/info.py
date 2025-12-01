@@ -26,6 +26,7 @@ from aiohttp.web import Response
 from ....htserver import exposed_http
 from ....htserver import make_json_response
 
+from ....validators.basic import valid_bool
 from ....validators.kvm import valid_info_fields
 
 from ..info import InfoManager
@@ -39,23 +40,23 @@ class InfoApi:
     # =====
 
     @exposed_http("GET", "/info")
-    async def __legacy_state_handler(self, req: Request) -> Response:
-        available = self.__info_manager.get_subs()
-        available.add("hw")
-        default = set(available)
-        default.remove("health")
-        fields = sorted(valid_info_fields(
-            arg=req.query.get("fields", ",".join(default)),
-            variants=(available),
-        ) or available)
-        return make_json_response(await self.__info_manager.get_state_legacy(fields))
-
-    @exposed_http("GET", "/info2")
     async def __state_handler(self, req: Request) -> Response:
+        legacy = valid_bool(req.query.get("legacy", True))
+
         available = self.__info_manager.get_subs()
+        if legacy:
+            available.add("hw")
         default = set(available)
+        if legacy:
+            default.remove("health")
+
         fields = sorted(valid_info_fields(
             arg=req.query.get("fields", ",".join(default)),
-            variants=(available),
+            variants=available,
         ) or available)
-        return make_json_response(await self.__info_manager.get_state(fields))
+
+        if legacy:
+            handler = self.__info_manager.get_state_legacy
+        else:
+            handler = self.__info_manager.get_state
+        return make_json_response(await handler(fields))
