@@ -34,8 +34,8 @@ from ..info import InfoManager
 
 # =====
 class InfoApi:
-    def __init__(self, info_manager: InfoManager) -> None:
-        self.__info_manager = info_manager
+    def __init__(self, im: InfoManager) -> None:
+        self.__im = im
 
     # =====
 
@@ -43,7 +43,7 @@ class InfoApi:
     async def __state_handler(self, req: Request) -> Response:
         legacy = valid_bool(req.query.get("legacy", True))
 
-        available = self.__info_manager.get_subs()
+        available = self.__im.get_subs()
         if legacy:
             available.add("hw")
         default = set(available)
@@ -56,7 +56,7 @@ class InfoApi:
         ) or available)
 
         if legacy:
-            handler = self.__info_manager.get_state_legacy
+            handler = self.__im.get_state_legacy
         else:
-            handler = self.__info_manager.get_state
+            handler = self.__im.get_state
         return make_json_response(await handler(fields))

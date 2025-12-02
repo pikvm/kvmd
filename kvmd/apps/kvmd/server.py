@@ -144,10 +144,10 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
-        auth_manager: AuthManager,
-        info_manager: InfoManager,
+        auth: AuthManager,
+        im: InfoManager,
         log_reader: (LogReader | None),
-        user_gpio: UserGpio,
+        ugpio: UserGpio,
         ocr: Ocr,
         switch: Switch,
 
@@ -164,7 +164,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
 
         super().__init__()
 
-        self.__auth_manager = auth_manager
+        self.__auth = auth
         self.__hid = hid
         self.__streamer = streamer
         self.__snapshoter = snapshoter  # Not a component: No state or cleanup
@@ -174,28 +174,28 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__hid_api = HidApi(hid, keymap_path)  # Ugly hack to get keymaps state
         self.__apis: list[object] = [
             self,
-            AuthApi(auth_manager),
-            InfoApi(info_manager),
+            AuthApi(auth),
+            InfoApi(im),
             LogApi(log_reader),
-            UserGpioApi(user_gpio),
+            UserGpioApi(ugpio),
             self.__hid_api,
             AtxApi(atx),
             MsdApi(msd),
             StreamerApi(streamer, ocr),
             SwitchApi(switch),
-            ExportApi(info_manager, atx, user_gpio),
-            RedfishApi(info_manager, atx, switch),
+            ExportApi(im, atx, ugpio),
+            RedfishApi(im, atx, switch),
         ]
         self.__subsystems = [
-            _Subsystem.make(auth_manager, "Auth manager"),
-            _Subsystem.make(user_gpio,    "User-GPIO",    self.__EV_GPIO_STATE),
-            _Subsystem.make(hid,          "HID",          self.__EV_HID_STATE),
-            _Subsystem.make(atx,          "ATX",          self.__EV_ATX_STATE),
-            _Subsystem.make(msd,          "MSD",          self.__EV_MSD_STATE),
-            _Subsystem.make(streamer,     "Streamer",     self.__EV_STREAMER_STATE),
-            _Subsystem.make(ocr,          "OCR",          self.__EV_OCR_STATE),
-            _Subsystem.make(info_manager, "Info manager", self.__EV_INFO_STATE),
-            _Subsystem.make(switch,       "Switch",       self.__EV_SWITCH_STATE),
+            _Subsystem.make(auth,     "Auth"),
+            _Subsystem.make(ugpio,    "GPIO",     self.__EV_GPIO_STATE),
+            _Subsystem.make(hid,      "HID",      self.__EV_HID_STATE),
+            _Subsystem.make(atx,      "ATX",      self.__EV_ATX_STATE),
+            _Subsystem.make(msd,      "MSD",      self.__EV_MSD_STATE),
+            _Subsystem.make(streamer, "Streamer", self.__EV_STREAMER_STATE),
+            _Subsystem.make(ocr,      "OCR",      self.__EV_OCR_STATE),
+            _Subsystem.make(im,       "Info",     self.__EV_INFO_STATE),
+            _Subsystem.make(switch,   "Switch",   self.__EV_SWITCH_STATE),
         ]
 
         self.__streamer_notifier = aiotools.AioNotifier()
@@ -270,7 +270,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         super().run(**kwargs)
 
     async def _check_request_auth(self, exposed: HttpExposed, req: Request) -> None:
-        await check_request_auth(self.__auth_manager, exposed, req)
+        await check_request_auth(self.__auth, exposed, req)
 
     async def _init_app(self) -> None:
         aiotools.create_deadly_task("Stream controller", self.__stream_controller())
@@ -305,12 +305,12 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         logger.info("On-Cleanup complete")
 
     def _on_ws_added(self, ws: WsSession) -> None:
-        self.__auth_manager.start_ws_session(ws.token)
+        self.__auth.start_ws_session(ws.token)
         self.__hid.clear_events()
         self.__streamer_notifier.notify()
 
     def _on_ws_removed(self, ws: WsSession) -> None:
-        self.__auth_manager.stop_ws_session(ws.token)
+        self.__auth.stop_ws_session(ws.token)
         self.__hid.clear_events()
         self.__streamer_notifier.notify()
 

@@ -54,8 +54,8 @@ class RedfishApi:
 
     __SWITCH_PREFIX = "SwitchPort"
 
-    def __init__(self, info_manager: InfoManager, atx: BaseAtx, switch: Switch) -> None:
-        self.__info_manager = info_manager
+    def __init__(self, im: InfoManager, atx: BaseAtx, switch: Switch) -> None:
+        self.__im = im
 
         self.__atx = atx
         self.__atx_actions = {
@@ -129,7 +129,7 @@ class RedfishApi:
         if port < 0:
             (atx_state, host) = await asyncio.gather(*[  # type: ignore
                 self.__atx.get_state(),
-                self.__info_manager.get_meta_server_host(),
+                self.__im.get_meta_server_host(),
             ])
             power = atx_state["leds"]["power"]  # type: ignore
 

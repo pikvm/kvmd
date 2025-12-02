@@ -47,22 +47,22 @@ from ..auth import AuthManager
 _COOKIE_AUTH_TOKEN = "auth_token"
 
 
-async def _check_xhdr(auth_manager: AuthManager, _: HttpExposed, req: Request) -> bool:
+async def _check_xhdr(auth: AuthManager, _: HttpExposed, req: Request) -> bool:
     user = req.headers.get("X-KVMD-User", "")
     if user:
         user = valid_user(user)
         passwd = req.headers.get("X-KVMD-Passwd", "")
         set_request_auth_info(req, f"{user} (xhdr)")
-        if (await auth_manager.authorize(user, valid_passwd(passwd))):
+        if (await auth.authorize(user, valid_passwd(passwd))):
             return True
         raise ForbiddenError()
     return False
 
 
-async def _check_token(auth_manager: AuthManager, _: HttpExposed, req: Request) -> bool:
+async def _check_token(auth: AuthManager, _: HttpExposed, req: Request) -> bool:
     token = req.cookies.get(_COOKIE_AUTH_TOKEN, "")
     if token:
-        user = auth_manager.check(valid_auth_token(token))
+        user = auth.check(valid_auth_token(token))
         if user:
             set_request_auth_info(req, f"{user} (token)", token=token)
             return True
@@ -71,7 +71,7 @@ async def _check_token(auth_manager: AuthManager, _: HttpExposed, req: Request) 
     return False
 
 
-async def _check_basic(auth_manager: AuthManager, _: HttpExposed, req: Request) -> bool:
+async def _check_basic(auth: AuthManager, _: HttpExposed, req: Request) -> bool:
     basic_auth = req.headers.get("Authorization", "")
     if basic_auth and basic_auth[:6].lower() == "basic ":
         try:
@@ -80,17 +80,17 @@ async def _check_basic(auth_manager: AuthManager, _: HttpExposed, req: Request) 
             raise UnauthorizedError()
         user = valid_user(user)
         set_request_auth_info(req, f"{user} (basic)")
-        if (await auth_manager.authorize(user, valid_passwd(passwd))):
+        if (await auth.authorize(user, valid_passwd(passwd))):
             return True
         raise ForbiddenError()
     return False
 
 
-async def _check_usc(auth_manager: AuthManager, exposed: HttpExposed, req: Request) -> bool:
+async def _check_usc(auth: AuthManager, exposed: HttpExposed, req: Request) -> bool:
     if exposed.allow_usc:
         creds = get_request_unix_credentials(req)
         if creds is not None:
-            user = auth_manager.check_unix_credentials(creds)
+            user = auth.check_unix_credentials(creds)
             if user:
                 set_request_auth_info(req, f"{user}[{creds.uid}] (unix)")
                 return True
@@ -98,27 +98,27 @@ async def _check_usc(auth_manager: AuthManager, exposed: HttpExposed, req: Reque
     return False
 
 
-async def check_request_auth(auth_manager: AuthManager, exposed: HttpExposed, req: Request) -> None:
-    if not auth_manager.is_auth_required(exposed):
+async def check_request_auth(auth: AuthManager, exposed: HttpExposed, req: Request) -> None:
+    if not auth.is_auth_required(exposed):
         return
     for checker in [_check_xhdr, _check_token, _check_basic, _check_usc]:
-        if (await checker(auth_manager, exposed, req)):
+        if (await checker(auth, exposed, req)):
             return
     raise UnauthorizedError()
 
 
 class AuthApi:
-    def __init__(self, auth_manager: AuthManager) -> None:
-        self.__auth_manager = auth_manager
+    def __init__(self, auth: AuthManager) -> None:
+        self.__auth = auth
 
     # =====
 
     @exposed_http("POST", "/auth/login", auth_required=False, allow_usc=False)
     async def __login_handler(self, req: Request) -> Response:
-        if self.__auth_manager.is_auth_enabled():
+        if self.__auth.is_auth_enabled():
             params = await req.post()
             redirect = valid_login_redirect(params.get("redirect", ""))
-            token = await self.__auth_manager.login(
+            token = await self.__auth.login(
                 user=valid_user(params.get("user", "")),
                 passwd=valid_passwd(params.get("passwd", "")),
                 expire=valid_expire(params.get("expire", "0")),
@@ -134,9 +134,9 @@ class AuthApi:
 
     @exposed_http("POST", "/auth/logout", allow_usc=False)
     async def __logout_handler(self, req: Request) -> Response:
-        if self.__auth_manager.is_auth_enabled():
+        if self.__auth.is_auth_enabled():
             token = valid_auth_token(req.cookies.get(_COOKIE_AUTH_TOKEN, ""))
-            self.__auth_manager.logout(token)
+            self.__auth.logout(token)
         return make_json_response()
 
     # XXX: This handle is used for access control so it should NEVER allow access by socket credentials

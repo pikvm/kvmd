@@ -53,7 +53,7 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
 
     def __init__(
         self,
-        auth_manager: IpmiAuthManager,
+        auth: IpmiAuthManager,
         kvmd: KvmdClient,
 
         host: str,
@@ -68,7 +68,7 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
 
         host = network.get_listen_host(host)
 
-        super().__init__(authdata=auth_manager, address=host, port=port)
+        super().__init__(authdata=auth, address=host, port=port)
 
         self.__kvmd = kvmd
 

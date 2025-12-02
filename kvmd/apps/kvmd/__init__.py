@@ -73,7 +73,7 @@ def main() -> None:
     )
 
     KvmdServer(
-        auth_manager=AuthManager(
+        auth=AuthManager(
             enabled=config.auth.enabled,
             expire=config.auth.expire,
             extend=config.auth.extend,
@@ -90,9 +90,9 @@ def main() -> None:
 
             totp_secret_path=config.auth.totp.secret.file,
         ),
-        info_manager=InfoManager(global_config),
+        im=InfoManager(global_config),
         log_reader=(LogReader() if config.log_reader.enabled else None),
-        user_gpio=UserGpio(config.gpio, global_config.otg),
+        ugpio=UserGpio(config.gpio, global_config.otg),
         ocr=Ocr(**config.ocr._unpack()),
         switch=Switch(
             pst_unix_path=global_config.pst.server.unix,

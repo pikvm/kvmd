@@ -43,10 +43,10 @@ from ..ugpio import UserGpio
 
 # =====
 class ExportApi:
-    def __init__(self, info_manager: InfoManager, atx: BaseAtx, user_gpio: UserGpio) -> None:
-        self.__info_manager = info_manager
+    def __init__(self, im: InfoManager, atx: BaseAtx, ugpio: UserGpio) -> None:
+        self.__im = im
         self.__atx = atx
-        self.__user_gpio = user_gpio
+        self.__ugpio = ugpio
 
     # =====
 
@@ -58,8 +58,8 @@ class ExportApi:
     async def __get_prometheus_metrics(self) -> str:
         (atx_state, info_state, gpio_state) = await asyncio.gather(*[
             self.__atx.get_state(),
-            self.__info_manager.get_state(["health", "fan"]),
-            self.__user_gpio.get_state(),
+            self.__im.get_state(["health", "fan"]),
+            self.__ugpio.get_state(),
         ])
         rows: list[str] = []
 

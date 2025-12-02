@@ -39,7 +39,7 @@ def main() -> None:
     ).config.ipmi
 
     IpmiServer(
-        auth_manager=IpmiAuthManager(**config.auth._unpack()),
+        auth=IpmiAuthManager(**config.auth._unpack()),
         kvmd=KvmdClient(
             user_agent=htclient.make_user_agent("KVMD-IPMI"),
             **config.kvmd._unpack(),
