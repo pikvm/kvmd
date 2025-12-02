@@ -26,32 +26,21 @@ import re
 from aiohttp.web import Request
 from aiohttp.web import Response
 
-from ....htserver import HttpError
-from ....htserver import exposed_http
-from ....htserver import make_json_response
+from .....htserver import HttpError
+from .....htserver import exposed_http
+from .....htserver import make_json_response
 
-from ....plugins.atx import BaseAtx
+from .....plugins.atx import BaseAtx
 
-from ....validators import check_string_in_list
-from ....validators.basic import valid_int_f0
+from .....validators import check_string_in_list
+from .....validators.basic import valid_int_f0
 
-from ..info import InfoManager
-from ..switch import Switch
+from ...info import InfoManager
+from ...switch import Switch
 
 
 # =====
-class RedfishApi:
-    # https://github.com/DMTF/Redfishtool
-    # https://github.com/DMTF/Redfish-Mockup-Server
-    # https://redfish.dmtf.org/redfish/v1
-    # https://www.dmtf.org/documents/redfish-spmf/redfish-mockup-bundle-20191
-    # https://www.dmtf.org/sites/default/files/Redfish_School-Sessions.pdf
-    # https://www.ibm.com/support/knowledgecenter/POWER9/p9ej4/p9ej4_kickoff.htm
-    #
-    # Quick examples:
-    #    redfishtool -S Never -u admin -p admin -r localhost:8080 Systems
-    #    redfishtool -S Never -u admin -p admin -r localhost:8080 Systems reset ForceOff
-
+class RedfishAtxApi:
     __SWITCH_PREFIX = "SwitchPort"
 
     def __init__(self, im: InfoManager, atx: BaseAtx, switch: Switch) -> None:
@@ -80,19 +69,6 @@ class RedfishApi:
         assert set(self.__atx_actions) == set(self.__switch_actions)
 
     # =====
-
-    @exposed_http("GET", "/redfish/v1", auth_required=False)
-    async def __root_handler(self, _: Request) -> Response:
-        return make_json_response({
-            "@odata.id":      "/redfish/v1",
-            "@odata.type":    "#ServiceRoot.v1_6_0.ServiceRoot",
-            "Id":             "RootService",
-            "Name":           "Root Service",
-            "RedfishVersion": "1.6.0",
-            "Systems":        {"@odata.id": "/redfish/v1/Systems"},  # ATX
-        }, wrap_result=False)
-
-    # ===== ATX =====
 
     @exposed_http("GET", "/redfish/v1/Systems")
     async def __systems_handler(self, _: Request) -> Response:
@@ -187,6 +163,8 @@ class RedfishApi:
         else:
             await self.__switch_actions[action](port)
         return Response(body=None, status=204)
+
+    # =====
 
     def __valid_server_id(self, req: Request) -> tuple[str, int]:
         try:

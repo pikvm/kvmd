@@ -87,6 +87,7 @@ def main() -> None:
             "kvmd.apps.kvmd.switch",
             "kvmd.apps.kvmd.info",
             "kvmd.apps.kvmd.api",
+            "kvmd.apps.kvmd.api.redfish",
             "kvmd.apps.media",
             "kvmd.apps.pst",
             "kvmd.apps.pstrun",
