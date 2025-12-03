@@ -82,6 +82,7 @@ from .api.switch import SwitchApi
 from .api.export import ExportApi
 from .api.redfish.root import RedfishRootApi
 from .api.redfish.atx import RedfishAtxApi
+from .api.redfish.msd import RedfishMsdApi
 
 
 # =====
@@ -187,6 +188,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
             ExportApi(im, atx, ugpio),
             RedfishRootApi(),
             RedfishAtxApi(im, atx, switch),
+            RedfishMsdApi(msd),
         ]
         self.__subsystems = [
             _Subsystem.make(auth,     "Auth"),

@@ -35,6 +35,7 @@ class RedfishRootApi:
     # https://www.dmtf.org/documents/redfish-spmf/redfish-mockup-bundle-20191
     # https://www.dmtf.org/sites/default/files/Redfish_School-Sessions.pdf
     # https://www.ibm.com/support/knowledgecenter/POWER9/p9ej4/p9ej4_kickoff.htm
+    # https://www.dmtf.org/sites/default/files/standards/documents/DSP2046_2025.1.pdf
     #
     # Quick examples:
     #    redfishtool -S Never -u admin -p admin -r localhost:8080 Systems
@@ -49,4 +50,5 @@ class RedfishRootApi:
             "Name":           "Root Service",
             "RedfishVersion": "1.6.0",
             "Systems":        {"@odata.id": "/redfish/v1/Systems"},  # ATX
+            "Managers":       {"@odata.id": "/redfish/v1/Managers"},  # MSD
         }, wrap_result=False)
