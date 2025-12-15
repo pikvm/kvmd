@@ -213,14 +213,19 @@ async def wait_first(*aws: asyncio.Task) -> tuple[set[asyncio.Task], set[asyncio
 
 # =====
 async def spawn_and_follow(*coros: Coroutine) -> None:
-    tasks: list[asyncio.Task] = list(map(asyncio.create_task, coros))
-    try:
-        await asyncio.gather(*tasks)
-    except Exception:
+    tasks: list[asyncio.Task] = []
+
+    async def cleanup() -> None:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
-        raise
+
+    try:
+        for coro in coros:
+            tasks.append(asyncio.create_task(coro))
+        await wait_first(*tasks)
+    finally:
+        await shield_fg(cleanup())
 
 
 # =====
