@@ -91,7 +91,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         self.__proc: (multiprocessing.Process | None) = None
         self.__stop_event = multiprocessing.Event()
 
-        self.__notifier = aiomulti.AioProcessNotifier()
+        self.__notifier = aiomulti.AioMpNotifier()
 
         self.__server = BtServer(
             iface=BluezIface(

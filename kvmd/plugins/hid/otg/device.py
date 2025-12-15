@@ -47,7 +47,7 @@ class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-in
         name: str,
         read_size: int,
         initial_state: dict,
-        notifier: aiomulti.AioProcessNotifier,
+        notifier: aiomulti.AioMpNotifier,
 
         device_path: str,
         select_timeout: float,

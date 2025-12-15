@@ -95,19 +95,19 @@ class AioMpQueue[T](multiprocessing.queues.Queue[T]):
 
 
 # =====
-class AioProcessNotifier:
+class AioMpNotifier:
     def __init__(self) -> None:
-        self.__q: AioMpQueue[int] = AioMpQueue()
+        self.__queue: AioMpQueue[int] = AioMpQueue()
 
     def notify(self, mask: int=0) -> None:
-        self.__q.put_nowait(mask)
+        self.__queue.put_nowait(mask)
 
     async def wait(self) -> int:
-        (got, mask) = await self.__q.async_fetch()
+        (got, mask) = await self.__queue.async_fetch()
         assert mask is not None
         if got:
-            while not self.__q.empty():
-                mask |= self.__q.get()
+            while not self.__queue.empty():
+                mask |= self.__queue.get()
                 await asyncio.sleep(0)
         return mask
 
@@ -120,7 +120,7 @@ class AioSharedFlags(Generic[_SharedFlagT]):
     def __init__(
         self,
         initial: dict[str, _SharedFlagT],
-        notifier: AioProcessNotifier,
+        notifier: AioMpNotifier,
         type: Type[_SharedFlagT]=bool,  # pylint: disable=redefined-builtin
     ) -> None:
 

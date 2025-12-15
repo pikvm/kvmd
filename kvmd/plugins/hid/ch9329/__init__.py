@@ -74,7 +74,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         self.__reset_required_event = multiprocessing.Event()
         self.__cmd_q: aiomulti.AioMpQueue[bytes] = aiomulti.AioMpQueue()
 
-        self.__notifier = aiomulti.AioProcessNotifier()
+        self.__notifier = aiomulti.AioMpNotifier()
         self.__state_flags = aiomulti.AioSharedFlags({
             "online": 0,
             "busy": 0,

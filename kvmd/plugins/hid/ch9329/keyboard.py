@@ -32,7 +32,7 @@ class Keyboard:
             "num": False,
             "caps": False,
             "scroll": False,
-        }, aiomulti.AioProcessNotifier(), bool)
+        }, aiomulti.AioMpNotifier(), bool)
         self.__mods = 0
         self.__active_keys: list[int] = []
 

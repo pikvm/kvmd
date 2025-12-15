@@ -86,7 +86,7 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
         socket_timeout: float,
         select_timeout: float,
 
-        notifier: aiomulti.AioProcessNotifier,
+        notifier: aiomulti.AioMpNotifier,
         stop_event: multiprocessing.synchronize.Event,
     ) -> None:
 

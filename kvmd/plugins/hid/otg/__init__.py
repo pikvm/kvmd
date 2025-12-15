@@ -64,7 +64,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
 
         self.__udc = udc
 
-        self.__notifier = aiomulti.AioProcessNotifier()
+        self.__notifier = aiomulti.AioMpNotifier()
 
         win98_fix = mouse.pop("absolute_win98_fix")
         common = {"notifier": self.__notifier, "noop": noop}

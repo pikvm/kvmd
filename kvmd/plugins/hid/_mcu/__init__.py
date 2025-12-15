@@ -139,7 +139,7 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
         self.__reset_required_event = multiprocessing.Event()
         self.__events_q: aiomulti.AioMpQueue[BaseEvent] = aiomulti.AioMpQueue()
 
-        self.__notifier = aiomulti.AioProcessNotifier()
+        self.__notifier = aiomulti.AioMpNotifier()
         self.__state_flags = aiomulti.AioSharedFlags({
             "online": 0,
             "busy": 0,
