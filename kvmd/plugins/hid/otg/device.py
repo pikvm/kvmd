@@ -69,7 +69,7 @@ class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-in
 
         self.__udc_state_path = ""
         self.__fd = -1
-        self.__events_queue: "multiprocessing.Queue[BaseEvent]" = multiprocessing.Queue()
+        self.__events_q: aiomulti.AioMpQueue[BaseEvent] = aiomulti.AioMpQueue()
         self.__state_flags = aiomulti.AioSharedFlags({"online": True, **initial_state}, notifier)
         self.__stop_event = multiprocessing.Event()
         self.__no_device_reported = False
@@ -91,7 +91,7 @@ class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-in
                         self.__read_all_reports()
 
                     try:
-                        event = self.__events_queue.get(timeout=self.__queue_timeout)
+                        event = self.__events_q.get(timeout=self.__queue_timeout)
                     except queue.Empty:
                         # Проблема в том, что устройство может отвечать EAGAIN или ESHUTDOWN,
                         # если оно было отключено физически. См:
@@ -151,10 +151,10 @@ class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-in
             self.join()
 
     def _queue_event(self, event: BaseEvent) -> None:
-        self.__events_queue.put_nowait(event)
+        self.__events_q.put_nowait(event)
 
     def _clear_queue(self) -> None:
-        tools.clear_queue(self.__events_queue)
+        self.__events_q.clear_current()
 
     def _cleanup_write(self, report: bytes) -> None:
         assert not self.is_alive()

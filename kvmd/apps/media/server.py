@@ -63,8 +63,27 @@ class _Source:
 class _Client:
     ws:     WsSession
     src:    _Source
-    queue:  asyncio.Queue[dict]
-    sender: (asyncio.Task | None) = dataclasses.field(default=None)
+    sender: asyncio.Task
+    _queue: asyncio.Queue[dict] = dataclasses.field(default_factory=(lambda: asyncio.Queue(32)))
+
+    async def get_frame(self) -> dict:
+        return (await self._queue.get())
+
+    async def put_frame(self, frame: dict) -> bool:  # Overflow/wipe flag
+        try:
+            self._queue.put_nowait(frame)
+        except asyncio.QueueFull:
+            # Если какой-то из клиентов не справляется, очищаем ему очередь и запрашиваем кейфрейм.
+            # Я вижу у такой логики кучу минусов, хз как себя покажет, но лучше пока ничего не придумал.
+            for _ in range(self._queue.qsize()):
+                try:
+                    self._queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+            return True
+        except Exception:
+            pass
+        return False
 
 
 class MediaServer(HttpServer):
@@ -74,8 +93,6 @@ class MediaServer(HttpServer):
 
     __F_H264 = "h264"
     __F_JPEG = "jpeg"
-
-    __Q_SIZE = 32
 
     def __init__(
         self,
@@ -148,7 +165,7 @@ class MediaServer(HttpServer):
         src: (_Source | None) = self.__media.get(m_type, {}).get(m_fmt)
         if src is None:
             return False
-        client = _Client(ws, src, asyncio.Queue(self.__Q_SIZE))
+        client = _Client(ws, src, None)  # type: ignore
         client.sender = aiotools.create_deadly_task(str(ws), self.__sender(client))
         src.clients[ws] = client
         get_logger(0).info("Streaming %s to %s ...", src.streamer, ws)
@@ -187,9 +204,10 @@ class MediaServer(HttpServer):
         need_key = client.src.is_diff()
         if need_key:
             client.src.key_required = True
+
         has_key = False
         while True:
-            frame = await client.queue.get()
+            frame = await client.get_frame()
             has_key = (not need_key or has_key or frame["key"])
             if has_key:
                 try:
@@ -206,6 +224,7 @@ class MediaServer(HttpServer):
             if len(src.clients) == 0:
                 await asyncio.sleep(1)
                 continue
+
             try:
                 async with src.streamer.reading() as read_frame:
                     while len(src.clients) > 0:
@@ -213,15 +232,10 @@ class MediaServer(HttpServer):
                         if frame["key"]:
                             src.key_required = False
                         for client in src.clients.values():
-                            try:
-                                client.queue.put_nowait(frame)
-                            except asyncio.QueueFull:
-                                # Если какой-то из клиентов не справляется, очищаем ему очередь и запрашиваем кейфрейм.
-                                # Я вижу у такой логики кучу минусов, хз как себя покажет, но лучше пока ничего не придумал.
-                                tools.clear_queue(client.queue)
+                            if (await client.put_frame(frame)):
+                                # Overflowed and cleaned up, need a keyframe
                                 src.key_required = True
-                            except Exception:
-                                pass
+
             except StreamerError as ex:
                 if isinstance(ex, StreamerPermError):
                     logger.exception("Streamer failed: %s", src.streamer)

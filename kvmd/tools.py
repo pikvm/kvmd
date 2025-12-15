@@ -22,11 +22,8 @@
 
 import os
 import tempfile
-import asyncio
 import operator
 import contextlib
-import multiprocessing.queues
-import queue
 import shlex
 
 from typing import Generator
@@ -86,15 +83,6 @@ def is_dict(kvs: Any, *path: str) -> bool:
         if not isinstance(kvs, dict):
             return False
     return True
-
-
-# =====
-def clear_queue(q: (multiprocessing.queues.Queue | asyncio.Queue)) -> None:  # pylint: disable=invalid-name
-    for _ in range(q.qsize()):
-        try:
-            q.get_nowait()
-        except (queue.Empty, asyncio.QueueEmpty):
-            break
 
 
 # =====

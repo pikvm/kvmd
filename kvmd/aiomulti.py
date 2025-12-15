@@ -20,7 +20,10 @@
 # ========================================================================== #
 
 
+import asyncio
 import multiprocessing
+import multiprocessing.queues
+import multiprocessing.connection
 import queue
 
 from typing import Type
@@ -31,53 +34,82 @@ from . import aiotools
 
 
 # =====
-_QueueItemT = TypeVar("_QueueItemT")
+class AioMpQueue[T](multiprocessing.queues.Queue[T]):
+    def __init__(self, maxsize: int=0) -> None:
+        super().__init__(maxsize=maxsize, ctx=multiprocessing.get_context())
 
+    def get_reader(self) -> multiprocessing.connection.Connection:
+        return self._reader  # type: ignore  # pylint: disable=protected-access
 
-async def queue_get_last(  # pylint: disable=invalid-name
-    q: "multiprocessing.Queue[_QueueItemT]",
-    timeout: float,
-) -> tuple[bool, (_QueueItemT | None)]:
+    def get_reader_fd(self) -> int:
+        return self.get_reader().fileno()
 
-    return (await aiotools.run_async(queue_get_last_sync, q, timeout))
+    async def async_fetch(self, timeout: float=0) -> tuple[bool, (T | None)]:
+        return (await self.__async_get(timeout, False))
 
+    async def async_fetch_last(self, timeout: float=0) -> tuple[bool, (T | None)]:
+        return (await self.__async_get(timeout, True))
 
-def queue_get_last_sync(  # pylint: disable=invalid-name
-    q: "multiprocessing.Queue[_QueueItemT]",
-    timeout: float,
-) -> tuple[bool, (_QueueItemT | None)]:
+    async def __async_get(self, timeout: float, last_only: bool) -> tuple[bool, (T | None)]:
+        loop = asyncio.get_running_loop()
+        fd = self.get_reader_fd()
+        fut = asyncio.Future()  # type: ignore
 
-    try:
-        item = q.get(timeout=timeout)
-        while not q.empty():
-            item = q.get()
-        return (True, item)
-    except queue.Empty:
-        return (False, None)
+        try:
+            loop.add_reader(fd, fut.set_result, None)
+            fut.add_done_callback(lambda _: loop.remove_reader(fd))
+            if timeout > 0:
+                await asyncio.wait_for(fut, timeout)
+            else:
+                await fut
+
+            if not last_only:
+                return (True, self.get(False))
+
+            got = False
+            item: (T | None) = None
+            while not self.empty():
+                item = self.get(False)
+                await asyncio.sleep(0)  # Switch task to prevent hanging in a loop
+            return (got, item)
+        except (TimeoutError, queue.Empty):
+            return (False, None)
+        finally:
+            loop.remove_reader(fd)
+
+    def fetch_last(self, timeout: float=0) -> tuple[bool, (T | None)]:
+        try:
+            item = self.get(timeout=timeout)
+            while not self.empty():
+                item = self.get()
+            return (True, item)
+        except queue.Empty:
+            return (False, None)
+
+    def clear_current(self) -> None:
+        for _ in range(self.qsize()):
+            try:
+                self.get_nowait()
+            except queue.Empty:
+                break
 
 
 # =====
 class AioProcessNotifier:
     def __init__(self) -> None:
-        self.__queue: "multiprocessing.Queue[int]" = multiprocessing.Queue()
+        self.__q: AioMpQueue[int] = AioMpQueue()
 
     def notify(self, mask: int=0) -> None:
-        self.__queue.put_nowait(mask)
+        self.__q.put_nowait(mask)
 
     async def wait(self) -> int:
-        while True:
-            mask = await aiotools.run_async(self.__get)
-            if mask >= 0:
-                return mask
-
-    def __get(self) -> int:
-        try:
-            mask = self.__queue.get(timeout=0.1)
-            while not self.__queue.empty():
-                mask |= self.__queue.get()
-            return mask
-        except queue.Empty:
-            return -1
+        (got, mask) = await self.__q.async_fetch()
+        assert mask is not None
+        if got:
+            while not self.__q.empty():
+                mask |= self.__q.get()
+                await asyncio.sleep(0)
+        return mask
 
 
 # =====

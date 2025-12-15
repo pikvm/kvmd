@@ -69,8 +69,8 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__read_timeout = read_timeout
         self.__protocol = protocol
 
-        self.__ctl_queue: "multiprocessing.Queue[int]" = multiprocessing.Queue()
-        self.__channel_queue: "multiprocessing.Queue[int | None]" = multiprocessing.Queue()
+        self.__ctl_q: aiomulti.AioMpQueue[int] = aiomulti.AioMpQueue()
+        self.__channel_q: aiomulti.AioMpQueue[int | None] = aiomulti.AioMpQueue()
         self.__channel: (int | None) = -1
 
         self.__proc: (multiprocessing.Process | None) = None
@@ -96,7 +96,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     async def run(self) -> None:
         while True:
-            (got, channel) = await aiomulti.queue_get_last(self.__channel_queue, 1)
+            (got, channel) = await self.__channel_q.async_fetch_last(1)
             if got and self.__channel != channel:
                 self.__channel = channel
                 self._notifier.notify()
@@ -118,7 +118,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         if not self.__is_online():
             raise GpioDriverOfflineError(self)
         if state:
-            self.__ctl_queue.put_nowait(int(pin))
+            self.__ctl_q.put_nowait(int(pin))
 
     # =====
 
@@ -135,7 +135,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             try:
                 with self.__get_serial() as tty:
                     data = b""
-                    self.__channel_queue.put_nowait(-1)
+                    self.__channel_q.put_nowait(-1)
 
                     # Switch and then recieve the state.
                     # FIXME: Get actual state without modifying the current.
@@ -145,15 +145,15 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                     while not self.__stop_event.is_set():
                         (channel, data) = self.__recv_channel(tty, data)
                         if channel is not None:
-                            self.__channel_queue.put_nowait(channel)
+                            self.__channel_q.put_nowait(channel)
 
-                        (got, channel) = aiomulti.queue_get_last_sync(self.__ctl_queue, 0.1)  # type: ignore
+                        (got, channel) = self.__ctl_q.fetch_last(0.1)
                         if got:
                             assert channel is not None
                             self.__send_channel(tty, channel)
 
             except Exception as ex:
-                self.__channel_queue.put_nowait(None)
+                self.__channel_q.put_nowait(None)
                 if isinstance(ex, serial.SerialException) and ex.errno == errno.ENOENT:  # pylint: disable=no-member
                     logger.error("Missing %s serial device: %s", self, self.__device_path)
                 else:

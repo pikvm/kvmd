@@ -32,7 +32,6 @@ from typing import Any
 
 from ....logging import get_logger
 
-from .... import tools
 from .... import aiotools
 from .... import aiomulti
 from .... import aioproc
@@ -138,7 +137,7 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
         self.__reset_self = reset_self
 
         self.__reset_required_event = multiprocessing.Event()
-        self.__events_queue: "multiprocessing.Queue[BaseEvent]" = multiprocessing.Queue()
+        self.__events_q: aiomulti.AioMpQueue[BaseEvent] = aiomulti.AioMpQueue()
 
         self.__notifier = aiomulti.AioProcessNotifier()
         self.__state_flags = aiomulti.AioSharedFlags({
@@ -309,8 +308,8 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
                 # FIXME: Если очистка производится со стороны процесса хида, то возможна гонка между
                 # очисткой и добавлением нового события. Неприятно, но не смертельно.
                 # Починить блокировкой после перехода на асинхронные очереди.
-                tools.clear_queue(self.__events_queue)
-            self.__events_queue.put_nowait(event)
+                self.__events_q.clear_current()
+            self.__events_q.put_nowait(event)
 
     def run(self) -> None:  # pylint: disable=too-many-branches
         logger = aioproc.settle("HID", "hid")
@@ -337,13 +336,13 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
                     continue
                 reset = True
                 with self.__phy.connected() as conn:
-                    while not (self.__stop_event.is_set() and self.__events_queue.qsize() == 0):
+                    while not (self.__stop_event.is_set() and self.__events_q.qsize() == 0):
                         if self.__reset_required_event.is_set():
                             self.__set_state_busy(True)
                             self.__reset_required_event.clear()
                             break  # Проваливаемся и резетим в __hid_loop_wait_device()
                         try:
-                            event = self.__events_queue.get(timeout=0.1)
+                            event = self.__events_q.get(timeout=0.1)
                         except queue.Empty:
                             self.__process_request(conn, REQUEST_PING)
                         else:

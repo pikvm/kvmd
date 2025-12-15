@@ -24,6 +24,7 @@ import socket
 import select
 import multiprocessing
 import multiprocessing.synchronize
+import multiprocessing.connection
 import dataclasses
 import contextlib
 import queue
@@ -101,9 +102,9 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
         self.__stop_event = stop_event
 
         self.__clients: dict[str, _BtClient] = {}
-        self.__to_read: set[socket.socket] = set()
+        self.__to_read: set[socket.SocketType | multiprocessing.connection.Connection] = set()
 
-        self.__events_queue: "multiprocessing.Queue[BaseEvent]" = multiprocessing.Queue()
+        self.__events_q: aiomulti.AioMpQueue[BaseEvent] = aiomulti.AioMpQueue()
 
         self.__state_flags = aiomulti.AioSharedFlags({
             "online": False,
@@ -133,13 +134,13 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
 
     def queue_event(self, event: BaseEvent) -> None:
         if not self.__stop_event.is_set():
-            self.__events_queue.put_nowait(event)
+            self.__events_q.put_nowait(event)
 
     def clear_events(self) -> None:
         # FIXME: Если очистка производится со стороны процесса хида, то возможна гонка между
         # очисткой и добавлением события ClearEvent. Неприятно, но не смертельно.
         # Починить блокировкой после перехода на асинхронные очереди.
-        tools.clear_queue(self.__events_queue)
+        self.__events_q.clear_current()
         self.queue_event(ClearEvent())
 
     # =====
@@ -160,7 +161,7 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
         server_int_sock: socket.socket,
     ) -> None:
 
-        qr = self.__events_queue._reader  # type: ignore  # pylint: disable=protected-access
+        qr = self.__events_q.get_reader()
         self.__to_read = set([qr, server_ctl_sock, server_int_sock])
         self.__clients = {}
 
@@ -213,9 +214,9 @@ class BtServer:  # pylint: disable=too-many-instance-attributes
         )
 
     def __process_events(self) -> None:  # pylint: disable=too-many-branches
-        for _ in range(self.__events_queue.qsize()):
+        for _ in range(self.__events_q.qsize()):
             try:
-                event = self.__events_queue.get_nowait()
+                event = self.__events_q.get_nowait()
             except queue.Empty:
                 break
             else:

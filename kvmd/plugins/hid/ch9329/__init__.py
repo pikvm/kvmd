@@ -72,7 +72,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         self.__read_timeout = read_timeout
 
         self.__reset_required_event = multiprocessing.Event()
-        self.__cmd_queue: "multiprocessing.Queue[bytes]" = multiprocessing.Queue()
+        self.__cmd_q: aiomulti.AioMpQueue[bytes] = aiomulti.AioMpQueue()
 
         self.__notifier = aiomulti.AioProcessNotifier()
         self.__state_flags = aiomulti.AioSharedFlags({
@@ -184,7 +184,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         self.__queue_cmd(self.__mouse.process_relative(delta_x, delta_y))
 
     def _clear_events(self) -> None:
-        tools.clear_queue(self.__cmd_queue)
+        self.__cmd_q.clear_current()
 
     def __queue_cmd(self, cmd: bytes, clear: bool=False) -> None:
         if not self.__stop_event.is_set():
@@ -192,8 +192,8 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                 # FIXME: Если очистка производится со стороны процесса хида, то возможна гонка между
                 # очисткой и добавлением нового события. Неприятно, но не смертельно.
                 # Починить блокировкой после перехода на асинхронные очереди.
-                tools.clear_queue(self.__cmd_queue)
-            self.__cmd_queue.put_nowait(cmd)
+                self.__cmd_q.clear_current()
+            self.__cmd_q.put_nowait(cmd)
 
     def run(self) -> None:  # pylint: disable=too-many-branches
         logger = aioproc.settle("HID", "hid")
@@ -208,7 +208,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         while not self.__stop_event.is_set():
             try:
                 with self.__chip.connected() as conn:
-                    while not (self.__stop_event.is_set() and self.__cmd_queue.qsize() == 0):
+                    while not (self.__stop_event.is_set() and self.__cmd_q.qsize() == 0):
                         if self.__reset_required_event.is_set():
                             try:
                                 self.__set_state_busy(True)
@@ -216,7 +216,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                             finally:
                                 self.__reset_required_event.clear()
                         try:
-                            cmd = self.__cmd_queue.get(timeout=0.1)
+                            cmd = self.__cmd_q.get(timeout=0.1)
                             # get_logger(0).info(f"HID : cmd = {cmd}")
                         except queue.Empty:
                             self.__process_cmd(conn, b"")

@@ -24,7 +24,6 @@ import os
 import select
 import asyncio
 import threading
-import multiprocessing
 import functools
 import queue
 
@@ -41,6 +40,7 @@ from ...logging import get_logger
 from ...clients.kvmd import KvmdClient
 
 from ... import aiotools
+from ... import aiomulti
 from ... import network
 
 from .auth import IpmiAuthManager
@@ -213,9 +213,9 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
     def __start_sol_worker(self, session: IpmiServerSession) -> None:
         assert self.__sol_console is None
         assert self.__sol_thread is None
-        user_queue: "multiprocessing.Queue[bytes]" = multiprocessing.Queue()  # Only for select()
-        self.__sol_console = IpmiConsole(session, user_queue.put_nowait)
-        self.__sol_thread = threading.Thread(target=self.__sol_worker, args=(user_queue,), daemon=True)
+        user_q: aiomulti.AioMpQueue[bytes] = aiomulti.AioMpQueue()  # Only for select()
+        self.__sol_console = IpmiConsole(session, user_q.put_nowait)
+        self.__sol_thread = threading.Thread(target=self.__sol_worker, args=(user_q,), daemon=True)
         self.__sol_thread.start()
 
     def __stop_sol_worker(self) -> None:
@@ -233,22 +233,22 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
             self.__sol_console = None
             get_logger(0).info("SOL closed")
 
-    def __sol_worker(self, user_queue: "multiprocessing.Queue[bytes]") -> None:
+    def __sol_worker(self, user_q: aiomulti.AioMpQueue[bytes]) -> None:
         logger = get_logger(0)
         logger.info("Starting SOL worker ...")
         try:
             assert self.__sol_console is not None
             with serial.Serial(self.__sol_device_path, self.__sol_speed) as tty:
                 logger.info("Opened SOL port %s at speed=%d", self.__sol_device_path, self.__sol_speed)
-                qr = user_queue._reader  # type: ignore  # pylint: disable=protected-access
+                qr = user_q.get_reader()
                 try:
                     while not self.__sol_stop:
                         ready = select.select([qr, tty], [], [], self.__sol_select_timeout)[0]
                         if qr in ready:
                             data = b""
-                            for _ in range(user_queue.qsize()):  # Don't hold on this with [not empty()]
+                            for _ in range(user_q.qsize()):  # Don't hold on this with [not empty()]
                                 try:
-                                    data += user_queue.get_nowait()
+                                    data += user_q.get_nowait()
                                 except queue.Empty:
                                     break
                             if data:

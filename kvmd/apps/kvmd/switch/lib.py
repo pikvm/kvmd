@@ -27,6 +27,7 @@ from ....logging import get_logger  # noqa: F401
 from .... import tools  # noqa: F401
 from .... import aiotools  # noqa: F401
 from .... import aioproc  # noqa: F401
+from .... import aiomulti  # noqa: F401
 from .... import bitbang  # noqa: F401
 from .... import htclient  # noqa: F401
 from ....inotify import Inotify  # noqa: F401
