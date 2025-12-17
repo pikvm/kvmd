@@ -436,8 +436,10 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     @aiotools.atomic_fg
     async def cleanup(self) -> None:
-        await self.__close_reader()
-        await self.__close_writer()
+        try:
+            await self.__close_reader()
+        finally:
+            await self.__close_writer()
 
     async def systask(self) -> None:
         logger = get_logger(0)
