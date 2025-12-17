@@ -75,7 +75,11 @@ async def log_process(
     return proc
 
 
-async def log_stdout_infinite(proc: asyncio.subprocess.Process, logger: logging.Logger) -> None:  # pylint: disable=no-member
+async def log_stdout_infinite(
+    proc: asyncio.subprocess.Process,  # pylint: disable=no-member
+    logger: logging.Logger,
+) -> None:
+
     empty = 0
     async for line_bytes in proc.stdout:  # type: ignore
         line = line_bytes.decode(errors="ignore").strip()
@@ -88,26 +92,34 @@ async def log_stdout_infinite(proc: asyncio.subprocess.Process, logger: logging.
                 raise RuntimeError("Asyncio process: too many empty lines")
 
 
-async def kill_process(proc: asyncio.subprocess.Process, wait: float, logger: logging.Logger) -> None:  # pylint: disable=no-member
+async def kill_process(
+    proc: asyncio.subprocess.Process,  # pylint: disable=no-member
+    wait: float,
+    logger: logging.Logger,
+) -> None:
+
     if proc.returncode is None:
         try:
-            proc.terminate()
-            await asyncio.sleep(wait)
-            if proc.returncode is None:
+            try:
+                proc.terminate()
                 try:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                except Exception:
-                    if proc.returncode is not None:
-                        raise
-            await proc.wait()
-            logger.info("Process killed: retcode=%d", proc.returncode)
-        except asyncio.CancelledError:
-            pass
+                    await asyncio.wait_for(proc.wait(), timeout=wait)
+                except TimeoutError:
+                    pass
+            finally:
+                if proc.returncode is None:
+                    try:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                        await asyncio.wait_for(proc.wait(), timeout=wait)
+                    except Exception:
+                        if proc.returncode is not None:
+                            raise
         except Exception:
             if proc.returncode is None:
-                logger.exception("Can't kill process pid=%d", proc.pid)
-            else:
-                logger.info("Process killed: retcode=%d", proc.returncode)
+                logger.exception("Can't kill process pid=%s", proc.pid)
+        finally:
+            if proc.returncode is not None:
+                logger.info("Process killed: retcode=%s", proc.returncode)
 
 
 def rename_process(suffix: str, prefix: str="kvmd") -> None:
@@ -116,7 +128,7 @@ def rename_process(suffix: str, prefix: str="kvmd") -> None:
 
 def settle(name: str, suffix: str, prefix: str="kvmd") -> logging.Logger:
     logger = get_logger(1)
-    logger.info("Started %s pid=%d", name, os.getpid())
+    logger.info("Started %s pid=%s", name, os.getpid())
     os.setpgrp()
     rename_process(suffix, prefix)
     return logger
