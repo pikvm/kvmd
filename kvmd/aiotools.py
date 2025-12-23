@@ -212,8 +212,13 @@ async def wait_first(*aws: asyncio.Task) -> tuple[set[asyncio.Task], set[asyncio
 
 
 # =====
-async def spawn_and_follow(*coros: Coroutine) -> None:
-    tasks: list[asyncio.Task] = []
+async def spawn_and_follow(
+    *coros: Coroutine,
+    tasks: (list[asyncio.Task] | None)=None,
+) -> None:
+
+    if tasks is None:
+        tasks = []
 
     async def cleanup() -> None:
         for task in tasks:
