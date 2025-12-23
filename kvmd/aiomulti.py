@@ -102,8 +102,10 @@ class AioMpNotifier:
     def notify(self, mask: int=0) -> None:
         self.__queue.put_nowait(mask)
 
-    async def wait(self) -> int:
-        (got, mask) = await self.__queue.async_fetch()
+    async def wait(self, timeout: float=0) -> int:
+        (got, mask) = await self.__queue.async_fetch(timeout)
+        if not got:  # Timeout
+            return -1
         assert mask is not None
         if got:
             while not self.__queue.empty():
