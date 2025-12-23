@@ -300,18 +300,11 @@ class Switch:  # pylint: disable=too-many-public-methods
     # =====
 
     async def systask(self) -> None:
-        tasks = [
-            asyncio.create_task(self.__systask_events()),
-            asyncio.create_task(self.__systask_default_edid()),
-            asyncio.create_task(self.__systask_storage()),
-        ]
-        try:
-            await asyncio.gather(*tasks)
-        except Exception:
-            for task in tasks:
-                task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
-            raise
+        await aiotools.spawn_and_follow(
+            self.__systask_events(),
+            self.__systask_default_edid(),
+            self.__systask_storage(),
+        )
 
     async def __systask_events(self) -> None:
         async for event in self.__chain.poll_events():
