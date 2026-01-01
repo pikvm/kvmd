@@ -44,16 +44,16 @@ class AioMpQueue[T](multiprocessing.queues.Queue[T]):
     def get_reader_fd(self) -> int:
         return self.get_reader().fileno()
 
-    async def async_fetch(self, timeout: float=0) -> tuple[bool, (T | None)]:
+    async def async_fetch(self, timeout: float=0.0) -> tuple[bool, (T | None)]:
         return (await self.__async_get(timeout, False))
 
-    async def async_fetch_last(self, timeout: float=0) -> tuple[bool, (T | None)]:
+    async def async_fetch_last(self, timeout: float=0.0) -> tuple[bool, (T | None)]:
         return (await self.__async_get(timeout, True))
 
     async def __async_get(self, timeout: float, last_only: bool) -> tuple[bool, (T | None)]:
         loop = asyncio.get_running_loop()
-        fd = self.get_reader_fd()
         fut = asyncio.Future()  # type: ignore
+        fd = self.get_reader_fd()
 
         try:
             loop.add_reader(fd, fut.set_result, None)
@@ -77,7 +77,7 @@ class AioMpQueue[T](multiprocessing.queues.Queue[T]):
         finally:
             loop.remove_reader(fd)
 
-    def fetch_last(self, timeout: float=0) -> tuple[bool, (T | None)]:
+    def fetch_last(self, timeout: float=0.0) -> tuple[bool, (T | None)]:
         try:
             item = self.get(timeout=timeout)
             while not self.empty():
