@@ -220,17 +220,14 @@ async def spawn_and_follow(
     if tasks is None:
         tasks = []
 
-    async def cleanup() -> None:
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-
     try:
         for coro in coros:
             tasks.append(asyncio.create_task(coro))
         await wait_first(*tasks)
     finally:
-        await shield_fg(cleanup())
+        for task in tasks:
+            task.cancel()
+        await shield_fg(asyncio.gather(*tasks, return_exceptions=True))
 
 
 # =====
