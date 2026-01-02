@@ -133,7 +133,7 @@ class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
         self.__gpio = Gpio(device_path=gpio_device_path, **gpio_kwargs)
         self.__reset_self = reset_self
 
-        self.__proc = aiomulti.AioMpProcess("HID", "hid", self.__subprocess)
+        self.__proc = aiomulti.AioMpProcess("hid", self.__subprocess)
 
         self.__reset_required_event = multiprocessing.Event()
         self.__events_q: aiomulti.AioMpQueue[BaseEvent] = aiomulti.AioMpQueue()
@@ -170,7 +170,6 @@ class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
         }
 
     def sysprep(self) -> None:
-        get_logger(0).info("Starting HID daemon ...")
         self.__proc.start()
 
     async def get_state(self) -> dict:
@@ -254,7 +253,6 @@ class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
 
     async def cleanup(self) -> None:
         if self.__proc.is_alive():
-            get_logger(0).info("Stopping HID daemon ...")
             self.__stop_event.set()
             await self.__proc.async_join()
 

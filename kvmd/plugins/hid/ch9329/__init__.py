@@ -78,7 +78,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
             "status": 0,
         }, self.__notifier, type=int)
 
-        self.__proc = aiomulti.AioMpProcess("HID", "hid", self.__subprocess)
+        self.__proc = aiomulti.AioMpProcess("hid", self.__subprocess)
         self.__stop_event = multiprocessing.Event()
 
         self.__chip = Chip(device_path, speed, read_timeout)
@@ -95,7 +95,6 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         }
 
     def sysprep(self) -> None:
-        get_logger(0).info("Starting HID daemon ...")
         self.__proc.start()
 
     async def get_state(self) -> dict:
@@ -141,7 +140,6 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
 
     async def cleanup(self) -> None:
         if self.__proc.is_alive():
-            get_logger(0).info("Stopping HID daemon ...")
             self.__stop_event.set()
             await self.__proc.async_join()
 

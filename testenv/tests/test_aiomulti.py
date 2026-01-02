@@ -39,7 +39,7 @@ def _target(a: int, b: str) -> None:
 # =====
 @pytest.mark.asyncio
 async def test_ok__sigterm_join() -> None:
-    proc = AioMpProcess("TEST", "test", _target, (1, "foo"))
+    proc = AioMpProcess("test", _target, (1, "foo"))
     assert not proc.is_alive()
     proc.start()
     assert proc.is_alive()
@@ -54,7 +54,7 @@ async def test_ok__sigterm_join() -> None:
 
 @pytest.mark.asyncio
 async def test_ok__sigkill_join() -> None:
-    proc = AioMpProcess("TEST", "test", _target, (1, "foo"))
+    proc = AioMpProcess("test", _target, (1, "foo"))
     assert not proc.is_alive()
     proc.start()
     assert proc.is_alive()

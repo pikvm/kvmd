@@ -70,11 +70,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__channel_q: aiomulti.AioMpQueue[int | None] = aiomulti.AioMpQueue()
         self.__channel: (int | None) = -1
 
-        self.__proc = aiomulti.AioMpProcess(
-            str(self),
-            f"gpio-extron-{self._instance_name}",
-            self.__serial_worker,
-        )
+        self.__proc = aiomulti.AioMpProcess(f"gpio-extron-{self._instance_name}", self.__serial_worker)
         self.__stop_event = multiprocessing.Event()
 
     @classmethod
@@ -102,7 +98,6 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     async def cleanup(self) -> None:
         if self.__proc.is_alive():
-            get_logger(0).info("Stopping %s daemon ...", self)
             self.__stop_event.set()
             await self.__proc.async_join()
 

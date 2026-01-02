@@ -63,7 +63,7 @@ class NbdProcess:
         self.__image = image
 
         self.__events_q: aiomulti.AioMpQueue[BaseNbdEvent] = aiomulti.AioMpQueue(self.__QUEUE_SIZE)
-        self.__proc = aiomulti.AioMpProcess("NBD", "nbd", self.__subprocess)
+        self.__proc = aiomulti.AioMpProcess("nbd", self.__subprocess)
         self.__ready_nr = aiomulti.AioMpNotifier()
 
     def stop(self) -> None:

@@ -64,7 +64,7 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
         self.__write_retries = write_retries
         self.__noop = noop
 
-        self.__proc = aiomulti.AioMpProcess(f"HID-{self.__name}", f"hid-{self.__name}", self.__subprocess)
+        self.__proc = aiomulti.AioMpProcess(f"hid-{self.__name}", self.__subprocess)
         self.__events_q: aiomulti.AioMpQueue[BaseEvent] = aiomulti.AioMpQueue()
         self.__state_flags = aiomulti.AioSharedFlags({"online": True, **initial_state}, notifier)
         self.__stop_event = multiprocessing.Event()
@@ -144,7 +144,6 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
 
     async def _stop(self) -> None:
         if self.__proc.is_alive():
-            get_logger().info("Stopping HID-%s daemon ...", self.__name)
             self.__stop_event.set()
             await self.__proc.async_join()
 

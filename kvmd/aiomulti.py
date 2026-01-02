@@ -42,8 +42,8 @@ from . import aioproc
 
 
 # =====
-def rename_process(suffix: str, prefix: str="kvmd") -> None:
-    setproctitle.setproctitle(f"{prefix}/{suffix}: {setproctitle.getproctitle()}")
+def rename_process(suffix: str) -> None:
+    setproctitle.setproctitle(f"kvmd/{suffix}: {setproctitle.getproctitle()}")
 
 
 # =====
@@ -51,13 +51,11 @@ class AioMpProcess:
     def __init__(
         self,
         name: str,
-        suffix: str,
         target: Callable[..., None],
         args: tuple[Any, ...]=(),
     ) -> None:
 
         self.__name = name
-        self.__suffix = suffix
         self.__target = target
 
         self.__proc = multiprocessing.Process(
@@ -69,9 +67,9 @@ class AioMpProcess:
 
     def __target_wrapper(self, *args: Any, **kwargs: Any) -> None:
         logger = logging.getLogger(self.__target.__module__)
-        logger.info("Started %s pid=%s", self.__name, os.getpid())
+        logger.info("Started process kvmd/%s: pid=%s", self.__name, os.getpid())
         os.setpgrp()
-        rename_process(self.__suffix, "kvmd")
+        rename_process(self.__name)
         self.__target(*args, **kwargs)
 
     def is_alive(self) -> bool:
@@ -109,6 +107,8 @@ class AioMpProcess:
         if self.__proc.pid is None:
             return False
 
+        prev = self.__proc.is_alive()
+
         loop = asyncio.get_running_loop()
         fut = asyncio.Future()  # type: ignore
         try:
@@ -133,7 +133,13 @@ class AioMpProcess:
 
         # Crank the internal MP machinery and return a status code.
         # It should be non-blocking.
-        return self.__proc.is_alive()
+        new = self.__proc.is_alive()
+        if prev != new:
+            self.__get_logger().info("Stopped kvmd/%s: exitcode=%s", self.__name, self.exitcode)
+        return new
+
+    def __get_logger(self) -> logging.Logger:
+        return logging.getLogger(self.__target.__module__)
 
 
 # =====
