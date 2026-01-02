@@ -32,9 +32,7 @@ from typing import Any
 
 from ....logging import get_logger
 
-from .... import aiotools
 from .... import aiomulti
-from .... import aioproc
 
 from ....yamlconf import Option
 
@@ -103,7 +101,7 @@ class BasePhy:
         raise NotImplementedError
 
 
-class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-instance-attributes
+class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
         phy: BasePhy,
@@ -122,8 +120,7 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
         **gpio_kwargs: Any,
     ) -> None:
 
-        BaseHid.__init__(self, ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
-        multiprocessing.Process.__init__(self, daemon=True)
+        super().__init__(ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
 
         self.__read_retries = read_retries
         self.__common_retries = common_retries
@@ -135,6 +132,8 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
         gpio_device_path = gpio_kwargs.pop("gpio_device_path")
         self.__gpio = Gpio(device_path=gpio_device_path, **gpio_kwargs)
         self.__reset_self = reset_self
+
+        self.__proc = aiomulti.AioMpProcess("HID", "hid", self.__subprocess)
 
         self.__reset_required_event = multiprocessing.Event()
         self.__events_q: aiomulti.AioMpQueue[BaseEvent] = aiomulti.AioMpQueue()
@@ -172,7 +171,7 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
 
     def sysprep(self) -> None:
         get_logger(0).info("Starting HID daemon ...")
-        self.start()
+        self.__proc.start()
 
     async def get_state(self) -> dict:
         state = await self.__state_flags.get()
@@ -253,13 +252,11 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
     async def reset(self) -> None:
         self.__reset_required_event.set()
 
-    @aiotools.atomic_fg
     async def cleanup(self) -> None:
-        if self.is_alive():
+        if self.__proc.is_alive():
             get_logger(0).info("Stopping HID daemon ...")
             self.__stop_event.set()
-        if self.is_alive() or self.exitcode is not None:
-            self.join()
+            await self.__proc.async_join()
 
     # =====
 
@@ -311,8 +308,8 @@ class BaseMcuHid(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-
                 self.__events_q.clear_current()
             self.__events_q.put_nowait(event)
 
-    def run(self) -> None:  # pylint: disable=too-many-branches
-        logger = aioproc.settle("HID", "hid")
+    def __subprocess(self) -> None:  # pylint: disable=too-many-branches
+        logger = get_logger(0)
         while not self.__stop_event.is_set():
             try:
                 with self.__gpio:

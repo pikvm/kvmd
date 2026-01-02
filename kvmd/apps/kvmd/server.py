@@ -38,7 +38,7 @@ from ...logging import get_logger
 from ...errors import OperationError
 
 from ... import aiotools
-from ... import aioproc
+from ... import aiomulti
 
 from ...htserver import HttpExposed
 from ...htserver import exposed_http
@@ -270,7 +270,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         for sub in self.__subsystems:
             if sub.sysprep:
                 sub.sysprep()
-        aioproc.rename_process("main")
+        aiomulti.rename_process("main")
         super().run(**kwargs)
 
     async def _check_request_auth(self, exposed: HttpExposed, req: Request) -> None:

@@ -29,8 +29,6 @@ from typing import AsyncGenerator
 
 from .lib import get_logger
 from .lib import tools
-from .lib import aiotools
-from .lib import aioproc
 from .lib import aiomulti
 
 from .types import Edids
@@ -279,18 +277,16 @@ class Chain:  # pylint: disable=too-many-instance-attributes
     # =====
 
     async def poll_events(self) -> AsyncGenerator[BaseEvent, None]:
-        proc = multiprocessing.Process(target=self.__subprocess, daemon=True)
+        proc = aiomulti.AioMpProcess("Switch", "switch", self.__subprocess)
+        proc.start()
         try:
-            proc.start()
             while True:
                 (_, event) = await self.__events_q.async_fetch()
                 assert event is not None
                 yield event
         finally:
-            if proc.is_alive():
-                self.__stop_event.set()
-            if proc.is_alive() or proc.exitcode is not None:
-                await aiotools.run_async(proc.join)
+            self.__stop_event.set()
+            await proc.async_join()
 
     # =====
 
@@ -303,7 +299,7 @@ class Chain:  # pylint: disable=too-many-instance-attributes
             self.__events_q.put_nowait(event)
 
     def __subprocess(self) -> None:
-        logger = aioproc.settle("Switch", "switch")
+        logger = get_logger(0)
         no_device_reported = False
         while True:
             try:

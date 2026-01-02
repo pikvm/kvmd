@@ -208,7 +208,7 @@ class Inotify:
         for path in paths:
             path = os.path.normpath(path)
             assert path not in self.__wd_by_path, path
-            get_logger().info("Watching for %s", path)
+            get_logger(2).info("Watching for %s", path)
             # Асинхронно, чтобы не висло на NFS
             wd = _inotify_check(await aiotools.run_async(libc.inotify_add_watch, self.__fd, _fs_encode(path), mask))
             self.__wd_by_path[path] = wd

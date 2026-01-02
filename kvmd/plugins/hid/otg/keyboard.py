@@ -54,10 +54,12 @@ class KeyboardProcess(BaseDeviceProcess):
         self.__pressed_mods: set[UsbKey] = set()
         self.__pressed_keys: list[UsbKey | None] = [None] * 6
 
-    def cleanup(self) -> None:
-        self._stop()
-        get_logger().info("Clearing HID-keyboard events ...")
-        self._cleanup_write(b"\x00" * 8)  # Release all keys and modifiers
+    async def cleanup(self) -> None:
+        try:
+            await self._stop()
+        finally:
+            get_logger().info("Clearing HID-keyboard events ...")
+            self._cleanup_write(b"\x00" * 8)  # Release all keys and modifiers
 
     def send_clear_event(self) -> None:
         self._clear_queue()

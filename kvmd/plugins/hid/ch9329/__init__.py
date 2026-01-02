@@ -31,9 +31,7 @@ from typing import Any
 from ....logging import get_logger
 
 from .... import tools
-from .... import aiotools
 from .... import aiomulti
-from .... import aioproc
 
 from ....yamlconf import Option
 
@@ -51,7 +49,7 @@ from .keyboard import Keyboard
 
 
 # =====
-class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-instance-attributes
+class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
         ignore_keys: list[str],
@@ -64,8 +62,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
         read_timeout: float,
     ) -> None:
 
-        BaseHid.__init__(self, ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
-        multiprocessing.Process.__init__(self, daemon=True)
+        super().__init__(ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
 
         self.__device_path = device_path
         self.__speed = speed
@@ -81,7 +78,9 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
             "status": 0,
         }, self.__notifier, type=int)
 
+        self.__proc = aiomulti.AioMpProcess("HID", "hid", self.__subprocess)
         self.__stop_event = multiprocessing.Event()
+
         self.__chip = Chip(device_path, speed, read_timeout)
         self.__keyboard = Keyboard()
         self.__mouse = Mouse()
@@ -97,7 +96,7 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
 
     def sysprep(self) -> None:
         get_logger(0).info("Starting HID daemon ...")
-        self.start()
+        self.__proc.start()
 
     async def get_state(self) -> dict:
         state = await self.__state_flags.get()
@@ -140,13 +139,11 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
     async def reset(self) -> None:
         self.__reset_required_event.set()
 
-    @aiotools.atomic_fg
     async def cleanup(self) -> None:
-        if self.is_alive():
+        if self.__proc.is_alive():
             get_logger(0).info("Stopping HID daemon ...")
             self.__stop_event.set()
-        if self.is_alive() or self.exitcode is not None:
-            self.join()
+            await self.__proc.async_join()
 
     # =====
 
@@ -195,8 +192,8 @@ class Plugin(BaseHid, multiprocessing.Process):  # pylint: disable=too-many-inst
                 self.__cmd_q.clear_current()
             self.__cmd_q.put_nowait(cmd)
 
-    def run(self) -> None:  # pylint: disable=too-many-branches
-        logger = aioproc.settle("HID", "hid")
+    def __subprocess(self) -> None:
+        logger = get_logger(0)
         while not self.__stop_event.is_set():
             try:
                 self.__hid_loop()

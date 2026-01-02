@@ -36,9 +36,7 @@ from ....validators.basic import valid_stripped_string_not_empty
 from ....validators.basic import valid_int_f1
 from ....validators.basic import valid_float_f01
 
-from .... import aiotools
 from .... import aiomulti
-from .... import aioproc
 
 from .. import BaseHid
 
@@ -88,7 +86,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         super().__init__(ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
         self._set_jiggler_absolute(False)
 
-        self.__proc: (multiprocessing.Process | None) = None
+        self.__proc = aiomulti.AioMpProcess("HID", "hid", self.__server_worker)
         self.__stop_event = multiprocessing.Event()
 
         self.__notifier = aiomulti.AioMpNotifier()
@@ -134,7 +132,6 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
 
     def sysprep(self) -> None:
         get_logger(0).info("Starting HID daemon ...")
-        self.__proc = multiprocessing.Process(target=self.__server_worker, daemon=True)
         self.__proc.start()
 
     async def get_state(self) -> dict:
@@ -179,14 +176,11 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         self.clear_events()
         self.__server.queue_event(ResetEvent())
 
-    @aiotools.atomic_fg
     async def cleanup(self) -> None:
-        if self.__proc is not None:
-            if self.__proc.is_alive():
-                get_logger(0).info("Stopping HID daemon ...")
-                self.__stop_event.set()
-            if self.__proc.is_alive() or self.__proc.exitcode is not None:
-                self.__proc.join()
+        if self.__proc.is_alive():
+            get_logger(0).info("Stopping HID daemon ...")
+            self.__stop_event.set()
+            await self.__proc.async_join()
 
     # =====
 
@@ -221,7 +215,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
     # =====
 
     def __server_worker(self) -> None:  # pylint: disable=too-many-branches
-        logger = aioproc.settle("HID", "hid")
+        logger = get_logger(0)
         while not self.__stop_event.is_set():
             try:
                 self.__server.run()

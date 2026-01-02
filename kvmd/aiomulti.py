@@ -27,6 +27,7 @@ import multiprocessing
 import multiprocessing.queues
 import multiprocessing.connection
 import queue
+import logging
 
 from typing import Callable
 from typing import Type
@@ -34,8 +35,15 @@ from typing import TypeVar
 from typing import Generic
 from typing import Any
 
+import setproctitle
+
 from . import aiotools
 from . import aioproc
+
+
+# =====
+def rename_process(suffix: str, prefix: str="kvmd") -> None:
+    setproctitle.setproctitle(f"{prefix}/{suffix}: {setproctitle.getproctitle()}")
 
 
 # =====
@@ -51,6 +59,7 @@ class AioMpProcess:
         self.__name = name
         self.__suffix = suffix
         self.__target = target
+
         self.__proc = multiprocessing.Process(
             target=self.__target_wrapper,
             args=args,
@@ -59,7 +68,10 @@ class AioMpProcess:
         )
 
     def __target_wrapper(self, *args: Any, **kwargs: Any) -> None:
-        aioproc.settle(self.__name, self.__suffix)
+        logger = logging.getLogger(self.__target.__module__)
+        logger.info("Started %s pid=%s", self.__name, os.getpid())
+        os.setpgrp()
+        rename_process(self.__suffix, "kvmd")
         self.__target(*args, **kwargs)
 
     def is_alive(self) -> bool:
@@ -74,7 +86,7 @@ class AioMpProcess:
 
     def send_sigterm(self) -> None:
         if self.__proc.pid is None:
-            raise RuntimeError(f"Not started: {self}")
+            return
         try:
             os.kill(self.__proc.pid, signal.SIGTERM)
         except ProcessLookupError:
@@ -82,7 +94,7 @@ class AioMpProcess:
 
     def sendpg_sigkill(self) -> None:
         if self.__proc.pid is None:
-            raise RuntimeError(f"Not started: {self}")
+            return
         try:
             own = os.getpgid(os.getpid())
             target = os.getpgid(self.__proc.pid)
@@ -95,7 +107,7 @@ class AioMpProcess:
 
     async def async_join(self, timeout: float=0.0) -> bool:
         if self.__proc.pid is None:
-            raise RuntimeError(f"Not started: {self}")
+            return False
 
         loop = asyncio.get_running_loop()
         fut = asyncio.Future()  # type: ignore
@@ -122,9 +134,6 @@ class AioMpProcess:
         # Crank the internal MP machinery and return a status code.
         # It should be non-blocking.
         return self.__proc.is_alive()
-
-    def __str__(self) -> str:
-        return f"Process({self.__name}, pid={self.__proc.pid})"
 
 
 # =====

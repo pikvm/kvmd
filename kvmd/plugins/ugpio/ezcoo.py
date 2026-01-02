@@ -34,7 +34,6 @@ from ...logging import get_logger
 
 from ... import aiotools
 from ... import aiomulti
-from ... import aioproc
 
 from ...yamlconf import Option
 
@@ -71,7 +70,11 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__channel_q: aiomulti.AioMpQueue[int | None] = aiomulti.AioMpQueue()
         self.__channel: (int | None) = -1
 
-        self.__proc: (multiprocessing.Process | None) = None
+        self.__proc = aiomulti.AioMpProcess(
+            str(self),
+            f"gpio-ezcoo-{self._instance_name}",
+            self.__serial_worker,
+        )
         self.__stop_event = multiprocessing.Event()
 
     @classmethod
@@ -88,8 +91,6 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return valid_number.mk(min=0, max=3, name="Ezcoo channel")
 
     def prepare(self) -> None:
-        assert self.__proc is None
-        self.__proc = multiprocessing.Process(target=self.__serial_worker, daemon=True)
         self.__proc.start()
 
     async def run(self) -> None:
@@ -100,12 +101,10 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                 self._notifier.notify()
 
     async def cleanup(self) -> None:
-        if self.__proc is not None:
-            if self.__proc.is_alive():
-                get_logger(0).info("Stopping %s daemon ...", self)
-                self.__stop_event.set()
-            if self.__proc.is_alive() or self.__proc.exitcode is not None:
-                self.__proc.join()
+        if self.__proc.is_alive():
+            get_logger(0).info("Stopping %s daemon ...", self)
+            self.__stop_event.set()
+            await self.__proc.async_join()
 
     async def read(self, pin: str) -> bool:
         if not self.__is_online():
@@ -122,13 +121,12 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     def __is_online(self) -> bool:
         return (
-            self.__proc is not None
-            and self.__proc.is_alive()
+            self.__proc.is_alive()
             and self.__channel is not None
         )
 
     def __serial_worker(self) -> None:
-        logger = aioproc.settle(str(self), f"gpio-ezcoo-{self._instance_name}")
+        logger = get_logger(0)
         while not self.__stop_event.is_set():
             try:
                 with self.__get_serial() as tty:

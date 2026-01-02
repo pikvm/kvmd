@@ -26,10 +26,6 @@ import asyncio
 import asyncio.subprocess
 import logging
 
-import setproctitle
-
-from .logging import get_logger
-
 
 # =====
 async def run_process(
@@ -120,15 +116,3 @@ async def kill_process(
         finally:
             if proc.returncode is not None:
                 logger.info("Process killed: retcode=%s", proc.returncode)
-
-
-def rename_process(suffix: str, prefix: str="kvmd") -> None:
-    setproctitle.setproctitle(f"{prefix}/{suffix}: {setproctitle.getproctitle()}")
-
-
-def settle(name: str, suffix: str, prefix: str="kvmd") -> logging.Logger:
-    logger = get_logger(1)
-    logger.info("Started %s pid=%s", name, os.getpid())
-    os.setpgrp()
-    rename_process(suffix, prefix)
-    return logger

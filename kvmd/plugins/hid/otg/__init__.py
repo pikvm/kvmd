@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import asyncio
 import copy
 
 from typing import AsyncGenerator
@@ -177,14 +178,13 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
             self.__mouse_alt_proc.send_reset_event()
 
     async def cleanup(self) -> None:
-        try:
-            self.__keyboard_proc.cleanup()
-        finally:
-            try:
-                self.__mouse_proc.cleanup()
-            finally:
-                if self.__mouse_alt_proc:
-                    self.__mouse_alt_proc.cleanup()
+        coros = [
+            self.__keyboard_proc.cleanup(),
+            self.__mouse_proc.cleanup(),
+        ]
+        if self.__mouse_alt_proc:
+            coros.append(self.__mouse_alt_proc.cleanup())
+        await asyncio.gather(*coros)
 
     # =====
 

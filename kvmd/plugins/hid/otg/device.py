@@ -34,14 +34,13 @@ from ....logging import get_logger
 
 from .... import tools
 from .... import aiomulti
-from .... import aioproc
 from .... import usb
 
 from .events import BaseEvent
 
 
 # =====
-class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-instance-attributes
+class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments
         self,
         name: str,
@@ -56,8 +55,6 @@ class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-in
         noop: bool,
     ) -> None:
 
-        super().__init__(daemon=True)
-
         self.__name = name
         self.__read_size = read_size
 
@@ -67,21 +64,23 @@ class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-in
         self.__write_retries = write_retries
         self.__noop = noop
 
-        self.__udc_state_path = ""
-        self.__fd = -1
+        self.__proc = aiomulti.AioMpProcess(f"HID-{self.__name}", f"hid-{self.__name}", self.__subprocess)
         self.__events_q: aiomulti.AioMpQueue[BaseEvent] = aiomulti.AioMpQueue()
         self.__state_flags = aiomulti.AioSharedFlags({"online": True, **initial_state}, notifier)
         self.__stop_event = multiprocessing.Event()
+
+        self.__udc_state_path = ""
+        self.__fd = -1
         self.__no_device_reported = False
 
         self.__logger: (logging.Logger | None) = None
 
     def start(self, udc: str) -> None:  # type: ignore  # pylint: disable=arguments-differ
         self.__udc_state_path = usb.get_udc_path(udc, usb.U_STATE)
-        super().start()
+        self.__proc.start()
 
-    def run(self) -> None:  # pylint: disable=too-many-branches
-        self.__logger = aioproc.settle(f"HID-{self.__name}", f"hid-{self.__name}")
+    def __subprocess(self) -> None:  # pylint: disable=too-many-branches
+        self.__logger = get_logger(0)
         report = b""
         retries = 0
         while not self.__stop_event.is_set():
@@ -143,12 +142,11 @@ class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-in
 
     # =====
 
-    def _stop(self) -> None:
-        if self.is_alive():
+    async def _stop(self) -> None:
+        if self.__proc.is_alive():
             get_logger().info("Stopping HID-%s daemon ...", self.__name)
             self.__stop_event.set()
-        if self.is_alive() or self.exitcode is not None:
-            self.join()
+            await self.__proc.async_join()
 
     def _queue_event(self, event: BaseEvent) -> None:
         self.__events_q.put_nowait(event)
@@ -157,7 +155,7 @@ class BaseDeviceProcess(multiprocessing.Process):  # pylint: disable=too-many-in
         self.__events_q.clear_current()
 
     def _cleanup_write(self, report: bytes) -> None:
-        assert not self.is_alive()
+        assert not self.__proc.is_alive()
         assert self.__fd < 0
         if self.__ensure_device():
             self.__write_report(report)

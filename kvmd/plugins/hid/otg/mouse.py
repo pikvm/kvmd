@@ -64,18 +64,20 @@ class MouseProcess(BaseDeviceProcess):
     def get_win98_fix(self) -> bool:
         return self.__win98_fix
 
-    def cleanup(self) -> None:
-        self._stop()
-        get_logger().info("Clearing HID-mouse events ...")
-        report = make_mouse_report(
-            absolute=self.__absolute,
-            buttons=0,
-            move_x=(self.__x if self.__absolute else 0),
-            move_y=(self.__y if self.__absolute else 0),
-            wheel_x=(0 if self.__horizontal_wheel else None),
-            wheel_y=0,
-        )
-        self._cleanup_write(report)  # Release all buttons
+    async def cleanup(self) -> None:
+        try:
+            await self._stop()
+        finally:
+            get_logger().info("Clearing HID-mouse events ...")
+            report = make_mouse_report(
+                absolute=self.__absolute,
+                buttons=0,
+                move_x=(self.__x if self.__absolute else 0),
+                move_y=(self.__y if self.__absolute else 0),
+                wheel_x=(0 if self.__horizontal_wheel else None),
+                wheel_y=0,
+            )
+            self._cleanup_write(report)  # Release all buttons
 
     def send_clear_event(self) -> None:
         self._clear_queue()
