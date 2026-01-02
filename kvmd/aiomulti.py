@@ -20,17 +20,111 @@
 # ========================================================================== #
 
 
+import os
+import signal
 import asyncio
 import multiprocessing
 import multiprocessing.queues
 import multiprocessing.connection
 import queue
 
+from typing import Callable
 from typing import Type
 from typing import TypeVar
 from typing import Generic
+from typing import Any
 
 from . import aiotools
+from . import aioproc
+
+
+# =====
+class AioMpProcess:
+    def __init__(
+        self,
+        name: str,
+        suffix: str,
+        target: Callable[..., None],
+        args: tuple[Any, ...]=(),
+    ) -> None:
+
+        self.__name = name
+        self.__suffix = suffix
+        self.__target = target
+        self.__proc = multiprocessing.Process(
+            target=self.__target_wrapper,
+            args=args,
+            daemon=True,
+            name=name,
+        )
+
+    def __target_wrapper(self, *args: Any, **kwargs: Any) -> None:
+        aioproc.settle(self.__name, self.__suffix)
+        self.__target(*args, **kwargs)
+
+    def is_alive(self) -> bool:
+        return self.__proc.is_alive()
+
+    @property
+    def exitcode(self) -> (int | None):
+        return self.__proc.exitcode
+
+    def start(self) -> None:
+        self.__proc.start()
+
+    def send_sigterm(self) -> None:
+        if self.__proc.pid is None:
+            raise RuntimeError(f"Not started: {self}")
+        try:
+            os.kill(self.__proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+    def sendpg_sigkill(self) -> None:
+        if self.__proc.pid is None:
+            raise RuntimeError(f"Not started: {self}")
+        try:
+            own = os.getpgid(os.getpid())
+            target = os.getpgid(self.__proc.pid)
+            if own != target:
+                os.killpg(target, signal.SIGKILL)
+            else:
+                os.kill(self.__proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+    async def async_join(self, timeout: float=0.0) -> bool:
+        if self.__proc.pid is None:
+            raise RuntimeError(f"Not started: {self}")
+
+        loop = asyncio.get_running_loop()
+        fut = asyncio.Future()  # type: ignore
+        try:
+            fd = os.pidfd_open(self.__proc.pid, os.PIDFD_NONBLOCK)
+        except ProcessLookupError:
+            pass
+        else:
+            try:
+                loop.add_reader(fd, fut.set_result, None)
+                fut.add_done_callback(lambda _: loop.remove_reader(fd))
+                if timeout > 0:
+                    await asyncio.wait_for(fut, timeout)
+                else:
+                    await fut
+            except TimeoutError:
+                pass
+            finally:
+                try:
+                    loop.remove_reader(fd)
+                finally:
+                    os.close(fd)
+
+        # Crank the internal MP machinery and return a status code.
+        # It should be non-blocking.
+        return self.__proc.is_alive()
+
+    def __str__(self) -> str:
+        return f"Process({self.__name}, pid={self.__proc.pid})"
 
 
 # =====
