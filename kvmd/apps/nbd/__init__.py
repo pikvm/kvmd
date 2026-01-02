@@ -56,7 +56,7 @@ async def _async_main(device_path: str, url: str) -> None:
 
 
 def main() -> None:
-    init_logging(True)
+    init_logging(False)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--device", default="/dev/nbd0")
