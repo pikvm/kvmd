@@ -3,6 +3,7 @@
 
 ACTION!="remove", KERNEL=="ttyACM[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="eda3", SYMLINK+="kvmd-hid-bridge"
 ACTION!="remove", KERNEL=="ttyACM[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="1080", SYMLINK+="kvmd-switch"
+ACTION!="remove", KERNEL=="nbd15", SUBSYSTEM=="block", SYMLINK+="kvmd-nbd"
 
 # Disable USB autosuspend for critical devices
 ACTION!="remove", SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="eda3", GOTO="kvmd-usb"
