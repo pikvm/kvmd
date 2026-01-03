@@ -29,12 +29,13 @@ import {tools, $} from "../tools.js";
 var _Janus = null;
 
 
-export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, __orient, __allow_audio, __allow_mic) {
+export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, __orient, __allow_audio, __allow_mic, __allow_cam) {
 	var self = this;
 
 	/************************************************************************/
 
 	__allow_mic = (__allow_audio && __allow_mic); // XXX: Mic only with audio
+	__allow_cam = (__allow_audio && __allow_cam); // XXX: Camera only with audio
 
 	var __stop = false;
 	var __ensuring = false;
@@ -58,6 +59,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	self.getOrientation = () => __orient;
 	self.isAudioAllowed = () => __allow_audio;
 	self.isMicAllowed = () => __allow_mic;
+	self.isCamAllowed = () => __allow_cam;
 
 	self.getName = function() {
 		let name = "WebRTC H.264";
@@ -65,6 +67,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 			name += " + Audio";
 			if (__allow_mic) {
 				name += " + Mic";
+			}
+			if (__allow_cam) {
+				name += " + Cam";
 			}
 		}
 		return name;
@@ -274,6 +279,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 					} else if (msg.result.status === "features") {
 						tools.feature.setEnabled($("stream-audio"), msg.result.features.audio);
 						tools.feature.setEnabled($("stream-mic"), msg.result.features.mic);
+						tools.feature.setEnabled($("stream-cam"), msg.result.features.cam);
 						__ice = msg.result.features.ice;
 						__sendWatch();
 					}
@@ -296,7 +302,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 				if (jsep) {
 					__logInfo("Handling SDP:", jsep);
-					let tracks = [{"type": "video", "capture": false, "recv": true, "add": true}];
+					let tracks = [{"type": "video", "capture": (__allow_audio && __allow_cam), "recv": true, "add": true}];
 					if (__allow_audio) {
 						tracks.push({"type": "audio", "capture": __allow_mic, "recv": true, "add": true});
 					}
@@ -401,11 +407,12 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 	var __sendWatch = function() {
 		if (__handle) {
-			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}) ...`);
+			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}, cam=${__allow_cam}) ...`);
 			__handle.send({"message": {"request": "watch", "params": {
 				"orientation": __orient,
 				"audio": __allow_audio,
 				"mic": __allow_mic,
+				"cam": __allow_cam,
 			}}});
 		}
 	};

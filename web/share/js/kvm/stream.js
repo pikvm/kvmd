@@ -95,11 +95,20 @@ export function Streamer() {
 				}
 			}
 			tools.el.setEnabled($("stream-mic-switch"), !!value);
+			tools.el.setEnabled($("stream-cam-switch"), !!value);
 		});
 
 		tools.storage.bindSimpleSwitch($("stream-mic-switch"), "stream.mic", false, function(allow_mic) {
 			if (__streamer.getMode() === "janus") {
 				if (__streamer.isMicAllowed() !== allow_mic) {
+					__resetStream();
+				}
+			}
+		});
+
+		tools.storage.bindSimpleSwitch($("stream-cam-switch"), "stream.cam", false, function(allow_cam) {
+			if (__streamer.getMode() === "janus") {
+				if (__streamer.isCamAllowed() !== allow_cam) {
 					__resetStream();
 				}
 			}
@@ -241,6 +250,7 @@ export function Streamer() {
 			if (!f.h264) {
 				tools.feature.setEnabled($("stream-audio"), false);
 				tools.feature.setEnabled($("stream-mic"), false);
+				tools.feature.setEnabled($("stream-cam"), false);
 			}
 
 			let mode = tools.storage.get("stream.mode", "janus");
@@ -333,7 +343,8 @@ export function Streamer() {
 		if (mode === "janus") {
 			let allow_audio = !$("stream-video").muted;
 			let allow_mic = $("stream-mic-switch").checked;
-			__streamer = new JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient, allow_audio, allow_mic);
+			let allow_cam = $("stream-cam-switch").checked;
+			__streamer = new JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient, allow_audio, allow_mic, allow_cam);
 			// Firefox doesn't support RTP orientation:
 			//  - https://bugzilla.mozilla.org/show_bug.cgi?id=1316448
 			tools.feature.setEnabled($("stream-orient"), !tools.browser.is_firefox);
@@ -347,6 +358,7 @@ export function Streamer() {
 			}
 			tools.feature.setEnabled($("stream-audio"), false); // Enabling in stream_janus.js
 			tools.feature.setEnabled($("stream-mic"), false); // Ditto
+			tools.feature.setEnabled($("stream-cam"), false); // Ditto
 		}
 		if (__isStreamRequired()) {
 			__streamer.ensureStream((__state && __state.streamer !== undefined) ? __state.streamer : null);
