@@ -341,9 +341,9 @@ export function Streamer() {
 		__streamer.stopStream();
 		let orient = tools.storage.getInt("stream.orient", 0);
 		if (mode === "janus") {
-			let allow_audio = !$("stream-video").muted;
-			let allow_mic = $("stream-mic-switch").checked;
-			let allow_cam = $("stream-cam-switch").checked;
+			let allow_audio = (tools.feature.isEnabled($("stream-audio")) && !$("stream-video").muted);
+			let allow_mic = (tools.feature.isEnabled($("stream-mic")) && $("stream-mic-switch").checked);
+			let allow_cam = (tools.feature.isEnabled($("stream-cam")) && $("stream-cam-switch").checked);
 			__streamer = new JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient, allow_audio, allow_mic, allow_cam);
 			// Firefox doesn't support RTP orientation:
 			//  - https://bugzilla.mozilla.org/show_bug.cgi?id=1316448

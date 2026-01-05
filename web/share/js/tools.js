@@ -361,6 +361,9 @@ export var tools = new function() {
 			"setEnabled": function(el, enabled) {
 				el.classList.toggle("feature-disabled", !enabled);
 			},
+			"isEnabled": function(el) {
+				return !el.classList.contains("feature-disabled");
+			},
 		};
 	};
 
