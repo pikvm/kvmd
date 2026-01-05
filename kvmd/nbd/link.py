@@ -36,34 +36,36 @@ class NbdLink:
     remote_r:  asyncio.StreamReader
     remote_w:  asyncio.StreamWriter
     _remote_s: socket.SocketType
+    _stopped:   bool = dataclasses.field(default=False, hash=False)
 
     @classmethod
     @contextlib.asynccontextmanager
     async def opened(cls) -> AsyncGenerator["NbdLink"]:
         (device_s, remote_s) = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM, 0)
 
-        def close() -> None:
+        try:
+            (remote_r, remote_w) = await asyncio.open_connection(sock=remote_s)
+        except:  # noqa: E722
             for sock in [device_s, remote_s]:
                 try:
                     sock.close()
                 except Exception:
                     pass
-
-        try:
-            (remote_r, remote_w) = await asyncio.open_connection(sock=remote_s)
-        except:  # noqa: E722
-            close()
             raise
 
+        link = NbdLink(device_s, remote_r, remote_w, remote_s)
         try:
-            yield NbdLink(device_s, remote_r, remote_w, remote_s)
+            yield link
         finally:
             # На самом деле мы должны использовать aiotools.close_writer(remote_w),
             # но для простоты обработки CancelledError этим можно пренебречь,
             # особенно с учетом того, что всё это живет в подпроцессе, который
             # будет отстрелян по завершении работы.
             #   device_s.close(); aiotools.close_writer(remote_w);
-            close()
+            link._close()
+
+    def is_stopped(self) -> bool:
+        return self._stopped
 
     @contextlib.contextmanager
     def shutdown_at_end(self) -> Generator[None]:
@@ -72,9 +74,20 @@ class NbdLink:
         finally:
             self.shutdown()
 
-    def shutdown(self) -> None:
+    def shutdown(self) -> bool:
+        ok = True
         for sock in [self.device_s, self._remote_s]:
             try:
                 sock.shutdown(socket.SHUT_RDWR)
+            except Exception:
+                ok = False
+        object.__setattr__(self, "_stopped", ok)
+        return ok
+
+    def _close(self) -> None:
+        self.shutdown()
+        for sock in [self.device_s, self._remote_s]:
+            try:
+                sock.close()
             except Exception:
                 pass

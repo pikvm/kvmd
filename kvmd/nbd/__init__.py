@@ -113,5 +113,5 @@ class NbdServer:
                 finally:
                     self.__proc = None
                 if stop is None:
-                    stop = NbdStopEvent("main", "Unknown stop reason")
+                    stop = NbdStopEvent("main", "Unknown stop reason", False)
                 yield stop

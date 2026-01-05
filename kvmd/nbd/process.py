@@ -23,6 +23,7 @@
 import asyncio
 import signal
 import contextlib
+import logging
 
 from typing import Final
 from typing import Generator
@@ -35,6 +36,7 @@ from .. import aiotools
 from .. import aiomulti
 
 from .errors import NbdError
+from .errors import NbdIoConnectionError
 
 from .types import NbdImage
 from .types import BaseNbdEvent
@@ -106,7 +108,7 @@ class NbdProcess:
 
     async def poll(self) -> AsyncGenerator[BaseNbdEvent]:
         while self.__proc.is_alive():
-            (got, event) = await self.__events_q.async_fetch(1)
+            (got, event) = await self.__events_q.async_fetch(1)  # FIXME: Wait for process too
             if got:
                 assert event is not None
                 yield event
@@ -123,12 +125,13 @@ class NbdProcess:
             tasks: list[asyncio.Task] = []
 
             def stop() -> None:
-                # Сначала сделаем cancel(), чтобы таски завершились без ошибок,
-                # а потом прибьем через shutdown(), чтоб наверняка.
-                with link.shutdown_at_end():
+                # Прибиваем через shutdown(), чтобы всё, что держится на сокетах, прервалось.
+                # Если не получилось - делаем cancel() и дожидаемся SIGKILL.
+                if link.shutdown():
+                    self.__queue_event_noex(NbdStopEvent("main", "Shutdown", True))
+                else:
                     for task in tasks:
                         task.cancel()
-                self.__queue_event_noex(NbdStopEvent("main", "Shutdown"))
 
             for signum in [signal.SIGTERM, signal.SIGINT]:
                 asyncio.get_running_loop().add_signal_handler(signum, stop)
@@ -139,11 +142,12 @@ class NbdProcess:
                 self.__sub_device_server(link, prepared),
                 self.__sub_remote_server(link),
                 self.__sub_checker(link, prepared),
+                wait=1,  # FIXME: Get rid of this
                 tasks=tasks,
             )
 
     async def __sub_device_server(self, link: NbdLink, prepared: aiotools.AioStage) -> None:
-        with self.__catch_exceptions("device_server"):
+        with self.__catch_exceptions("device", log=self.__device.__module__):
             with link.shutdown_at_end():
                 async with self.__device.open_prepared(link, self.__image) as fd:
                     prepared.set_passed()
@@ -151,9 +155,13 @@ class NbdProcess:
 
     async def __sub_remote_server(self, link: NbdLink) -> None:
         try:
-            with self.__catch_exceptions("remote_server"):
+            with self.__catch_exceptions("remote", log=self.__remote.__module__):
                 with link.shutdown_at_end():
-                    await self.__remote.serve(link, self.__events_q)
+                    try:
+                        await self.__remote.serve(link, self.__events_q)
+                    except NbdIoConnectionError:
+                        if not link.is_stopped():
+                            raise
         finally:
             await self.__remote.cleanup()
 
@@ -176,8 +184,8 @@ class NbdProcess:
                 await aiotools.wait_infinite()
 
     @contextlib.contextmanager
-    def __catch_exceptions(self, src: str, subtask: bool=True) -> Generator[None]:
-        logger = get_logger(0)
+    def __catch_exceptions(self, src: str, log: str="", subtask: bool=True) -> Generator[None]:
+        logger = (logging.getLogger(log) if log else get_logger(0))
         if subtask:
             logger.info("Starting subtask %s ...", src)
         msg = ""
@@ -193,7 +201,7 @@ class NbdProcess:
             logger.exception("Unhandled exception")
         finally:
             if msg:
-                self.__queue_event_noex(NbdStopEvent(src, msg))
+                self.__queue_event_noex(NbdStopEvent(src, msg, False))
             if subtask:
                 logger.info("Subtask %s finished", src)
 

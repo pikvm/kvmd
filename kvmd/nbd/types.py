@@ -52,3 +52,4 @@ class NbdStartEvent(BaseNbdEvent):
 class NbdStopEvent(BaseNbdEvent):
     src: str
     msg: str
+    ok:  bool

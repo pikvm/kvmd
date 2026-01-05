@@ -214,6 +214,7 @@ async def wait_first(*aws: asyncio.Task) -> tuple[set[asyncio.Task], set[asyncio
 # =====
 async def spawn_and_follow(
     *coros: Coroutine,
+    wait: float=0.0,
     tasks: (list[asyncio.Task] | None)=None,
 ) -> None:
 
@@ -224,6 +225,8 @@ async def spawn_and_follow(
         for coro in coros:
             tasks.append(asyncio.create_task(coro))
         await wait_first(*tasks)
+        if wait > 0:
+            await asyncio.sleep(wait)
     finally:
         for task in tasks:
             task.cancel()

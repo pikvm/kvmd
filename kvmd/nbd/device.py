@@ -108,7 +108,7 @@ class NbdDevice:
         logger = get_logger(0)
         logger.info("Running NBD_DO_IT ...")
         await aiotools.run_async(_ioctl, fd, _NBD_DO_IT)  # Blocks here
-        logger.info("Stopped NBD_DO_IT with no errors")
+        logger.info("Stopped NBD_DO_IT")
 
     def __prepare(self, fd: int, image: NbdImage, sock: socket.SocketType) -> None:
         logger = get_logger(0)
