@@ -38,7 +38,6 @@ from typing import Any
 import setproctitle
 
 from . import aiotools
-from . import aioproc
 
 
 # =====
