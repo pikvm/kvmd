@@ -128,9 +128,14 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                     data = b""
                     self.__ch_q.put_nowait(-1)
 
-                    # Switch and then recieve the state.
-                    # FIXME: Get actual state without modifying the current.
                     self.__send_channel(tty, 0)
+                    if self.__protocol <= 1:
+                        # Switch and then recieve the state (I'm not sure if getting is working)
+                        self.__send_channel(tty, 0)
+                    else:
+                        # Get actual state without modifying the current
+                        tty.write(b"EZG OUT1 VS\n" * 2)
+                        tty.flush()
 
                     while not self.__stop_event.is_set():
                         (ch, data) = self.__recv_channel(tty, data)
@@ -157,15 +162,20 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         ch: (int | None) = None
         if tty.in_waiting:
             data += tty.read_all()
-            found = re.findall(b"V[0-9a-fA-F]{2}S", data)
+            found = list(re.finditer(b"(OUT1 VS \\d+)|(V[0-9a-fA-F]{2}S)", data))
             if found:
+                last = found[-1]
                 ch = {
-                    b"V0CS": 0,
+                    b"V0CS": 0,  # Switching retval (manual or via the TTY)
                     b"V18S": 1,
                     b"V5ES": 2,
                     b"V08S": 3,
-                }.get(found[-1], -1)
-            data = data[-8:]
+                    b"OUT1 VS 1": 0,  # "EZG OUT1 VS" return value
+                    b"OUT1 VS 2": 1,
+                    b"OUT1 VS 3": 2,
+                    b"OUT1 VS 4": 3,
+                }.get(last[0], -1)
+                data = data[last.end(0):]
         return (ch, data)
 
     def __send_channel(self, tty: serial.Serial, ch: int) -> None:
