@@ -67,8 +67,8 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__protocol = protocol
 
         self.__ctl_q: aiomulti.AioMpQueue[int] = aiomulti.AioMpQueue()
-        self.__channel_q: aiomulti.AioMpQueue[int | None] = aiomulti.AioMpQueue()
-        self.__channel: (int | None) = -1
+        self.__ch_q: aiomulti.AioMpQueue[int | None] = aiomulti.AioMpQueue()
+        self.__ch: (int | None) = -1
 
         self.__proc = aiomulti.AioMpProcess(f"gpio-ezcoo-{self._instance_name}", self.__serial_worker)
         self.__stop_event = multiprocessing.Event()
@@ -91,9 +91,9 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     async def run(self) -> None:
         while True:
-            (got, channel) = await self.__channel_q.async_fetch_last(1)
-            if got and self.__channel != channel:
-                self.__channel = channel
+            (got, ch) = await self.__ch_q.async_fetch_last(1)
+            if got and self.__ch != ch:
+                self.__ch = ch
                 self._notifier.notify()
 
     async def cleanup(self) -> None:
@@ -104,7 +104,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     async def read(self, pin: str) -> bool:
         if not self.__is_online():
             raise GpioDriverOfflineError(self)
-        return (self.__channel == int(pin))
+        return (self.__ch == int(pin))
 
     async def write(self, pin: str, state: bool) -> None:
         if not self.__is_online():
@@ -117,7 +117,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     def __is_online(self) -> bool:
         return (
             self.__proc.is_alive()
-            and self.__channel is not None
+            and self.__ch is not None
         )
 
     def __serial_worker(self) -> None:
@@ -126,24 +126,24 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             try:
                 with self.__get_serial() as tty:
                     data = b""
-                    self.__channel_q.put_nowait(-1)
+                    self.__ch_q.put_nowait(-1)
 
                     # Switch and then recieve the state.
                     # FIXME: Get actual state without modifying the current.
                     self.__send_channel(tty, 0)
 
                     while not self.__stop_event.is_set():
-                        (channel, data) = self.__recv_channel(tty, data)
-                        if channel is not None:
-                            self.__channel_q.put_nowait(channel)
+                        (ch, data) = self.__recv_channel(tty, data)
+                        if ch is not None:
+                            self.__ch_q.put_nowait(ch)
 
-                        (got, channel) = self.__ctl_q.fetch_last(0.1)
+                        (got, ch) = self.__ctl_q.fetch_last(0.1)
                         if got:
-                            assert channel is not None
-                            self.__send_channel(tty, channel)
+                            assert ch is not None
+                            self.__send_channel(tty, ch)
 
             except Exception as ex:
-                self.__channel_q.put_nowait(None)
+                self.__ch_q.put_nowait(None)
                 if isinstance(ex, serial.SerialException) and ex.errno == errno.ENOENT:  # pylint: disable=no-member
                     logger.error("Missing %s serial device: %s", self, self.__device_path)
                 else:
@@ -154,25 +154,25 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return serial.Serial(self.__device_path, self.__speed, timeout=self.__read_timeout)
 
     def __recv_channel(self, tty: serial.Serial, data: bytes) -> tuple[(int | None), bytes]:
-        channel: (int | None) = None
+        ch: (int | None) = None
         if tty.in_waiting:
             data += tty.read_all()
             found = re.findall(b"V[0-9a-fA-F]{2}S", data)
             if found:
-                channel = {
+                ch = {
                     b"V0CS": 0,
                     b"V18S": 1,
                     b"V5ES": 2,
                     b"V08S": 3,
                 }.get(found[-1], -1)
             data = data[-8:]
-        return (channel, data)
+        return (ch, data)
 
-    def __send_channel(self, tty: serial.Serial, channel: int) -> None:
-        assert 0 <= channel <= 3
+    def __send_channel(self, tty: serial.Serial, ch: int) -> None:
+        assert 0 <= ch <= 3
         cmd = b"%s OUT1 VS IN%d\n" % (
             (b"SET" if self.__protocol == 1 else b"EZS"),
-            channel + 1,
+            ch + 1,
         )
         tty.write(cmd * 2)  # Twice because of ezcoo bugs
         tty.flush()
