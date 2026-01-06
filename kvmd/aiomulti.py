@@ -177,6 +177,7 @@ class AioMpQueue[T](multiprocessing.queues.Queue[T]):
             got = False
             item: (T | None) = None
             while not self.empty():
+                got = True
                 item = self.get(False)
                 await asyncio.sleep(0)  # Switch task to prevent hanging in a loop
             return (got, item)
