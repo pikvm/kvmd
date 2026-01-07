@@ -73,6 +73,7 @@ def main() -> None:
             "kvmd.nbd.remotes",
             "kvmd.plugins",
             "kvmd.plugins.auth",
+            "kvmd.plugins.oauth",
             "kvmd.plugins.hid",
             "kvmd.plugins.hid._mcu",
             "kvmd.plugins.hid.otg",

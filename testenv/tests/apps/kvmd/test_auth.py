@@ -84,6 +84,8 @@ async def _get_configured_manager(
         ext_kwargs=(_make_service_kwargs(ext_path) if ext_path else {}),
 
         totp_secret_path="",
+
+        flows={},
     )
 
     try:
@@ -338,6 +340,8 @@ async def test_ok__disabled() -> None:
             ext_kwargs={},
 
             totp_secret_path="",
+
+            flows={},
         )
 
         assert not manager.is_auth_enabled()

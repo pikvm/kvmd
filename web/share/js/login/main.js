@@ -32,6 +32,8 @@ export function main() {
 	if (checkBrowser(null, null)) {
 		initWindowManager();
 
+		__oauthInit();
+
 		// Radio is a string container
 		tools.radio.clickValue("expire-radio", tools.storage.get("login.expire", 0));
 		tools.radio.setOnClick("expire-radio", function() {
@@ -49,6 +51,71 @@ export function main() {
 
 		$("user-input").focus();
 	}
+}
+
+function __oauthInit() {
+	// tools.httpRequest("GET", "/api/auth/flow/oauth/check", null, function(http) {
+	// 	if (http.status === 200) {
+	// 		// add overall plugin health check (perhaps flesh out the /check endpoint itself first)
+	// 	}
+	// })
+
+	tools.httpRequest("GET", "/api/auth/flow/oauth/providers", null, function(http) {
+		if (http.status === 200) {
+			let oauthInfo = JSON.parse(http.responseText).result;
+			if (!oauthInfo.enabled) {
+				return;
+			}
+			if (Object.entries(oauthInfo.providers).length === 0) {
+				// perhaps also draw a "fake button" (inactive + greyed-out) to indicate we have no providers available
+				return;
+			}
+
+			let buttons = (`
+<tr>
+	<td colspan="2">
+		<hr>
+	</td>
+</tr>
+`);
+			const buttonIds = [];
+
+			for (const [shortName, longName] of Object.entries(oauthInfo.providers)) {
+				const { html, buttonId } = __oauthButton(shortName, longName);
+				// if (oauthInfo.default === shortName) {
+				// 	$(buttonId).classList.add("default");
+				// } else {
+				// 	$(buttonId).classList.add("secondary");
+				// }
+				buttons += html;
+				buttonIds.push({ shortName, buttonId });
+			}
+			$("oauth-tbody").innerHTML = buttons;
+			for (const { shortName, buttonId } of buttonIds) {
+				tools.el.setOnClick($(buttonId), () => __oauthLogin(shortName));
+			}
+		}
+		// else {
+		// 	// add error handling, draw an error "fake button" (like inactive + red-tinted) in place of the oauth buttons
+		// }
+	});
+}
+
+function __oauthButton(shortName, longName) {
+	const html = (`
+<tr>
+	<td></td>
+	<td>
+		<button class="key login-button-secondary" id="oauth-button-${shortName}">Login with ${longName}</button>
+	</td>
+</tr>
+`);
+	const buttonId = `oauth-button-${shortName}`;
+	return { html, buttonId };
+}
+
+function __oauthLogin(shortName) {
+	tools.currentOpen(`/api/auth/flow/oauth/login/${shortName}`);
 }
 
 function __login() {

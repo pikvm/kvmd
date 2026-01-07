@@ -100,3 +100,12 @@ RequestUnixCredentials.pid
 RequestUnixCredentials.gid
 
 KvmdClientWs.send_mouse_relative_event
+
+Request._match_info
+
+# flows.oauth.User -- entire class unused right now, probably will be needed later
+flows.oauth.User.__provider
+flows.oauth.User.__provider_data
+
+# oauth.oauth2.Plugin -- __base_url is a config attribute, probably will be needed later
+oauth.oauth2.Plugin.__base_url

@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import dataclasses
 import enum
 import contextlib
 
@@ -35,6 +36,11 @@ class ConfigError(ValueError):
 
 # =====
 class Stub:
+    pass
+
+
+@dataclasses.dataclass(slots=True, frozen=True)
+class Dynamic:
     pass
 
 
@@ -130,15 +136,14 @@ def make_config(
 
     config = Section()
 
-    def make_full_path(key: str) -> tuple[str, ...]:
-        return _path + (key,)
+    def make_full_path(*kwargs: str) -> tuple[str, ...]:
+        return _path + kwargs
 
-    def make_full_name(key: str) -> str:
-        return "/".join(make_full_path(key))
+    def make_full_name(*kwargs: str) -> str:
+        return "/".join(make_full_path(*kwargs))
 
-    for key in scheme:
-        if isinstance(scheme[key], Option):
-            option: Option = scheme[key]
+    def validate_one(key: str, option: Option) -> None:
+        if isinstance(option, Option):
             if key in main and option.default != main[key]:
                 option.default = main[key]
 
@@ -156,15 +161,35 @@ def make_config(
             config[key] = value
             config._set_option(key, option)  # pylint: disable=protected-access
 
-        elif isinstance(scheme[key], dict):
+        elif isinstance(option, dict):
             config[key] = make_config(
                 main=main.get(key, {}),
                 override=override.get(key, {}),
-                scheme=scheme[key],
+                scheme=option,
                 _path=make_full_path(key),
             )
 
         else:
             raise RuntimeError(f"Incorrect scheme definition for key {make_full_name(key)!r}:"
                                f" the value is {type(scheme[key])!r}, not dict() or Option()")
+
+    literal_keys = {k for k in scheme.keys() if isinstance(k, str)}
+    extra_keys = (main.keys() | override.keys()) - literal_keys
+    dynamic_schema = [v for k, v in scheme.items() if isinstance(k, Dynamic)]
+
+    for key in literal_keys:
+        if isinstance(key, str):
+            validate_one(key, scheme[key])
+
+    # pylint: disable=no-else-raise
+    if len(dynamic_schema) > 1:
+        raise RuntimeError(f"Incorrect scheme definition at path {make_full_name()!r}: "
+                           f"more than one dynamic key found")
+    elif dynamic_schema:
+        for key in extra_keys:
+            validate_one(key, dynamic_schema[0])
+    # elif extra_keys:
+    #     raise RuntimeError(f"Invalid data at path {make_full_name()!r}: "
+    #                        f"unknown keys: {extra_keys}")
+
     return config
