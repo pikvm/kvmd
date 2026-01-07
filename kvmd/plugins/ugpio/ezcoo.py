@@ -128,14 +128,12 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                     data = b""
                     self.__ch_q.put_nowait(-1)
 
-                    self.__send_channel(tty, 0)
+                    # Get actual state without modifying the current
                     if self.__protocol <= 1:
-                        # Switch and then recieve the state (I'm not sure if getting is working)
-                        self.__send_channel(tty, 0)
+                        tty.write(b"GET OUT1 VS\n" * 2)  # Twice because of some bugs
                     else:
-                        # Get actual state without modifying the current
                         tty.write(b"EZG OUT1 VS\n" * 2)
-                        tty.flush()
+                    tty.flush()
 
                     while not self.__stop_event.is_set():
                         (ch, data) = self.__recv_channel(tty, data)
