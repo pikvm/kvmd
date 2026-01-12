@@ -68,7 +68,6 @@ class Stun:
         self.__retries_delay = retries_delay
 
         self.__stun_ip = ""
-        self.__sock: (socket.socket | None) = None
 
     async def get_info(self, src_ip: str, src_port: int) -> StunInfo:
         nat_type = StunNatType.ERROR
@@ -86,24 +85,23 @@ class Stun:
             if not self.__stun_ip or self.__stun_ip not in stun_ips:
                 # On new IP, changed family, etc.
                 self.__stun_ip = stun_ips[0]
+            stun_ip = self.__stun_ip
 
-            with socket.socket(src_fam, socket.SOCK_DGRAM) as self.__sock:
-                self.__sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                self.__sock.settimeout(self.__timeout)
-                self.__sock.bind(src_addr)
-                (nat_type, resp) = await self.__get_nat_type(src_ip)
+            with socket.socket(src_fam, socket.SOCK_DGRAM) as sock:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock.settimeout(self.__timeout)
+                sock.bind(src_addr)
+                (nat_type, resp) = await self.__get_nat_type(sock, stun_ip, src_ip)
                 ext_ip = (resp.ext.ip if resp.ext is not None else "")
         except Exception as ex:
             get_logger(0).error("Can't get STUN info: %s", tools.efmt(ex))
-        finally:
-            self.__sock = None
 
         return StunInfo(
             nat_type=nat_type,
             src_ip=src_ip,
             ext_ip=ext_ip,
             stun_host=self.__host,
-            stun_ip=self.__stun_ip,
+            stun_ip=stun_ip,
             stun_port=self.__port,
         )
 
@@ -118,13 +116,19 @@ class Stun:
                     raise
             await asyncio.sleep(self.__retries_delay)
 
-    async def __get_nat_type(self, src_ip: str) -> tuple[StunNatType, _StunResponse]:  # pylint: disable=too-many-return-statements
-        first = await self.__make_request("First probe", self.__stun_ip, b"")
+    async def __get_nat_type(  # pylint: disable=too-many-return-statements
+        self,
+        sock: socket.SocketType,
+        stun_ip: str,
+        src_ip: str,
+    ) -> tuple[StunNatType, _StunResponse]:
+
+        first = await self.__make_request(sock, "First probe", stun_ip, b"")
         if not first.ok:
             return (StunNatType.BLOCKED, first)
 
         req = struct.pack(">HHI", 0x0003, 0x0004, 0x00000006)  # Change-Request
-        resp = await self.__make_request("Change request [ext_ip == src_ip]", self.__stun_ip, req)
+        resp = await self.__make_request(sock, "Change request [ext_ip == src_ip]", stun_ip, req)
 
         if first.ext is not None and first.ext.ip == src_ip:
             if resp.ok:
@@ -136,20 +140,27 @@ class Stun:
 
         if first.changed is None:
             raise RuntimeError(f"Changed addr is None: {first}")
-        resp = await self.__make_request("Change request [ext_ip != src_ip]", first.changed, b"")
+        resp = await self.__make_request(sock, "Change request [ext_ip != src_ip]", first.changed, b"")
         if not resp.ok:
             return (StunNatType.CHANGED_ADDR_ERROR, resp)
 
         if resp.ext == first.ext:
             req = struct.pack(">HHI", 0x0003, 0x0004, 0x00000002)
-            resp = await self.__make_request("Change port", first.changed.ip, req)
+            resp = await self.__make_request(sock, "Change port", first.changed.ip, req)
             if resp.ok:
                 return (StunNatType.RESTRICTED_NAT, resp)
             return (StunNatType.RESTRICTED_PORT_NAT, resp)
 
         return (StunNatType.SYMMETRIC_NAT, resp)
 
-    async def __make_request(self, ctx: str, addr: (_StunAddress | str), req: bytes) -> _StunResponse:
+    async def __make_request(
+        self,
+        sock: socket.SocketType,
+        ctx: str,
+        addr: (_StunAddress | str),
+        req: bytes,
+    ) -> _StunResponse:
+
         # TODO: Support IPv6 and RFC 5389
         # The first 4 bytes of the response are the Type (2) and Length (2)
         # The 5th byte is Reserved
@@ -168,7 +179,7 @@ class Stun:
         trans_id = b"\x21\x12\xA4\x42" + secrets.token_bytes(12)
         (resp, error) = (b"", "")
         for _ in range(self.__retries):
-            (resp, error) = await self.__inner_make_request(trans_id, req, addr_t)
+            (resp, error) = await self.__inner_make_request(sock, trans_id, req, addr_t)
             if not error:
                 break
             await asyncio.sleep(self.__retries_delay)
@@ -195,17 +206,22 @@ class Stun:
             remaining -= (4 + attr_len)
         return _StunResponse(ok=True, **parsed)
 
-    async def __inner_make_request(self, trans_id: bytes, req: bytes, addr: tuple[str, int]) -> tuple[bytes, str]:
-        assert self.__sock is not None
+    async def __inner_make_request(
+        self,
+        sock: socket.SocketType,
+        trans_id: bytes,
+        req: bytes,
+        addr: tuple[str, int],
+    ) -> tuple[bytes, str]:
 
         req = struct.pack(">HH", 0x0001, len(req)) + trans_id + req  # Bind Request
 
         try:
-            await asyncio.to_thread(self.__sock.sendto, req, addr)
+            await asyncio.to_thread(sock.sendto, req, addr)
         except Exception as ex:
             return (b"", f"Send error: {tools.efmt(ex)}")
         try:
-            resp = (await asyncio.to_thread(self.__sock.recvfrom, 2048))[0]
+            resp = (await asyncio.to_thread(sock.recvfrom, 2048))[0]
         except Exception as ex:
             return (b"", f"Recv error: {tools.efmt(ex)}")
 
