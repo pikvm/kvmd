@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import asyncio
 import time
 
 import async_lru
@@ -29,8 +30,6 @@ from luma.core.render import canvas as luma_canvas
 
 from PIL import Image
 from PIL import ImageFont
-
-from ... import aiotools
 
 
 # =====
@@ -59,16 +58,16 @@ class Screen:  # pylint: disable=too-many-instance-attributes
 
     @async_lru.alru_cache(maxsize=1)
     async def set_contrast(self, contrast: int) -> None:
-        await aiotools.run_async(self.__device.contrast, contrast)
+        await asyncio.to_thread(self.__device.contrast, contrast)
 
     async def draw_text(self, text: str) -> None:
-        await aiotools.run_async(self.__inner_draw_text, text)
+        await asyncio.to_thread(self.__inner_draw_text, text)
 
     async def draw_image(self, image_path: str) -> None:
-        await aiotools.run_async(self.__inner_draw_image, image_path)
+        await asyncio.to_thread(self.__inner_draw_image, image_path)
 
     async def draw_white(self) -> None:
-        await aiotools.run_async(self.__inner_draw_white)
+        await asyncio.to_thread(self.__inner_draw_white)
 
     def __inner_draw_text(self, text: str) -> None:
         with luma_canvas(self.__device) as draw:

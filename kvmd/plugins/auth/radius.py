@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import asyncio
 import io
 
 import pyrad.client
@@ -33,8 +34,6 @@ from ...validators.net import valid_ip_or_host
 from ...validators.basic import valid_int_f1
 
 from ...logging import get_logger
-
-from ... import aiotools
 
 from . import BaseAuthService
 
@@ -420,7 +419,7 @@ class Plugin(BaseAuthService):
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        return (await aiotools.run_async(self.__inner_authorize, user, passwd))
+        return (await asyncio.to_thread(self.__inner_authorize, user, passwd))
 
     def __inner_authorize(self, user: str, passwd: str) -> bool:
         assert user == user.strip()

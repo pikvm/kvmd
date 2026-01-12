@@ -21,6 +21,7 @@
 
 
 import io
+import asyncio
 import contextlib
 import dataclasses
 import functools
@@ -37,7 +38,6 @@ import ustreamer
 from PIL import Image as PilImage
 
 from .. import tools
-from .. import aiotools
 from .. import htclient
 
 from . import BaseHttpClient
@@ -102,7 +102,7 @@ class StreamerSnapshot:
 
         if (max_width, max_height) == (self.width, self.height):
             return self.data
-        return (await aiotools.run_async(self.__inner_make_preview, max_width, max_height, quality))
+        return (await asyncio.to_thread(self.__inner_make_preview, max_width, max_height, quality))
 
     @functools.lru_cache(maxsize=1)
     def __inner_make_preview(self, max_width: int, max_height: int, quality: int) -> bytes:
@@ -275,7 +275,7 @@ class MemsinkStreamerClient(BaseStreamerClient):
                     key_required = (key_required and self.__fmt == StreamerFormats.H264)
                     with _memsink_reading_handle_errors():
                         while True:
-                            frame = await aiotools.run_async(sink.wait_frame, key_required)
+                            frame = await asyncio.to_thread(sink.wait_frame, key_required)
                             if frame is not None:
                                 self.__check_format(frame["format"])
                                 return frame

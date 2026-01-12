@@ -156,7 +156,7 @@ class MultiHid:
         return self.__grabbed
 
     async def set_grabbed(self, grabbed: bool) -> None:
-        await aiotools.run_async(self.__inner_set_grabbed, grabbed)
+        await asyncio.to_thread(self.__inner_set_grabbed, grabbed)
 
     def __inner_set_grabbed(self, grabbed: bool) -> None:
         if self.__grabbed != grabbed:
@@ -168,7 +168,7 @@ class MultiHid:
         self.__inner_set_leds(*self.__leds)
 
     async def set_leds(self, caps: bool, scroll: bool, num: bool) -> None:
-        await aiotools.run_async(self.__inner_set_leds, caps, scroll, num)
+        await asyncio.to_thread(self.__inner_set_leds, caps, scroll, num)
 
     def __inner_set_leds(self, caps: bool, scroll: bool, num: bool) -> None:
         self.__leds = (caps, scroll, num)

@@ -31,7 +31,6 @@ from typing import Optional
 import aiofiles
 import aiofiles.os
 
-from .... import aiotools
 from .... import aiohelpers
 
 from .. import MsdError
@@ -59,7 +58,7 @@ class Image(_ImageDc):
 
     async def _reload(self) -> None:  # Only for Storage() and set_complete()
         # adopted используется в последующих проверках
-        self.__adopted = await aiotools.run_async(self.__is_adopted)
+        self.__adopted = await asyncio.to_thread(self.__is_adopted)
         complete = await self.__is_complete()
         removable = await self.__is_removable()
         (size, mod_ts) = await self.__get_stat()
@@ -156,7 +155,7 @@ class _Part(_PartDc):
         self.__path = path
 
     async def _reload(self) -> None:  # Only for Storage()
-        st = await aiotools.run_async(os.statvfs, self.__path)
+        st = await asyncio.to_thread(os.statvfs, self.__path)
         if self.name == "":
             writable = True
         else:
@@ -200,7 +199,7 @@ class Storage(_StorageDc):
         watchable_paths: list[str] = []
         images: dict[str, Image] = {}
         parts: dict[str, _Part] = {}
-        for (root_path, is_part, files) in (await aiotools.run_async(self.__walk)):
+        for (root_path, is_part, files) in (await asyncio.to_thread(self.__walk)):
             watchable_paths.append(root_path)
             for path in files:
                 name = self.__make_relative_name(path)

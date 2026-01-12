@@ -30,7 +30,6 @@ from typing import Self
 from ...logging import get_logger
 
 from ... import tools
-from ... import aiotools
 from ... import network
 
 from ...clients.kvmd import KvmdClient
@@ -112,7 +111,7 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
     async def __iface_task_loop(self) -> None:
         while True:
             try:
-                fi = await aiotools.run_async(network.get_first_iface)
+                fi = await asyncio.to_thread(network.get_first_iface)
                 self.__s_iface = fi.name
                 self.__s_ip = fi.ip
             except Exception:

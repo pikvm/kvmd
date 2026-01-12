@@ -32,8 +32,6 @@ from ...validators.auth import valid_users_list
 
 from ...logging import get_logger
 
-from ... import aiotools
-
 from . import BaseAuthService
 
 
@@ -67,7 +65,7 @@ class Plugin(BaseAuthService):
         assert user == user.strip()
         assert user
         async with self.__lock:
-            return (await aiotools.run_async(self.__inner_authorize, user, passwd))
+            return (await asyncio.to_thread(self.__inner_authorize, user, passwd))
 
     def __inner_authorize(self, user: str, passwd: str) -> bool:
         if self.__allow_users and user not in self.__allow_users:

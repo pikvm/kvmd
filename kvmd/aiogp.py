@@ -70,10 +70,10 @@ class AioReader:  # pylint: disable=too-many-instance-attributes
             self.__loop = asyncio.get_running_loop()
             self.__thread.start()
             try:
-                await aiotools.run_async(self.__thread.join)
+                await asyncio.to_thread(self.__thread.join)
             finally:
                 self.__stop_event.set()
-                await aiotools.run_async(self.__thread.join)
+                await asyncio.to_thread(self.__thread.join)
 
     def __run(self) -> None:
         assert self.__values is None

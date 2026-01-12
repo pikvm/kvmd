@@ -24,6 +24,7 @@ import sys
 import os
 import fcntl
 import socket
+import asyncio
 import contextlib
 import math
 
@@ -34,7 +35,6 @@ from typing import AsyncGenerator
 from ..logging import get_logger
 
 from .. import tools
-from .. import aiotools
 
 from .errors import NbdDeviceError
 from .types import NbdImage
@@ -84,7 +84,7 @@ class NbdDevice:
         return self.__path
 
     async def open_close(self) -> None:
-        await aiotools.run_async(self.__inner_open_close)
+        await asyncio.to_thread(self.__inner_open_close)
 
     def __inner_open_close(self) -> None:
         fd = os.open(self.__path, os.O_RDONLY)
@@ -93,7 +93,7 @@ class NbdDevice:
     @contextlib.asynccontextmanager
     async def open_prepared(self, link: NbdLink, image: NbdImage) -> AsyncGenerator[int]:
         with _wrap_exceptions():
-            fd = await aiotools.run_async(os.open, self.__path, os.O_RDWR)
+            fd = await asyncio.to_thread(os.open, self.__path, os.O_RDWR)
             try:
                 self.__cleanup(fd, close=False)
                 self.__prepare(fd, image, link.device_s)
@@ -107,7 +107,7 @@ class NbdDevice:
     async def do_it(self, fd: int) -> None:
         logger = get_logger(0)
         logger.info("Running NBD_DO_IT ...")
-        await aiotools.run_async(_ioctl, fd, _NBD_DO_IT)  # Blocks here
+        await asyncio.to_thread(_ioctl, fd, _NBD_DO_IT)  # Blocks here
         logger.info("Stopped NBD_DO_IT")
 
     def __prepare(self, fd: int, image: NbdImage, sock: socket.SocketType) -> None:

@@ -193,11 +193,6 @@ async def stop_all_deadly_tasks() -> None:
 
 
 # =====
-async def run_async(func: Callable[..., _RetvalT], *args: Any) -> _RetvalT:
-    return (await asyncio.get_running_loop().run_in_executor(None, func, *args))
-
-
-# =====
 async def wait_infinite() -> None:
     while True:
         await asyncio.sleep(3600)

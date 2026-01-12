@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import asyncio
 import lzma
 import time
 
@@ -34,7 +35,6 @@ from aiohttp.web import StreamResponse
 
 from ....logging import get_logger
 
-from .... import aiotools
 from .... import htclient
 
 from ....htserver import exposed_http
@@ -114,13 +114,13 @@ class MsdApi:
                     buf = b""
                     try:
                         async for chunk in reader.read_chunked():
-                            buf += await aiotools.run_async(compressor.compress, chunk)
+                            buf += await asyncio.to_thread(compressor.compress, chunk)
                             if len(buf) >= limit:
                                 yield buf
                                 buf = b""
                     finally:
                         # Закрыть в любом случае
-                        buf += await aiotools.run_async(compressor.flush)
+                        buf += await asyncio.to_thread(compressor.flush)
                     if len(buf) > 0:
                         yield buf
 

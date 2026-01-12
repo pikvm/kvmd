@@ -23,18 +23,17 @@
 import sys
 import os
 import io
+import asyncio
 import functools
 
 from PIL import Image as PilImage
 from PIL import ImageDraw as PilImageDraw
 from PIL import ImageFont as PilImageFont
 
-from ... import aiotools
-
 
 # =====
 async def make_text_jpeg(width: int, height: int, quality: int, text: str) -> bytes:
-    return (await aiotools.run_async(_inner_make_text_jpeg, width, height, quality, text))
+    return (await asyncio.to_thread(_inner_make_text_jpeg, width, height, quality, text))
 
 
 @functools.lru_cache(maxsize=10)

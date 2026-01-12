@@ -37,8 +37,6 @@ from typing import Any
 
 import setproctitle
 
-from . import aiotools
-
 
 # =====
 def rename_process(suffix: str) -> None:
@@ -257,7 +255,7 @@ class AioSharedFlags(Generic[_SharedFlagT]):
             self.__notifier.notify()
 
     async def get(self) -> dict[str, _SharedFlagT]:
-        return (await aiotools.run_async(self.__inner_get))
+        return (await asyncio.to_thread(self.__inner_get))
 
     def __inner_get(self) -> dict[str, _SharedFlagT]:
         with self.__lock:

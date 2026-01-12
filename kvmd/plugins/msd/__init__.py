@@ -21,6 +21,7 @@
 
 
 import os
+import asyncio
 import contextlib
 import time
 
@@ -283,7 +284,7 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
         get_logger(1).info("Writing %r image (%d bytes) to MSD ...", self.__name, self.__file_size)
         await aiofiles.os.makedirs(os.path.dirname(self.__path), exist_ok=True)
         self.__file = await aiofiles.open(self.__path, mode="w+b", buffering=0)  # type: ignore
-        await aiotools.run_async(os.ftruncate, self.__file.fileno(), self.__file_size)  # type: ignore
+        await asyncio.to_thread(os.ftruncate, self.__file.fileno(), self.__file_size)  # type: ignore
         return self
 
     async def finish(self) -> bool:
@@ -309,7 +310,7 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
     async def __sync(self) -> None:
         assert self.__file is not None
         await self.__file.flush()  # type: ignore
-        await aiotools.run_async(os.fsync, self.__file.fileno())  # type: ignore
+        await asyncio.to_thread(os.fsync, self.__file.fileno())  # type: ignore
 
 
 # =====

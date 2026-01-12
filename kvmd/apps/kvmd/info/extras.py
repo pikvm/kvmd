@@ -81,7 +81,7 @@ class ExtrasInfoSubmanager(BaseInfoSubmanager):
 
     async def __read_extra(self, sui: (sysunit.SystemdUnitInfo | None), name: str) -> dict:
         try:
-            extra = await aiotools.run_async(load_yaml_file, self.__get_extras_path(name, "manifest.yaml"))
+            extra = await asyncio.to_thread(load_yaml_file, self.__get_extras_path(name, "manifest.yaml"))
             await self.__rewrite_app_daemon(sui, extra)
             self.__rewrite_app_port(extra)
             return {re.sub(r"[^a-zA-Z0-9_]+", "_", name): extra}

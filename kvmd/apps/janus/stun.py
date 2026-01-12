@@ -7,7 +7,6 @@ import dataclasses
 import enum
 
 from ... import tools
-from ... import aiotools
 
 from ...logging import get_logger
 
@@ -202,11 +201,11 @@ class Stun:
         req = struct.pack(">HH", 0x0001, len(req)) + trans_id + req  # Bind Request
 
         try:
-            await aiotools.run_async(self.__sock.sendto, req, addr)
+            await asyncio.to_thread(self.__sock.sendto, req, addr)
         except Exception as ex:
             return (b"", f"Send error: {tools.efmt(ex)}")
         try:
-            resp = (await aiotools.run_async(self.__sock.recvfrom, 2048))[0]
+            resp = (await asyncio.to_thread(self.__sock.recvfrom, 2048))[0]
         except Exception as ex:
             return (b"", f"Recv error: {tools.efmt(ex)}")
 

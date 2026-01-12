@@ -34,7 +34,6 @@ from typing import Generator
 
 from .logging import get_logger
 
-from . import aiotools
 from . import libc
 
 
@@ -210,7 +209,7 @@ class Inotify:
             assert path not in self.__wd_by_path, path
             get_logger(2).info("Watching for %s", path)
             # Асинхронно, чтобы не висло на NFS
-            wd = _inotify_check(await aiotools.run_async(libc.inotify_add_watch, self.__fd, _fs_encode(path), mask))
+            wd = _inotify_check(await asyncio.to_thread(libc.inotify_add_watch, self.__fd, _fs_encode(path), mask))
             self.__wd_by_path[path] = wd
             self.__path_by_wd[wd] = path
 

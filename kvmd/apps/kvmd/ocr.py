@@ -23,6 +23,7 @@
 import os
 import stat
 import io
+import asyncio
 import ctypes
 import ctypes.util
 import contextlib
@@ -158,7 +159,7 @@ class Ocr:
     async def recognize(self, data: bytes, langs: list[str], left: int, top: int, right: int, bottom: int) -> str:
         if not langs:
             langs = self.__default_langs
-        return (await aiotools.run_async(self.__inner_recognize, data, langs, left, top, right, bottom))
+        return (await asyncio.to_thread(self.__inner_recognize, data, langs, left, top, right, bottom))
 
     def __inner_recognize(self, data: bytes, langs: list[str], left: int, top: int, right: int, bottom: int) -> str:
         with _tess_api(self.__data_dir_path, langs) as api:
