@@ -96,7 +96,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
 
     # =====
 
-    def sysprep(self) -> None:
+    async def sysprep(self) -> None:
         raise NotImplementedError
 
     async def get_state(self) -> dict:

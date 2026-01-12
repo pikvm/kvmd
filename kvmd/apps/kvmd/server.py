@@ -106,7 +106,7 @@ class StreamerH264NotSupported(OperationError):
 class _Subsystem:
     name:          str
     event_type:    str
-    sysprep:       (Callable[[], None] | None)
+    sysprep:       (Callable[[], Coroutine[Any, Any, None]] | None)
     systask:       (Callable[[], Coroutine[Any, Any, None]] | None)
     cleanup:       (Callable[[], Coroutine[Any, Any, dict]] | None)
     trigger_state: (Callable[[], Coroutine[Any, Any, None]] | None) = None
@@ -267,14 +267,16 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
     # ===== SYSTEM STUFF
 
     def run(self, **kwargs: Any) -> None:  # type: ignore  # pylint: disable=arguments-differ
-        for sub in self.__subsystems:
-            if sub.sysprep:
-                sub.sysprep()
         aiomulti.rename_process("main")
         super().run(**kwargs)
 
     async def _check_request_auth(self, exposed: HttpExposed, req: Request) -> None:
         await check_request_auth(self.__auth, exposed, req)
+
+    async def _before_app(self) -> None:
+        for sub in self.__subsystems:
+            if sub.sysprep:
+                await sub.sysprep()
 
     async def _init_app(self) -> None:
         aiotools.create_deadly_task("Stream controller", self.__stream_controller())

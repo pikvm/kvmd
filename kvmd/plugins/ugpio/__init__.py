@@ -85,7 +85,7 @@ class BaseUserGpioDriver(BasePlugin):
         _ = pin
         _ = initial
 
-    def prepare(self) -> None:
+    async def prepare(self) -> None:
         pass
 
     async def run(self) -> None:

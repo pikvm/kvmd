@@ -66,7 +66,7 @@ class Plugin(BaseUserGpioDriver):
     def get_pin_validator(cls) -> Callable[[Any], Any]:
         return valid_stripped_string_not_empty
 
-    def prepare(self) -> None:
+    async def prepare(self) -> None:
         self.__udc = usb.find_udc(self.__udc)
         get_logger().info("Using UDC %s", self.__udc)
 

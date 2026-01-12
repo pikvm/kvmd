@@ -84,7 +84,7 @@ class Plugin(BaseUserGpioDriver):
     def register_output(self, pin: str, initial: (bool | None)) -> None:
         self.__channels[int(pin)] = initial
 
-    def prepare(self) -> None:
+    async def prepare(self) -> None:
         logger = get_logger(0)
         for (pin, initial) in self.__channels.items():
             try:

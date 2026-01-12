@@ -197,10 +197,6 @@ async def run_async(func: Callable[..., _RetvalT], *args: Any) -> _RetvalT:
     return (await asyncio.get_running_loop().run_in_executor(None, func, *args))
 
 
-def run_sync(coro: Coroutine[Any, Any, _RetvalT]) -> _RetvalT:
-    return asyncio.get_event_loop().run_until_complete(coro)
-
-
 # =====
 async def wait_infinite() -> None:
     while True:

@@ -381,7 +381,6 @@ class HttpServer:
             shutdown_timeout=1,
             access_log_format=access_log_format,
             print=self.__run_app_print,
-            loop=asyncio.get_event_loop(),
         )
 
     # =====
@@ -496,6 +495,9 @@ class HttpServer:
     async def _check_request_auth(self, exposed: HttpExposed, req: Request) -> None:
         pass
 
+    async def _before_app(self) -> None:
+        pass
+
     async def _init_app(self) -> None:
         raise NotImplementedError
 
@@ -514,6 +516,8 @@ class HttpServer:
     # =====
 
     async def __make_app(self) -> Application:
+        await self._before_app()
+
         self.__app = Application(middlewares=[normalize_path_middleware(  # pylint: disable=attribute-defined-outside-init
             append_slash=False,
             remove_slash=True,

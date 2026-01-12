@@ -97,14 +97,12 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__initial[pin] = initial
         self.__state[pin] = None
 
-    def prepare(self) -> None:
-        async def inner_prepare() -> None:
-            await asyncio.gather(*[
-                self.write(pin, state)
-                for (pin, state) in self.__initial.items()
-                if state is not None
-            ], return_exceptions=True)
-        aiotools.run_sync(inner_prepare())
+    async def prepare(self) -> None:
+        await asyncio.gather(*[
+            self.write(pin, state)
+            for (pin, state) in self.__initial.items()
+            if state is not None
+        ], return_exceptions=True)
 
     async def run(self) -> None:
         prev_state: (dict | None) = None

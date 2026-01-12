@@ -109,7 +109,7 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
             "long_click_delay": Option(5.5, type=valid_float_f01),
         }
 
-    def sysprep(self) -> None:
+    async def sysprep(self) -> None:
         assert self.__line_req is None
         self.__line_req = gpiod.request_lines(
             self.__device_path,

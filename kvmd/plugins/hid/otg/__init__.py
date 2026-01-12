@@ -123,7 +123,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
             **cls._get_base_options(),
         }
 
-    def sysprep(self) -> None:
+    async def sysprep(self) -> None:
         udc = usb.find_udc(self.__udc)
         get_logger(0).info("Using UDC %s", udc)
         self.__keyboard_proc.start(udc)

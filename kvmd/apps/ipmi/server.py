@@ -39,7 +39,6 @@ from ...logging import get_logger
 
 from ...clients.kvmd import KvmdClient
 
-from ... import aiotools
 from ... import aiomulti
 from ... import network
 
@@ -174,7 +173,7 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
                 logger.error("[%s]: Can't perform request %s: %s", session.sockaddr[0], name, ex)
                 raise
 
-        return aiotools.run_sync(runner())
+        return asyncio.run(runner())
 
     # =====
 

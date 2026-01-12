@@ -72,7 +72,7 @@ class Plugin(BaseUserGpioDriver):
     def register_output(self, pin: str, initial: (bool | None)) -> None:
         self.__output_pins[int(pin)] = initial
 
-    def prepare(self) -> None:
+    async def prepare(self) -> None:
         assert self.__reader is None
         assert self.__outputs_req is None
         self.__reader = aiogp.AioReader(

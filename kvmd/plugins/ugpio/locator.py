@@ -73,7 +73,7 @@ class Plugin(BaseUserGpioDriver):
         _ = initial
         self.__tasks[int(pin)] = None
 
-    def prepare(self) -> None:
+    async def prepare(self) -> None:
         self.__line_req = gpiod.request_lines(
             self.__device_path,
             consumer="kvmd::locator",

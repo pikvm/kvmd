@@ -169,7 +169,7 @@ class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
             **cls._get_base_options(),
         }
 
-    def sysprep(self) -> None:
+    async def sysprep(self) -> None:
         self.__proc.start()
 
     async def get_state(self) -> dict:

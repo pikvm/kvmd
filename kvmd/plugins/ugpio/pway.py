@@ -88,7 +88,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     def get_pin_validator(cls) -> Callable[[Any], Any]:
         return valid_number.mk(min=0, max=15, name="PWAY channel")
 
-    def prepare(self) -> None:
+    async def prepare(self) -> None:
         self.__proc.start()
 
     async def run(self) -> None:

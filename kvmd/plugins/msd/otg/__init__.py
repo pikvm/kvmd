@@ -132,6 +132,8 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         self.__initial_image: str = initial["image"]
         self.__initial_cdrom: bool = initial["cdrom"]
 
+        self.__gadget = gadget  # Only for sysprep()
+
         self.__drive = Drive(gadget, instance=0, lun=0)
         self.__storage = Storage(fstab.find_msd().root_path, remount_cmd)
 
@@ -141,10 +143,6 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         self.__notifier = aiotools.AioNotifier()
         self.__state = _State(self.__notifier)
         self.__reset = False
-
-        logger = get_logger(0)
-        logger.info("Using OTG gadget %r as MSD", gadget)
-        aiotools.run_sync(self.__unsafe_reload_state())
 
     @classmethod
     def get_plugin_options(cls) -> dict:
@@ -165,6 +163,10 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         }
 
     # =====
+
+    async def sysprep(self) -> None:
+        get_logger(0).info("Using OTG gadget %r as MSD", self.__gadget)
+        await self.__unsafe_reload_state()
 
     async def get_state(self) -> dict:
         async with self.__state._lock:  # pylint: disable=protected-access
