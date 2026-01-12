@@ -70,8 +70,10 @@ class Stun:
         self.__stun_ip = ""
 
     async def get_info(self, src_ip: str, src_port: int) -> StunInfo:
+        stun_ip = self.__stun_ip
         nat_type = StunNatType.ERROR
         ext_ip = ""
+
         try:
             (src_fam, _, _, _, src_addr) = (await self.__retried_getaddrinfo_udp(src_ip, src_port))[0]
 
@@ -109,7 +111,7 @@ class Stun:
         retries = self.__retries
         while True:
             try:
-                return socket.getaddrinfo(host, port, type=socket.SOCK_DGRAM)
+                return (await asyncio.to_thread(socket.getaddrinfo, host, port, type=socket.SOCK_DGRAM))
             except Exception:
                 retries -= 1
                 if retries == 0:
