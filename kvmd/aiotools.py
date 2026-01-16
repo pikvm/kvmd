@@ -60,7 +60,9 @@ def run(coro: Coroutine, final: (Coroutine | None)=None) -> None:
     def sigterm_handler() -> None:
         raise SystemExit()
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     loop.add_signal_handler(signal.SIGINT, sigint_handler)
     loop.add_signal_handler(signal.SIGTERM, sigterm_handler)
 
