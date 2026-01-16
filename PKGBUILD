@@ -46,8 +46,8 @@ url="https://github.com/pikvm/kvmd"
 license=(GPL)
 arch=(any)
 depends=(
-	"python>=3.13"
-	"python<3.14"
+	"python>=3.14"
+	"python<3.15"
 	python-yaml
 	python-ruamel-yaml
 	python-aiohttp
