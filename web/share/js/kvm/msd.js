@@ -135,6 +135,7 @@ export function Msd() {
 		tools.hidden.setVisible($("msd-message-another-user-uploads"), (o && s.uploading && !__http));
 		tools.hidden.setVisible($("msd-message-downloads"), (o && s.downloading));
 
+		tools.radio.setEnabled("msd-sorting-radio", (o && !d.connected && !busy));
 		tools.el.setEnabled($("msd-image-selector"), (o && !d.connected && !busy));
 		tools.el.setEnabled($("msd-download-button"), (o && d.image && !d.connected && !busy));
 		tools.el.setEnabled($("msd-remove-button"), (o && d.image && d.image.removable && !d.connected && !busy));
@@ -174,7 +175,7 @@ export function Msd() {
 		let msg = "Unavailable";
 		if (o && d.connected) {
 			led_cls = "led-green";
-			msg = "Connected to Server";
+			msg = "Connected to the host";
 		} else if (o && s.uploading) {
 			led_cls = "led-yellow-rotating-fast";
 			msg = "Uploading new image";
