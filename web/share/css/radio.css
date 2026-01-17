@@ -22,7 +22,7 @@
 
 div.radio-box {
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 }
 
 div.radio-box input[type=radio] {

@@ -147,6 +147,10 @@ export function Msd() {
 
 		tools.el.setEnabled($("msd-connect-button"), (o && d.image && !d.connected && !busy));
 		tools.el.setEnabled($("msd-disconnect-button"), (o && d.connected && !busy));
+		if (o) {
+			tools.hidden.setVisible($("msd-connect-button"), !d.connected);
+			tools.hidden.setVisible($("msd-disconnect-button"), d.connected);
+		}
 
 		tools.el.setEnabled($("msd-select-new-button"), (o && !d.connected && !__http && !busy));
 		tools.el.setEnabled($("msd-upload-new-button"),
@@ -165,7 +169,6 @@ export function Msd() {
 			$("msd-new-url").value = "";
 		}
 		tools.hidden.setVisible($("msd-uploading-sub"), (o && s.uploading));
-		tools.hidden.setVisible($("msd-new-tips"), (o && s.uploading && __http));
 
 		let led_cls = "led-gray";
 		let msg = "Unavailable";
