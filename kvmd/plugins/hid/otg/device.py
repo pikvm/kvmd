@@ -191,7 +191,7 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
                              self.__name, written, len(report))
         except Exception as ex:
             if isinstance(ex, OSError) and (
-                # https://github.com/raspberrypi/linux/commit/61b7f805dc2fd364e0df682de89227e94ce88e25
+                # https://github.com/raspberrypi/linux/commit/61b7f805dc2fd364e0df682de89227e94ce88e2
                 ex.errno == errno.EAGAIN  # pylint: disable=no-member
                 or ex.errno == errno.ESHUTDOWN  # pylint: disable=no-member
             ):
@@ -221,7 +221,10 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
                 try:
                     report = os.read(self.__fd, self.__read_size)
                 except Exception as ex:
-                    if isinstance(ex, OSError) and ex.errno == errno.EAGAIN:  # pylint: disable=no-member
+                    if isinstance(ex, OSError) and (
+                        ex.errno == errno.EAGAIN  # pylint: disable=no-member
+                        or ex.errno == errno.ESHUTDOWN  # pylint: disable=no-member
+                    ):
                         logger.debug("HID-%s busy/unplugged (read): %s", self.__name, tools.efmt(ex))
                     else:
                         logger.exception("Can't read report from HID-%s", self.__name)
