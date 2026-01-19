@@ -15,6 +15,11 @@ append vars
 		)
 
 
+block head
+	link(rel="preload" href=`${svg_dir}/stream-mouse-cursor.svg` as="image")
+	link(rel="preload" href=`${pic_dir}/blank-stream.webp` as="image")
+
+
 block body
 	include navbar.pug
 	include windows.pug

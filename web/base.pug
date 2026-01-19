@@ -59,6 +59,8 @@ html(lang="en")
 		each name in ["vars", "main"].concat(css_list).concat(["user"])
 			link(rel="stylesheet" href=`${css_dir}/${name}.css`)
 
+		block head
+
 		if main_js
 			script(type="module")
 				| import {setRootPrefix} from "#{js_dir}/vars.js";
