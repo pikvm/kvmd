@@ -74,7 +74,7 @@ export function MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 	self.stopStream = function() {
 		self.ensureStream(null);
-		let blank = `${ROOT_PREFIX}share/png/blank-stream.png`;
+		let blank = `${ROOT_PREFIX}share/pic/blank-stream.webp`;
 		if (!String.prototype.endsWith.call($("stream-image").src, blank)) {
 			$("stream-image").src = blank;
 		}
