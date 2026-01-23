@@ -225,6 +225,14 @@
                 <select id="stream-resolution-selector" disabled></select>
               </td>
             </tr>
+            <tr>
+                  <td>FPS limit:
+                  </td>
+                  <td class="value-slider">
+                    <input type="range" id="stream-desired-fps-slider">
+                  </td>
+                  <td class="value-number" id="stream-desired-fps-value"></td>
+            </tr>
             <tr class="feature-disabled" id="stream-quality">
                   <td>JPEG quality:
                   </td>
@@ -232,14 +240,6 @@
                     <input type="range" id="stream-quality-slider">
                   </td>
                   <td class="value-number" id="stream-quality-value"></td>
-            </tr>
-            <tr>
-                  <td>JPEG max fps:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-desired-fps-slider">
-                  </td>
-                  <td class="value-number" id="stream-desired-fps-value"></td>
             </tr>
             <tr class="feature-disabled" id="stream-h264-bitrate">
                   <td>H.264 kbps:

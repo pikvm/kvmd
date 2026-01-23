@@ -40,10 +40,10 @@ li.right#system-dropdown
 			tr.feature-disabled#stream-resolution
 				td Resolution:
 				td #[select#stream-resolution-selector(disabled)]
+			tr
+				+menu_slider_td3("stream-desired-fps-slider", "stream-desired-fps-value", false) FPS limit:
 			tr.feature-disabled#stream-quality
 				+menu_slider_td3("stream-quality-slider", "stream-quality-value", false) JPEG quality:
-			tr
-				+menu_slider_td3("stream-desired-fps-slider", "stream-desired-fps-value", false) JPEG max fps:
 			tr.feature-disabled#stream-h264-bitrate
 				+menu_slider_td3("stream-h264-bitrate-slider", "stream-h264-bitrate-value", false) H.264 kbps:
 			tr.feature-disabled#stream-h264-gop

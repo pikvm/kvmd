@@ -365,9 +365,9 @@ def make_config_scheme() -> dict:
                 },
 
                 "desired_fps": {
-                    "default": Option(40, type=valid_stream_fps, unpack_as="desired_fps"),
+                    "default": Option(30, type=valid_stream_fps, unpack_as="desired_fps"),
                     "min":     Option(0,  type=valid_stream_fps, unpack_as="desired_fps_min"),
-                    "max":     Option(70, type=valid_stream_fps, unpack_as="desired_fps_max"),
+                    "max":     Option(90, type=valid_stream_fps, unpack_as="desired_fps_max"),
                 },
 
                 "h264_bitrate": {
