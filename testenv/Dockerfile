@@ -17,7 +17,6 @@ RUN \
 		glibc \
 		pacman \
 		openssl \
-		openssl-1.1 \
 	&& pacman-db-upgrade \
 	&& $PACMAN -Syu \
 		p11-kit \

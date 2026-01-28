@@ -106,9 +106,6 @@ depends=(
 	# https://archlinuxarm.org/forum/viewtopic.php?f=15&t=15725&start=40
 	"zstd>=1.5.1-2.1"
 
-	# Possible hotfix for the new os update
-	openssl-1.1
-
 	# Bootconfig
 	dos2unix
 	parted
