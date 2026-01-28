@@ -367,12 +367,27 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		}
 	};
 
+	const show_latency = (new URL(window.location.href)).searchParams.get("show_webrtc_latency");
 	var __frames = 0;
 
 	var __updateInfo = function() {
 		if (__handle !== null) {
 			let info = "";
 			if (__handle !== null) {
+				info = `${__handle.getBitrate()}`.replace("kbits/sec", "kbps");
+
+				if (show_latency) {
+					const receiver = __handle.webrtcStuff.pc.getReceivers()[0];
+					const contributing_src = receiver.getSynchronizationSources()[0];
+					const capture_ts = contributing_src?.captureTimestamp;
+					const offset = (contributing_src?.senderCaptureTimeOffset || 0);
+
+					if (contributing_src && capture_ts) {
+						const latency = contributing_src.timestamp - (capture_ts + offset - 2208988800000)
+						info += ` / ${latency} ms`;
+					}
+				}
+
 				// https://wiki.whatwg.org/wiki/Video_Metrics
 				let frames = null;
 				let el = $("stream-video");
@@ -381,7 +396,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				} else if (el.mozPaintedFrames !== undefined) {
 					frames = el.mozPaintedFrames;
 				}
-				info = `${__handle.getBitrate()}`.replace("kbits/sec", "kbps");
 				if (frames !== null) {
 					info += ` / ${Math.max(0, frames - __frames)} dyn.fps`;
 					__frames = frames;
