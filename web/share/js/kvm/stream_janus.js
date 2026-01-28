@@ -126,7 +126,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				"server": tools.makeWsUrl("janus/ws"),
 				"ipv6": true,
 				"destroyOnUnload": false,
-				"iceServers": () => function() {
+				"iceServers": function() {
 					if (__ice !== null && __ice.url) {
 						__logInfo("Using the custom ICE Server got from uStreamer:", __ice);
 						return [{"urls": __ice.url}];
