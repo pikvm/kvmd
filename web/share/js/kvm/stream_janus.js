@@ -383,7 +383,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 					const offset = (contributing_src?.senderCaptureTimeOffset || 0);
 
 					if (contributing_src && capture_ts) {
-						const latency = contributing_src.timestamp - (capture_ts + offset - 2208988800000)
+						const latency = contributing_src.timestamp - (capture_ts + offset - 2208988800000);
 						info += ` / ${latency} ms`;
 					}
 				}
