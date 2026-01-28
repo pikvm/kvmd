@@ -38,7 +38,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	__allow_cam = (__allow_audio && __allow_cam); // XXX: Camera only with audio
 
 	var __stop = false;
-	var __ensuring = false;
 
 	var __janus = null;
 	var __handle = null;
@@ -48,10 +47,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	var __info_interval = null;
 
 	var __state = null;
-	var __frames = 0;
-	var __res = {"width": -1, "height": -1};
-	var __resize_listener_installed = false;
-
 	var __ice = null;
 
 	/************************************************************************/
@@ -87,6 +82,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		};
 	};
 
+	var __resize_listener_installed = false;
+
 	self.ensureStream = function(state) {
 		__state = state;
 		__stop = false;
@@ -106,6 +103,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		}
 	};
 
+	var __res = {"width": -1, "height": -1};
+
 	var __videoResizeHandler = function(ev) {
 		let el = ev.target;
 		if (__res.width !== el.videoWidth || __res.height !== el.videoHeight) {
@@ -114,6 +113,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 			__organizeHook();
 		}
 	};
+
+	var __ensuring = false;
 
 	var __ensureJanus = function(internal) {
 		if (__janus === null && !__stop && (!__ensuring || internal)) {
@@ -125,7 +126,14 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				"server": tools.makeWsUrl("janus/ws"),
 				"ipv6": true,
 				"destroyOnUnload": false,
-				"iceServers": () => __getIceServers(),
+				"iceServers": () => function() {
+					if (__ice !== null && __ice.url) {
+						__logInfo("Using the custom ICE Server got from uStreamer:", __ice);
+						return [{"urls": __ice.url}];
+					} else {
+						return [];
+					}
+				},
 				"success": __attachJanus,
 				"error": function(error) {
 					__logError(error);
@@ -133,15 +141,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 					__finishJanus();
 				},
 			});
-		}
-	};
-
-	var __getIceServers = function() {
-		if (__ice !== null && __ice.url) {
-			__logInfo("Using the custom ICE Server got from uStreamer:", __ice);
-			return [{"urls": __ice.url}];
-		} else {
-			return [];
 		}
 	};
 
@@ -200,16 +199,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 			el.srcObject = new MediaStream();
 		}
 		el.srcObject.addTrack(track);
-		// FIXME: Задержка уменьшается, но начинаются заикания на кейфреймах.
-		// XXX: Этот пример переехал из януса 0.x, перед использованием адаптировать к 1.x.
-		//   - https://github.com/Glimesh/janus-ftl-plugin/issues/101
-		/*if (__handle && __handle.webrtcStuff && __handle.webrtcStuff.pc) {
-			for (let receiver of __handle.webrtcStuff.pc.getReceivers()) {
-				if (receiver.track && receiver.track.kind === "video" && receiver.playoutDelayHint !== undefined) {
-					receiver.playoutDelayHint = 0;
-				}
-			}
-		}*/
 	};
 
 	var __removeTrack = function(track) {
@@ -332,7 +321,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				}
 			},
 
-			// Janus 1.x
 			"onremotetrack": function(track, id, added, meta) {
 				// Chrome sends `muted` notifiation for tracks in `disconnected` ICE state
 				// and Janus.js just removes muted track from list of available tracks.
@@ -379,6 +367,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		}
 	};
 
+	var __frames = 0;
+
 	var __updateInfo = function() {
 		if (__handle !== null) {
 			let info = "";
@@ -393,7 +383,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				}
 				info = `${__handle.getBitrate()}`.replace("kbits/sec", "kbps");
 				if (frames !== null) {
-					info += ` / ${Math.max(0, frames - __frames)} fps dynamic`;
+					info += ` / ${Math.max(0, frames - __frames)} dyn.fps`;
 					__frames = frames;
 				}
 			}
