@@ -214,6 +214,23 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 			el.srcObject = new MediaStream();
 		}
 		el.srcObject.addTrack(track);
+
+		// Chrome/Blink: Set playoutDelayHint to reduce latency and help with frame timing.
+		// This helps Chrome handle uStreamer's new FPS limiter, preventing slowlink issues.
+		if ((tools.browser.is_chrome || tools.browser.is_blink) && track.kind === "video") {
+			if (__handle && __handle.webrtcStuff && __handle.webrtcStuff.pc) {
+				try {
+					for (let receiver of __handle.webrtcStuff.pc.getReceivers()) {
+						if (receiver.track && receiver.track.kind === "video" && receiver.playoutDelayHint !== undefined) {
+							receiver.playoutDelayHint = 0;
+							__logInfo("Set playoutDelayHint=0 for Chrome video receiver");
+						}
+					}
+				} catch (e) {
+					__logInfo("Could not set playoutDelayHint:", e);
+				}
+			}
+		}
 	};
 
 	var __removeTrack = function(track) {
