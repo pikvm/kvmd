@@ -80,6 +80,9 @@ div.stream-box-mouse-dot {
 div.stream-box-mouse-none {
 	cursor: none;
 }
+div.stream-box-mouse-waitrel {
+	cursor: alias;
+}
 
 div#stream-keyboard-magic {
 	position: absolute;

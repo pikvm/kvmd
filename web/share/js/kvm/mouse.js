@@ -127,8 +127,15 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 				tools.browser.is_mobile
 				|| $("stream-box").matches("#stream-box:hover")
 			);
+			let dot = $("hid-mouse-dot-switch").checked;
+			$("stream-box").classList.toggle("stream-box-mouse-dot", (__ws && is_captured && dot));
+			$("stream-box").classList.toggle("stream-box-mouse-none", (__ws && is_captured && !dot));
+			$("stream-box").classList.toggle("stream-box-mouse-waitrel", false);
 		} else {
 			is_captured = __isRelativeCaptured();
+			$("stream-box").classList.toggle("stream-box-mouse-dot", false);
+			$("stream-box").classList.toggle("stream-box-mouse-none", false);
+			$("stream-box").classList.toggle("stream-box-mouse-waitrel", (__ws && !is_captured));
 		}
 
 		let led = "led-gray";
@@ -153,15 +160,6 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		}
 		$("hid-mouse-led").className = led;
 		$("hid-mouse-led").title = title;
-
-		if (__abs && is_captured) {
-			let dot = $("hid-mouse-dot-switch").checked;
-			$("stream-box").classList.toggle("stream-box-mouse-dot", (dot && __ws));
-			$("stream-box").classList.toggle("stream-box-mouse-none", (!dot && __ws));
-		} else {
-			$("stream-box").classList.toggle("stream-box-mouse-dot", false);
-			$("stream-box").classList.toggle("stream-box-mouse-none", false);
-		}
 	};
 
 	var __isRelativeCaptured = function() {
