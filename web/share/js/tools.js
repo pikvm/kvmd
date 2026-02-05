@@ -24,7 +24,7 @@
 
 
 import {ROOT_PREFIX} from "./vars.js";
-import {browser} from "./bb.js";
+import {getUrlParam, browser} from "./bb.js";
 
 
 export var tools = new function() {
@@ -39,6 +39,8 @@ export var tools = new function() {
 	};
 
 	/************************************************************************/
+
+	self.getUrlParam = getUrlParam;
 
 	self.currentOpen = function(url) {
 		window.location.href = ROOT_PREFIX + url;
@@ -369,7 +371,7 @@ export var tools = new function() {
 
 	/************************************************************************/
 
-	let __debug = (new URL(window.location.href)).searchParams.get("debug");
+	const __debug = getUrlParam("debug");
 
 	self.debug = function(...args) {
 		if (__debug) {

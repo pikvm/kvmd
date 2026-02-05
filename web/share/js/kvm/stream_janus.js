@@ -382,7 +382,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		}
 	};
 
-	const show_latency = (new URL(window.location.href)).searchParams.get("show_webrtc_latency");
+	const show_latency = tools.getUrlParam("show_webrtc_latency");
 	var __frames = 0;
 
 	var __updateInfo = function() {

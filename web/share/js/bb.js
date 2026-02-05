@@ -26,6 +26,12 @@
 import {ROOT_PREFIX} from "./vars.js";
 
 
+export function getUrlParam(name) {
+	const params = new URLSearchParams(window.location.search);
+	return params.get(name);
+}
+
+
 export var browser = new function() {
 	// https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769
 	// https://github.com/fingerprintjs/fingerprintjs/discussions/641
@@ -85,8 +91,8 @@ export var browser = new function() {
 
 	let is_android = /android/i.test(navigator.userAgent);
 
-	let force_desktop = (new URL(window.location.href)).searchParams.get("force_desktop");
-	let force_mobile = (new URL(window.location.href)).searchParams.get("force_mobile");
+	const force_desktop = getUrlParam("force_desktop");
+	const force_mobile = getUrlParam("force_mobile");
 
 	let flags = {
 		"is_opera": is_opera,
