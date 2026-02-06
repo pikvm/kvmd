@@ -87,7 +87,7 @@ export function MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeH
 			__logInfo("Active");
 			__setActive();
 		}
-		__setInfo(true, __state.source.online, `${__fps} fps dynamic`);
+		__setInfo(true, __state.source.online, `${__fps} dyn.fps`);
 	};
 
 	var __setStreamInactive = function() {

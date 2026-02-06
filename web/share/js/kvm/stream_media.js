@@ -118,7 +118,7 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 			if (__decoder && __decoder.state === "configured") {
 				let online = !!(__state && __state.source.online);
-				let info = `${__fps_accum} fps dynamic`;
+				let info = `${__fps_accum} dyn.fps`;
 				__fps_accum = 0;
 				__setInfo(true, online, info);
 			}
