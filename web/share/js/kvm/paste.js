@@ -35,7 +35,7 @@ export function Paste(__recorder) {
 	var __init__ = function() {
 		$("hid-pak-text").addEventListener("keyup", function(ev) {
 			if (ev.ctrlKey && ev.code == "Enter") {
-				$("hid-pak-button").click();
+				wm.click($("hid-pak-button"));
 			}
 		});
 

@@ -122,8 +122,8 @@ function __WindowManager() {
 			});
 		}
 
-		window.addEventListener("mouseup", __globalMouseButtonHandler);
-		window.addEventListener("touchend", __globalMouseButtonHandler);
+		window.addEventListener("mouseup", (ev) => __globalMouseButtonHandler(ev.target));
+		window.addEventListener("touchend", (ev) => __globalMouseButtonHandler(ev.target));
 
 		window.addEventListener("focusin", (ev) => __focusInOut(ev.target, true));
 		window.addEventListener("focusout", (ev) => __focusInOut(ev.target, false));
@@ -395,6 +395,12 @@ function __WindowManager() {
 		__organizeWindow(el_win, true, false);
 	};
 
+	self.click = function(el) {
+		// FIXME: Find a better way to trigger the global handler after a random element click
+		el.click();
+		__globalMouseButtonHandler(el);
+	};
+
 	var __goFullScreenWindow = function(el_win) {
 		// Safari/Firefox:
 		//  - https://github.com/whatwg/fullscreen/pull/232
@@ -499,21 +505,21 @@ function __WindowManager() {
 		return el_parent;
 	};
 
-	var __globalMouseButtonHandler = function(ev) {
-		if (ev.target.closest(".modal-window")) {
+	var __globalMouseButtonHandler = function(el) {
+		if (el.closest(".modal-window")) {
 			// Игнорировать клики внутри модального окна
 			return;
 		}
 
-		if (ev.target.closest(".modal")) {
+		if (el.closest(".modal")) {
 			// Клик по модальному полю возвращает фокус в окно
-			__activateWindow(ev.target.closest(".modal"));
+			__activateWindow(el.closest(".modal"));
 			return;
 		}
 
 		if (
-			ev.target.closest(".menu-button")
-			|| (ev.target.closest(".menu") && !ev.target.closest("[data-wm-menu-force-hide]"))
+			el.closest(".menu-button")
+			|| (el.closest(".menu") && !el.closest("[data-wm-menu-force-hide]"))
 		) {
 			// Клик по кнопке вызова меню обрабатывается явно.
 			// Клик по чему-то внутри меню игнорируется, если это что-то не имеет data-wm-menu-force-hide.
@@ -526,8 +532,8 @@ function __WindowManager() {
 			// судя по всему оно прерывается при закрытии меню.
 			// Откладываем обработку.
 			if (
-				!ev.target.hasAttribute("data-wm-navbar-show")
-				&& !ev.target.closest("#navbar") // Игнорируем клики по навбару
+				!el.hasAttribute("data-wm-navbar-show")
+				&& !el.closest("#navbar") // Игнорируем клики по навбару
 				&& $$("window-full-tab").length // Только если у нас вообще есть распахнутые окна
 			) {
 				__setNavbarVisible(false);
