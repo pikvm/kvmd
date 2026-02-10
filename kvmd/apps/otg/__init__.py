@@ -62,7 +62,8 @@ def _symlink(src: str, dest: str) -> None:
 
 def _rmdir(path: str) -> None:
     get_logger().info("RMDIR --- %s", path)
-    os.rmdir(path)
+    if os.path.isdir(path):
+        os.rmdir(path)
 
 
 def _unlink(path: str, optional: bool=False) -> None:
