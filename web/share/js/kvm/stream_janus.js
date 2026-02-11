@@ -82,24 +82,27 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		};
 	};
 
-	var __ff_hack_h264_gop = null;
+	var __fix_zero_h264_gop = null;
 	var __resize_listener_installed = false;
 
 	self.ensureStream = function(state) {
 		__state = state;
 		__stop = false;
-		if (tools.browser.is_firefox && __state && __ff_hack_h264_gop !== __state.h264.gop) {
-			// uStreamer делает RTP playout-delay=0,0 при gop=0, и 0,10s для gop>0
-			// При смене playout-delay с 0,>0 на 0,0 у фокса сносит крышу и поток фризится.
+		if (__state && __fix_zero_h264_gop !== __state.h264.gop) {
+			// Проблема воспроизводится на фоксе и сафари, и не воспроизводится на хроме.
+			// Из параноидельных соображений фикс включен для всех браузеров.
+			//
+			// В общем, uStreamer делает RTP playout-delay=0,0 при gop=0, и 0,10s для gop>0
+			// При смене playout-delay с 0,>0 на 0,0 у браузера сносит крышу и поток фризится.
 			// Перезапускаем стрим для этого случая.
 			// Потенциально тут может быть гонка между тем, что RTP-пакеты с 0,0
 			// еще не дошли, а стрим уже перезапустился, но ничего не поделаешь.
 			// Альтернативно можно детектить состояние, когда трафик потребляется,
 			// но при этом отображается 0fps (собственно, так и выглядит фриз).
-			if (__ff_hack_h264_gop !== null && __state.h264.gop === 0) {
+			if (__fix_zero_h264_gop !== null && __state.h264.gop === 0) {
 				self.stopStream();
 			}
-			__ff_hack_h264_gop = __state.h264.gop;
+			__fix_zero_h264_gop = __state.h264.gop;
 		}
 		__ensureJanus(false);
 		if (!__resize_listener_installed) {
@@ -109,7 +112,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	self.stopStream = function() {
-		__ff_hack_h264_gop = null;
+		__fix_zero_h264_gop = null;
 		__stop = true;
 		__destroyJanus();
 		if (__resize_listener_installed) {
