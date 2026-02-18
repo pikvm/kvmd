@@ -224,13 +224,25 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
         while True:
             try:
                 streaming = False
+                gop = 0
                 async with streamer.reading() as read_frame:
                     while True:
-                        frame = await read_frame(not self.__fb_has_key)
+                        # 3600 = 30fps * 60 * 2m
+                        frame = await read_frame((not self.__fb_has_key) or (gop > 3600))
+
+                        if frame["format"] == StreamerFormats.H264:
+                            if frame["key"] or frame["gop"] > 0:
+                                gop = 0
+                            else:
+                                gop += 1
+                        else:
+                            gop = 0
+
                         if not streaming:
                             logger.info("%s [streamer]: Streaming ...", self._remote)
                             streaming = True
                         await self.__queue_frame(frame)
+
             except StreamerError as ex:
                 if isinstance(ex, StreamerPermError):
                     streamer = self.__get_default_streamer()
