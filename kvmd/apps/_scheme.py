@@ -377,7 +377,7 @@ def make_config_scheme() -> dict:
                 },
 
                 "h264_gop": {
-                    "default": Option(30, type=valid_stream_h264_gop, unpack_as="h264_gop"),
+                    "default": Option(0,  type=valid_stream_h264_gop, unpack_as="h264_gop"),
                     "min":     Option(0,  type=valid_stream_h264_gop, unpack_as="h264_gop_min"),
                     "max":     Option(60, type=valid_stream_h264_gop, unpack_as="h264_gop_max"),
                 },
