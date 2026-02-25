@@ -58,6 +58,10 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
         shutdown_delay: float,
         state_poll: float,
 
+        h264_boost: bool,
+        slowdown: bool,
+        passthrough: bool,
+
         unix_path: str,
         timeout: float,
         snapshot_timeout: float,
@@ -86,6 +90,13 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
         self.__process_name_prefix = process_name_prefix
 
         self.__params = Params(**params_kwargs)
+
+        if h264_boost:
+            cmd_append = [*cmd_append, "--h264-boost"]
+        if slowdown:
+            cmd_append = [*cmd_append, "--slowdown"]
+        if passthrough:
+            cmd_append = [*cmd_append, "--v4p"]
 
         self.__runner = Runner(
             reset_delay=reset_delay,

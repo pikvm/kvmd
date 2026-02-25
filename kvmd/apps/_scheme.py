@@ -382,6 +382,10 @@ def make_config_scheme() -> dict:
                     "max":     Option(60, type=valid_stream_h264_gop, unpack_as="h264_gop_max"),
                 },
 
+                "h264_boost":  Option(False, type=valid_bool),
+                "slowdown":    Option(False, type=valid_bool),
+                "passthrough": Option(False, type=valid_bool),
+
                 "unix":    Option("/run/kvmd/ustreamer.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "timeout": Option(2.0, type=valid_float_f01),
                 "snapshot_timeout": Option(5.0, type=valid_float_f01),  # error_delay * 3 + 1
