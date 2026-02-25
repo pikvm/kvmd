@@ -213,6 +213,7 @@ class _GadgetConfig:
         _write(join(func_path, "lun.0/removable"), int(removable))
         _write(join(func_path, "lun.0/nofua"), int(not fua))
         if os.path.isfile(join(func_path, "lun.0/inquiry_string_cdrom")):
+            # found that the `inquiry_string_cdrom` could be missing in some kernel versions, so we need to check it before writing
             _write(join(func_path, "lun.0/inquiry_string_cdrom"), inquiry_string_cdrom)
         _write(join(func_path, "lun.0/inquiry_string"), inquiry_string_flash)
         if user != "root":
