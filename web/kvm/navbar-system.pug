@@ -112,7 +112,15 @@ li.right#system-dropdown
 				tr
 					+menu_switch_td2("hid-mouse-dot-switch", true, true) Show the blue dot:
 
-		+menu_spoiler("Web UI settings")
+		+menu_spoiler("Interface settings")
+			table.kv
+				tr
+					+menu_radio_td2("page-ui-type-radio", [
+						{title: "Auto", value: "auto", checked: true},
+						{title: "Desktop", value: "desktop"},
+						{title: "Mobile", value: "mobile"},
+					]) Interface style:
+			hr
 			table.kv
 				tr
 					+menu_switch_td2("page-close-ask-switch", true, true) Ask page close confirmation:

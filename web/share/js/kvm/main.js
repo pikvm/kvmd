@@ -35,6 +35,16 @@ export function main() {
 		return;
 	}
 
+	tools.radio.clickValue("page-ui-type-radio", tools.storage.get("page.ui.type", "auto"));
+	tools.radio.setOnClick("page-ui-type-radio", function() {
+		const ui = tools.radio.getValue("page-ui-type-radio");
+		if (tools.storage.get("page.ui.type") !== ui) {
+			tools.storage.set("page.ui.type", ui);
+			window.onbeforeunload = null;
+			window.location.href = window.location.href; // eslint-disable-line
+		}
+	}, false);
+
 	tools.storage.bindSimpleSwitch($("page-close-ask-switch"), "page.close.ask", true, function(value) {
 		if (value) {
 			window.onbeforeunload = function(ev) {

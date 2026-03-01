@@ -91,8 +91,7 @@ export var browser = new function() {
 
 	let is_android = /android/i.test(navigator.userAgent);
 
-	const force_desktop = getUrlParam("force_desktop");
-	const force_mobile = getUrlParam("force_mobile");
+	let ui = window.localStorage.getItem("page.ui.type");
 
 	let flags = {
 		"is_opera": is_opera,
@@ -105,7 +104,13 @@ export var browser = new function() {
 		"is_ios": is_ios,
 		"is_android": is_android,
 		"is_apple": (is_mac || is_ios),
-		"is_mobile": ((is_ios || is_android || force_mobile) && !force_desktop),
+		"is_mobile": (
+			ui === "desktop"
+				? false
+				: ui === "mobile"
+					? true
+					: (is_ios || is_android)
+		),
 	};
 
 	console.log("===== BB flags:", flags);
