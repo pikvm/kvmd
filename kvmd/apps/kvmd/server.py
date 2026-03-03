@@ -159,6 +159,8 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         streamer: Streamer,
         snapshoter: Snapshoter,
 
+        allow_redirects: list[str],
+
         keymap_path: str,
 
         stream_forever: bool,
@@ -176,7 +178,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__hid_api = HidApi(hid, keymap_path)  # Ugly hack to get keymaps state
         self.__apis: list[object] = [
             self,
-            AuthApi(auth),
+            AuthApi(auth, allow_redirects),
             InfoApi(im),
             LogApi(log_reader),
             UserGpioApi(ugpio),

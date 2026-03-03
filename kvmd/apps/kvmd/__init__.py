@@ -110,6 +110,8 @@ def main() -> None:
             **config.snapshot._unpack(),
         ),
 
+        allow_redirects=config.auth.allow_redirects,
+
         keymap_path=config.hid.keymap,
 
         stream_forever=config.streamer.forever,
