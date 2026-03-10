@@ -1,0 +1,17 @@
+[Unit]
+Description=PiKVM - NBD server
+After=systemd-modules-load.service
+Before=kvmd.service
+
+[Service]
+User=kvmd-nbd
+Group=kvmd-nbd
+Type=simple
+Restart=always
+RestartSec=3
+
+ExecStart=/usr/bin/kvmd-nbd --run
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

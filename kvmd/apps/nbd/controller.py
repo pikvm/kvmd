@@ -28,17 +28,21 @@ from typing import AsyncGenerator
 from typing import Type
 from typing import Any
 
-from ..logging import get_logger
+from ...logging import get_logger
 
-from .. import tools
-from .. import aiotools
+from ... import tools
+from ... import aiotools
 
-from ..yamlconf import make_config
-from ..validators import ValidatorError
+from ...yamlconf import make_config
+from ...validators import ValidatorError
 
 from .errors import NbdError
+from .errors import NbdBoundError
+from .errors import NbdProbeError
 
+from .types import NbdImage
 from .types import BaseNbdEvent
+from .types import NbdSetupEvent
 from .types import NbdStopEvent
 
 from .device import NbdDevice
@@ -49,7 +53,7 @@ from .remotes.http import NbdHttpRemote
 
 
 # =====
-class NbdServer:
+class NbdController:
     __DEVICE_BLOCK:   Final[int] = 512
     __DEVICE_TIMEOUT: Final[int] = 3600
 
@@ -67,10 +71,16 @@ class NbdServer:
 
     # =====
 
-    async def bind(self, url: str, **kwargs: Any) -> None:
+    def get_remotes(self) -> dict[str, dict[str, Any]]:
+        return {
+            scheme: {name: opt.default for (name, opt) in cls.get_options().items()}
+            for (scheme, cls) in self.__REMOTES.items()
+        }
+
+    async def bind(self, url: str, **kwargs: Any) -> NbdImage:
         async with self.__lock:
             if self.__proc:
-                raise NbdError("NBD is already bound")
+                raise NbdBoundError("NBD is already bound")
 
             scheme = urllib.parse.urlparse(url).scheme
             cls = self.__REMOTES.get(scheme)
@@ -80,14 +90,18 @@ class NbdServer:
             try:
                 config = make_config({"url": url, **kwargs}, {}, cls.get_options())
             except Exception as ex:
-                raise ValidatorError(tools.efmt(ex))
+                raise ValidatorError(f"{cls.__name__}: {tools.efmt(ex)}")
 
             remote = cls(**config._unpack())
-            image = await remote.probe()
+            try:
+                image = await remote.probe()
+            except Exception as ex:
+                raise NbdProbeError(f"{cls.__name__}: {tools.efmt(ex)}")
 
             assert self.__proc is None
             self.__nr.notify()
             self.__proc = NbdProcess(self.__device, remote, image)
+            return image
 
     def unbind(self) -> None:
         if self.__proc:
@@ -97,6 +111,7 @@ class NbdServer:
         while True:
             await self.__nr.wait()
             if self.__proc:
+                yield NbdSetupEvent(self.__proc.get_image())
                 stop: (NbdStopEvent | None) = None
                 try:
                     async with self.__proc.running():

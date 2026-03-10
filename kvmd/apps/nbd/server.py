@@ -1,0 +1,172 @@
+# ========================================================================== #
+#                                                                            #
+#    KVMD - The main PiKVM daemon.                                           #
+#                                                                            #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+# ========================================================================== #
+
+
+import os
+import subprocess
+import dataclasses
+
+from aiohttp.web import Request
+from aiohttp.web import Response
+from aiohttp.web import WebSocketResponse
+
+from ...logging import get_logger
+
+from ... import tools
+from ... import aiotools
+from ... import aioproc
+
+from ...htserver import exposed_http
+from ...htserver import exposed_ws
+from ...htserver import make_json_response
+from ...htserver import WsSession
+from ...htserver import HttpServer
+
+from .controller import NbdController
+from .types import NbdImage
+from .types import NbdSetupEvent
+from .types import NbdStartEvent
+from .types import NbdStatusEvent
+from .types import NbdStopEvent
+
+
+# =====
+@dataclasses.dataclass
+class _Stopped:
+    image:  NbdImage
+    result: NbdStopEvent
+
+
+@dataclasses.dataclass
+class _State:
+    image:   (NbdImage | None) = dataclasses.field(default=None)
+    started: bool = dataclasses.field(default=False)
+    changed: (NbdStatusEvent | None) = dataclasses.field(default=None)
+    stopped: (_Stopped | None) = dataclasses.field(default=None)
+
+
+class NbdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-instance-attributes
+    __EV_REMOTES = "remotes"
+    __EV_NBD = "nbd"
+
+    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
+        self,
+        device_path: str,
+        disconnect_cmd: list[str],
+    ) -> None:
+
+        super().__init__()
+
+        self.__device_path = device_path
+        self.__disconnect_cmd = disconnect_cmd
+
+        self.__ctl = NbdController(device_path)
+        self.__state = _State()
+
+    # ===== WEBSOCKET
+
+    @exposed_http("GET", "/ws")
+    async def __ws_handler(self, req: Request) -> WebSocketResponse:
+        async with self._ws_session(req) as ws:
+            await ws.send_event("loop", {})
+            await ws.send_event(self.__EV_REMOTES, self.__ctl.get_remotes())
+            await ws.send_event(self.__EV_NBD, dataclasses.asdict(self.__state))
+            return (await self._ws_loop(ws))
+
+    @exposed_ws("ping")
+    async def __ws_ping_handler(self, ws: WsSession, _: dict) -> None:
+        await ws.send_event("pong", {})
+
+    # ===== HTTP
+
+    @exposed_http("GET", "/remotes")
+    async def __root_handler(self, _: Request) -> Response:
+        return make_json_response(self.__ctl.get_remotes())
+
+    @exposed_http("GET", "/state")
+    async def __state_handler(self, _: Request) -> Response:
+        return make_json_response(dataclasses.asdict(self.__state))
+
+    @exposed_http("POST", "/bind")
+    async def __bind_handler(self, req: Request) -> Response:
+        image = await self.__ctl.bind(**dict(req.query))
+        return make_json_response(dataclasses.asdict(image))
+
+    @exposed_http("POST", "/unbind")
+    async def __unbind_handler(self, _: Request) -> Response:
+        self.__ctl.unbind()
+        return make_json_response({})
+
+    # ===== SYSTEM STUFF
+
+    async def _init_app(self) -> None:
+        await self.__force_disconnect()
+        aiotools.create_deadly_task("Controller", self.__controller())
+        self._add_exposed(self)
+
+    async def _on_shutdown(self) -> None:
+        logger = get_logger(0)
+        logger.info("Stopping system tasks ...")
+        await aiotools.stop_all_deadly_tasks()
+        logger.info("On-Shutdown complete")
+
+    async def _on_cleanup(self) -> None:
+        logger = get_logger(0)
+        await self.__force_disconnect()
+        logger.info("On-Cleanup complete")
+
+    # ===== SYSTEM TASKS
+
+    async def __controller(self) -> None:
+        logger = get_logger(0)
+        async for event in self.__ctl.poll():
+            logger.info("NBD-EVENT: %s", event)
+            match event:
+                case NbdSetupEvent():
+                    self.__state = _State(event.image)
+                case NbdStartEvent():
+                    assert self.__state.image is not None
+                    self.__state.started = True
+                case NbdStatusEvent():
+                    assert self.__state.image is not None
+                    assert self.__state.started
+                    self.__state.changed = event
+                case NbdStopEvent():
+                    assert self.__state.image is not None
+                    self.__state = _State(stopped=_Stopped(self.__state.image, event))
+            await self._broadcast_ws_event(self.__EV_NBD, dataclasses.asdict(self.__state))
+
+    async def __force_disconnect(self) -> bool:
+        logger = get_logger()
+        cmd = [
+            part.format(device=os.path.realpath(self.__device_path))
+            for part in self.__disconnect_cmd
+        ]
+        logger.info("Forced disconnecting NBD %s: %s", self.__device_path, tools.cmdfmt(cmd))
+        try:
+            proc = await aioproc.log_process(cmd, logger)
+            if proc.returncode != 0:
+                assert proc.returncode is not None
+                raise subprocess.CalledProcessError(proc.returncode, cmd)
+        except Exception as ex:
+            logger.error("Can't forcibly disconnect NBD: %s", tools.efmt(ex))
+            return False
+        return True

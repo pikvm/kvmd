@@ -20,36 +20,50 @@
 # ========================================================================== #
 
 
-import dataclasses
+from ... import tools
+
+from ...errors import OperationError
 
 
 # =====
-@dataclasses.dataclass(frozen=True)
-class NbdImage:
-    size:    int
-    rw:      bool
-    timeout: float
+class NbdError(OperationError):
+    def __init__(self, msg: str, ex: (Exception | None)=None) -> None:
+        if ex:
+            msg += ": " + tools.efmt(ex)
+        super().__init__(msg)
 
 
 # =====
-class BaseNbdEvent:
+class NbdControllerError(NbdError):
     pass
 
 
-@dataclasses.dataclass(frozen=True)
-class NbdRemoteEvent(BaseNbdEvent):
-    online: bool
-    msg:    str
+class NbdBoundError(NbdControllerError):
+    pass
 
 
-@dataclasses.dataclass(frozen=True)
-class NbdStartEvent(BaseNbdEvent):
-    image: NbdImage
-    path:  str
+class NbdProbeError(NbdControllerError):
+    pass
 
 
-@dataclasses.dataclass(frozen=True)
-class NbdStopEvent(BaseNbdEvent):
-    src: str
-    msg: str
-    ok:  bool
+# =====
+class NbdDeviceError(NbdError):
+    pass
+
+
+# =====
+class NbdIoError(NbdError):
+    pass
+
+
+class NbdIoConnectionError(NbdIoError):
+    pass
+
+
+class NbdIoProtocolError(NbdIoError):
+    pass
+
+
+# =====
+class NbdRemoteError(NbdError):
+    pass

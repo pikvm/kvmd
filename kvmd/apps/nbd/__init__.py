@@ -20,47 +20,23 @@
 # ========================================================================== #
 
 
-import asyncio
-import signal
-import argparse
-
 from ...logging import get_logger
 
-from ... import aiotools
+from .. import init
 
-from ...nbd import NbdServer
-from ...nbd.types import NbdStopEvent
-
-from .._logging import init_logging
+from .server import NbdServer
 
 
 # =====
-async def _async_main(device_path: str, url: str) -> None:
-    server = NbdServer(device_path)
-
-    async def poller() -> None:
-        logger = get_logger(0)
-        async for event in server.poll():
-            logger.info("NBD-EVENT: %s", event)
-            if isinstance(event, NbdStopEvent):
-                break
-
-    task = asyncio.create_task(poller())
-
-    loop = asyncio.get_running_loop()
-    loop.add_signal_handler(signal.SIGINT, server.unbind)
-    loop.add_signal_handler(signal.SIGTERM, server.unbind)
-
-    await server.bind(url)
-    await task
-
-
 def main() -> None:
-    init_logging(False)
+    config = init(
+        prog="kvmd-nbd",
+        description="The KVMD NBD server",
+        check_run=True,
+    ).config
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--device", default="/dev/nbd0")
-    parser.add_argument("-u", "--url", required=True)
-    opts = parser.parse_args()
+    NbdServer(
+        **config.nbd._unpack(ignore="server"),
+    ).run(**config.nbd.server._unpack())
 
-    aiotools.run(_async_main(opts.device, opts.url))
+    get_logger(0).info("Bye-bye")

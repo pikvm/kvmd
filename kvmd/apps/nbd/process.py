@@ -29,11 +29,11 @@ from typing import Final
 from typing import Generator
 from typing import AsyncGenerator
 
-from ..logging import get_logger
+from ...logging import get_logger
 
-from .. import tools
-from .. import aiotools
-from .. import aiomulti
+from ... import tools
+from ... import aiotools
+from ... import aiomulti
 
 from .errors import NbdError
 from .errors import NbdIoConnectionError
@@ -68,6 +68,9 @@ class NbdProcess:
         self.__proc = aiomulti.AioMpProcess("nbd", self.__subprocess)
         self.__ready_nr = aiomulti.AioMpNotifier()
 
+    def get_image(self) -> NbdImage:
+        return self.__image
+
     def stop(self) -> None:
         self.__proc.send_sigterm()
 
@@ -78,14 +81,13 @@ class NbdProcess:
 
         self.__proc.start()
         try:
-            ready = await self.__ready_nr.wait(self.__image.timeout + self.__REACT_TIMEOUT)
+            ready = await self.__ready_nr.wait(self.__remote.get_timeout() + self.__REACT_TIMEOUT)
             if ready < 0:  # pylint: disable=no-else-raise
                 # No events - not started
                 raise NbdError("NBD process did not respond in time at start")
             elif ready == 0:
                 # Failed to start in time, but notified - wait for exiting
                 await self.__proc.async_join(self.__REACT_TIMEOUT)
-                return  # FIXME: defunc
 
             yield
 
@@ -172,15 +174,15 @@ class NbdProcess:
                     await prepared.wait_passed()
                     await asyncio.wait_for(
                         self.__device.open_close(),
-                        timeout=self.__image.timeout,
+                        timeout=self.__remote.get_timeout(),
                     )
                 except BaseException as ex:
                     self.__ready_nr.notify(0)
                     if isinstance(ex, TimeoutError):
                         raise NbdError("Can't open+close device in time")
                     raise
+                self.__events_q.put_nowait(NbdStartEvent())
                 self.__ready_nr.notify(1)
-                self.__events_q.put_nowait(NbdStartEvent(self.__image, self.__device.get_path()))
                 await aiotools.wait_infinite()
 
     @contextlib.contextmanager

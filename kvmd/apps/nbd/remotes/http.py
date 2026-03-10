@@ -24,14 +24,14 @@ import asyncio
 
 import aiohttp
 
-from ... import tools
-from ... import htclient
+from .... import tools
+from .... import htclient
 
-from ...yamlconf import Option
+from ....yamlconf import Option
 
-from ...validators.basic import valid_bool
-from ...validators.basic import valid_number
-from ...validators.net import valid_url
+from ....validators.basic import valid_bool
+from ....validators.basic import valid_number
+from ....validators.net import valid_url
 
 from ..errors import NbdError
 from ..errors import NbdRemoteError
@@ -83,6 +83,9 @@ class NbdHttpRemote(BaseNbdRemote):
 
     # =====
 
+    def get_timeout(self) -> float:
+        return self.__timeout
+
     async def _do_probe(self) -> NbdImage:
         async with self.__make_session() as session:
             return (await self.__probe(session))
@@ -98,9 +101,9 @@ class NbdHttpRemote(BaseNbdRemote):
             if not isinstance(cl, int) or cl < 0:
                 raise NbdRemoteError(f"Invalid Content-Length: {cl}")
             return NbdImage(
+                url=self.__url,
                 size=cl,
                 rw=False,
-                timeout=self.__timeout,
             )
 
     # =====

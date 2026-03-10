@@ -32,9 +32,9 @@ from typing import Final
 from typing import Generator
 from typing import AsyncGenerator
 
-from ..logging import get_logger
+from ...logging import get_logger
 
-from .. import tools
+from ... import tools
 
 from .errors import NbdDeviceError
 from .types import NbdImage
@@ -79,9 +79,6 @@ class NbdDevice:
         self.__timeout = timeout
 
     # =====
-
-    def get_path(self) -> str:
-        return self.__path
 
     async def open_close(self) -> None:
         await asyncio.to_thread(self.__inner_open_close)

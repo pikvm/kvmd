@@ -99,6 +99,9 @@ depends=(
 	raspberrypi-utils
 	"ustreamer>=6.47"
 
+	# Temporary for kvmd-nbd
+	nbd
+
 	# Systemd UDEV bug
 	"systemd>=248.3-2"
 

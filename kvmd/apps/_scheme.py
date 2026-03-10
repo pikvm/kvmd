@@ -642,6 +642,20 @@ def make_config_scheme() -> dict:
             },
         },
 
+        "nbd": {
+            "server": {
+                "unix":              Option("/run/kvmd/nbd.sock", type=valid_abs_path, unpack_as="unix_path"),
+                "unix_rm":           Option(True,  type=valid_bool),
+                "unix_mode":         Option(0o660, type=valid_unix_mode, hint=Hint.OCT),
+                "heartbeat":         Option(15.0,  type=valid_float_f01),
+                "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
+                                            " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
+            },
+
+            "device":         Option("/dev/kvmd-nbd", type=valid_abs_path, unpack_as="device_path"),
+            "disconnect_cmd": Option(["/usr/bin/nbd-client", "-d", "{device}"], type=valid_command),
+        },
+
         "ipmi": {
             "server": {
                 "host":    Option("",   type=valid_ip_or_host, if_empty=""),

@@ -26,10 +26,10 @@ import errno
 
 from typing import Final
 
-from ...yamlconf import Option
+from ....yamlconf import Option
 
-from ... import tools
-from ... import aiomulti
+from .... import tools
+from .... import aiomulti
 
 from ..errors import NbdRemoteError
 from ..errors import NbdIoConnectionError
@@ -37,7 +37,7 @@ from ..errors import NbdIoProtocolError
 
 from ..types import NbdImage
 from ..types import BaseNbdEvent
-from ..types import NbdRemoteEvent
+from ..types import NbdStatusEvent
 
 from ..link import NbdLink
 
@@ -75,6 +75,9 @@ class BaseNbdRemote:
 
     # =====
 
+    def get_timeout(self) -> float:
+        raise NotImplementedError
+
     async def _do_probe(self) -> NbdImage:
         raise NotImplementedError
 
@@ -93,17 +96,17 @@ class BaseNbdRemote:
     # =====
 
     async def _send_status_ok(self) -> None:
-        await self.__send_remote_event(True, "Online")
+        await self.__send_event(NbdStatusEvent(True, "Online"))
 
     async def _send_status_error(self, msg: str) -> None:
-        await self.__send_remote_event(False, msg)
+        await self.__send_event(NbdStatusEvent(False, msg))
 
-    async def __send_remote_event(self, online: bool, msg: str) -> None:
+    async def __send_event(self, event: BaseNbdEvent) -> None:
         assert self.__events_q is not None
         try:
-            self.__events_q.put_nowait(NbdRemoteEvent(online, msg))
+            self.__events_q.put_nowait(event)
         except Exception as ex:
-            raise NbdRemoteError(f"Can't send status event: {tools.efmt(ex)}")
+            raise NbdRemoteError(f"Can't send event: {tools.efmt(ex)}")
 
     async def _probe_again(self) -> None:
         assert self.__image
@@ -131,7 +134,6 @@ class BaseNbdRemote:
         self.__events_q = events_q
 
         await self._probe_again()  # Validate NbdImage after first probing
-        await self._send_status_ok()
 
         while True:
             (op, cookie, offset, size, data) = await self.__recv_request(link.remote_r)
