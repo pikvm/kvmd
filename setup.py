@@ -125,7 +125,7 @@ def main() -> None:
             "console_scripts": [
                 "kvmd = kvmd.apps.kvmd:main",
                 "kvmd-media = kvmd.apps.media:main",
-                "kvmd-nbd = kvmd.apps.nbd",
+                "kvmd-nbd = kvmd.apps.nbd:main",
                 "kvmd-pst = kvmd.apps.pst:main",
                 "kvmd-pstrun = kvmd.apps.pstrun:main",
                 "kvmd-otg = kvmd.apps.otg:main",
