@@ -81,6 +81,26 @@ class NbdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
         self.__ctl = NbdController(device_path)
         self.__state = _State()
 
+    # ===== HTTP
+
+    @exposed_http("GET", "/state")
+    async def __state_handler(self, _: Request) -> Response:
+        return make_json_response(dataclasses.asdict(self.__state))
+
+    @exposed_http("GET", "/remotes")
+    async def __remotes_handler(self, _: Request) -> Response:
+        return make_json_response(self.__ctl.get_remotes())
+
+    @exposed_http("POST", "/bind")
+    async def __bind_handler(self, req: Request) -> Response:
+        image = await self.__ctl.bind(**dict(req.query))
+        return make_json_response(dataclasses.asdict(image))
+
+    @exposed_http("POST", "/unbind")
+    async def __unbind_handler(self, _: Request) -> Response:
+        self.__ctl.unbind()
+        return make_json_response({})
+
     # ===== WEBSOCKET
 
     @exposed_http("GET", "/ws")
@@ -94,26 +114,6 @@ class NbdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
     @exposed_ws("ping")
     async def __ws_ping_handler(self, ws: WsSession, _: dict) -> None:
         await ws.send_event("pong", {})
-
-    # ===== HTTP
-
-    @exposed_http("GET", "/remotes")
-    async def __root_handler(self, _: Request) -> Response:
-        return make_json_response(self.__ctl.get_remotes())
-
-    @exposed_http("GET", "/state")
-    async def __state_handler(self, _: Request) -> Response:
-        return make_json_response(dataclasses.asdict(self.__state))
-
-    @exposed_http("POST", "/bind")
-    async def __bind_handler(self, req: Request) -> Response:
-        image = await self.__ctl.bind(**dict(req.query))
-        return make_json_response(dataclasses.asdict(image))
-
-    @exposed_http("POST", "/unbind")
-    async def __unbind_handler(self, _: Request) -> Response:
-        self.__ctl.unbind()
-        return make_json_response({})
 
     # ===== SYSTEM STUFF
 

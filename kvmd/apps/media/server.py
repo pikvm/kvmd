@@ -108,13 +108,15 @@ class MediaServer(HttpServer):
         if jpeg_streamer:
             self.__media[self.__T_VIDEO][self.__F_JPEG] = _Source(jpeg_streamer)
 
-    # =====
+    # ===== HTTP
 
     @exposed_http("GET", "/")
-    async def __state_handler(self, _: Request) -> Response:
+    async def __root_handler(self, req: Request) -> Response:
         return make_json_response({
             self.__EV_MEDIA: self.__get_media_info(),
         })
+
+    # ===== WEBSOCKET
 
     @exposed_http("GET", "/ws")
     async def __ws_handler(self, req: Request) -> WebSocketResponse:
