@@ -20,7 +20,7 @@
 # ========================================================================== #
 
 
-import sys
+# import sys
 import os
 import fcntl
 import socket
@@ -50,7 +50,7 @@ _NBD_SET_FLAGS:       Final[tuple[int, str]] = (0x0000AB0A, "NBD_SET_FLAGS")
 _NBD_SET_SIZE_BLOCKS: Final[tuple[int, str]] = (0x0000AB07, "NBD_SET_SIZE_BLOCKS")
 _NBD_SET_SOCK:        Final[tuple[int, str]] = (0x0000AB00, "NBD_SET_SOCK")
 _NBD_SET_TIMEOUT:     Final[tuple[int, str]] = (0x0000AB09, "NBD_SET_TIMEOUT")
-_BLKROSET:            Final[tuple[int, str]] = (0x0000125D, "BLKROSET")
+# _BLKROSET:            Final[tuple[int, str]] = (0x0000125D, "BLKROSET")
 
 
 def _ioctl(fd: int, ctl: tuple[int, str], value: (int | bytes)=0) -> None:
@@ -112,7 +112,7 @@ class NbdDevice:
 
         blocks = (image.size + self.__block) // self.__block
         flags = (0 if image.rw else 2)  # NBD_FLAG_READ_ONLY
-        ro_bytes = int(not image.rw).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
+        # ro_bytes = int(not image.rw).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
 
         logger.info("Preparing %s: bytes=%s, bs=%s, blocks=%s, rw=%s ...",
                     self.__path, image.size, self.__block, blocks, image.rw)
@@ -120,7 +120,7 @@ class NbdDevice:
         _ioctl(fd, _NBD_SET_BLKSIZE, self.__block)
         _ioctl(fd, _NBD_SET_SIZE_BLOCKS, blocks)
         _ioctl(fd, _NBD_SET_FLAGS, flags)
-        _ioctl(fd, _BLKROSET, ro_bytes)
+        # _ioctl(fd, _BLKROSET, ro_bytes)  # XXX: PiKVM kernel sets BLKROSET with NBD_SET_FLAGS
         _ioctl(fd, _NBD_SET_TIMEOUT, math.ceil(self.__timeout))
         _ioctl(fd, _NBD_SET_SOCK, sock.fileno())
         logger.info("Prepared")
