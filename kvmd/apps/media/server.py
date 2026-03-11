@@ -111,7 +111,7 @@ class MediaServer(HttpServer):
     # ===== HTTP
 
     @exposed_http("GET", "/")
-    async def __root_handler(self, req: Request) -> Response:
+    async def __root_handler(self, _: Request) -> Response:
         return make_json_response({
             self.__EV_MEDIA: self.__get_media_info(),
         })
