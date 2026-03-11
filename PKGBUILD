@@ -154,9 +154,7 @@ backup=(
 	etc/kvmd/{override,meta}.yaml
 	etc/kvmd/{ht,ipmi,vnc}passwd
 	etc/kvmd/totp.secret
-	etc/kvmd/nginx/{kvmd.ctx-{http,server},certbot.ctx-server}.conf
-	etc/kvmd/nginx/loc-{login,nocache,proxy,websocket,nobuffering,bigpost}.conf
-	etc/kvmd/nginx/{mime-types,ssl}.conf
+	etc/kvmd/nginx/ssl.conf
 	etc/kvmd/nginx/nginx.conf.mako
 	etc/kvmd/janus/janus{,.plugin.ustreamer,.transport.websockets}.jcfg
 	etc/kvmd/web.css
