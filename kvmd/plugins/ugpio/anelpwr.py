@@ -71,9 +71,9 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__initial: dict[str, (bool | None)] = {}
 
         self.__state: dict[str, (bool | None)] = {}
-        self.__update_notifier = aiotools.AioNotifier()
+        self.__update_nr = aiotools.AioNotifier()
 
-        self.__http_session: (aiohttp.ClientSession | None) = None
+        self.__session: (aiohttp.ClientSession | None) = None
 
     @classmethod
     def get_plugin_options(cls) -> dict[str, Option]:
@@ -108,7 +108,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     async def run(self) -> None:
         prev_state: (dict | None) = None
         while True:
-            session = self.__ensure_http_session()
+            session = self.__ensure_session()
             try:
                 async with session.get(f"{self.__url}/strg.cfg") as resp:
                     htclient.raise_not_200(resp)
@@ -121,12 +121,14 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             if self.__state != prev_state:
                 self._notifier.notify()
                 prev_state = self.__state
-            await self.__update_notifier.wait(self.__state_poll)
+            await self.__update_nr.wait(self.__state_poll)
 
     async def cleanup(self) -> None:
-        if self.__http_session:
-            await self.__http_session.close()
-            self.__http_session = None
+        if self.__session:
+            try:
+                await self.__session.close()
+            finally:
+                self.__session = None
 
     async def read(self, pin: str) -> bool:
         if self.__state[pin] is None:
@@ -134,28 +136,28 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return self.__state[pin]  # type: ignore
 
     async def write(self, pin: str, state: bool) -> None:
-        session = self.__ensure_http_session()
+        session = self.__ensure_session()
         try:
             async with session.post(
                 url=f"{self.__url}/ctrl.htm",
                 data=f"F{pin}={int(state)}",
-                headers={"Content-Type": "text/plain"},
+                headers={aiohttp.hdrs.CONTENT_TYPE: "text/plain"},
             ) as resp:
                 htclient.raise_not_200(resp)
         except Exception as ex:
             get_logger().error("Failed ANELPWR POST request to pin %s: %s", pin, tools.efmt(ex))
             raise GpioDriverOfflineError(self)
-        self.__update_notifier.notify()
+        self.__update_nr.notify()
 
-    def __ensure_http_session(self) -> aiohttp.ClientSession:
-        if not self.__http_session:
-            self.__http_session = aiohttp.ClientSession(
-                headers={"User-Agent": htclient.make_user_agent("KVMD")},
+    def __ensure_session(self) -> aiohttp.ClientSession:
+        if not self.__session:
+            self.__session = aiohttp.ClientSession(
+                headers={aiohttp.hdrs.USER_AGENT: htclient.make_user_agent("KVMD")},
                 connector=aiohttp.TCPConnector(ssl=self.__verify),
                 auth=(aiohttp.BasicAuth(self.__user, self.__passwd) if self.__user else None),
                 timeout=aiohttp.ClientTimeout(total=self.__timeout),
             )
-        return self.__http_session
+        return self.__session
 
     def __str__(self) -> str:
         return f"ANELPWR({self._instance_name})"
