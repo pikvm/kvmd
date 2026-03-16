@@ -149,12 +149,10 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     def __ensure_http_session(self) -> aiohttp.ClientSession:
         if not self.__http_session:
-            kwargs: dict = {}
-            if self.__user:
-                kwargs["auth"] = aiohttp.BasicAuth(self.__user, self.__passwd)
             self.__http_session = aiohttp.ClientSession(
                 headers={"User-Agent": htclient.make_user_agent("KVMD")},
                 connector=aiohttp.TCPConnector(ssl=self.__verify),
+                auth=(aiohttp.BasicAuth(self.__user, self.__passwd) if self.__user else None),
                 timeout=aiohttp.ClientTimeout(total=self.__timeout),
             )
         return self.__http_session
