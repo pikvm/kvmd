@@ -151,6 +151,7 @@ export function Hid(__getGeometry, __recorder) {
 			tools.el.setEnabled($("hid-connect-switch"), false);
 			tools.el.setEnabled($("hid-mouse-squash-switch"), false);
 			tools.el.setEnabled($("hid-mouse-sens-slider"), false);
+			tools.el.setEnabled($("hid-mouse-boost-slider"), false);
 		}
 		tools.el.setEnabled($("hid-reset-button"), __state);
 		tools.el.setEnabled($("hid-jiggler-switch"), __state);
@@ -216,10 +217,12 @@ export function Hid(__getGeometry, __recorder) {
 		if (has_relative !== null) {
 			tools.feature.setEnabled($("hid-mouse-squash"), has_relative);
 			tools.feature.setEnabled($("hid-mouse-sens"), has_relative);
+			tools.feature.setEnabled($("hid-mouse-boost"), (has_relative && tools.browser.is_firefox && tools.browser.is_linux));
 		}
 		tools.feature.setEnabled($("hid-outputs-mouse"), (avail.length > 0));
 		tools.el.setEnabled($("hid-mouse-squash-switch"), has_relative_squash);
 		tools.el.setEnabled($("hid-mouse-sens-slider"), has_relative_squash);
+		tools.el.setEnabled($("hid-mouse-boost-slider"), has_relative_squash);
 	};
 
 	var __releaseAll = function() {

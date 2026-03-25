@@ -95,6 +95,9 @@ li.right#system-dropdown
 					+menu_slider_td3("hid-mouse-rate-slider", "hid-mouse-rate-value") Mouse polling:
 				tr.feature-disabled#hid-mouse-sens
 					+menu_slider_td3("hid-mouse-sens-slider", "hid-mouse-sens-value", false) Relative sensitivity:
+				tr.feature-disabled#hid-mouse-boost
+					+menu_slider_td3("hid-mouse-boost-slider", "hid-mouse-boost-value", false)
+						| Relative boost factor:#[br]#[i (Firefox on Wayland)]
 				tr(id="hid-mouse-squash" class="feature-disabled")
 					+menu_switch_td2("hid-mouse-squash-switch", true, true) Squash relative moves:
 				tr

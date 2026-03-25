@@ -99,6 +99,7 @@ export var browser = new function() {
 		"is_safari": is_safari,
 		"is_chrome": is_chrome,
 		"is_blink": is_blink,
+		"is_linux": !(is_win || is_mac || is_ios || is_android),
 		"is_mac": is_mac,
 		"is_win": is_win,
 		"is_ios": is_ios,

@@ -52,6 +52,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			$("hid-mouse-sens-value").innerText = value.toFixed(1);
 		});
 
+		tools.storage.bindSimpleSlider($("hid-mouse-boost-slider"), "hid.mouse.boost", 1, 10, 1, 1, function (value) {
+			$("hid-mouse-boost-value").innerText = "x" + value;
+		});
+
 		tools.storage.bindSimpleSlider($("hid-mouse-scroll-slider"), "hid.mouse.scroll_rate", 1, 25, 1, 5, function (value) {
 			$("hid-mouse-scroll-value").innerText = value;
 		});
@@ -302,9 +306,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 	var __sendOrPlanRelativeMove = function(delta) {
 		let sens = $("hid-mouse-sens-slider").valueAsNumber;
+		let boost = $("hid-mouse-boost-slider").valueAsNumber;
 		delta = {
-			"x": Math.min(Math.max(-127, Math.floor(delta.x * sens)), 127),
-			"y": Math.min(Math.max(-127, Math.floor(delta.y * sens)), 127),
+			"x": Math.min(Math.max(-127, Math.floor(delta.x * sens * boost)), 127),
+			"y": Math.min(Math.max(-127, Math.floor(delta.y * sens * boost)), 127),
 		};
 		if (delta.x || delta.y) {
 			if ($("hid-mouse-squash-switch").checked) {
