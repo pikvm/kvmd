@@ -73,7 +73,9 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 		$("stream-box").addEventListener("contextmenu", (ev) => ev.preventDefault());
 		$("stream-box").addEventListener("mouseenter", __updateOnlineLeds);
+		$("stream-box").addEventListener("mouseenter", __enterButtonsHandler);
 		$("stream-box").addEventListener("mouseleave", __updateOnlineLeds);
+		$("stream-box").addEventListener("mouseleave", __leaveButtonsHandler);
 		$("stream-box").addEventListener("mousedown", (ev) => __streamButtonHandler(ev, true));
 		$("stream-box").addEventListener("mouseup", (ev) => __streamButtonHandler(ev, false));
 		$("stream-box").addEventListener("mousemove", __streamMoveHandler);
@@ -122,6 +124,20 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 	self.releaseAll = function() {
 		__keypad.releaseAll();
+	};
+
+	var __leave_buttons = 0;
+
+	var __leaveButtonsHandler = function(ev) {
+		// https://github.com/pikvm/pikvm/issues/1653
+		__leave_buttons = ev.buttons;
+	};
+
+	var __enterButtonsHandler = function(ev) {
+		if (ev.buttons !== __leave_buttons) {
+			self.releaseAll();
+		}
+		__leave_buttons = 0;
 	};
 
 	var __updateOnlineLeds = function() {
