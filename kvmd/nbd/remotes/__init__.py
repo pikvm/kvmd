@@ -26,10 +26,10 @@ import errno
 
 from typing import Final
 
-from ....yamlconf import Option
+from ...yamlconf import Option
 
-from .... import tools
-from .... import aiomulti
+from ... import tools
+from ... import aiomulti
 
 from ..errors import NbdRemoteError
 from ..errors import NbdIoConnectionError

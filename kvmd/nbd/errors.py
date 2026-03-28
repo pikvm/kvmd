@@ -20,9 +20,9 @@
 # ========================================================================== #
 
 
-from ... import tools
+from .. import tools
 
-from ...errors import OperationError
+from ..errors import OperationError
 
 
 # =====

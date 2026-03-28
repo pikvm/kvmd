@@ -57,3 +57,18 @@ class NbdStopEvent(BaseNbdEvent):
     src: str
     msg: str
     ok:  bool
+
+
+# =====
+@dataclasses.dataclass(frozen=True)
+class NbdStopped:
+    image:  NbdImage
+    result: NbdStopEvent
+
+
+@dataclasses.dataclass(frozen=True)
+class NbdState:
+    image:   (NbdImage | None) = dataclasses.field(default=None)
+    bound:   str = dataclasses.field(default="")
+    changed: (NbdStatusEvent | None) = dataclasses.field(default=None)
+    stopped: (NbdStopped | None) = dataclasses.field(default=None)

@@ -32,9 +32,9 @@ from typing import Final
 from typing import Generator
 from typing import AsyncGenerator
 
-from ...logging import get_logger
+from ..logging import get_logger
 
-from ... import tools
+from .. import tools
 
 from .errors import NbdDeviceError
 from .types import NbdImage

@@ -29,11 +29,11 @@ from typing import Final
 from typing import Generator
 from typing import AsyncGenerator
 
-from ...logging import get_logger
+from ..logging import get_logger
 
-from ... import tools
-from ... import aiotools
-from ... import aiomulti
+from .. import tools
+from .. import aiotools
+from .. import aiomulti
 
 from .errors import NbdError
 from .errors import NbdIoConnectionError

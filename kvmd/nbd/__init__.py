@@ -28,22 +28,25 @@ from typing import AsyncGenerator
 from typing import Type
 from typing import Any
 
-from ...logging import get_logger
+from ..logging import get_logger
 
-from ... import tools
-from ... import aiotools
+from .. import tools
+from .. import aiotools
 
-from ...yamlconf import make_config
-from ...validators import ValidatorError
+from ..yamlconf import make_config
+from ..validators import ValidatorError
 
 from .errors import NbdError
 from .errors import NbdBoundError
 from .errors import NbdProbeError
 
-from .types import NbdImage
 from .types import BaseNbdEvent
 from .types import NbdSetupEvent
+from .types import NbdStartEvent
+from .types import NbdStatusEvent
 from .types import NbdStopEvent
+from .types import NbdStopped
+from .types import NbdState
 
 from .device import NbdDevice
 from .process import NbdProcess
@@ -64,10 +67,12 @@ class NbdController:
     }
 
     def __init__(self, path: str) -> None:
+        self.__device_path = path
         self.__device = NbdDevice(path, self.__DEVICE_BLOCK, self.__DEVICE_TIMEOUT)
         self.__proc: (NbdProcess | None) = None
         self.__nr = aiotools.AioNotifier()
         self.__lock = asyncio.Lock()
+        self.__state = NbdState()
 
     # =====
 
@@ -77,7 +82,7 @@ class NbdController:
             for (scheme, cls) in self.__REMOTES.items()
         }
 
-    async def bind(self, url: str, **kwargs: Any) -> NbdImage:
+    async def bind(self, url: str, **kwargs: Any) -> None:
         async with self.__lock:
             if self.__proc:
                 raise NbdBoundError("NBD is already bound")
@@ -101,13 +106,35 @@ class NbdController:
             assert self.__proc is None
             self.__nr.notify()
             self.__proc = NbdProcess(self.__device, remote, image)
-            return image
 
     def unbind(self) -> None:
         if self.__proc:
             self.__proc.stop()
 
-    async def poll(self) -> AsyncGenerator[BaseNbdEvent]:
+    def get_state(self) -> NbdState:
+        return self.__state
+
+    async def poll_state(self) -> AsyncGenerator[tuple[BaseNbdEvent, NbdState]]:
+        async for event in self.__poll():
+            match event:
+                case NbdSetupEvent():
+                    self.__state = NbdState(image=event.image)
+                case NbdStartEvent():
+                    assert self.__state.image is not None
+                    assert self.__state.changed is None
+                    assert self.__state.stopped is None
+                    self.__state = NbdState(self.__state.image, bound=self.__device_path)
+                case NbdStatusEvent():
+                    assert self.__state.image is not None
+                    assert self.__state.bound
+                    assert self.__state.stopped is None
+                    self.__state = NbdState(self.__state.image, bound=self.__device_path, changed=event)
+                case NbdStopEvent():
+                    assert self.__state.image is not None
+                    self.__state = NbdState(stopped=NbdStopped(self.__state.image, event))
+            yield (event, self.__state)
+
+    async def __poll(self) -> AsyncGenerator[BaseNbdEvent]:
         while True:
             await self.__nr.wait()
             if self.__proc:
