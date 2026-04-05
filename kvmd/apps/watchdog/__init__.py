@@ -89,11 +89,12 @@ def _cmd_run(config: Section) -> None:
                     logger.info("RTC%d is available, working ...", config.rtc)
                     fail = False
             time.sleep(config.interval)
-    except (SystemExit, KeyboardInterrupt):
+    except KeyboardInterrupt:
+        raise SystemExit("Interrupted by Ctrl+C")
+    finally:
         if not fail:
             _reset_alarm(config.rtc, config.timeout)
             logger.info("The watchdog remains alarmed. Use 'kvmd-watchdog cancel' to disarm it")
-    logger.info("Bye-bye")
 
 
 def _cmd_cancel(config: Section) -> None:

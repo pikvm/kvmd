@@ -20,7 +20,6 @@
 # ========================================================================== #
 
 
-import sys
 import os
 import signal
 import asyncio
@@ -124,8 +123,9 @@ async def _run_cmd(cmd: list[str], unix_path: str) -> None:
         connector=aiohttp.UnixConnector(path=unix_path),
         timeout=aiohttp.ClientTimeout(total=5),
     ) as session:
+
         async with session.ws_connect("http://localhost:0/ws") as ws:
-            sys.exit(await _run_cmd_ws(cmd, ws))
+            raise SystemExit(await _run_cmd_ws(cmd, ws))
 
 
 # =====

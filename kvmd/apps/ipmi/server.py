@@ -91,10 +91,10 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
         try:
             while True:
                 IpmiSession.wait_for_rsp(self.__timeout)
-        except (SystemExit, KeyboardInterrupt):
-            pass
-        self.__stop_sol_worker()
-        logger.info("Bye-bye")
+        except KeyboardInterrupt:
+            raise SystemExit("Interrupted by Ctrl+C")
+        finally:
+            self.__stop_sol_worker()
 
     # =====
 

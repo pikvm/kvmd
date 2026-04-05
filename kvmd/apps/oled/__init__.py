@@ -148,8 +148,8 @@ async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many
                 while len(stop_reason) > 0:
                     await asyncio.sleep(0.1)
 
-    except (SystemExit, KeyboardInterrupt):
-        pass
+    except KeyboardInterrupt:
+        raise SystemExit("Interrupted by Ctrl+C")
 
     if options.clear_on_exit:
         await screen.draw_text("")

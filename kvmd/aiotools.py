@@ -69,8 +69,8 @@ def run(coro: Coroutine, final: (Coroutine | None)=None) -> None:
     main_task = loop.create_task(coro)
     try:
         loop.run_until_complete(main_task)
-    except (SystemExit, KeyboardInterrupt):
-        pass
+    except KeyboardInterrupt:
+        raise SystemExit("Interrupted by Ctrl+C")
     finally:
         main_task.cancel()
         loop.run_until_complete(asyncio.gather(main_task, return_exceptions=True))
