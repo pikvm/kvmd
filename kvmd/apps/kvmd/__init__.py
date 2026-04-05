@@ -20,8 +20,6 @@
 # ========================================================================== #
 
 
-from ...logging import get_logger
-
 from ...plugins.hid import get_hid_class
 from ...plugins.atx import get_atx_class
 from ...plugins.msd import get_msd_class
@@ -116,5 +114,3 @@ def main() -> None:
 
         stream_forever=config.streamer.forever,
     ).run(**config.server._unpack())
-
-    get_logger(0).info("Bye-bye")

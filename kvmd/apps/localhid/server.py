@@ -76,10 +76,7 @@ class LocalHidServer:  # pylint: disable=too-many-instance-attributes
         )
 
     def run(self) -> None:
-        try:
-            aiotools.run(self.__inner_run())
-        finally:
-            get_logger(0).info("Bye-bye")
+        aiotools.run(self.__inner_run())
 
     async def __inner_run(self) -> None:
         await aiotools.spawn_and_follow(

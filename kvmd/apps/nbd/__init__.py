@@ -20,8 +20,6 @@
 # ========================================================================== #
 
 
-from ...logging import get_logger
-
 from .. import init
 
 from .server import NbdServer
@@ -38,5 +36,3 @@ def main() -> None:
     NbdServer(
         **config.nbd._unpack(ignore="server"),
     ).run(**config.nbd.server._unpack())
-
-    get_logger(0).info("Bye-bye")

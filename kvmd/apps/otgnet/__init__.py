@@ -129,7 +129,7 @@ class _Service:  # pylint: disable=too-many-instance-attributes
         else:
             for ctl in reversed(ctls):
                 await self.__run_ctl(ctl, False)
-            get_logger(0).info("Bye-bye")
+            get_logger(0).info("Successfully stopped")
 
     async def __run_ctl(self, ctl: BaseCtl, direct: bool) -> bool:
         logger = get_logger()

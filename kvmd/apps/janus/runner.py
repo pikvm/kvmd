@@ -55,10 +55,7 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
         self.__janus_proc: (asyncio.subprocess.Process | None) = None  # pylint: disable=no-member
 
     def run(self) -> None:
-        logger = get_logger(0)
-        logger.info("Starting Janus Runner ...")
         aiotools.run(self.__run(), self.__stop_janus())
-        logger.info("Bye-bye")
 
     # =====
 

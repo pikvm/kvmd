@@ -575,4 +575,3 @@ class VncServer:  # pylint: disable=too-many-instance-attributes
 
     def run(self) -> None:
         aiotools.run(self.__inner_run())
-        get_logger().info("Bye-bye")
