@@ -24,7 +24,7 @@
 set -e
 export LC_ALL=C
 
-if [ "$(whoami)" != root ]; then
+if [[ "$(whoami)" != root ]]; then
 	echo "Only root can do that"
 	exit 1
 fi
@@ -90,7 +90,7 @@ case "$1" in
 
 	certonly|certonly_webroot)
 		webroot_opts=()
-		if [ "$1" == certonly_webroot ]; then
+		if [[ "$1" == certonly_webroot ]]; then
 			webroot_opts=(--webroot "--webroot-path=$web")
 		fi
 		shift
@@ -116,7 +116,7 @@ case "$1" in
 			--work-dir="$tmp/work" \
 			--logs-dir="$tmp/logs" \
 			--deploy-hook="/usr/bin/touch '$tmp/updated'" || true
-		if [ -f "$tmp/updated" ]; then
+		if [[ -f "$tmp/updated" ]]; then
 			chmod 755 "$tmp/config/"{archive,live}
 			chmod 640 "$tmp"/config/archive/*/privkey*.pem
 			kvmd-pstrun -- bash -c "
@@ -144,14 +144,14 @@ case "$1" in
 
 	install_nginx|install_vnc|install_cloud)
 		target="${1/install_/}"
-		if [ -z "$2" ]; then
+		if [[ -z "$2" ]]; then
 			echo "Usage: kvmd-certbot $1 <domain>"
 			exit 1
 		fi
 		fullchain="$cur/config/live/$2/fullchain.pem"
 		privkey="$cur/config/live/$2/privkey.pem"
 		for path in "$fullchain" "$privkey"; do
-			if [ ! -s "$path" ]; then
+			if [[ ! -s "$path" ]]; then
 				echo "Missing $path"
 				exit 1
 			fi
