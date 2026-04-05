@@ -117,16 +117,23 @@ case "$1" in
 			--logs-dir="$tmp/logs" \
 			--deploy-hook="/usr/bin/touch '$tmp/updated'" || true
 		if [ -f "$tmp/updated" ]; then
-			sudo --preserve-env -u "$user" kvmd-pstrun -- bash -c "
+			chmod 755 "$tmp/config/"{archive,live}
+			chmod 640 "$tmp"/config/archive/*/privkey*.pem
+			kvmd-pstrun -- bash -c "
 				set -ex
 				rm -rf '$new'
-				cp -a '$tmp'/. '$new'
+				cp -aT '$tmp' '$new'
 				rm '$new/updated'
-				chmod 755 '$new/config/'{archive,live}
-				chmod 640 '$new'/config/archive/*/privkey*.pem
 				sed -s -i -e 's| = $tmp/| = $cur/|g' '$new/config/renewal/'*
 				rm -rf '$new/logs/'*.log.* '$new/config/'{csr,keys}
 				sync
+				unshare --mount bash -c '
+					set -ex
+					mount --bind '$new' '$cur'
+					kvmd-nginx-mkconf /etc/kvmd/nginx/nginx.conf.mako /run/kvmd/nginx-certbot-test.conf
+					nginx -t -c /run/kvmd/nginx-certbot-test.conf
+				'
+				rm /run/kvmd/nginx-certbot-test.conf
 				kvmd-helper-swapfiles '$new' '$cur'
 				rm -rf '$new'
 			"
@@ -141,10 +148,17 @@ case "$1" in
 			echo "Usage: kvmd-certbot $1 <domain>"
 			exit 1
 		fi
+		fullchain="$cur/config/live/$2/fullchain.pem"
+		privkey="$cur/config/live/$2/privkey.pem"
+		for path in "$fullchain" "$privkey"; do
+			if [ ! -s "$path" ]; then
+				echo "Missing $path"
+				exit 1
+			fi
+		done
 		set -x
-		rm -f "/etc/kvmd/$target/ssl/server."{crt,key}
-		ln -s "$cur/config/live/$2/fullchain.pem" "/etc/kvmd/$target/ssl/server.crt"
-		ln -s "$cur/config/live/$2/privkey.pem" "/etc/kvmd/$target/ssl/server.key"
+		ln -sfT "$fullchain" "/etc/kvmd/$target/ssl/server.crt"
+		ln -sfT "$privkey" "/etc/kvmd/$target/ssl/server.key"
 		"restart_if_running_$target"
 	;;
 
