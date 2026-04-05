@@ -151,8 +151,8 @@ case "$1" in
 		fullchain="$cur/config/live/$2/fullchain.pem"
 		privkey="$cur/config/live/$2/privkey.pem"
 		for path in "$fullchain" "$privkey"; do
-			if [[ ! -s "$path" ]]; then
-				echo "Missing $path"
+			if ! [[ -f "$path" && -s "$path" ]]; then
+				echo "$path is not a file or is empty"
 				exit 1
 			fi
 		done
