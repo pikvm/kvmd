@@ -50,8 +50,8 @@ export function Keyboard(__recordWsEvent) {
 		window.addEventListener("focusin", __updateOnlineLeds);
 		window.addEventListener("focusout", __updateOnlineLeds);
 
-		tools.storage.bindSimpleSwitch($("hid-keyboard-bad-link-switch"), "hid.keyboard.bad_link", false);
-		tools.storage.bindSimpleSwitch($("hid-keyboard-swap-cc-switch"), "hid.keyboard.swap_cc", false);
+		tools.storage.bindSimpleSwitch($("hid-keyboard-bad-link-switch"), "hid.keyboard.bad_link", tools.config.getBool("kvm--hid-keyboard-bad-link", false));
+		tools.storage.bindSimpleSwitch($("hid-keyboard-swap-cc-switch"), "hid.keyboard.swap_cc", tools.config.getBool("kvm--hid-keyboard-swap-cc", false));
 
 		__el_magic = $("hid-keyboard-magic-selector");
 		let alt = (tools.browser.is_apple ? "Option" : "Alt");

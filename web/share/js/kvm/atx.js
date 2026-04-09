@@ -39,7 +39,7 @@ export function Atx(__recorder) {
 		$("atx-power-led").title = "Power Led";
 		$("atx-hdd-led").title = "Disk Activity Led";
 
-		tools.storage.bindSimpleSwitch($("atx-ask-switch"), "atx.ask", true);
+		tools.storage.bindSimpleSwitch($("atx-ask-switch"), "atx.ask", tools.config.getBool("kvm--atx-ask", true));
 
 		tools.el.setOnClick($("atx-power-button"), () => __clickAtx("power"));
 		tools.el.setOnClick($("atx-power-button-long"), () => __clickAtx("power_long"));

@@ -73,7 +73,7 @@ export function Streamer() {
 
 		// Not getInt() because of radio is a string container.
 		// Also don't reset Streamer at class init.
-		tools.radio.clickValue("stream-orient-radio", tools.storage.get("stream.orient", 0));
+		tools.radio.clickValue("stream-orient-radio", tools.storage.get("stream.orient", tools.config.get("kvm--stream-orient", 0)));
 		tools.radio.setOnClick("stream-orient-radio", function() {
 			if (["janus", "media"].includes(__streamer.getMode())) {
 				let orient = parseInt(tools.radio.getValue("stream-orient-radio"));
@@ -98,7 +98,7 @@ export function Streamer() {
 			tools.el.setEnabled($("stream-cam-switch"), !!value);
 		});
 
-		tools.storage.bindSimpleSwitch($("stream-mic-switch"), "stream.mic", false, function(allow_mic) {
+		tools.storage.bindSimpleSwitch($("stream-mic-switch"), "stream.mic", tools.config.getBool("kvm--stream-mic", false), function(allow_mic) {
 			if (__streamer.getMode() === "janus") {
 				if (__streamer.isMicAllowed() !== allow_mic) {
 					__resetStream();
@@ -106,7 +106,7 @@ export function Streamer() {
 			}
 		});
 
-		tools.storage.bindSimpleSwitch($("stream-cam-switch"), "stream.cam", false, function(allow_cam) {
+		tools.storage.bindSimpleSwitch($("stream-cam-switch"), "stream.cam", tools.config.getBool("kvm--stream-cam", false), function(allow_cam) {
 			if (__streamer.getMode() === "janus") {
 				if (__streamer.isCamAllowed() !== allow_cam) {
 					__resetStream();
@@ -117,7 +117,7 @@ export function Streamer() {
 		tools.el.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.el.setOnClick($("stream-reset-button"), __clickResetButton);
 
-		tools.storage.bindSimpleSwitch($("stream-suspend-switch"), "stream.suspend", false, __visibilityHook);
+		tools.storage.bindSimpleSwitch($("stream-suspend-switch"), "stream.suspend", tools.config.getBool("kvm--stream-suspend", false), __visibilityHook);
 
 		$("stream-window").show_hook = __visibilityHook;
 		$("stream-window").close_hook = __visibilityHook;
@@ -253,7 +253,7 @@ export function Streamer() {
 				tools.feature.setEnabled($("stream-cam"), false);
 			}
 
-			let mode = tools.storage.get("stream.mode", "janus");
+			let mode = tools.storage.get("stream.mode", tools.config.get("kvm--stream-mode", "janus"));
 			if (mode === "janus" && !has_janus) {
 				mode = "media";
 			}
