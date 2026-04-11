@@ -20,6 +20,8 @@
 # ========================================================================== #
 
 
+from typing import Final
+
 from ...yamlconf import Option
 
 from ...validators.os import valid_abs_path
@@ -32,7 +34,7 @@ from . import BaseAuthService
 # =====
 class Plugin(BaseAuthService):
     def __init__(self, path: str) -> None:  # pylint: disable=super-init-not-called
-        self.__path = path
+        self.__path: Final[str] = path
 
     @classmethod
     def get_plugin_options(cls) -> dict:
@@ -41,7 +43,5 @@ class Plugin(BaseAuthService):
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        assert user == user.strip()
-        assert user
         htpasswd = KvmdHtpasswdFile(self.__path)
         return htpasswd.check_password(user, passwd)
