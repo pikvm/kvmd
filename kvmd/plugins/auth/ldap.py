@@ -22,6 +22,8 @@
 
 import asyncio
 
+from typing import Final
+
 import ldap
 
 from ...yamlconf import Option
@@ -41,20 +43,20 @@ from . import BaseAuthService
 class Plugin(BaseAuthService):
     def __init__(  # pylint: disable=super-init-not-called
         self,
-        url: str,
-        verify: bool,
-        base: str,
-        group: str,
+        url:         str,
+        verify:      bool,
+        base:        str,
+        group:       str,
         user_domain: str,
-        timeout: float,
+        timeout:     float,
     ) -> None:
 
-        self.__url = url
-        self.__verify = verify
-        self.__base = base
-        self.__group = group
-        self.__user_domain = user_domain
-        self.__timeout = timeout
+        self.__url:         Final[str]   = url
+        self.__verify:      Final[bool]  = verify
+        self.__base:        Final[str]   = base
+        self.__group:       Final[str]   = group
+        self.__user_domain: Final[str]   = user_domain
+        self.__timeout:     Final[float] = timeout
 
     @classmethod
     def get_plugin_options(cls) -> dict:
@@ -73,6 +75,7 @@ class Plugin(BaseAuthService):
     def __inner_authorize(self, user: str, passwd: str) -> bool:
         if self.__user_domain:
             user = f"{user}@{self.__user_domain}"
+
         conn: (ldap.ldapobject.LDAPObject | None) = None
         try:
             conn = ldap.initialize(self.__url)
@@ -85,6 +88,7 @@ class Plugin(BaseAuthService):
                     conn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
                 conn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
             conn.simple_bind_s(user, passwd)
+
             for (dn, attrs) in (conn.search_st(
                 base=self.__base,
                 scope=ldap.SCOPE_SUBTREE,
@@ -92,6 +96,7 @@ class Plugin(BaseAuthService):
                 attrlist=["memberOf"],
                 timeout=self.__timeout,
             ) or []):
+
                 if (
                     dn is not None
                     and isinstance(attrs, dict)
@@ -99,6 +104,7 @@ class Plugin(BaseAuthService):
                     and self.__group.encode() in attrs["memberOf"]
                 ):
                     return True
+
         except ldap.INVALID_CREDENTIALS:
             pass
         except ldap.SERVER_DOWN as ex:
