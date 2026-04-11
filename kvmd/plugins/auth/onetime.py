@@ -20,22 +20,54 @@
 # ========================================================================== #
 
 
-from .. import BasePlugin
-from .. import get_plugin_class
+import secrets
+
+from typing import Final
+
+from ...yamlconf import Option
+
+from ...validators.basic import valid_number
+from ...validators.os import valid_abs_path
+from ...validators.auth import valid_user
+
+from ... import aiotools
+
+from . import BaseAuthService
 
 
 # =====
-class BaseAuthService(BasePlugin):
-    async def authorize(self, user: str, passwd: str) -> bool:
-        raise NotImplementedError  # pragma: nocover
+class Plugin(BaseAuthService):
+    __MIN_LEN: Final[int] = 3
+
+    def __init__(
+        self,
+        user: str,
+        passwd_len: int,
+        passwd_put_path: str,
+    ) -> None:  # pylint: disable=super-init-not-called
+
+        self.__user: Final[str] = user
+        self.__path: Final[str] = passwd_put_path
+        self.__passwd: Final[str] = self.__make_passwd(passwd_len)
+
+    @classmethod
+    def get_plugin_options(cls) -> dict:
+        return {
+            "user":       Option("onetime", type=valid_user),
+            "passwd_len": Option(8, type=valid_number.mk(min=cls.__MIN_LEN, max=32)),
+            "passwd_put": Option("/run/kvmd/otpasswd", type=valid_abs_path, unpack_as="passwd_put_path"),
+        }
 
     async def sysprep(self) -> None:
-        pass
+        await aiotools.write_file(self.__path, self.__passwd)
 
-    async def cleanup(self) -> None:
-        pass
+    async def authorize(self, user: str, passwd: str) -> bool:
+        assert user == user.strip()
+        assert user
+        return ((user == self.__user) and (passwd == self.__passwd))
 
-
-# =====
-def get_auth_service_class(name: str) -> type[BaseAuthService]:
-    return get_plugin_class("auth", name)  # type: ignore
+    def __make_passwd(self, length: int) -> str:
+        chars = "23479ACDEFHJKLMNPQRTWXYZ"
+        passwd = "".join(secrets.choice(chars) for _ in range(length))
+        assert len(passwd) >= self.__MIN_LEN
+        return passwd

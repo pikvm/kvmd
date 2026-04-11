@@ -20,22 +20,27 @@
 # ========================================================================== #
 
 
-from .. import BasePlugin
-from .. import get_plugin_class
+import os
+
+import pytest
+
+from . import get_configured_auth_service
 
 
 # =====
-class BaseAuthService(BasePlugin):
-    async def authorize(self, user: str, passwd: str) -> bool:
-        raise NotImplementedError  # pragma: nocover
-
-    async def sysprep(self) -> None:
-        pass
-
-    async def cleanup(self) -> None:
-        pass
-
-
-# =====
-def get_auth_service_class(name: str) -> type[BaseAuthService]:
-    return get_plugin_class("auth", name)  # type: ignore
+@pytest.mark.asyncio
+async def test_ok__onetime_service(tmpdir) -> None:  # type: ignore
+    path = os.path.abspath(str(tmpdir.join("otpasswd")))
+    async with get_configured_auth_service("onetime", passwd_put=path) as service:
+        with open(path) as file:
+            passwd = file.read()
+        assert passwd == passwd.strip()
+        assert len(passwd) == 8
+        assert (await service.authorize("onetime", passwd))
+        assert not (await service.authorize("onetime", ""))
+        assert not (await service.authorize("user", "foo"))
+        assert not (await service.authorize("admin", "foo"))
+        assert not (await service.authorize("user", "pass"))
+        assert not (await service.authorize("admin", "pass"))
+        assert not (await service.authorize("admin", "admin"))
+        assert not (await service.authorize("admin", ""))
