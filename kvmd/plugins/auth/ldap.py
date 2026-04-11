@@ -25,6 +25,7 @@ import asyncio
 from typing import Final
 
 import ldap
+import ldap.filter
 
 from ...yamlconf import Option
 
@@ -92,7 +93,11 @@ class Plugin(BaseAuthService):
             for (dn, attrs) in (conn.search_st(
                 base=self.__base,
                 scope=ldap.SCOPE_SUBTREE,
-                filterstr=f"(&(objectClass=user)(userPrincipalName={user})(memberOf={self.__group}))",
+                filterstr=(
+                    "(&(objectClass=user)"
+                    + f"(userPrincipalName={ldap.filter.escape_filter_chars(user, 1)})"
+                    + f"(memberOf={ldap.filter.escape_filter_chars(self.__group, 1)}))"
+                ),
                 attrlist=["memberOf"],
                 timeout=self.__timeout,
             ) or []):
