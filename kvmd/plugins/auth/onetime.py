@@ -41,13 +41,13 @@ class Plugin(BaseAuthService):
 
     def __init__(
         self,
-        user: str,
-        passwd_len: int,
+        user:            str,
+        passwd_len:      int,
         passwd_put_path: str,
     ) -> None:  # pylint: disable=super-init-not-called
 
-        self.__user: Final[str] = user
-        self.__path: Final[str] = passwd_put_path
+        self.__user:   Final[str] = user
+        self.__path:   Final[str] = passwd_put_path
         self.__passwd: Final[str] = self.__make_passwd(passwd_len)
 
     @classmethod
@@ -62,8 +62,6 @@ class Plugin(BaseAuthService):
         await aiotools.write_file(self.__path, self.__passwd)
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        assert user == user.strip()
-        assert user
         return ((user == self.__user) and (passwd == self.__passwd))
 
     def __make_passwd(self, length: int) -> str:
