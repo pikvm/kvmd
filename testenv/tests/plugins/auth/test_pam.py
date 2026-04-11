@@ -77,6 +77,12 @@ async def test_ok(test_user, kwargs: dict) -> None:  # type: ignore
     _ = test_user
     async with get_configured_auth_service("pam", **kwargs) as service:
         assert not (await service.authorize(_USER, "invalid_password"))
+        assert not (await service.authorize(_USER, _PASSWD + " "))
+        assert not (await service.authorize(_USER + " ", _PASSWD))
+        assert not (await service.authorize(_USER + " ", _PASSWD + " "))
+        assert not (await service.authorize(" ", _PASSWD))
+        assert not (await service.authorize(" ", " "))
+        assert not (await service.authorize("", ""))
         assert (await service.authorize(_USER, _PASSWD))
 
 
@@ -91,3 +97,9 @@ async def test_fail(test_user, kwargs: dict) -> None:  # type: ignore
     async with get_configured_auth_service("pam", **kwargs) as service:
         assert not (await service.authorize(_USER, "invalid_password"))
         assert not (await service.authorize(_USER, _PASSWD))
+        assert not (await service.authorize(_USER, _PASSWD + " "))
+        assert not (await service.authorize(_USER + " ", _PASSWD))
+        assert not (await service.authorize(_USER + " ", _PASSWD + " "))
+        assert not (await service.authorize(" ", _PASSWD))
+        assert not (await service.authorize(" ", " "))
+        assert not (await service.authorize("", ""))
