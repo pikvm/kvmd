@@ -35,4 +35,6 @@ async def test_ok__forbidden_service() -> None:  # type: ignore
         assert not (await service.authorize("admin", "pass"))
         assert not (await service.authorize("admin", "admin"))
         assert not (await service.authorize("admin", ""))
+        assert not (await service.authorize("admin ", ""))
+        assert not (await service.authorize(" ", " "))
         assert not (await service.authorize("", ""))
