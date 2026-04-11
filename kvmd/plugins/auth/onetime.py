@@ -26,6 +26,7 @@ from typing import Final
 
 from ...yamlconf import Option
 
+from ...validators.basic import valid_bool
 from ...validators.basic import valid_number
 from ...validators.os import valid_abs_path
 from ...validators.auth import valid_user
@@ -37,35 +38,46 @@ from . import BaseAuthService
 
 # =====
 class Plugin(BaseAuthService):
-    __MIN_LEN: Final[int] = 3
-
     def __init__(
         self,
         user:            str,
         passwd_len:      int,
         passwd_put_path: str,
+        change_after_login: bool,
     ) -> None:  # pylint: disable=super-init-not-called
 
-        self.__user:   Final[str] = user
-        self.__path:   Final[str] = passwd_put_path
-        self.__passwd: Final[str] = self.__make_passwd(passwd_len)
+        self.__user:       Final[str] = user
+        self.__path:       Final[str] = passwd_put_path
+        self.__passwd_len: Final[int] = passwd_len
+        self.__change_after_login: Final[bool] = change_after_login
+
+        self.__passwd = self.__make_passwd()  # Just fill it with some valid passwd
 
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
             "user":       Option("onetime", type=valid_user),
-            "passwd_len": Option(8, type=valid_number.mk(min=cls.__MIN_LEN, max=32)),
+            "passwd_len": Option(8, type=valid_number.mk(min=3, max=32)),
             "passwd_put": Option("/run/kvmd/otpasswd", type=valid_abs_path, unpack_as="passwd_put_path"),
+            "change_after_login": Option(False, type=valid_bool),
         }
 
     async def sysprep(self) -> None:
-        await aiotools.write_file(self.__path, self.__passwd)
+        await self.__regen_passwd()
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        return ((user == self.__user) and (passwd == self.__passwd))
+        assert len(self.__passwd) == self.__passwd_len
+        ok = ((user == self.__user) and (passwd == self.__passwd))
+        if ok and self.__change_after_login:
+            await self.__regen_passwd()
+        return ok
 
-    def __make_passwd(self, length: int) -> str:
+    async def __regen_passwd(self) -> None:
+        passwd = self.__make_passwd()
+        await aiotools.write_file(self.__path, passwd)
+        self.__passwd = passwd
+
+    def __make_passwd(self) -> str:
         chars = "23479ACDEFHJKLMNPQRTWXYZ"
-        passwd = "".join(secrets.choice(chars) for _ in range(length))
-        assert len(passwd) >= self.__MIN_LEN
+        passwd = "".join(secrets.choice(chars) for _ in range(self.__passwd_len))
         return passwd
