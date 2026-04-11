@@ -23,6 +23,8 @@
 import aiohttp
 import aiohttp.web
 
+from typing import Final
+
 from ...yamlconf import Option
 
 from ...validators.basic import valid_bool
@@ -39,22 +41,22 @@ from . import BaseAuthService
 class Plugin(BaseAuthService):
     def __init__(  # pylint: disable=super-init-not-called
         self,
-        url: str,
-        verify: bool,
-        secret: str,
-        user: str,
-        passwd: str,
+        url:     str,
+        verify:  bool,
+        secret:  str,
+        user:    str,
+        passwd:  str,
         timeout: float,
     ) -> None:
 
-        self.__url = url
-        self.__verify = verify
-        self.__secret = secret
-        self.__user = user
-        self.__passwd = passwd
-        self.__timeout = timeout
+        self.__url:      Final[str]   = url
+        self.__verify:   Final[bool]  = verify
+        self.__secret:   Final[str]   = secret
+        self.__h_user:   Final[str]   = user
+        self.__h_passwd: Final[str]   = passwd
+        self.__timeout:  Final[float] = timeout
 
-        self.__http_session: (aiohttp.ClientSession | None) = None
+        self.__session: (aiohttp.ClientSession | None) = None
 
     @classmethod
     def get_plugin_options(cls) -> dict:
@@ -68,21 +70,17 @@ class Plugin(BaseAuthService):
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        assert user == user.strip()
-        assert user
-        session = self.__ensure_http_session()
+        session = self.__ensure_session()
         try:
-            async with session.request(
-                method="POST",
+            async with session.post(
                 url=self.__url,
-                timeout=aiohttp.ClientTimeout(total=self.__timeout),
                 json={
-                    "user": user,
+                    "user":   user,
                     "passwd": passwd,
                     "secret": self.__secret,
                 },
                 headers={
-                    "User-Agent": htclient.make_user_agent("KVMD"),
+                    aiohttp.hdrs.USER_AGENT: htclient.make_user_agent("KVMD"),
                     "X-KVMD-User": user,
                 },
             ) as resp:
@@ -93,16 +91,20 @@ class Plugin(BaseAuthService):
             return False
 
     async def cleanup(self) -> None:
-        if self.__http_session:
-            await self.__http_session.close()
-            self.__http_session = None
+        if self.__session:
+            try:
+                await self.__session.close()
+            finally:
+                self.__session = None
 
-    def __ensure_http_session(self) -> aiohttp.ClientSession:
-        if not self.__http_session:
-            kwargs: dict = {}
-            if self.__user:
-                kwargs["auth"] = aiohttp.BasicAuth(login=self.__user, password=self.__passwd)
-            if not self.__verify:
-                kwargs["connector"] = aiohttp.TCPConnector(ssl=False)
-            self.__http_session = aiohttp.ClientSession(**kwargs)
-        return self.__http_session
+    def __ensure_session(self) -> aiohttp.ClientSession:
+        if not self.__session:
+            self.__session = self.__make_session()
+        return self.__session
+
+    def __make_session(self) -> aiohttp.ClientSession:
+        return aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=self.__verify),
+            auth=(aiohttp.BasicAuth(self.__h_user, self.__h_passwd) if self.__h_user else None),
+            timeout=aiohttp.ClientTimeout(total=self.__timeout),
+        )
