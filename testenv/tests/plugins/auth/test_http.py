@@ -79,6 +79,8 @@ async def test_ok(auth_server_port: int, kwargs: dict) -> None:
         assert not (await service.authorize("admin ", "pass"))
         assert not (await service.authorize("admin ", "pass "))
         assert not (await service.authorize("admin", "pass "))
+        assert not (await service.authorize("", "pass"))
+        assert not (await service.authorize(" ", "pass"))
         assert not (await service.authorize(" ", " "))
         assert not (await service.authorize("", ""))
         assert (await service.authorize("admin", "pass"))

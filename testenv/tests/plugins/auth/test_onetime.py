@@ -38,6 +38,8 @@ async def test_ok__onetime_service(tmpdir) -> None:  # type: ignore
         assert len(passwd) == 8
         assert not (await service.authorize("onetime", "foo"))
         assert (await service.authorize("onetime", passwd))
+        assert not (await service.authorize("", passwd))
+        assert not (await service.authorize(" ", passwd))
         assert not (await service.authorize("onetime ", passwd))
         assert not (await service.authorize("onetime", passwd + " "))
         assert not (await service.authorize("onetime", ""))
