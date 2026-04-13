@@ -31,8 +31,6 @@ import pyotp
 
 from ...logging import get_logger
 
-from ... import aiotools
-
 from ...plugins.auth import BaseAuthService
 from ...plugins.auth import get_auth_service_class
 
@@ -281,13 +279,21 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
                     ws_started=ws_started,
                 )
 
-    @aiotools.atomic_fg
+    async def sysprep(self) -> None:
+        if self.__enabled:
+            assert self.__int_service
+            await self.__int_service.sysprep()
+            if self.__ext_service:
+                await self.__ext_service.sysprep()
+
     async def cleanup(self) -> None:
         if self.__enabled:
             assert self.__int_service
-            await self.__int_service.cleanup()
-            if self.__ext_service:
-                await self.__ext_service.cleanup()
+            try:
+                await self.__int_service.cleanup()
+            finally:
+                if self.__ext_service:
+                    await self.__ext_service.cleanup()
 
     # =====
 

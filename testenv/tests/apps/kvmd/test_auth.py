@@ -86,6 +86,7 @@ async def _get_configured_manager(
         totp_secret_path="",
     )
 
+    await manager.sysprep()
     try:
         yield manager
     finally:
@@ -339,6 +340,7 @@ async def test_ok__disabled() -> None:
 
             totp_secret_path="",
         )
+        await manager.sysprep()
 
         assert not manager.is_auth_enabled()
         assert not manager.is_auth_required(_E_AUTH)
