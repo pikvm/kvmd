@@ -34,7 +34,6 @@ from ...validators.auth import valid_user
 from ...logging import get_logger
 
 from ... import tools
-from ... import aiotools
 
 from . import BaseAuthService
 
@@ -66,20 +65,22 @@ class Plugin(BaseAuthService):
         }
 
     async def sysprep(self) -> None:
-        await self.__regen_passwd()
+        self.__regen_passwd()
 
     async def authorize(self, user: str, passwd: str) -> bool:
         assert len(self.__passwd) == self.__passwd_len
         ok = ((user == self.__user) and (passwd == self.__passwd))
         if ok and self.__change_after_login:
-            await self.__regen_passwd()
+            self.__regen_passwd()
         return ok
 
-    async def __regen_passwd(self) -> None:
+    def __regen_passwd(self) -> None:
         logger = get_logger(0)
         passwd = self.__make_passwd()
         try:
-            await aiotools.write_file(self.__path, passwd)
+            with tools.atomic_file_edit(self.__path) as path:
+                with open(path, "w") as file:
+                    file.write(passwd)
         except Exception as ex:
             logger.error("Can't write passwd of user %r to %s: %s",
                          self.__user, self.__path, tools.efmt(ex))
