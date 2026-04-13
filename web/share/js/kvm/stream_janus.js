@@ -447,11 +447,13 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	var __sendKeyRequired = function() {
-		/*if (__handle) {
-			// На этом шаге мы говорим что стрим пошел и надо запросить кейфрейм
+		if (__handle) {
+			// На этом шаге мы говорим что стрим пошел и надо запросить кейфрейм.
+			// https://github.com/pikvm/pikvm/issues/1656:
+			//   До Chromium 147 это не было нужно, но кажется у них что-то сломалось в PLI.
 			__logInfo("Sending KEY_REQUIRED ...");
-			__handle.send({message: {request: "key_required"}});
-		}*/
+			__handle.send({"message": {"request": "key_required"}});
+		}
 	};
 
 	var __sendStop = function() {
