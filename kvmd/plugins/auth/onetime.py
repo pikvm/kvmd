@@ -31,6 +31,9 @@ from ...validators.basic import valid_number
 from ...validators.os import valid_abs_path
 from ...validators.auth import valid_user
 
+from ...logging import get_logger
+
+from ... import tools
 from ... import aiotools
 
 from . import BaseAuthService
@@ -73,9 +76,17 @@ class Plugin(BaseAuthService):
         return ok
 
     async def __regen_passwd(self) -> None:
+        logger = get_logger(0)
         passwd = self.__make_passwd()
-        await aiotools.write_file(self.__path, passwd)
-        self.__passwd = passwd
+        try:
+            await aiotools.write_file(self.__path, passwd)
+        except Exception as ex:
+            logger.error("Can't write passwd of user %r to %s: %s",
+                         self.__user, self.__path, tools.efmt(ex))
+        else:
+            logger.info("New one-time passwd of user %r was written to %s",
+                        self.__user, self.__path)
+            self.__passwd = passwd
 
     def __make_passwd(self) -> str:
         chars = "23479ACDEFHJKLMNPQRTWXYZ"
