@@ -267,9 +267,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 			"webrtcState": function(up) {
 				__logInfo("Janus says our WebRTC PeerConnection is", (up ? "up" : "down"), "now");
-				if (up) {
+				/*if (up) {
 					__sendKeyRequired();
-				}
+				}*/
 			},
 
 			"onmessage": function(msg, jsep) {
@@ -349,7 +349,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				if (added && reason === "created") {
 					__addTrack(track);
 					if (track.kind === "video") {
-						__sendKeyRequired();
+						//__sendKeyRequired();
 						__startInfoInterval();
 					}
 				} else if (!added && reason === "ended") {
@@ -392,7 +392,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		if (__handle !== null) {
 			let info = "";
 			if (__handle !== null) {
-				info = `${__handle.getBitrate()}`.replace("kbits/sec", "kbps");
+				let kbps = `${__handle.getBitrate()}`.replace("kbits/sec", "kbps");
+				info = kbps;
 
 				if (show_latency) {
 					const receiver = __handle.webrtcStuff.pc.getReceivers()[0];
@@ -415,8 +416,21 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 					frames = el.mozPaintedFrames;
 				}
 				if (frames !== null) {
-					info += ` / ${Math.max(0, frames - __frames)} dyn.fps`;
+					let fps = Math.max(0, frames - __frames);
+					info += ` / ${fps} dyn.fps`;
 					__frames = frames;
+
+					// В Chromium 147 сломались PLI при включенном микрофоне, особенно с gop=0.
+					// Запрашиваем кейфреймы руками.
+					//   * https://github.com/pikvm/pikvm/issues/1656:
+					try {
+						let kbps_int = parseInt(kbps.replace("kbps", "").trim());
+						if (kbps_int > 0 && fps === 0) {
+							__sendKeyRequired();
+						}
+					} catch (ex) {
+						tools.error("Stream [Janus]: Can't verify kbps for PLI:", ex);
+					}
 				}
 			}
 			__setInfo(true, __isOnline(), info);
@@ -448,9 +462,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 	var __sendKeyRequired = function() {
 		if (__handle) {
-			// На этом шаге мы говорим что стрим пошел и надо запросить кейфрейм.
-			// https://github.com/pikvm/pikvm/issues/1656:
-			//   До Chromium 147 это не было нужно, но кажется у них что-то сломалось в PLI.
 			__logInfo("Sending KEY_REQUIRED ...");
 			__handle.send({"message": {"request": "key_required"}});
 		}
