@@ -407,6 +407,10 @@ def make_config_scheme() -> dict:
                 "post_stop_cmd_append": Option([], type=valid_options),
             },
 
+            "presence": {
+                "enabled": Option(False, type=valid_bool),
+            },
+
             "ocr": {
                 "langs":    Option(["eng"], type=valid_string_list, unpack_as="default_langs"),
                 "tessdata": Option("/usr/share/tessdata", type=valid_stripped_string_not_empty, unpack_as="data_dir_path")

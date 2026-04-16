@@ -47,6 +47,8 @@ from ....htserver import WsSession
 
 from ....plugins.hid import BaseHid
 
+from .. import presence
+
 from ....validators import raise_error
 from ....validators.basic import valid_bool
 from ....validators.basic import valid_number
@@ -173,7 +175,7 @@ class HidApi:
     # =====
 
     @exposed_ws(1)
-    async def __ws_bin_key_handler(self, _: WsSession, data: bytes) -> None:
+    async def __ws_bin_key_handler(self, ws: WsSession, data: bytes) -> None:
         try:
             state = bool(data[0] & 0b01)
             finish = bool(data[0] & 0b10)
@@ -184,9 +186,10 @@ class HidApi:
         except Exception:
             return
         self.__hid.send_key_event(key, state, finish)
+        presence.record_input(ws.token)
 
     @exposed_ws(2)
-    async def __ws_bin_mouse_button_handler(self, _: WsSession, data: bytes) -> None:
+    async def __ws_bin_mouse_button_handler(self, ws: WsSession, data: bytes) -> None:
         try:
             state = bool(data[0] & 0b01)
             if data[0] & 0b10000000:
@@ -197,9 +200,10 @@ class HidApi:
         except Exception:
             return
         self.__hid.send_mouse_button_event(button, state)
+        presence.record_input(ws.token)
 
     @exposed_ws(3)
-    async def __ws_bin_mouse_move_handler(self, _: WsSession, data: bytes) -> None:
+    async def __ws_bin_mouse_move_handler(self, ws: WsSession, data: bytes) -> None:
         try:
             (to_x, to_y) = struct.unpack(">hh", data)
             to_x = valid_hid_mouse_move(to_x)
@@ -207,14 +211,17 @@ class HidApi:
         except Exception:
             return
         self.__hid.send_mouse_move_event(to_x, to_y)
+        presence.record_input(ws.token)
 
     @exposed_ws(4)
-    async def __ws_bin_mouse_relative_handler(self, _: WsSession, data: bytes) -> None:
+    async def __ws_bin_mouse_relative_handler(self, ws: WsSession, data: bytes) -> None:
         self.__process_ws_bin_delta_request(data, self.__hid.send_mouse_relative_events)
+        presence.record_input(ws.token)
 
     @exposed_ws(5)
-    async def __ws_bin_mouse_wheel_handler(self, _: WsSession, data: bytes) -> None:
+    async def __ws_bin_mouse_wheel_handler(self, ws: WsSession, data: bytes) -> None:
         self.__process_ws_bin_delta_request(data, self.__hid.send_mouse_wheel_events)
+        presence.record_input(ws.token)
 
     def __process_ws_bin_delta_request(self, data: bytes, handler: Callable[[Iterable[tuple[int, int]], bool], None]) -> None:
         try:
@@ -231,7 +238,7 @@ class HidApi:
     # =====
 
     @exposed_ws("key")
-    async def __ws_key_handler(self, _: WsSession, event: dict) -> None:
+    async def __ws_key_handler(self, ws: WsSession, event: dict) -> None:
         try:
             key = WEB_TO_EVDEV[valid_hid_key(event["key"])]
             state = valid_bool(event["state"])
@@ -239,32 +246,37 @@ class HidApi:
         except Exception:
             return
         self.__hid.send_key_event(key, state, finish)
+        presence.record_input(ws.token)
 
     @exposed_ws("mouse_button")
-    async def __ws_mouse_button_handler(self, _: WsSession, event: dict) -> None:
+    async def __ws_mouse_button_handler(self, ws: WsSession, event: dict) -> None:
         try:
             button = MOUSE_TO_EVDEV[valid_hid_mouse_button(event["button"])]
             state = valid_bool(event["state"])
         except Exception:
             return
         self.__hid.send_mouse_button_event(button, state)
+        presence.record_input(ws.token)
 
     @exposed_ws("mouse_move")
-    async def __ws_mouse_move_handler(self, _: WsSession, event: dict) -> None:
+    async def __ws_mouse_move_handler(self, ws: WsSession, event: dict) -> None:
         try:
             to_x = valid_hid_mouse_move(event["to"]["x"])
             to_y = valid_hid_mouse_move(event["to"]["y"])
         except Exception:
             return
         self.__hid.send_mouse_move_event(to_x, to_y)
+        presence.record_input(ws.token)
 
     @exposed_ws("mouse_relative")
-    async def __ws_mouse_relative_handler(self, _: WsSession, event: dict) -> None:
+    async def __ws_mouse_relative_handler(self, ws: WsSession, event: dict) -> None:
         self.__process_ws_delta_event(event, self.__hid.send_mouse_relative_events)
+        presence.record_input(ws.token)
 
     @exposed_ws("mouse_wheel")
-    async def __ws_mouse_wheel_handler(self, _: WsSession, event: dict) -> None:
+    async def __ws_mouse_wheel_handler(self, ws: WsSession, event: dict) -> None:
         self.__process_ws_delta_event(event, self.__hid.send_mouse_wheel_events)
+        presence.record_input(ws.token)
 
     def __process_ws_delta_event(self, event: dict, handler: Callable[[Iterable[tuple[int, int]], bool], None]) -> None:
         try:
