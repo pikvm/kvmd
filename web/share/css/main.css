@@ -36,6 +36,7 @@ body.body-no-select {
 
 a {
 	color: var(--cs-page-default-fg);
+	text-underline-position: under;
 }
 
 hr {
@@ -120,6 +121,10 @@ input[type=color] {
 	font-size: 16px;
 	outline: none;
 	cursor: pointer;
+}
+input[type=color] {
+	height: 20px;
+	width: 40px;
 }
 button {
 	display: block;

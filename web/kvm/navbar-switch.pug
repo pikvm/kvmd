@@ -1,3 +1,12 @@
+mixin color_slider_tr(name, title)
+	tr
+		td(style="white-space: nowrap") #{title}:
+		td #[input(type="color" id=`switch-color-${name}-input`)]
+		td #[input(type="range" id=`switch-color-${name}-brightness-slider` style="min-width: 150px")]
+		td &nbsp;&nbsp;&nbsp;
+		td #[button(id=`switch-color-${name}-default-button` class="small" title="Reset default") &#8635;]
+
+
 li.right.feature-disabled#switch-dropdown
 	.menu-item.menu-button#switch-menu-button(href="#")
 		+navbar_led("switch-atx-power-led", "led-atx-power")
@@ -6,14 +15,9 @@ li.right.feature-disabled#switch-dropdown
 
 	.hidden.menu#switch-menu
 		table(style="border-spacing: 0px")
-			tr
-				td
-					.text
-						b #[a(target="_blank" href="https://docs.pikvm.org/switch") PiKVM Switch] is attached#[br]
-						sub Select a port or perform any available action like ATX click
-				td
-					.text
-						button.small(data-wm-menu-force-hide data-wm-window-show="switch-window") &bull; Settings
+			.text
+				b #[a(target="_blank" href="https://docs.pikvm.org/switch") PiKVM Switch] is attached#[br]
+				sub Select a port or perform any available action like ATX click
 		hr
 
 		.hidden#switch-message-update
@@ -22,11 +26,62 @@ li.right.feature-disabled#switch-dropdown
 				| when you decide to install it.
 			hr
 
-		table.kv
-			tr
-				+menu_switch_td2("switch-atx-ask-switch", true, true) Ask ATX click confirmation:
-			tr
-				+menu_switch_td2("switch-msd-ask-switch", true, true) Confirm switching when the Drive is connected:
+		+menu_spoiler("EDIDs collection")
+			table.kv(style="width: 100%;")
+				tr
+					td(colspan="2", style="width: 40%;")
+						select#switch-edid-selector(
+							size="8"
+							style="width: -webkit-fill-available; width: -moz-available;"
+						)
+					td(rowspan="2" style="vertical-align: top")
+						table.kv
+							tr
+								td Manufacturer:
+								td.value#switch-edid-info-mfc-id
+							tr
+								td Product ID:
+								td.value#switch-edid-info-product-id
+							tr
+								td Serial:
+								td.value#switch-edid-info-serial
+							tr
+								td Monitor name:
+								td.value#switch-edid-info-monitor-name
+							tr
+								td Extra serial:
+								td.value#switch-edid-info-monitor-serial
+							tr
+								td Audio enabled:
+								td.value#switch-edid-info-audio
+							tr
+								td Data:
+								td #[button.small#switch-edid-copy-data-button(disabled) Copy]
+				tr
+					td #[button.small#switch-edid-add-button Add new]
+					td(style="float: right") #[button.small#switch-edid-remove-button(disabled) Remove]
+
+		+menu_spoiler("Device color scheme")
+			table.kv
+				+color_slider_tr("active", "Selected port")
+				+color_slider_tr("inactive", "Inactive port")
+				+color_slider_tr("beacon", "Blinking beacon")
+				tr
+					td #[hr]
+					td #[hr]
+					td #[hr]
+					td
+					td #[hr]
+				+color_slider_tr("flashing", "Flashing downlink")
+				+color_slider_tr("bootloader", "Bootloader mode")
+
+		+menu_spoiler("Interface settings")
+			table.kv
+				tr
+					+menu_switch_td2("switch-atx-ask-switch", true, true) Ask ATX click confirmation:
+				tr
+					+menu_switch_td2("switch-msd-ask-switch", true, true) Confirm switching when the Drive is connected:
+
 		hr
 
 		table.kv#switch-chain

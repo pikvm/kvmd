@@ -185,6 +185,39 @@
             </tr>
           </table>
           <hr>
+          <table class="kv">
+            <tr>
+                  <td>Bad link mode (release keys immediately):
+                  </td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input type="checkbox" id="hid-keyboard-bad-link-switch">
+                      <label for="hid-keyboard-bad-link-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+            </tr>
+            <tr>
+                  <td>Mute keyboard &amp; mouse (HID):
+                  </td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input type="checkbox" id="hid-mute-switch">
+                      <label for="hid-mute-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+            </tr>
+            <tr class="feature-disabled" id="hid-jiggler">
+                  <td><a target="_blank" href="https://docs.pikvm.org/mouse_jiggler">Mouse jiggler</a>:
+                  </td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input disabled type="checkbox" id="hid-jiggler-switch">
+                      <label for="hid-jiggler-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+            </tr>
+          </table>
+          <hr>
           <div class="hidden" id="stream-message-no-webrtc">
                 <div class="text">
                   <table>
@@ -224,38 +257,6 @@
               <td>
                 <select id="stream-resolution-selector" disabled></select>
               </td>
-            </tr>
-            <tr>
-                  <td>FPS limit:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-desired-fps-slider">
-                  </td>
-                  <td class="value-number" id="stream-desired-fps-value"></td>
-            </tr>
-            <tr class="feature-disabled" id="stream-quality">
-                  <td>JPEG quality:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-quality-slider">
-                  </td>
-                  <td class="value-number" id="stream-quality-value"></td>
-            </tr>
-            <tr class="feature-disabled" id="stream-h264-bitrate">
-                  <td>H.264 kbps:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-h264-bitrate-slider">
-                  </td>
-                  <td class="value-number" id="stream-h264-bitrate-value"></td>
-            </tr>
-            <tr class="feature-disabled" id="stream-h264-gop">
-                  <td>H.264 gop:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-h264-gop-slider">
-                  </td>
-                  <td class="value-number" id="stream-h264-gop-value"></td>
             </tr>
             <tr class="feature-disabled" id="stream-mode">
                   <td><a target="_blank" href="https://docs.pikvm.org/webrtc">Video mode</a>:
@@ -316,6 +317,45 @@
                   </td>
             </tr>
           </table>
+              <details>
+                <summary>Video quality settings</summary>
+                <div class="spoiler">
+                  <table class="kv">
+                    <tr>
+                          <td>FPS limit:
+                          </td>
+                          <td class="value-slider">
+                            <input type="range" id="stream-desired-fps-slider">
+                          </td>
+                          <td class="value-number" id="stream-desired-fps-value"></td>
+                    </tr>
+                    <tr class="feature-disabled" id="stream-quality">
+                          <td>JPEG quality:
+                          </td>
+                          <td class="value-slider">
+                            <input type="range" id="stream-quality-slider">
+                          </td>
+                          <td class="value-number" id="stream-quality-value"></td>
+                    </tr>
+                    <tr class="feature-disabled" id="stream-h264-bitrate">
+                          <td>H.264 kbps:
+                          </td>
+                          <td class="value-slider">
+                            <input type="range" id="stream-h264-bitrate-slider">
+                          </td>
+                          <td class="value-number" id="stream-h264-bitrate-value"></td>
+                    </tr>
+                    <tr class="feature-disabled" id="stream-h264-gop">
+                          <td>H.264 gop:
+                          </td>
+                          <td class="value-slider">
+                            <input type="range" id="stream-h264-gop-slider">
+                          </td>
+                          <td class="value-number" id="stream-h264-gop-value"></td>
+                    </tr>
+                  </table>
+                </div>
+              </details>
           <hr>
           <div class="buttons buttons-row">
             <button class="row33" data-wm-menu-force-hide data-wm-window-show="stream-window">&bull; Show stream</button>
@@ -506,16 +546,6 @@
                 </div>
               </details>
           <table class="kv">
-            <tr>
-                  <td>Bad link mode (release keys immediately):
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input type="checkbox" id="hid-keyboard-bad-link-switch">
-                      <label for="hid-keyboard-bad-link-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
             <tr class="feature-disabled" id="hid-connect">
                   <td>Connect HID to Server:
                   </td>
@@ -523,26 +553,6 @@
                     <div class="switch-box">
                       <input checked type="checkbox" id="hid-connect-switch">
                       <label for="hid-connect-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-            <tr class="feature-disabled" id="hid-jiggler">
-                  <td><a target="_blank" href="https://docs.pikvm.org/mouse_jiggler">Mouse jiggler</a>:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="hid-jiggler-switch">
-                      <label for="hid-jiggler-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-            <tr>
-                  <td>Mute all input HID events:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input type="checkbox" id="hid-mute-switch">
-                      <label for="hid-mute-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
                   </td>
             </tr>
@@ -1038,16 +1048,7 @@
         </div>
         <div class="hidden menu" id="switch-menu">
           <table style="border-spacing: 0px">
-            <tr>
-              <td>
-                <div class="text"><b><a target="_blank" href="https://docs.pikvm.org/switch">PiKVM Switch</a> is attached<br></b><sub>Select a port or perform any available action like ATX click</sub></div>
-              </td>
-              <td>
-                <div class="text">
-                  <button class="small" data-wm-menu-force-hide data-wm-window-show="switch-window">&bull; Settings</button>
-                </div>
-              </td>
-            </tr>
+            <div class="text"><b><a target="_blank" href="https://docs.pikvm.org/switch">PiKVM Switch</a> is attached<br></b><sub>Select a port or perform any available action like ATX click</sub></div>
           </table>
           <hr>
           <div class="hidden" id="switch-message-update">
@@ -1065,28 +1066,174 @@
                 </div>
             <hr>
           </div>
-          <table class="kv">
-            <tr>
-                  <td>Ask ATX click confirmation:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input checked type="checkbox" id="switch-atx-ask-switch">
-                      <label for="switch-atx-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-            <tr>
-                  <td>Confirm switching when the Drive is connected:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input checked type="checkbox" id="switch-msd-ask-switch">
-                      <label for="switch-msd-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-          </table>
+              <details>
+                <summary>EDIDs collection</summary>
+                <div class="spoiler">
+                  <table class="kv" style="width: 100%;">
+                    <tr>
+                      <td colspan="2" style="width: 40%;">
+                        <select id="switch-edid-selector" size="8" style="width: -webkit-fill-available; width: -moz-available;"></select>
+                      </td>
+                      <td rowspan="2" style="vertical-align: top">
+                        <table class="kv">
+                          <tr>
+                            <td>Manufacturer:</td>
+                            <td class="value" id="switch-edid-info-mfc-id"></td>
+                          </tr>
+                          <tr>
+                            <td>Product ID:</td>
+                            <td class="value" id="switch-edid-info-product-id"></td>
+                          </tr>
+                          <tr>
+                            <td>Serial:</td>
+                            <td class="value" id="switch-edid-info-serial"></td>
+                          </tr>
+                          <tr>
+                            <td>Monitor name:</td>
+                            <td class="value" id="switch-edid-info-monitor-name"></td>
+                          </tr>
+                          <tr>
+                            <td>Extra serial:</td>
+                            <td class="value" id="switch-edid-info-monitor-serial"></td>
+                          </tr>
+                          <tr>
+                            <td>Audio enabled:</td>
+                            <td class="value" id="switch-edid-info-audio"></td>
+                          </tr>
+                          <tr>
+                            <td>Data:</td>
+                            <td>
+                              <button class="small" id="switch-edid-copy-data-button" disabled>Copy</button>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <button class="small" id="switch-edid-add-button">Add new</button>
+                      </td>
+                      <td style="float: right">
+                        <button class="small" id="switch-edid-remove-button" disabled>Remove</button>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </details>
+              <details>
+                <summary>Device color scheme</summary>
+                <div class="spoiler">
+                  <table class="kv">
+                          <tr>
+                            <td style="white-space: nowrap">Selected port:</td>
+                            <td>
+                              <input type="color" id="switch-color-active-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-active-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-active-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="white-space: nowrap">Inactive port:</td>
+                            <td>
+                              <input type="color" id="switch-color-inactive-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-inactive-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-inactive-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="white-space: nowrap">Blinking beacon:</td>
+                            <td>
+                              <input type="color" id="switch-color-beacon-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-beacon-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-beacon-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                    <tr>
+                      <td>
+                        <hr>
+                      </td>
+                      <td>
+                        <hr>
+                      </td>
+                      <td>
+                        <hr>
+                      </td>
+                      <td></td>
+                      <td>
+                        <hr>
+                      </td>
+                    </tr>
+                          <tr>
+                            <td style="white-space: nowrap">Flashing downlink:</td>
+                            <td>
+                              <input type="color" id="switch-color-flashing-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-flashing-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-flashing-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="white-space: nowrap">Bootloader mode:</td>
+                            <td>
+                              <input type="color" id="switch-color-bootloader-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-bootloader-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-bootloader-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                  </table>
+                </div>
+              </details>
+              <details>
+                <summary>Interface settings</summary>
+                <div class="spoiler">
+                  <table class="kv">
+                    <tr>
+                          <td>Ask ATX click confirmation:
+                          </td>
+                          <td align="right">
+                            <div class="switch-box">
+                              <input checked type="checkbox" id="switch-atx-ask-switch">
+                              <label for="switch-atx-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                          </td>
+                    </tr>
+                    <tr>
+                          <td>Confirm switching when the Drive is connected:
+                          </td>
+                          <td align="right">
+                            <div class="switch-box">
+                              <input checked type="checkbox" id="switch-msd-ask-switch">
+                              <label for="switch-msd-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                          </td>
+                    </tr>
+                  </table>
+                </div>
+              </details>
           <hr>
           <table class="kv" id="switch-chain"></table>
         </div>
@@ -2226,156 +2373,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="hidden window" id="switch-window" data-wm-window-show-centered style="width: min-content">
-      <div class="window-header">
-        <div class="window-grab">Switch settings</div>
-        <div class="window-buttons">
-          <button data-wm-window-set-original></button>
-          <button data-wm-window-close></button>
-        </div>
-      </div>
-      <div class="tabs-box">
-            <input checked type="radio" name="switch-tab-button" id="switch-tab-edid-button">
-            <label for="switch-tab-edid-button">EDIDs collection</label>
-            <div class="tab">
-              <table>
-                <tr>
-                  <td colspan="2">
-                    <select id="switch-edid-selector" size="8" style="width: -webkit-fill-available; width: -moz-available;"></select>
-                  </td>
-                  <td rowspan="2" style="vertical-align: top">
-                    <table class="kv">
-                      <tr>
-                        <td>Manufacturer:</td>
-                        <td class="value" id="switch-edid-info-mfc-id"></td>
-                      </tr>
-                      <tr>
-                        <td>Product ID:</td>
-                        <td class="value" id="switch-edid-info-product-id"></td>
-                      </tr>
-                      <tr>
-                        <td>Serial:</td>
-                        <td class="value" id="switch-edid-info-serial"></td>
-                      </tr>
-                      <tr>
-                        <td>Monitor name:</td>
-                        <td class="value" id="switch-edid-info-monitor-name"></td>
-                      </tr>
-                      <tr>
-                        <td>Extra serial:</td>
-                        <td class="value" id="switch-edid-info-monitor-serial"></td>
-                      </tr>
-                      <tr>
-                        <td>Audio enabled:</td>
-                        <td class="value" id="switch-edid-info-audio"></td>
-                      </tr>
-                      <tr>
-                        <td>Data:</td>
-                        <td>
-                          <button class="small" id="switch-edid-copy-data-button" disabled>Copy</button>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <button id="switch-edid-add-button">Add new</button>
-                  </td>
-                  <td style="float: right">
-                    <button id="switch-edid-remove-button" disabled>Remove</button>
-                  </td>
-                </tr>
-              </table>
-            </div>
-            <input type="radio" name="switch-tab-button" id="switch-tab-colors-button">
-            <label for="switch-tab-colors-button">Color scheme</label>
-            <div class="tab">
-              <table>
-                    <tr>
-                      <td style="white-space: nowrap">Selected port:</td>
-                      <td>
-                        <input type="color" id="switch-color-active-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-active-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-active-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="white-space: nowrap">Inactive port:</td>
-                      <td>
-                        <input type="color" id="switch-color-inactive-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-inactive-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-inactive-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="white-space: nowrap">Blinking beacon:</td>
-                      <td>
-                        <input type="color" id="switch-color-beacon-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-beacon-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-beacon-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-                <tr>
-                  <td>
-                    <hr>
-                  </td>
-                  <td>
-                    <hr>
-                  </td>
-                  <td>
-                    <hr>
-                  </td>
-                  <td></td>
-                  <td>
-                    <hr>
-                  </td>
-                </tr>
-                    <tr>
-                      <td style="white-space: nowrap">Flashing downlink:</td>
-                      <td>
-                        <input type="color" id="switch-color-flashing-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-flashing-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-flashing-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="white-space: nowrap">Bootloader mode:</td>
-                      <td>
-                        <input type="color" id="switch-color-bootloader-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-bootloader-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-bootloader-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-              </table>
-            </div>
       </div>
     </div>
     <div class="hidden window" id="about-window" data-wm-window-show-centered>
