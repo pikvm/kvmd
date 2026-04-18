@@ -37,12 +37,18 @@ function __WindowManager() {
 
 	/************************************************************************/
 
-	var __catch_menu_esc = false;
-
 	var __init__ = function() {
 		for (let el of $$("menu-button")) {
-			el.parentElement.querySelector(".menu").tabIndex = -1;
+			let el_menu = el.parentElement;
+			el_menu.querySelector(".menu").tabIndex = -1;
 			tools.el.setOnDown(el, () => __toggleMenu(el));
+			el_menu.addEventListener("keyup", function(ev) {
+				if (ev.code === "Escape") {
+					ev.preventDefault();
+					__closeAllMenues();
+					__activateLastWindow();
+				}
+			});
 		}
 
 		for (let el_win of $$("window")) {
@@ -156,14 +162,6 @@ function __WindowManager() {
 					}
 				}
 			}, 100);
-		});
-
-		document.addEventListener("keyup", function(ev) {
-			if (__catch_menu_esc && ev.code === "Escape") {
-				ev.preventDefault();
-				__closeAllMenues();
-				__activateLastWindow();
-			}
 		});
 
 		document.addEventListener("fullscreenchange", function () {
@@ -479,7 +477,6 @@ function __WindowManager() {
 		if (all_hidden) {
 			__activateLastWindow();
 		}
-		__catch_menu_esc = !all_hidden;
 	};
 
 	var __closeAllMenues = function() {
@@ -489,7 +486,6 @@ function __WindowManager() {
 			tools.hidden.setVisible(el_menu, false);
 			el_menu.style.removeProperty("right");
 		}
-		__catch_menu_esc = false;
 	};
 
 	var __focusInOut = function(el, focus_in) {
