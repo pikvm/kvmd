@@ -81,7 +81,8 @@ li.right#system-dropdown
 				tr.feature-disabled#stream-h264-bitrate
 					+menu_slider_td3("stream-h264-bitrate-slider", "stream-h264-bitrate-value", false) H.264 kbps:
 				tr.feature-disabled#stream-h264-gop
-					+menu_slider_td3("stream-h264-gop-slider", "stream-h264-gop-value", false) H.264 gop:
+					+menu_slider_td3("stream-h264-gop-slider", "stream-h264-gop-value", false)
+						| #[a(target="_blank" href="https://docs.pikvm.org/video#settings") H.264 gop]:
 
 		.buttons.buttons-row
 			button.row33(data-wm-menu-force-hide data-wm-window-show="stream-window") &bull; Show stream
