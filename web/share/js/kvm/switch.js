@@ -349,7 +349,8 @@ export function Switch() {
 			let pa = model.ports[port]; // pa === port attrs
 			if (unit !== pa.unit) {
 				unit = pa.unit;
-				content += `${unit > 0 ? "<tr><td colspan=100><hr></td></tr>" : ""}
+				content += `
+					${unit > 0 ? "<tr><td colspan=4><hr></td><td></td><td colspan=100><hr></td></tr>" : ""}
 					<tr>
 						<td></td><td></td><td></td>
 						<td class="value">Unit: ${unit + 1}</td>
@@ -367,7 +368,6 @@ export function Switch() {
 							</div>
 						</td>
 					</tr>
-					<tr><td colspan=100><hr></td></tr>
 				`;
 			}
 			content += `

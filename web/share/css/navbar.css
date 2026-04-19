@@ -186,26 +186,27 @@ ul#navbar li div.menu details div.spoiler {
 	border-left: var(--border-default-thin);
 	border-bottom: var(--border-default-thin);
 }
-ul#navbar li div.menu details div.spoiler hr {
-	border: none;
-	border-top: var(--border-default-thin);
-}
 
 ul#navbar li div.menu div.buttons {
 	background-color: var(--cs-control-default-bg);
+	border-top: var(--border-control-thin);
+	border-bottom: var(--border-control-thin);
 }
-
-ul#navbar li div.menu div.text {
-	margin: 10px 15px 10px 15px;
-	font-size: 14px;
-}
-
 ul#navbar li div.menu div.buttons button,
 ul#navbar li div.menu div.buttons select {
 	border-radius: 0;
 	text-align: left;
 	padding: 0 16px;
 	width: 100%;
+}
+
+ul#navbar li div.menu div.buttons hr {
+	border-top: var(--border-control-thin);
+}
+
+ul#navbar li div.menu div.text {
+	margin: 10px 15px 10px 15px;
+	font-size: 14px;
 }
 
 ul#navbar li div.menu input[type=text] {
@@ -219,12 +220,9 @@ ul#navbar li div.menu input[type=text]::-webkit-input-placeholder {
 }
 
 ul#navbar li div.menu hr {
+	height: 0;
 	margin: 0;
-	display: block;
-	height: 0px;
 	padding: 0;
-	border: none;
-	border-top: var(--border-control-thin);
 }
 
 ul#navbar li div.menu img.sign {

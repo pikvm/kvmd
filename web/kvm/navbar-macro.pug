@@ -7,14 +7,12 @@ li.right#macro-dropdown
 		.text
 			b Record and play HID/ATX/GPIO actions#[br]
 			sub For security reasons, the record will not be saved on the PiKVM
-		hr
 
 		.buttons.buttons-row
 			button.row25#hid-recorder-record(disabled data-wm-menu-force-hide) &bull; Rec
 			button.row25#hid-recorder-stop(disabled) Stop
 			button.row25#hid-recorder-play(disabled) Play
 			button.row25#hid-recorder-clear(disabled) Clear
-		hr
 
 		table.kv
 			tr
@@ -27,10 +25,8 @@ li.right#macro-dropdown
 		hr
 
 		+menu_switch_table("hid-recorder-loop-switch", false, false) Infinite loop playback:
-		hr
 
 		input#hid-recorder-new-script-file(type="file" style="display: none")
-
 		.buttons.buttons-row
 			button.row50#hid-recorder-upload(disabled) Upload script
 			button.row50#hid-recorder-download(disabled) Download script
