@@ -77,13 +77,10 @@ class BaseHttpClient:
     def make_session(self) -> BaseHttpClientSession:
         raise NotImplementedError
 
-    def _make_http_session(self, headers: (dict[str, str] | None)=None) -> aiohttp.ClientSession:
+    def _make_http_session(self) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(
             base_url="http://localhost:0",
-            headers={
-                aiohttp.hdrs.USER_AGENT: self.__user_agent,
-                **(headers or {}),
-            },
+            headers={aiohttp.hdrs.USER_AGENT: self.__user_agent},
             connector=aiohttp.UnixConnector(path=self.__unix_path),
             timeout=aiohttp.ClientTimeout(total=self.__timeout),
         )
