@@ -27,6 +27,8 @@ from typing import Self
 
 import aiohttp
 
+from .. import htclient
+
 
 # =====
 class BaseHttpClientSession:
@@ -67,6 +69,9 @@ class BaseHttpClient:
 
         self.__unix_path = unix_path
         self.__timeout = timeout
+
+        if user_agent.startswith("-"):
+            user_agent = htclient.make_user_agent("KVMD" + user_agent)
         self.__user_agent = user_agent
 
     def make_session(self) -> BaseHttpClientSession:
@@ -76,7 +81,7 @@ class BaseHttpClient:
         return aiohttp.ClientSession(
             base_url="http://localhost:0",
             headers={
-                "User-Agent": self.__user_agent,
+                aiohttp.hdrs.USER_AGENT: self.__user_agent,
                 **(headers or {}),
             },
             connector=aiohttp.UnixConnector(path=self.__unix_path),

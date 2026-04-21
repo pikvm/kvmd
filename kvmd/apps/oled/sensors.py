@@ -39,7 +39,7 @@ from ...clients.kvmd import KvmdClient
 class Sensors:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
-        kvmd: (KvmdClient | None),
+        kvmd: KvmdClient,
         fahrenheit: bool,
     ) -> None:
 
@@ -85,8 +85,7 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
         assert self.__fqdn_task is None
         self.__fqdn_task = asyncio.create_task(self.__fqdn_task_loop())
         self.__iface_task = asyncio.create_task(self.__iface_task_loop())
-        if self.__kvmd:
-            self.__kvmd_task = asyncio.create_task(self.__kvmd_task_loop())
+        self.__kvmd_task = asyncio.create_task(self.__kvmd_task_loop())
         return self
 
     async def __aexit__(

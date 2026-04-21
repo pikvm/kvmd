@@ -107,7 +107,6 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
         )
 
         self.__client = HttpStreamerClient(
-            name="jpeg",
             unix_path=self.__unix_path,
             timeout=timeout,
             user_agent=htclient.make_user_agent("KVMD"),

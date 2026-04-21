@@ -33,8 +33,6 @@ from PIL import ImageFont
 
 from ...logging import get_logger
 
-from ... import htclient
-
 from ...clients.kvmd import KvmdClient
 
 from .. import init
@@ -53,7 +51,7 @@ def _get_data_path(subdir: str, name: str) -> str:
     return os.path.join(os.path.dirname(module_path), subdir, name)
 
 
-async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many-branches,too-many-statements
+async def _run(kvmd: KvmdClient, options: argparse.Namespace) -> None:  # pylint: disable=too-many-branches,too-many-statements
     logger = get_logger(0)
 
     device = luma_cmdline.create_device(options)
@@ -108,17 +106,7 @@ async def _run(options: argparse.Namespace) -> None:  # pylint: disable=too-many
             for signum in [signal.SIGTERM, signal.SIGINT, signal.SIGUSR1, signal.SIGUSR2]:
                 signal.signal(signum, sigusr_handler)
 
-            async with Sensors(
-                kvmd=(
-                    KvmdClient(
-                        unix_path=options.kvmd_unix,
-                        timeout=options.kvmd_timeout,
-                        user_agent=htclient.make_user_agent("KVMD-OLED"),
-                    ) if options.kvmd_unix else None
-                ),
-                fahrenheit=options.fahrenheit,
-            ) as sensors:
-
+            async with Sensors(kvmd, options.fahrenheit) as sensors:
                 await screen.set_swimming(60, 3)
 
                 async def draw_and_sleep(text: str) -> None:
@@ -188,8 +176,6 @@ def main() -> None:
         fahrenheit=ia.config.oled.fahrenheit,
         low_contrast=ia.config.oled.contrast.low,
         contrast=ia.config.oled.contrast.normal,
-        kvmd_unix=ia.config.oled.kvmd.unix,
-        kvmd_timeout=ia.config.oled.kvmd.timeout,
     )
     options = parser.parse_args(ia.args)
     if options.config:
@@ -200,4 +186,7 @@ def main() -> None:
     options.contrast = min(max(options.contrast, 0), 255)
     options.low_contrast = min(max(options.low_contrast, 0), 255)
 
-    asyncio.run(_run(options))
+    asyncio.run(_run(
+        kvmd=ia.make_kvmd_client("-OLED"),
+        options=options,
+    ))

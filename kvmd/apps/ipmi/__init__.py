@@ -20,10 +20,6 @@
 # ========================================================================== #
 
 
-from ...clients.kvmd import KvmdClient
-
-from ... import htclient
-
 from .. import init
 
 from .auth import IpmiAuthManager
@@ -32,20 +28,17 @@ from .server import IpmiServer
 
 # =====
 def main() -> None:
-    config = init(
+    ia = init(
         prog="kvmd-ipmi",
         description="IPMI to KVMD proxy",
         check_run=True,
-    ).config.ipmi
+    )
 
     IpmiServer(
-        auth=IpmiAuthManager(**config.auth._unpack()),
-        kvmd=KvmdClient(
-            user_agent=htclient.make_user_agent("KVMD-IPMI"),
-            **config.kvmd._unpack(),
-        ),
+        auth=IpmiAuthManager(**ia.config.ipmi.auth._unpack()),
+        kvmd=ia.make_kvmd_client("-IPMI"),
         **{  # Makes mypy happy (too many arguments for IpmiServer)
-            **config.server._unpack(),
-            **config.sol._unpack(),
+            **ia.config.ipmi.server._unpack(),
+            **ia.config.ipmi.sol._unpack(),
         },
     ).run()

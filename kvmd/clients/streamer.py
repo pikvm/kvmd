@@ -159,17 +159,6 @@ def _http_reading_handle_errors() -> Generator[None, None, None]:
 
 
 class HttpStreamerClient(BaseHttpClient, BaseStreamerClient):
-    def __init__(
-        self,
-        name: str,
-        unix_path: str,
-        timeout: float,
-        user_agent: str,
-    ) -> None:
-
-        super().__init__(unix_path, timeout, user_agent)
-        self.__name = name
-
     def make_session(self) -> HttpStreamerClientSession:
         return HttpStreamerClientSession(self._make_http_session)
 
@@ -228,7 +217,7 @@ class HttpStreamerClient(BaseHttpClient, BaseStreamerClient):
         reader.read = types.MethodType(read, reader)  # type: ignore
 
     def __str__(self) -> str:
-        return f"HttpStreamerClient({self.__name})"
+        return "HttpStreamerClient()"
 
 
 # =====
@@ -247,7 +236,6 @@ def _memsink_reading_handle_errors() -> Generator[None, None, None]:
 class MemsinkStreamerClient(BaseStreamerClient):
     def __init__(
         self,
-        name: str,
         fmt: int,
         obj: str,
         lock_timeout: float,
@@ -255,7 +243,6 @@ class MemsinkStreamerClient(BaseStreamerClient):
         drop_same_frames: float,
     ) -> None:
 
-        self.__name = name
         self.__fmt = fmt
         self.__kwargs: dict = {
             "obj": obj,
@@ -288,4 +275,4 @@ class MemsinkStreamerClient(BaseStreamerClient):
             raise StreamerPermError("Invalid sink format")
 
     def __str__(self) -> str:
-        return f"MemsinkStreamerClient({self.__name})"
+        return f"MemsinkStreamerClient({self.__kwargs['obj']})"
