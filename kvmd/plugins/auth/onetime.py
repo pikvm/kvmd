@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import os
 import secrets
 
 from typing import Final
@@ -66,6 +67,15 @@ class Plugin(BaseAuthService):
 
     async def sysprep(self) -> None:
         self.__regen_passwd()
+
+    async def cleanup(self) -> None:
+        try:
+            os.remove(self.__path)
+        except FileNotFoundError:
+            pass
+        except Exception as ex:
+            get_logger(0).info("Can't remove passwd file %s: %s",
+                               self.__path, tools.efmt(ex))
 
     async def authorize(self, user: str, passwd: str) -> bool:
         assert len(self.__passwd) == self.__passwd_len
