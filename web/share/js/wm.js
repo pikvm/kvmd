@@ -406,12 +406,16 @@ function __WindowManager() {
 		//  - https://github.com/whatwg/fullscreen/issues/231
 		//  - https://bugzilla.mozilla.org/show_bug.cgi?id=700123
 		if (document.documentElement.requestFullscreen && !$$("window-full-tab").length) {
-			document.documentElement.requestFullscreen().then(function() {
+			let fs_lock = false;
+			let options = {
+				get keyboardLock() { fs_lock = true; return "browser"; }, // eslint-disable-line quote-props
+			};
+			document.documentElement.requestFullscreen(options).then(function() {
 				self.setFullTabWindow(el_win, true);
 				__activateWindow(el_win); // Почему-то теряется фокус
-				if (navigator.keyboard && navigator.keyboard.lock) {
+				if (!fs_lock && navigator.keyboard && navigator.keyboard.lock) {
 					navigator.keyboard.lock();
-				} else {
+				} else if (!fs_lock) {
 					setTimeout(function() {
 						let html = (
 							"Shortcuts like Alt+Tab and Ctrl+W might not be captured.<br>"
