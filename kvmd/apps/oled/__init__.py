@@ -59,7 +59,13 @@ async def _run_mode_pipe(screen: Screen, interval: float) -> None:
     await asyncio.sleep(interval)
 
 
-async def _run_mode_default(screen: Screen, interval: float, fahrenheit: bool, ia: InitAttrs) -> bool:
+async def _run_mode_default(
+    screen: Screen,
+    interval: float,
+    fahrenheit: bool,
+    ia: InitAttrs,
+) -> bool:
+
     stop_reason: (str | None) = None
 
     def sigusr_handler(signum: int, _) -> None:  # type: ignore
@@ -77,6 +83,7 @@ async def _run_mode_default(screen: Screen, interval: float, fahrenheit: bool, i
     async with Sensors(
         kvmd=ia.make_kvmd_client("-OLED"),
         fahrenheit=fahrenheit,
+        creds_path=ia.config.oled.credentials,
     ) as sensors:
 
         await screen.set_swimming(60, 3)
@@ -88,29 +95,31 @@ async def _run_mode_default(screen: Screen, interval: float, fahrenheit: bool, i
 
         if screen.get_height() >= 64:
             while stop_reason is None:
+                creds = sensors.has_credentials()
                 text = (
                     "{fqdn}\n"
-                    "{ip}\n"
-                    "iface: {iface}\n"
-                    "temp: {temp}\n"
-                    "cpu: {cpu} mem: {mem}\n"
-                    "({hb} {clients}) {uptime}"
+                    + "{ip}\n"
+                    + "iface: {iface}\n"
+                    + ("user: {user}\n" if creds else "temp: {temp}\n")
+                    + ("pw: {passwd}\n" if creds else "cpu: {cpu} mem: {mem}\n")
+                    + "({hb} {clients}) {uptime}"
                 )
                 await draw_and_sleep(text)
         else:
             summary = True
             while stop_reason is None:
+                creds = sensors.has_credentials()
                 if summary:
                     text = (
                         "{fqdn}\n"
-                        "({hb} {clients}) {uptime}\n"
-                        "temp: {temp}"
+                        + "({hb} {clients}) {uptime}\n"
+                        + ("user: {user}" if creds else "temp: {temp}")
                     )
                 else:
                     text = (
                         "{ip}\n"
-                        "({hb}) iface: {iface}\n"
-                        "cpu: {cpu} mem: {mem}"
+                        + "({hb}) iface: {iface}\n"
+                        + ("pw: {passwd}" if creds else "cpu: {cpu} mem: {mem}")
                     )
                 await draw_and_sleep(text)
                 summary = bool(time.monotonic() // 6 % 2)
@@ -150,7 +159,12 @@ async def _run(ia: InitAttrs, options: argparse.Namespace) -> None:
         elif options.fill:
             await screen.draw_white()
         else:
-            force_keep_content = await _run_mode_default(screen, options.interval, options.fahrenheit, ia)
+            force_keep_content = await _run_mode_default(
+                screen=screen,
+                interval=options.interval,
+                fahrenheit=options.fahrenheit,
+                ia=ia,
+            )
     except KeyboardInterrupt:
         raise SystemExit("Interrupted by Ctrl+C")
 

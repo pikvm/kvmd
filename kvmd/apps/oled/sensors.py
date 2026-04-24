@@ -20,8 +20,10 @@
 # ========================================================================== #
 
 
+import os
 import asyncio
 import socket
+import json
 import itertools
 import types
 
@@ -41,14 +43,17 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
         self,
         kvmd: KvmdClient,
         fahrenheit: bool,
+        creds_path: str,
     ) -> None:
 
         self.__kvmd = kvmd
         self.__fahrenheit = fahrenheit
+        self.__creds_path = creds_path
 
         self.__fqdn_task: (asyncio.Task | None) = None
         self.__iface_task: (asyncio.Task | None) = None
         self.__kvmd_task: (asyncio.Task | None) = None
+        self.__creds_task: (asyncio.Task | None) = None
 
         self.__clients_count = -1
         self.__s_fqdn = ""
@@ -58,10 +63,13 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
         self.__s_temp = ""
         self.__s_cpu = ""
         self.__s_mem = ""
+        self.__s_user = ""
+        self.__s_passwd = ""
 
         hb = itertools.cycle(r"/-\|")
         self.__sensors = {
             "hb":      (lambda: next(hb)),
+            "clients": (lambda: ("?" if self.__clients_count < 0 else str(self.__clients_count))),
             "fqdn":    (lambda: (self.__s_fqdn or "<no-fqdn>")),
             "iface":   (lambda: (self.__s_iface or "<no-iface>")),
             "ip":      (lambda: (self.__s_ip or "<no-ip>")),
@@ -69,11 +77,15 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
             "temp":    (lambda: (self.__s_temp or "?")),
             "cpu":     (lambda: (self.__s_cpu or "?")),
             "mem":     (lambda: (self.__s_mem or "?")),
-            "clients": (lambda: ("?" if self.__clients_count < 0 else str(self.__clients_count))),
+            "user":    (lambda: (self.__s_user or "<no-data>")),
+            "passwd":  (lambda: (self.__s_passwd or "")),
         }
 
-    def has_clients(self) -> int:
+    def has_clients(self) -> bool:
         return (self.__clients_count > 0)
+
+    def has_credentials(self) -> bool:
+        return os.path.isfile(self.__creds_path)
 
     def render(self, text: str) -> str:
         return text.format_map(self)
@@ -86,6 +98,7 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
         self.__fqdn_task = asyncio.create_task(self.__fqdn_task_loop())
         self.__iface_task = asyncio.create_task(self.__iface_task_loop())
         self.__kvmd_task = asyncio.create_task(self.__kvmd_task_loop())
+        self.__creds_task = asyncio.create_task(self.__creds_task_loop())
         return self
 
     async def __aexit__(
@@ -95,7 +108,7 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
         _tb: types.TracebackType,
     ) -> None:
 
-        for task in [self.__fqdn_task, self.__iface_task, self.__kvmd_task]:
+        for task in [self.__fqdn_task, self.__iface_task, self.__kvmd_task, self.__creds_task]:
             if task:
                 task.cancel()
 
@@ -157,3 +170,24 @@ class Sensors:  # pylint: disable=too-many-instance-attributes
 
             if "uptime" in event:
                 self.__s_uptime = "{days}d {hours}h {minutes}m".format(**event["uptime"]["parts"])
+
+    async def __creds_task_loop(self) -> None:
+        logger = get_logger(0)
+        assert self.__creds_path
+        ok = True
+        while True:
+            try:
+                with open(self.__creds_path) as file:
+                    data = json.load(file)
+                    user = data["user"]
+                    passwd = data["passwd"]
+                    (self.__s_user, self.__s_passwd) = (user, passwd)
+                    ok = True
+            except Exception as ex:
+                self.__s_user = ""
+                self.__s_passwd = ""
+                if ok:
+                    if not isinstance(ex, FileNotFoundError):
+                        logger.error("Can't read credentials %s: %s", self.__creds_path, tools.efmt(ex))
+                    ok = False
+            await asyncio.sleep(1)

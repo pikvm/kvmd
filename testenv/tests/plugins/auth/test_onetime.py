@@ -21,6 +21,7 @@
 
 
 import os
+import json
 
 import pytest
 
@@ -31,10 +32,12 @@ from . import get_configured_auth_service
 @pytest.mark.asyncio
 async def test_ok__onetime_service(tmpdir) -> None:  # type: ignore
     path = os.path.abspath(str(tmpdir.join("otpasswd")))
-    async with get_configured_auth_service("onetime", passwd_put=path) as service:
+    async with get_configured_auth_service("onetime", file=path) as service:
         with open(path) as file:
-            passwd = file.read()
-        assert passwd == passwd.strip()
+            data = json.load(file)
+            user = data["user"]
+            passwd = data["passwd"]
+        assert user == "onetime"
         assert len(passwd) == 8
         assert not (await service.authorize("onetime", "foo"))
         assert (await service.authorize("onetime", passwd))
@@ -59,21 +62,30 @@ async def test_ok__onetime_service(tmpdir) -> None:  # type: ignore
 @pytest.mark.asyncio
 async def test_ok__ontime_changing_service(tmpdir) -> None:  # type: ignore
     path = os.path.abspath(str(tmpdir.join("otpasswd")))
-    async with get_configured_auth_service("onetime", passwd_put=path, change_after_login=True) as service:
+    async with get_configured_auth_service("onetime", file=path, change_after_login=True) as service:
         with open(path) as file:
-            p1 = file.read()
-        assert p1 == p1.strip()
+            d1 = json.load(file)
+            u1 = d1["user"]
+            p1 = d1["passwd"]
+        assert u1 == "onetime"
         assert len(p1) == 8
 
         assert not (await service.authorize("onetime", "foo"))
         assert (await service.authorize("onetime", p1))
         assert not (await service.authorize("onetime", p1))
 
+        del d1
+        del u1
+
         with open(path) as file:
-            p2 = file.read()
-        assert p2 == p2.strip()
+            d2 = json.load(file)
+            u2 = d2["user"]
+            p2 = d2["passwd"]
+        assert u2 == "onetime"
         assert len(p2) == 8
+
         assert p1 != p2
+        del p1
 
         assert not (await service.authorize("onetime", "foo"))
         assert (await service.authorize("onetime", p2))

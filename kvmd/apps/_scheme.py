@@ -789,10 +789,12 @@ def make_config_scheme() -> dict:
         },
 
         "oled": {
-            "width":      Option(128,   type=valid_int_f1),
-            "height":     Option(32,    type=valid_int_f1),
-            "rotate":     Option(0,     type=valid_number.mk(min=0, max=3)),
-            "fahrenheit": Option(False, type=valid_bool),
+            "width":  Option(128, type=valid_int_f1),
+            "height": Option(32,  type=valid_int_f1),
+            "rotate": Option(0,   type=valid_number.mk(min=0, max=3)),
+
+            "fahrenheit":  Option(False, type=valid_bool),
+            "credentials": Option("/run/kvmd/creds.json", type=valid_abs_path),
 
             "contrast": {
                 "low":    Option(1,  type=valid_number.mk(min=0, max=255)),
