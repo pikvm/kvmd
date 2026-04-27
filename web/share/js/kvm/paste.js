@@ -39,9 +39,9 @@ export function Paste(__recorder) {
 			}
 		});
 
-		tools.storage.bindSimpleSwitch($("hid-pak-ask-switch"), "hid.pak.ask", true);
+		tools.storage.bindSimpleSwitch($("hid-pak-ask-switch"), "hid.pak.ask", tools.config.getBool("kvm--hid-pak-ask", true));
 
-		tools.storage.bindSimpleSwitch($("hid-pak-secure-switch"), "hid.pak.secure", false, function(value) {
+		tools.storage.bindSimpleSwitch($("hid-pak-secure-switch"), "hid.pak.secure", tools.config.getBool("kvm--hid-pak-secure", false), function(value) {
 			$("hid-pak-text").style.setProperty("-webkit-text-security", (value ? "disc" : "none"));
 		});
 
