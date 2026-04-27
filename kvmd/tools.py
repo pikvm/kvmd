@@ -116,9 +116,9 @@ def atomic_file_edit(path: str) -> Generator[str]:
         try:
             st = os.stat(path)
             with open(path, "rb") as file:
-                os.write(tmp_fd, file.read())
                 os.fchown(tmp_fd, st.st_uid, st.st_gid)
                 os.fchmod(tmp_fd, st.st_mode)
+                os.write(tmp_fd, file.read())
         finally:
             os.close(tmp_fd)
         yield tmp_path
