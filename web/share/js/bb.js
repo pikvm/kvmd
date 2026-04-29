@@ -38,7 +38,7 @@ export var browser = new function() {
 
 	// Opera 8.0+
 	let is_opera = (
-		(!!window.opr && !!opr.addons) // eslint-disable-line no-undef
+		(!!window.opr && !!opr.addons)
 		|| !!window.opera
 		|| (navigator.userAgent.indexOf(" OPR/") >= 0)
 	);

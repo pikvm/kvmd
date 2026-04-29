@@ -597,19 +597,19 @@ export function Switch() {
 
 	var __switchUplinkBeacon = function(unit) {
 		let state = false;
-		try { state = !__state.beacons.uplinks[unit]; } catch {}; // eslint-disable-line no-empty
+		try { state = !__state.beacons.uplinks[unit]; } catch {};
 		__sendPost("api/switch/set_beacon", {"uplink": unit, "state": state});
 	};
 
 	var __switchDownlinkBeacon = function(unit) {
 		let state = false;
-		try { state = !__state.beacons.downlinks[unit]; } catch {}; // eslint-disable-line no-empty
+		try { state = !__state.beacons.downlinks[unit]; } catch {};
 		__sendPost("api/switch/set_beacon", {"downlink": unit, "state": state});
 	};
 
 	var __switchPortBeacon = function(port) {
 		let state = false;
-		try { state = !__state.beacons.ports[port]; } catch {}; // eslint-disable-line no-empty
+		try { state = !__state.beacons.ports[port]; } catch {};
 		__sendPost("api/switch/set_beacon", {"port": port, "state": state});
 	};
 

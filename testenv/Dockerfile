@@ -98,7 +98,8 @@ RUN \
 		htmlhint \
 		pug \
 		pug-cli \
-		@babel/eslint-parser
+		@babel/eslint-parser \
+		globals
 WORKDIR /
 
 ARG USTREAMER_MIN_VERSION

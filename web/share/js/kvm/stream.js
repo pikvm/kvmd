@@ -220,8 +220,7 @@ export function Streamer() {
 
 			tools.info(
 				`Stream: Janus WebRTC state: features.h264=${f.h264},`
-				+ ` webrtc=${sup_webrtc}, h264=${sup_h264}, janus_imported=${__janus_imported}`
-			);
+				+ ` webrtc=${sup_webrtc}, h264=${sup_h264}, janus_imported=${__janus_imported}`);
 
 			tools.hidden.setVisible($("stream-message-no-webrtc"), __janus_imported && f.h264 && !sup_webrtc);
 			tools.hidden.setVisible($("stream-message-no-vd"), f.h264 && !sup_vd);

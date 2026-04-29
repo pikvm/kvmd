@@ -208,7 +208,7 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeH
 			let codec = __codec;
 			__closeDecoder();
 			__codec = codec;
-			__decoder = new VideoDecoder({ // eslint-disable-line no-undef
+			__decoder = new VideoDecoder({
 				"output": __renderFrame,
 				"error": (err) => __logInfo(err.message),
 			});
@@ -230,7 +230,7 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	var __processFrame = async (key, raw) => {
-		let chunk = new EncodedVideoChunk({ // eslint-disable-line no-undef
+		let chunk = new EncodedVideoChunk({
 			"timestamp": (performance.now() + performance.timeOrigin) * 1000,
 			"type": (key ? "key" : "delta"),
 			"data": raw,

@@ -41,7 +41,7 @@ export function main() {
 		if (tools.storage.get("page.ui.type") !== ui) {
 			tools.storage.set("page.ui.type", ui);
 			window.onbeforeunload = null;
-			window.location.href = window.location.href; // eslint-disable-line
+			window.location.href = window.location.href;
 		}
 	}, false);
 
