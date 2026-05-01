@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import asyncio
 import dataclasses
 
 from typing import Callable
@@ -84,6 +85,8 @@ from .api.redfish.root import RedfishRootApi
 from .api.redfish.atx import RedfishAtxApi
 from .api.redfish.msd import RedfishMsdApi
 
+from . import presence
+
 
 # =====
 class StreamerQualityNotSupported(OperationError):
@@ -143,6 +146,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
     __EV_INFO_STATE = "info"
     __EV_SWITCH_STATE = "switch"
     __EV_CLIENTS_STATE = "clients"  # FIXME
+    __EV_PRESENCE_STATE = "presence"
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
@@ -164,6 +168,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         keymap_path: str,
 
         stream_forever: bool,
+        presence_enabled: bool=False,
     ) -> None:
 
         super().__init__()
@@ -174,6 +179,9 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__snapshoter = snapshoter  # Not a component: No state or cleanup
 
         self.__stream_forever = stream_forever
+        self.__presence_enabled = presence_enabled
+        self.__presence_loop_task: (asyncio.Task | None) = None
+        self.__prev_presence_state: (dict | None) = None
 
         self.__hid_api = HidApi(hid, keymap_path)  # Ugly hack to get keymaps state
         self.__apis: list[object] = [
@@ -316,17 +324,55 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__auth.start_ws_session(ws.token)
         self.__hid.clear_events()
         self.__streamer_notifier.notify()
+        if self.__presence_enabled:
+            user = self.__auth.check(ws.token)
+            if user:
+                presence.set_user(ws.token, user)
+            if self.__presence_loop_task is None:
+                self.__presence_loop_task = asyncio.ensure_future(self.__presence_loop())
+            asyncio.ensure_future(self.__broadcast_presence())
 
     def _on_ws_removed(self, ws: WsSession) -> None:
         self.__auth.stop_ws_session(ws.token)
         self.__hid.clear_events()
         self.__streamer_notifier.notify()
+        if self.__presence_enabled:
+            presence.unset_user(ws.token)
+            asyncio.ensure_future(self.__broadcast_presence())
 
     def __get_stream_clients(self) -> int:
         return sum(map(
             (lambda ws: ws.kwargs["stream"]),
             self._get_wss(),
         ))
+
+    # ===== PRESENCE
+
+    async def __broadcast_presence(self) -> None:
+        try:
+            connected = presence.get_connected_users()
+            controllers = presence.get_controllers()
+            active = presence.get_active()
+            state = {
+                "connected": connected,
+                "controllers": controllers,
+                "active": active,
+            }
+            if state != self.__prev_presence_state:
+                self.__prev_presence_state = state
+                await self._broadcast_ws_event(self.__EV_PRESENCE_STATE, state)
+        except Exception:
+            get_logger(0).exception("Presence broadcast error")
+
+    async def __presence_loop(self) -> None:
+        try:
+            while True:
+                await asyncio.sleep(0.5)
+                await self.__broadcast_presence()
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            get_logger(0).exception("Presence loop error")
 
     # ===== SYSTEM TASKS
 
