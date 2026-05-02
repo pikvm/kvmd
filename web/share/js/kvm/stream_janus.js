@@ -24,6 +24,7 @@
 
 
 import {tools, $} from "../tools.js";
+import {wm} from "../wm.js";
 
 
 var _Janus = null;
@@ -174,7 +175,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				__retry_ensure_timeout = setTimeout(function() {
 					__retry_ensure_timeout = null;
 					__ensureJanus(true);
-				}, 5000);
+				}, 1000);
 			}
 		}
 		__stopRetryEmsgInterval();
@@ -333,7 +334,20 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 						"error": function(error) {
 							__logInfo("Error on SDP handling:", error);
 							__setInfo(false, false, error);
-							//__destroyJanus();
+							let html = "Can't connect with WebRTC (error on SDP handling).<br>";
+							if (__allow_mic || __allow_cam) {
+								let what = [];
+								if (__allow_mic) {
+									what.push("microphone");
+								}
+								if (__allow_cam) {
+									what.push("webcam");
+								}
+								html += `<br>Most likely, your browser blocked <b>a ${what.join(" or ")}</b> usage.`;
+								html += " Please unlock it (check the top left corner in the address bar)";
+								html += " and press <b>OK</b> to try again.";
+							}
+							wm.error(html, error).then(__destroyJanus);
 						},
 					});
 				}
