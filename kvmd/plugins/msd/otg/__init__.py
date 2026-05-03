@@ -59,28 +59,12 @@ from .drive import Drive
 
 
 # =====
-@dataclasses.dataclass(frozen=True)
-class _DriveState:
-    image: (Image | None)
-    cdrom: bool
-    rw: bool
-
-
 @dataclasses.dataclass
-class _VirtualDriveState:
+class _VirtualDrive:
     image: (Image | None)
     connected: bool
     cdrom: bool
     rw: bool
-
-    @classmethod
-    def from_drive_state(cls, state: _DriveState) -> "_VirtualDriveState":
-        return _VirtualDriveState(
-            image=state.image,
-            connected=bool(state.image),
-            cdrom=state.cdrom,
-            rw=state.rw,
-        )
 
 
 class _State:
@@ -88,7 +72,7 @@ class _State:
         self.__notifier = notifier
 
         self.storage: (Storage | None) = None
-        self.vd: (_VirtualDriveState | None) = None
+        self.vd: (_VirtualDrive | None) = None
 
         self.__region = aiotools.AioExclusiveRegion(MsdIsBusyError)
         self._lock = asyncio.Lock()
@@ -514,15 +498,16 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         logger = get_logger(0)
         try:
             path = self.__drive.get_image_path()
-            drive_state = _DriveState(
+            real_vd = _VirtualDrive(
                 image=((await self.__storage.make_image_by_path(path)) if path else None),
+                connected=bool(path),
                 cdrom=self.__drive.get_cdrom_flag(),
                 rw=self.__drive.get_rw_flag(),
             )
 
             await self.__storage.reload()
 
-            if self.__state.vd is None and drive_state.image is None:
+            if self.__state.vd is None and real_vd.image is None:
                 # Если только что включились и образ не подключен - попробовать
                 # перемонтировать хранилище (и создать images и meta).
                 logger.info("Probing to remount storage ...")
@@ -537,13 +522,13 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
         else:
             self.__state.storage = self.__storage
-            if drive_state.image:
+            if real_vd.image:
                 # При подключенном образе виртуальный стейт заменяется реальным
-                self.__state.vd = _VirtualDriveState.from_drive_state(drive_state)
+                self.__state.vd = real_vd
             else:
                 if self.__state.vd is None:
                     # Если раньше MSD был отключен
-                    self.__state.vd = _VirtualDriveState.from_drive_state(drive_state)
+                    self.__state.vd = real_vd
 
                 image = self.__state.vd.image
                 if image and (not image.in_storage or not (await image.exists())):
