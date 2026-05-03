@@ -166,10 +166,17 @@ class BaseMsd(BasePlugin):
         yield BaseMsdReader()
 
     @contextlib.asynccontextmanager
-    async def write_image(self, name: str, size: int, remove_incomplete: (bool | None)) -> AsyncGenerator[BaseMsdWriter, None]:
+    async def write_image(
+        self,
+        name: str,
+        size: int,
+        remove_incomplete: bool,
+    ) -> AsyncGenerator[BaseMsdWriter, None]:
+
         _ = name
         _ = size
         _ = remove_incomplete
+
         if self is not None:  # XXX: Vulture and pylint hack
             raise NotImplementedError()
         yield BaseMsdWriter()

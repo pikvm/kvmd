@@ -321,7 +321,13 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             self.__notifier.notify()
 
     @contextlib.asynccontextmanager
-    async def write_image(self, name: str, size: int, remove_incomplete: (bool | None)) -> AsyncGenerator[MsdFileWriter, None]:
+    async def write_image(
+        self,
+        name: str,
+        size: int,
+        remove_incomplete: bool,
+    ) -> AsyncGenerator[MsdFileWriter, None]:
+
         image: (Image | None) = None
         complete = False
 

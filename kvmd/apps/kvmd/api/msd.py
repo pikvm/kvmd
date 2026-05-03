@@ -205,9 +205,9 @@ class MsdApi:
                 return make_json_exception(ex, 400)
             raise
 
-    def __get_remove_incomplete(self, req: Request) -> (bool | None):
+    def __get_remove_incomplete(self, req: Request) -> bool:
         flag: (str | None) = req.query.get("remove_incomplete")
-        return (valid_bool(flag) if flag is not None else None)
+        return (valid_bool(flag) if flag is not None else False)
 
     def __make_write_info(self, name: str, size: int, written: int) -> dict:
         return {"image": {"name": name, "size": size, "written": written}}
