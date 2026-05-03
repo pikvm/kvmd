@@ -25,6 +25,7 @@ import contextlib
 import dataclasses
 import copy
 
+from typing import Generator
 from typing import AsyncGenerator
 
 from ....logging import get_logger
@@ -89,25 +90,35 @@ class _State:
         self.storage: (Storage | None) = None
         self.vd: (_VirtualDriveState | None) = None
 
-        self._region = aiotools.AioExclusiveRegion(MsdIsBusyError)
+        self.__region = aiotools.AioExclusiveRegion(MsdIsBusyError)
         self._lock = asyncio.Lock()
 
-    @contextlib.asynccontextmanager
-    async def busy(self, check_online: bool=True) -> AsyncGenerator[None, None]:
+    @contextlib.contextmanager
+    def busy_unlocked(self) -> Generator[None]:
         try:
-            with self._region:
-                async with self._lock:
-                    self.__notifier.notify()
-                    if check_online:
-                        if self.vd is None:
-                            raise MsdOfflineError()
-                        assert self.storage
-                    yield
+            with self.__region:
+                self.__notifier.notify()
+                yield
         finally:
             self.__notifier.notify()
 
+    @contextlib.asynccontextmanager
+    async def locked_under_busy(self) -> AsyncGenerator[None, None]:
+        assert self.__region.is_busy()
+        async with self._lock:
+            yield
+
+    @contextlib.asynccontextmanager
+    async def busy_online(self) -> AsyncGenerator[None, None]:
+        with self.busy_unlocked():
+            async with self.locked_under_busy():
+                if self.vd is None:
+                    raise MsdOfflineError()
+                assert self.storage
+                yield
+
     def is_busy(self) -> bool:
-        return self._region.is_busy()
+        return self.__region.is_busy()
 
 
 # =====
@@ -227,15 +238,16 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     @aiotools.atomic_fg
     async def reset(self) -> None:
-        async with self.__state.busy(check_online=False):
-            try:
-                self.__reset = True
-                self.__drive.set_image_path("")
-                self.__drive.set_cdrom_flag(False)
-                self.__drive.set_rw_flag(False)
-                await self.__storage.remount_rw(False)
-            except Exception:
-                get_logger(0).exception("Can't reset MSD properly")
+        with self.__state.busy_unlocked():
+            async with self.__state.locked_under_busy():
+                try:
+                    self.__reset = True
+                    self.__drive.set_image_path("")
+                    self.__drive.set_cdrom_flag(False)
+                    self.__drive.set_rw_flag(False)
+                    await self.__storage.remount_rw(False)
+                except Exception:
+                    get_logger(0).exception("Can't reset MSD properly")
 
     # =====
 
@@ -247,7 +259,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         rw: (bool | None)=None,
     ) -> None:
 
-        async with self.__state.busy():
+        async with self.__state.busy_online():
             assert self.__state.vd
             self.__STATE_check_disconnected()
 
@@ -269,7 +281,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     @aiotools.atomic_fg
     async def set_connected(self, connected: bool) -> None:
-        async with self.__state.busy():
+        async with self.__state.busy_online():
             assert self.__state.vd
             if connected:
                 self.__STATE_check_disconnected()
@@ -297,28 +309,24 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     @contextlib.asynccontextmanager
     async def read_image(self, name: str) -> AsyncGenerator[MsdFileReader, None]:
-        try:
-            with self.__state._region:  # pylint: disable=protected-access
-                try:
-                    async with self.__state._lock:  # pylint: disable=protected-access
-                        self.__notifier.notify()
-                        self.__STATE_check_disconnected()
+        with self.__state.busy_unlocked():
+            try:
+                async with self.__state.locked_under_busy():
+                    self.__STATE_check_disconnected()
+                    image = await self.__STATE_get_storage_image(name)
 
-                        image = await self.__STATE_get_storage_image(name)
-                        self.__reader = await MsdFileReader(
-                            notifier=self.__notifier,
-                            name=image.name,
-                            path=image.path,
-                            chunk_size=self.__read_chunk_size,
-                        ).open()
+                    self.__reader = await MsdFileReader(
+                        notifier=self.__notifier,
+                        name=image.name,
+                        path=image.path,
+                        chunk_size=self.__read_chunk_size,
+                    ).open()
 
-                    self.__notifier.notify()
-                    yield self.__reader
+                self.__notifier.notify()
+                yield self.__reader
 
-                finally:
-                    await aiotools.shield_fg(self.__close_reader())
-        finally:
-            self.__notifier.notify()
+            finally:
+                await aiotools.shield_fg(self.__close_reader())
 
     @contextlib.asynccontextmanager
     async def write_image(
@@ -334,55 +342,47 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         async def finish_writing() -> None:
             # Делаем под блокировкой, чтобы эвент айнотифи не был обработан
             # до того, как мы не закончим все процедуры.
-            async with self.__state._lock:  # pylint: disable=protected-access
+            async with self.__state.locked_under_busy():
                 try:
-                    self.__notifier.notify()
+                    await self.__close_writer()
                 finally:
-                    try:
-                        if image:
-                            await image.set_complete(complete)
-                    finally:
+                    if image:
                         try:
-                            if image and remove_incomplete and not complete:
-                                await image.remove(fatal=False)
+                            await image.set_complete(complete)
                         finally:
                             try:
-                                await self.__close_writer()
+                                if remove_incomplete and not complete:
+                                    await image.remove(fatal=False)
                             finally:
-                                if image:
-                                    await image.remount_rw(False, fatal=False)
+                                await image.remount_rw(False, fatal=False)
 
-        try:
-            with self.__state._region:  # pylint: disable=protected-access
-                try:
-                    async with self.__state._lock:  # pylint: disable=protected-access
-                        self.__notifier.notify()
-                        self.__STATE_check_disconnected()
+        with self.__state.busy_unlocked():
+            try:
+                async with self.__state.locked_under_busy():
+                    self.__STATE_check_disconnected()
+                    image = await self.__STORAGE_create_new_image(name)
 
-                        image = await self.__STORAGE_create_new_image(name)
-                        await image.remount_rw(True)
-                        await image.set_complete(False)
-                        self.__writer = await MsdFileWriter(
-                            notifier=self.__notifier,
-                            name=image.name,
-                            path=image.path,
-                            file_size=size,
-                            sync_size=self.__sync_chunk_size,
-                            chunk_size=self.__write_chunk_size,
-                        ).open()
+                    await image.remount_rw(True)
+                    await image.set_complete(False)
+                    self.__writer = await MsdFileWriter(
+                        notifier=self.__notifier,
+                        name=image.name,
+                        path=image.path,
+                        file_size=size,
+                        sync_size=self.__sync_chunk_size,
+                        chunk_size=self.__write_chunk_size,
+                    ).open()
 
-                    self.__notifier.notify()
-                    yield self.__writer
-                    complete = await self.__writer.finish()
+                self.__notifier.notify()
+                yield self.__writer
+                complete = await self.__writer.finish()
 
-                finally:
-                    await aiotools.shield_fg(finish_writing())
-        finally:
-            self.__notifier.notify()
+            finally:
+                await aiotools.shield_fg(finish_writing())
 
     @aiotools.atomic_fg
     async def remove(self, name: str) -> None:
-        async with self.__state.busy():
+        async with self.__state.busy_online():
             assert self.__state.storage
             assert self.__state.vd
             self.__STATE_check_disconnected()
@@ -391,8 +391,8 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             if self.__state.vd.image == image:
                 self.__state.vd.image = None
 
-            await image.remount_rw(True)
             try:
+                await image.remount_rw(True)
                 await image.remove(fatal=True)
             finally:
                 await aiotools.shield_fg(image.remount_rw(False, fatal=False))
@@ -450,51 +450,52 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             await self.__close_writer()
 
     async def systask(self) -> None:
-        logger = get_logger(0)
         while True:
             try:
-                while True:
-                    # Активно ждем, пока не будут на месте все каталоги.
-                    await self.__reload_state()
-                    if self.__state.vd:
-                        break
-                    await asyncio.sleep(5)
-
-                with Inotify() as inotify:
-                    # Из-за гонки между первым релоадом и установкой вотчеров,
-                    # мы можем потерять какие-то каталоги стораджа, но это допустимо,
-                    # так как всегда есть ручной перезапуск.
-                    await inotify.watch_all_changes(*self.__storage.get_watchable_paths())
-                    await inotify.watch_all_changes(*self.__drive.get_watchable_paths())
-
-                    # После установки вотчеров еще раз проверяем стейт,
-                    # чтобы не потерять состояние привода.
-                    await self.__reload_state()
-
-                    while self.__state.vd:  # Если живы после предыдущей проверки
-                        need_restart = self.__reset
-                        self.__reset = False
-                        need_reload_state = False
-                        for event in (await inotify.get_series(timeout=1)):
-                            need_reload_state = True
-                            if event.restart:
-                                # Если выгрузили OTG, изменили каталоги, что-то отмонтировали или делают еще какую-то странную фигню.
-                                # Проверяется маска InotifyMask.ALL_RESTART_EVENTS
-                                logger.info("Got a big inotify event: %s; reinitializing MSD ...", event)
-                                need_restart = True
-                                break
-                        if need_restart:
-                            break
-                        if need_reload_state:
-                            await self.__reload_state()
-                        elif self.__writer:
-                            # При загрузке файла обновляем статистику раз в секунду (по таймауту).
-                            # Это не нужно при обычном релоаде, потому что там и так проверяются все разделы.
-                            await self.__reload_parts_info()
-
+                await self.__systask_single()
             except Exception:
-                logger.exception("Unexpected MSD watcher error")
+                get_logger(0).exception("Unexpected MSD watcher error")
                 await asyncio.sleep(1)
+
+    async def __systask_single(self) -> None:
+        while True:
+            # Активно ждем, пока не будут на месте все каталоги.
+            await self.__reload_state()
+            if self.__state.vd:
+                break
+            await asyncio.sleep(5)
+
+        with Inotify() as inotify:
+            # Из-за гонки между первым релоадом и установкой вотчеров,
+            # мы можем потерять какие-то каталоги стораджа, но это допустимо,
+            # так как всегда есть ручной перезапуск.
+            await inotify.watch_all_changes(*self.__storage.get_watchable_paths())
+            await inotify.watch_all_changes(*self.__drive.get_watchable_paths())
+
+            # После установки вотчеров еще раз проверяем стейт,
+            # чтобы не потерять состояние привода.
+            await self.__reload_state()
+
+            while self.__state.vd:  # Если живы после предыдущей проверки
+                need_restart = self.__reset
+                self.__reset = False
+                need_reload_state = False
+                for event in (await inotify.get_series(timeout=1)):
+                    need_reload_state = True
+                    if event.restart:
+                        # Если выгрузили OTG, изменили каталоги, что-то отмонтировали или делают еще какую-то странную фигню.
+                        # Проверяется маска InotifyMask.ALL_RESTART_EVENTS
+                        get_logger(0).info("Got a big inotify event: %s; reinitializing MSD ...", event)
+                        need_restart = True
+                        break
+                if need_restart:
+                    break
+                if need_reload_state:
+                    await self.__reload_state()
+                elif self.__writer:
+                    # При загрузке файла обновляем статистику раз в секунду (по таймауту).
+                    # Это не нужно при обычном релоаде, потому что там и так проверяются все разделы.
+                    await self.__reload_parts_info()
 
     async def __reload_state(self) -> None:
         async with self.__state._lock:  # pylint: disable=protected-access
