@@ -535,6 +535,7 @@ def make_config_scheme() -> dict:
                 "msd": {
                     "start": Option(True, type=valid_bool),
                     "default": {
+                        "file":      Option("",    type=valid_abs_path, if_empty="", unpack_as="image_path"),
                         "stall":     Option(False, type=valid_bool),
                         "cdrom":     Option(True,  type=valid_bool),
                         "rw":        Option(False, type=valid_bool),

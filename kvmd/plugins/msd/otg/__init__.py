@@ -34,10 +34,8 @@ from ....inotify import Inotify
 
 from ....yamlconf import Option
 
-from ....validators.basic import valid_bool
 from ....validators.basic import valid_number
 from ....validators.os import valid_command
-from ....validators.kvm import valid_msd_image_name
 
 from .... import aiotools
 from .... import fstab
@@ -115,17 +113,12 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
         remount_cmd: list[str],
 
-        initial: dict,
-
         gadget: str,  # XXX: Not from options, see /kvmd/apps/kvmd/__init__.py for details
     ) -> None:
 
         self.__read_chunk_size = read_chunk_size
         self.__write_chunk_size = write_chunk_size
         self.__sync_chunk_size = sync_chunk_size
-
-        self.__initial_image: str = initial["image"]
-        self.__initial_cdrom: bool = initial["cdrom"]
 
         self.__gadget = gadget  # Only for sysprep()
 
@@ -150,11 +143,6 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 "/usr/bin/sudo", "--non-interactive",
                 "/usr/bin/kvmd-helper-otgmsd-remount", "{mode}",
             ], type=valid_command),
-
-            "initial": {
-                "image": Option("",    type=valid_msd_image_name, if_empty=""),
-                "cdrom": Option(False, type=valid_bool),
-            },
         }
 
     # =====
@@ -344,7 +332,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             try:
                 async with self.__state.locked_under_busy():
                     self.__STATE_check_disconnected()
-                    image = await self.__STORAGE_create_new_image(name)
+                    image = await self.__STATE_create_storage_image(name)
 
                     await image.remount_rw(True)
                     await image.set_complete(False)
@@ -401,7 +389,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         assert image.in_storage
         return image
 
-    async def __STORAGE_create_new_image(self, name: str) -> Image:  # pylint: disable=invalid-name
+    async def __STATE_create_storage_image(self, name: str) -> Image:  # pylint: disable=invalid-name
         assert self.__state.storage
         image = await self.__storage.make_image_by_name(name)
         if image.name in self.__state.storage.images or (await image.exists()):
@@ -513,7 +501,6 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 logger.info("Probing to remount storage ...")
                 await self.__storage.remount_rw(True)
                 await self.__storage.remount_rw(False)
-                await self.__unsafe_setup_initial()
 
         except Exception:
             logger.exception("Error while reloading MSD state; switching to offline")
@@ -536,18 +523,3 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                     self.__state.vd.image = None
 
                 self.__state.vd.connected = False
-
-    async def __unsafe_setup_initial(self) -> None:
-        if self.__initial_image:
-            logger = get_logger(0)
-            image = await self.__storage.make_image_by_name(self.__initial_image)
-            if (await image.exists()):
-                logger.info("Setting up initial image %r ...", self.__initial_image)
-                try:
-                    self.__drive.set_rw_flag(False)
-                    self.__drive.set_cdrom_flag(self.__initial_cdrom)
-                    self.__drive.set_image_path(image.path)
-                except Exception:
-                    logger.exception("Can't setup initial image: ignored")
-            else:
-                logger.error("Can't find initial image %r: ignored", self.__initial_image)

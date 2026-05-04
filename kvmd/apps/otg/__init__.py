@@ -187,11 +187,12 @@ class _GadgetConfig:
         self.__create_meta(func, desc, eps, starter)
         self.__hid_instance += 1
 
-    def add_msd(  # pylint: disable=too-many-arguments
+    def add_msd(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         starter: list[str],
         start: bool,
         user: str,
+        image_path: str,
         stall: bool,
         cdrom: bool,
         rw: bool,
@@ -208,6 +209,8 @@ class _GadgetConfig:
         func = f"mass_storage.usb{self.__msd_instance}"
         func_path = self.__create_function(func)
         _write(join(func_path, "stall"), int(stall))
+        if image_path:
+            _write(join(func_path, "lun.0/file"), image_path)
         _write(join(func_path, "lun.0/cdrom"), int(cdrom))
         _write(join(func_path, "lun.0/ro"), int(not rw))
         _write(join(func_path, "lun.0/removable"), int(removable))
@@ -334,6 +337,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
                     starter=["drives"],
                     start=cod.drives.start,
                     user="root",
+                    image_path="",
                     inquiry_string_cdrom=make_inquiry_string(cod.drives.default.inquiry_string.cdrom),
                     inquiry_string_flash=make_inquiry_string(cod.drives.default.inquiry_string.flash),
                     **cod.drives.default._unpack(ignore="inquiry_string"),
