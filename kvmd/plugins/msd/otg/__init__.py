@@ -68,8 +68,8 @@ class _VirtualDrive:
 
 
 class _State:
-    def __init__(self, notifier: aiotools.AioNotifier) -> None:
-        self.__notifier = notifier
+    def __init__(self, nr: aiotools.AioNotifier) -> None:
+        self.__nr = nr
 
         self.storage: (Storage | None) = None
         self.vd: (_VirtualDrive | None) = None
@@ -81,10 +81,10 @@ class _State:
     def busy_unlocked(self) -> Generator[None]:
         try:
             with self.__region:
-                self.__notifier.notify()
+                self.__nr.notify()
                 yield
         finally:
-            self.__notifier.notify()
+            self.__nr.notify()
 
     @contextlib.asynccontextmanager
     async def locked_under_busy(self) -> AsyncGenerator[None, None]:
@@ -135,8 +135,8 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         self.__reader: (MsdFileReader | None) = None
         self.__writer: (MsdFileWriter | None) = None
 
-        self.__notifier = aiotools.AioNotifier()
-        self.__state = _State(self.__notifier)
+        self.__nr = aiotools.AioNotifier()
+        self.__state = _State(self.__nr)
         self.__reset = False
 
     @classmethod
@@ -195,12 +195,12 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             }
 
     async def trigger_state(self) -> None:
-        self.__notifier.notify(1)
+        self.__nr.notify(1)
 
     async def poll_state(self) -> AsyncGenerator[dict, None]:
         prev: dict = {}
         while True:
-            if (await self.__notifier.wait()) > 0:
+            if (await self.__nr.wait()) > 0:
                 prev = {}
             new = await self.get_state()
             if not prev or (prev.get("online") != new["online"]):
@@ -300,13 +300,13 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                     image = await self.__STATE_get_storage_image(name)
 
                     self.__reader = await MsdFileReader(
-                        notifier=self.__notifier,
+                        nr=self.__nr,
                         name=image.name,
                         path=image.path,
                         chunk_size=self.__read_chunk_size,
                     ).open()
 
-                self.__notifier.notify()
+                self.__nr.notify()
                 yield self.__reader
 
             finally:
@@ -349,7 +349,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                     await image.remount_rw(True)
                     await image.set_complete(False)
                     self.__writer = await MsdFileWriter(
-                        notifier=self.__notifier,
+                        nr=self.__nr,
                         name=image.name,
                         path=image.path,
                         file_size=size,
@@ -357,7 +357,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                         chunk_size=self.__write_chunk_size,
                     ).open()
 
-                self.__notifier.notify()
+                self.__nr.notify()
                 yield self.__writer
                 complete = await self.__writer.finish()
 
@@ -484,13 +484,13 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     async def __reload_state(self) -> None:
         async with self.__state._lock:  # pylint: disable=protected-access
             await self.__unsafe_reload_state()
-        self.__notifier.notify()
+        self.__nr.notify()
 
     async def __reload_parts_info(self) -> None:
         assert self.__writer  # Использовать только при записи образа
         async with self.__state._lock:  # pylint: disable=protected-access
             await self.__storage.reload_parts_info()
-        self.__notifier.notify()
+        self.__nr.notify()
 
     # ===== Don't call this directly ====
 

@@ -186,8 +186,15 @@ class BaseMsd(BasePlugin):
 
 
 class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, notifier: aiotools.AioNotifier, name: str, path: str, chunk_size: int) -> None:
-        self.__notifier = notifier
+    def __init__(
+        self,
+        nr: aiotools.AioNotifier,
+        name: str,
+        path: str,
+        chunk_size: int,
+    ) -> None:
+
+        self.__nr = nr
         self.__name = name
         self.__path = path
         self.__chunk_size = chunk_size
@@ -223,7 +230,7 @@ class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attribu
             now = time.monotonic()
             if self.__tick + 1 < now or self.__readed == self.__file_size:
                 self.__tick = now
-                self.__notifier.notify()
+                self.__nr.notify()
 
             yield chunk
 
@@ -245,8 +252,17 @@ class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attribu
 
 
 class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, notifier: aiotools.AioNotifier, name: str, path: str, file_size: int, sync_size: int, chunk_size: int) -> None:
-        self.__notifier = notifier
+    def __init__(
+        self,
+        nr: aiotools.AioNotifier,
+        name: str,
+        path: str,
+        file_size: int,
+        sync_size: int,
+        chunk_size: int,
+    ) -> None:
+
+        self.__nr = nr
         self.__name = name
         self.__path = path
         self.__file_size = file_size
@@ -282,7 +298,7 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
         now = time.monotonic()
         if self.__tick + 1 < now:
             self.__tick = now
-            self.__notifier.notify()
+            self.__nr.notify()
 
         return self.__written
 
@@ -291,7 +307,11 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
         get_logger(1).info("Writing %r image (%d bytes) to MSD ...", self.__name, self.__file_size)
         await aiofiles.os.makedirs(os.path.dirname(self.__path), exist_ok=True)
         self.__file = await aiofiles.open(self.__path, mode="w+b", buffering=0)  # type: ignore
-        await asyncio.to_thread(os.ftruncate, self.__file.fileno(), self.__file_size)  # type: ignore
+        try:
+            await asyncio.to_thread(os.ftruncate, self.__file.fileno(), self.__file_size)  # type: ignore
+        except Exception:
+            await self.__file.close()  # type: ignore
+            raise
         return self
 
     async def finish(self) -> bool:
@@ -309,7 +329,8 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
                 (log, result) = (logger.error, "INCOMPLETE")
             else:  # written > size
                 (log, result) = (logger.warning, "OVERFLOW")
-            log("Written %d of %d bytes to MSD image %r: %s", self.__written, self.__file_size, self.__name, result)
+            log("Written %d of %d bytes to MSD image %r: %s",
+                self.__written, self.__file_size, self.__name, result)
             await self.__file.close()  # type: ignore
         except Exception:
             logger.exception("Can't close image writer")
