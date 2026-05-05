@@ -24,13 +24,13 @@ import asyncio
 import copy
 
 from typing import AsyncGenerator
-from typing import Any
 
 from ....logging import get_logger
 
 from .... import aiomulti
 from .... import usb
 
+from ....yamlconf import Section
 from ....yamlconf import Option
 
 from ....validators.basic import valid_bool
@@ -48,44 +48,46 @@ from .mouse import MouseProcess
 class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
-        ignore_keys: list[str],
-        mouse_x_range: dict[str, Any],
-        mouse_y_range: dict[str, Any],
-        jiggler: dict[str, Any],
-
-        keyboard: dict[str, Any],
-        mouse: dict[str, Any],
-        mouse_alt: dict[str, Any],
-        noop: bool,
-
+        c: Section,
         udc: str,  # XXX: Not from options, see /kvmd/apps/kvmd/__init__.py for details
     ) -> None:
 
-        super().__init__(ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
+        super().__init__(c)
 
         self.__udc = udc
 
         self.__notifier = aiomulti.AioMpNotifier()
 
-        win98_fix = mouse.pop("absolute_win98_fix")
-        common = {"notifier": self.__notifier, "noop": noop}
+        def make_kwargs(s: Section) -> dict:
+            return {
+                "notifier":       self.__notifier,
+                "noop":           c.noop,
+                "device_path":    s.device,
+                "select_timeout": s.select_timeout,
+                "queue_timeout":  s.queue_timeout,
+                "write_retries":  s.write_retries,
+            }
 
-        self.__keyboard_proc = KeyboardProcess(**common, **keyboard)
-        self.__mouse_current = self.__mouse_proc = MouseProcess(**common, **mouse)
+        self.__keyboard_proc = KeyboardProcess(**make_kwargs(c.keyboard))
+        self.__mouse_current = self.__mouse_proc = MouseProcess(
+            absolute=c.mouse.absolute,
+            horizontal_wheel=c.mouse.horizontal_wheel,
+            **make_kwargs(c.mouse),
+        )
 
         self.__mouse_alt_proc: (MouseProcess | None) = None
         self.__mouses: dict[str, MouseProcess] = {}
-        if mouse_alt["device_path"]:
+        if c.mouse_alt.device:
             self.__mouse_alt_proc = MouseProcess(
-                absolute=(not mouse["absolute"]),
-                **common,
-                **mouse_alt,
+                absolute=(not c.mouse.absolute),
+                horizontal_wheel=c.mouse_alt.horizontal_wheel,
+                **make_kwargs(c.mouse_alt),
             )
             self.__mouses = {
-                "usb": (self.__mouse_proc if mouse["absolute"] else self.__mouse_alt_proc),
-                "usb_rel": (self.__mouse_alt_proc if mouse["absolute"] else self.__mouse_proc),
+                "usb":     (self.__mouse_proc if c.mouse.absolute else self.__mouse_alt_proc),
+                "usb_rel": (self.__mouse_alt_proc if c.mouse.absolute else self.__mouse_proc),
             }
-            if win98_fix:
+            if c.mouse.absolute_win98_fix:
                 # На самом деле мультимышка и win95 не зависят друг от друга,
                 # но так было проще реализовать переключение режимов
                 self.__mouses["usb_win98"] = self.__mouses["usb"]
@@ -96,13 +98,13 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
     def get_plugin_options(cls) -> dict:
         return {
             "keyboard": {
-                "device":         Option("/dev/kvmd-hid-keyboard", type=valid_abs_path, unpack_as="device_path"),
+                "device":         Option("/dev/kvmd-hid-keyboard", type=valid_abs_path),
                 "select_timeout": Option(0.1, type=valid_float_f01),
                 "queue_timeout":  Option(0.1, type=valid_float_f01),
                 "write_retries":  Option(150, type=valid_int_f1),
             },
             "mouse": {
-                "device":             Option("/dev/kvmd-hid-mouse", type=valid_abs_path, unpack_as="device_path"),
+                "device":             Option("/dev/kvmd-hid-mouse", type=valid_abs_path),
                 "select_timeout":     Option(0.1,   type=valid_float_f01),
                 "queue_timeout":      Option(0.1,   type=valid_float_f01),
                 "write_retries":      Option(150,   type=valid_int_f1),
@@ -111,7 +113,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 "horizontal_wheel":   Option(True,  type=valid_bool),
             },
             "mouse_alt": {
-                "device":           Option("/dev/kvmd-hid-mouse-alt", type=valid_abs_path, if_empty="", unpack_as="device_path"),
+                "device":           Option("/dev/kvmd-hid-mouse-alt", type=valid_abs_path, if_empty=""),
                 "select_timeout":   Option(0.1,  type=valid_float_f01),
                 "queue_timeout":    Option(0.1,  type=valid_float_f01),
                 "write_retries":    Option(150,  type=valid_int_f1),

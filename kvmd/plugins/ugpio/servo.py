@@ -21,8 +21,11 @@
 # ========================================================================== #
 
 
+from typing import Final
+
 from ... import aiotools
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_number
@@ -37,34 +40,28 @@ class Plugin(PwmPlugin):
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        chip: int,
-        period: int,
-        duty_cycle_min: int,
-        duty_cycle_max: int,
-        angle_min: float,
-        angle_max: float,
-        angle_push: float,
-        angle_release: float,
+        c: Section,
     ) -> None:
 
-        angle_push = min(max(angle_push, angle_min), angle_max)
-        angle_release = min(max(angle_release, angle_min), angle_max)
+        duty_cycle_min: Final[int]   = c.duty_cycle_min
+        duty_cycle_max: Final[int]   = c.duty_cycle_max
+        angle_min:      Final[float] = c.angle_min
+        angle_max:      Final[float] = c.angle_max
+        angle_push:     Final[float] = min(max(c.angle_push, angle_min), angle_max)
+        angle_release:  Final[float] = min(max(c.angle_release, angle_min), angle_max)
 
         duty_cycle_per_degree = (duty_cycle_max - duty_cycle_min) / (angle_max - angle_min)
 
         duty_cycle_push = int(duty_cycle_per_degree * (angle_push - angle_min) + duty_cycle_min)
         duty_cycle_release = int(duty_cycle_per_degree * (angle_release - angle_min) + duty_cycle_min)
 
-        super().__init__(
-            instance_name=instance_name,
-            notifier=notifier,
+        config = Section()
+        config["chip"] = c.chip
+        config["period"] = c.period
+        config["duty_cycle_push"] = duty_cycle_push
+        config["duty_cycle_release"] = duty_cycle_release
 
-            chip=chip,
-            period=period,
-            duty_cycle_push=duty_cycle_push,
-            duty_cycle_release=duty_cycle_release,
-        )
+        super().__init__(instance_name, notifier, config)
 
     @classmethod
     def get_plugin_options(cls) -> dict:

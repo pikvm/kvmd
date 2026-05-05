@@ -50,11 +50,11 @@ def main() -> None:
         load_gpio=True,
     ).config
 
-    msd_kwargs = config.kvmd.msd._unpack(ignore=["type"])
+    msd_kwargs = {"c": config.kvmd.msd}
     if config.kvmd.msd.type == "otg":
         msd_kwargs["gadget"] = config.otg.gadget  # XXX: Small crutch to pass gadget name to the plugin
 
-    hid_kwargs = config.kvmd.hid._unpack(ignore=["type", "keymap"])
+    hid_kwargs = {"c": config.kvmd.hid}
     if config.kvmd.hid.type == "otg":
         hid_kwargs["udc"] = config.otg.udc  # XXX: Small crutch to pass UDC to the plugin
 
@@ -79,12 +79,10 @@ def main() -> None:
             usc_groups=(config.auth.usc.kvmd_groups + config.auth.usc.groups),
             unauth_paths=([] if config.prometheus.auth.enabled else ["/export/prometheus/metrics"]),
 
-            int_type=config.auth.internal.type,
-            int_kwargs=config.auth.internal._unpack(ignore=["type", "force_users"]),
-            force_int_users=config.auth.internal.force_users,
+            int_c=config.auth.internal,
+            ext_c=config.auth.external,
 
-            ext_type=config.auth.external.type,
-            ext_kwargs=(config.auth.external._unpack(ignore=["type"]) if config.auth.external.type else {}),
+            force_int_users=config.auth.internal.force_users,
 
             totp_secret_path=config.auth.totp.secret.file,
         ),
@@ -98,7 +96,7 @@ def main() -> None:
         ),
 
         hid=hid,
-        atx=get_atx_class(config.atx.type)(**config.atx._unpack(ignore=["type"])),
+        atx=get_atx_class(config.atx.type)(config.atx),
         msd=get_msd_class(config.msd.type)(**msd_kwargs),
         streamer=streamer,
 

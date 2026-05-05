@@ -22,6 +22,7 @@
 
 import asyncio
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -29,6 +30,7 @@ import gpiod
 
 from ... import aiotools
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.os import valid_abs_path
@@ -44,13 +46,11 @@ class Plugin(BaseUserGpioDriver):
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        device_path: str,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
-
-        self.__device_path = device_path
+        super().__init__(instance_name, notifier, c)
+        self.__device_path: Final[str] = c.device
 
         self.__tasks: dict[int, (asyncio.Task | None)] = {}
         self.__line_req: (gpiod.LineRequest | None) = None
@@ -58,7 +58,7 @@ class Plugin(BaseUserGpioDriver):
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "device": Option("/dev/gpiochip0", type=valid_abs_path, unpack_as="device_path"),
+            "device": Option("/dev/gpiochip0", type=valid_abs_path),
         }
 
     @classmethod

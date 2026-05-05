@@ -23,11 +23,12 @@
 import os
 import contextlib
 
+from typing import Final
 from typing import Generator
-from typing import Any
 
 import serial
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_float_f01
@@ -61,16 +62,10 @@ class _SerialPhyConnection(BasePhyConnection):
 
 
 class _SerialPhy(BasePhy):
-    def __init__(
-        self,
-        device_path: str,
-        speed: int,
-        read_timeout: float,
-    ) -> None:
-
-        self.__device_path = device_path
-        self.__speed = speed
-        self.__read_timeout = read_timeout
+    def __init__(self, c: Section) -> None:
+        self.__device_path:  Final[str] = c.device
+        self.__speed:        Final[int] = c.speed
+        self.__read_timeout: Final[float] = c.read_timeout
 
     def has_device(self) -> bool:
         return os.path.exists(self.__device_path)
@@ -86,24 +81,14 @@ class _SerialPhy(BasePhy):
 
 # =====
 class Plugin(BaseMcuHid):
-    def __init__(self, **kwargs: Any) -> None:
-        phy_kwargs: dict = {
-            (option.unpack_as or key): kwargs.pop(option.unpack_as or key)
-            for (key, option) in self.__get_phy_options().items()
-        }
-        super().__init__(phy=_SerialPhy(**phy_kwargs), **kwargs)
+    def __init__(self, c: Section) -> None:
+        super().__init__(c=c, phy=_SerialPhy(c))
 
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            **cls.__get_phy_options(),
-            **BaseMcuHid.get_plugin_options(),
-        }
-
-    @classmethod
-    def __get_phy_options(cls) -> dict:
-        return {
-            "device":       Option("/dev/kvmd-hid", type=valid_abs_path, unpack_as="device_path"),
+            "device":       Option("/dev/kvmd-hid", type=valid_abs_path),
             "speed":        Option(115200, type=valid_tty_speed),
             "read_timeout": Option(2.0,    type=valid_float_f01),
+            **BaseMcuHid.get_plugin_options(),
         }

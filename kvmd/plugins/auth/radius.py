@@ -29,6 +29,7 @@ import pyrad.client
 import pyrad.packet
 import pyrad.dictionary
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.net import valid_port
@@ -398,18 +399,13 @@ VALUE		Packet-Type	Status-Client			13
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(  # pylint: disable=super-init-not-called
-        self,
-        host:    str,
-        port:    int,
-        secret:  str,
-        timeout: float,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        self.__host:    Final[str]   = host
-        self.__port:    Final[int]   = port
-        self.__secret:  Final[str]   = secret
-        self.__timeout: Final[float] = timeout
+        self.__host:    Final[str]   = c.host
+        self.__port:    Final[int]   = c.port
+        self.__secret:  Final[str]   = c.secret
+        self.__timeout: Final[float] = c.timeout
 
     @classmethod
     def get_plugin_options(cls) -> dict:

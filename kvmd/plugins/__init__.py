@@ -23,7 +23,7 @@
 import importlib
 import functools
 
-from typing import Any
+from ..yamlconf import Section
 
 
 # =====
@@ -33,8 +33,8 @@ class UnknownPluginError(Exception):
 
 # =====
 class BasePlugin:
-    def __init__(self, **_: Any) -> None:
-        pass  # pragma: nocover
+    def __init__(self, c: Section) -> None:
+        _ = c
 
     @classmethod
     def get_plugin_name(cls) -> str:

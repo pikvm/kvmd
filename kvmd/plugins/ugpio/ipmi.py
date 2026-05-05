@@ -23,6 +23,7 @@
 import asyncio
 import functools
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -32,6 +33,7 @@ from ... import tools
 from ... import aiotools
 from ... import aioproc
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators import check_string_in_list
@@ -61,29 +63,20 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        host: str,
-        port: int,
-        user: str,
-        passwd: str,
-
-        passwd_env: str,
-        cmd: list[str],
-
-        state_poll: float,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__host = host
-        self.__port = port
-        self.__user = user
-        self.__passwd = passwd
+        self.__host:   Final[str] = c.host
+        self.__port:   Final[int] = c.port
+        self.__user:   Final[str] = c.user
+        self.__passwd: Final[str] = c.passwd
 
-        self.__passwd_env = passwd_env
-        self.__cmd = cmd
+        self.__passwd_env: Final[str]       = c.passwd_env
+        self.__cmd:        Final[list[str]] = c.cmd
 
-        self.__state_poll = state_poll
+        self.__state_poll: Final[float] = c.state_poll
 
         self.__online = False
         self.__power = False

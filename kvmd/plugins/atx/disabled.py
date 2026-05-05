@@ -22,6 +22,8 @@
 
 from typing import AsyncGenerator
 
+from ...yamlconf import Section
+
 from ... import aiotools
 
 from . import AtxOperationError
@@ -36,7 +38,8 @@ class AtxDisabledError(AtxOperationError):
 
 # =====
 class Plugin(BaseAtx):
-    def __init__(self) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
         self.__notifier = aiotools.AioNotifier()
 
     async def get_state(self) -> dict:

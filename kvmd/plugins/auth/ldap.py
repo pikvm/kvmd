@@ -27,6 +27,7 @@ from typing import Final
 import ldap
 import ldap.filter
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_stripped_string_not_empty
@@ -42,22 +43,15 @@ from . import BaseAuthService
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(  # pylint: disable=super-init-not-called
-        self,
-        url:         str,
-        verify:      bool,
-        base:        str,
-        group:       str,
-        user_domain: str,
-        timeout:     float,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        self.__url:         Final[str]   = url
-        self.__verify:      Final[bool]  = verify
-        self.__base:        Final[str]   = base
-        self.__group:       Final[str]   = group
-        self.__user_domain: Final[str]   = user_domain
-        self.__timeout:     Final[float] = timeout
+        self.__url:         Final[str]   = c.url
+        self.__verify:      Final[bool]  = c.verify
+        self.__base:        Final[str]   = c.base
+        self.__group:       Final[str]   = c.group
+        self.__user_domain: Final[str]   = c.user_domain
+        self.__timeout:     Final[float] = c.timeout
 
     @classmethod
     def get_plugin_options(cls) -> dict:

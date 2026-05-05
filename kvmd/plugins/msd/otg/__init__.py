@@ -32,6 +32,7 @@ from ....logging import get_logger
 
 from ....inotify import Inotify
 
+from ....yamlconf import Section
 from ....yamlconf import Option
 
 from ....validators.basic import valid_number
@@ -107,23 +108,18 @@ class _State:
 class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=super-init-not-called
         self,
-        read_chunk_size: int,
-        write_chunk_size: int,
-        sync_chunk_size: int,
-
-        remount_cmd: list[str],
-
+        c: Section,
         gadget: str,  # XXX: Not from options, see /kvmd/apps/kvmd/__init__.py for details
     ) -> None:
 
-        self.__read_chunk_size = read_chunk_size
-        self.__write_chunk_size = write_chunk_size
-        self.__sync_chunk_size = sync_chunk_size
+        self.__read_chunk_size = c.read_chunk_size
+        self.__write_chunk_size = c.write_chunk_size
+        self.__sync_chunk_size = c.sync_chunk_size
 
-        self.__gadget = gadget  # Only for sysprep()
+        self.__gadget = gadget
 
-        self.__drive = Drive(gadget, instance=0, lun=0)
-        self.__storage = Storage(fstab.find_msd().root_path, remount_cmd)
+        self.__drive = Drive(self.__gadget, instance=0, lun=0)
+        self.__storage = Storage(fstab.find_msd().root_path, c.remount_cmd)
 
         self.__reader: (MsdFileReader | None) = None
         self.__writer: (MsdFileWriter | None) = None

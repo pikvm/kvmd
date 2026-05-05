@@ -26,14 +26,15 @@ import queue
 import copy
 import time
 
+from typing import Final
 from typing import Generator
 from typing import AsyncGenerator
-from typing import Any
 
 from ....logging import get_logger
 
 from .... import aiomulti
 
+from ....yamlconf import Section
 from ....yamlconf import Option
 
 from ....validators.basic import valid_bool
@@ -104,34 +105,29 @@ class BasePhy:
 class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
+        c: Section,
         phy: BasePhy,
-
-        ignore_keys: list[str],
-        mouse_x_range: dict[str, Any],
-        mouse_y_range: dict[str, Any],
-        jiggler: dict[str, Any],
-
-        reset_self: bool,
-        read_retries: int,
-        common_retries: int,
-        retries_delay: float,
-        errors_threshold: int,
-        noop: bool,
-        **gpio_kwargs: Any,
     ) -> None:
 
-        super().__init__(ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
+        super().__init__(c)
 
-        self.__read_retries = read_retries
-        self.__common_retries = common_retries
-        self.__retries_delay = retries_delay
-        self.__errors_threshold = errors_threshold
-        self.__noop = noop
+        self.__read_retries:     Final[int]   = c.read_retries
+        self.__common_retries:   Final[int]   = c.common_retries
+        self.__retries_delay:    Final[float] = c.retries_delay
+        self.__errors_threshold: Final[int]   = c.errors_threshold
+
+        self.__reset_self: Final[bool] = c.reset_self
+        self.__noop:       Final[bool] = c.noop
 
         self.__phy = phy
-        gpio_device_path = gpio_kwargs.pop("gpio_device_path")
-        self.__gpio = Gpio(device_path=gpio_device_path, **gpio_kwargs)
-        self.__reset_self = reset_self
+        self.__gpio = Gpio(
+            device_path=c.gpio_device,
+            power_detect_pin=c.power_detect_pin,
+            power_detect_pull_down=c.power_detect_pull_down,
+            reset_pin=c.reset_pin,
+            reset_inverted=c.reset_inverted,
+            reset_delay=c.reset_delay,
+        )
 
         self.__proc = aiomulti.AioMpProcess("hid", self.__subprocess)
 
@@ -151,7 +147,7 @@ class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
     def get_plugin_options(cls) -> dict:
         return {
             # <gpio_kwargs>
-            "gpio_device":            Option("/dev/gpiochip0", type=valid_abs_path, unpack_as="gpio_device_path"),
+            "gpio_device":            Option("/dev/gpiochip0", type=valid_abs_path),
             "power_detect_pin":       Option(-1,    type=valid_gpio_pin_optional),
             "power_detect_pull_down": Option(False, type=valid_bool),
             "reset_pin":              Option(4,     type=valid_gpio_pin_optional),

@@ -239,7 +239,7 @@ class UserGpio:
             driver: get_ugpio_driver_class(drv_config.type)(
                 instance_name=driver,
                 notifier=self.__notifier,
-                **drv_config._unpack(ignore=["instance_name", "notifier", "type"]),
+                c=drv_config,
                 **({"otg_config": otg_config} if drv_config.type == "otgconf" else {}),  # Hack
             )
             for (driver, drv_config) in tools.sorted_kvs(config.drivers)

@@ -23,6 +23,7 @@
 import asyncio
 import time
 
+from typing import Final
 from typing import Iterable
 from typing import Callable
 from typing import AsyncGenerator
@@ -30,6 +31,7 @@ from typing import Any
 
 from evdev import ecodes
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_bool
@@ -48,28 +50,19 @@ from .. import get_plugin_class
 
 # =====
 class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
-    def __init__(
-        self,
-        ignore_keys: list[str],
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        mouse_x_min: int,
-        mouse_x_max: int,
-        mouse_y_min: int,
-        mouse_y_max: int,
+        self.__ignore_keys: Final[frozenset[int]] = frozenset([WEB_TO_EVDEV[key] for key in c.ignore_keys])
 
-        jiggler_enabled: bool,
-        jiggler_active: bool,
-        jiggler_interval: int,
-    ) -> None:
+        self.__mouse_x_range: Final[tuple[int, int]] = (c.mouse_x_range.min, c.mouse_x_range.max)
+        self.__mouse_y_range: Final[tuple[int, int]] = (c.mouse_y_range.min, c.mouse_y_range.max)
 
-        self.__ignore_keys = [WEB_TO_EVDEV[key] for key in ignore_keys]
+        self.__j_enabled:  Final[bool]  = c.jiggler.enabled
+        self.__j_interval: Final[float] = c.jiggler.interval
 
-        self.__mouse_x_range = (mouse_x_min, mouse_x_max)
-        self.__mouse_y_range = (mouse_y_min, mouse_y_max)
+        self.__j_active: bool = c.jiggler.active
 
-        self.__j_enabled = jiggler_enabled
-        self.__j_active = jiggler_active
-        self.__j_interval = jiggler_interval
         self.__j_absolute = True
         self.__j_activity_ts = self.__get_monotonic_seconds()
         self.__j_last_x = 0
@@ -80,17 +73,17 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
         return {
             "ignore_keys": Option([], type=valid_string_list.mk(subval=valid_hid_key)),
             "mouse_x_range": {
-                "min": Option(MouseRange.MIN, type=valid_hid_mouse_move, unpack_as="mouse_x_min"),
-                "max": Option(MouseRange.MAX, type=valid_hid_mouse_move, unpack_as="mouse_x_max"),
+                "min": Option(MouseRange.MIN, type=valid_hid_mouse_move),
+                "max": Option(MouseRange.MAX, type=valid_hid_mouse_move),
             },
             "mouse_y_range": {
-                "min": Option(MouseRange.MIN, type=valid_hid_mouse_move, unpack_as="mouse_y_min"),
-                "max": Option(MouseRange.MAX, type=valid_hid_mouse_move, unpack_as="mouse_y_max"),
+                "min": Option(MouseRange.MIN, type=valid_hid_mouse_move),
+                "max": Option(MouseRange.MAX, type=valid_hid_mouse_move),
             },
             "jiggler": {
-                "enabled":  Option(True,  type=valid_bool, unpack_as="jiggler_enabled"),
-                "active":   Option(False, type=valid_bool, unpack_as="jiggler_active"),
-                "interval": Option(60,    type=valid_int_f1, unpack_as="jiggler_interval"),
+                "enabled":  Option(True,  type=valid_bool),
+                "active":   Option(False, type=valid_bool),
+                "interval": Option(60,    type=valid_int_f1),
             },
         }
 

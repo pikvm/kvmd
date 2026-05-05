@@ -25,6 +25,7 @@ import aiohttp.web
 
 from typing import Final
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_bool
@@ -39,22 +40,15 @@ from . import BaseAuthService
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(  # pylint: disable=super-init-not-called
-        self,
-        url:     str,
-        verify:  bool,
-        secret:  str,
-        user:    str,
-        passwd:  str,
-        timeout: float,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        self.__url:      Final[str]   = url
-        self.__verify:   Final[bool]  = verify
-        self.__secret:   Final[str]   = secret
-        self.__h_user:   Final[str]   = user
-        self.__h_passwd: Final[str]   = passwd
-        self.__timeout:  Final[float] = timeout
+        self.__url:      Final[str]   = c.url
+        self.__verify:   Final[bool]  = c.verify
+        self.__secret:   Final[str]   = c.secret
+        self.__h_user:   Final[str]   = c.user
+        self.__h_passwd: Final[str]   = c.passwd
+        self.__timeout:  Final[float] = c.timeout
 
         self.__session: (aiohttp.ClientSession | None) = None
 

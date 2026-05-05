@@ -21,6 +21,7 @@
 # ========================================================================== #
 
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -29,6 +30,7 @@ from ...logging import get_logger
 from ... import tools
 from ... import aiotools
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_int_f0
@@ -47,19 +49,15 @@ class Plugin(BaseUserGpioDriver):
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        chip: int,
-        period: int,
-        duty_cycle_push: int,
-        duty_cycle_release: int,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__chip = chip
-        self.__period = period
-        self.__duty_cycle_push = duty_cycle_push
-        self.__duty_cycle_release = duty_cycle_release
+        self.__chip:   Final[int] = c.chip
+        self.__period: Final[int] = c.period
+        self.__duty_cycle_push:    Final[int] = c.duty_cycle_push
+        self.__duty_cycle_release: Final[int] = c.duty_cycle_release
 
         self.__channels: dict[int, (bool | None)] = {}
         self.__pwms: dict[int, Pwm] = {}

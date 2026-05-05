@@ -27,6 +27,7 @@ from typing import Final
 
 import pam
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_int_f0
@@ -39,18 +40,13 @@ from . import BaseAuthService
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(  # pylint: disable=super-init-not-called
-        self,
-        service:       str,
-        allow_users:   list[str],
-        deny_users:    list[str],
-        allow_uids_at: int,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        self.__service:       Final[str]      = service
-        self.__allow_users:   Final[set[str]] = set(allow_users)
-        self.__deny_users:    Final[set[str]] = set(deny_users)
-        self.__allow_uids_at: Final[int]      = allow_uids_at
+        self.__service:       Final[str]      = c.service
+        self.__allow_users:   Final[set[str]] = set(c.allow_users)
+        self.__deny_users:    Final[set[str]] = set(c.deny_users)
+        self.__allow_uids_at: Final[int]      = c.allow_uids_at
 
         self.__lock = asyncio.Lock()
 

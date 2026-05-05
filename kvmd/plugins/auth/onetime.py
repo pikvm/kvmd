@@ -26,6 +26,7 @@ import json
 
 from typing import Final
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 from ...yamlconf import Hint
 
@@ -44,20 +45,14 @@ from . import BaseAuthService
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(
-        self,
-        user:       str,
-        passwd_len: int,
-        path:       str,
-        mode:       int,
-        change_after_login: bool,
-    ) -> None:  # pylint: disable=super-init-not-called
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        self.__user:       Final[str] = user
-        self.__passwd_len: Final[int] = passwd_len
-        self.__path:       Final[str] = path
-        self.__mode:       Final[int] = mode
-        self.__change_after_login: Final[bool] = change_after_login
+        self.__user:       Final[str] = c.user
+        self.__passwd_len: Final[int] = c.passwd_len
+        self.__path:       Final[str] = c.file
+        self.__mode:       Final[int] = c.file_mode
+        self.__change_after_login: Final[bool] = c.change_after_login
 
         self.__passwd = self.__make_passwd()  # Just fill it with some valid passwd
 
@@ -66,8 +61,8 @@ class Plugin(BaseAuthService):
         return {
             "user":       Option("onetime", type=valid_user),
             "passwd_len": Option(8, type=valid_number.mk(min=3, max=32)),
-            "file":       Option("/run/kvmd/creds.json", type=valid_abs_path, unpack_as="path"),
-            "file_mode":  Option(0o640, type=valid_unix_mode, hint=Hint.OCT, unpack_as="mode"),
+            "file":       Option("/run/kvmd/creds.json", type=valid_abs_path),
+            "file_mode":  Option(0o640, type=valid_unix_mode, hint=Hint.OCT),
             "change_after_login": Option(False, type=valid_bool),
         }
 

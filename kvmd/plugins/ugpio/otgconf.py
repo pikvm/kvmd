@@ -23,6 +23,7 @@
 import os
 import asyncio
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -46,14 +47,14 @@ class Plugin(BaseUserGpioDriver):
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
+        c: Section,
         otg_config: Section,  # XXX: Not from options, see /kvmd/apps/kvmd/__init__.py for details
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
+        self.__init_delay: Final[float] = otg_config.init_delay
         self.__udc: str = otg_config.udc
-        self.__init_delay: float = otg_config.init_delay
 
         gadget: str = otg_config.gadget
         self.__udc_path = usb.get_gadget_path(gadget, usb.G_UDC)

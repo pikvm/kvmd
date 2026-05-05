@@ -23,6 +23,7 @@
 import asyncio
 import contextlib
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -33,6 +34,7 @@ from ...logging import get_logger
 from ... import tools
 from ... import aiotools
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_number
@@ -53,15 +55,13 @@ class Plugin(BaseUserGpioDriver):
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        device_path: str,
-        state_poll: float,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__device_path = device_path
-        self.__state_poll = state_poll
+        self.__device_path: Final[str]   = c.device
+        self.__state_poll:  Final[float] = c.state_poll
 
         self.__device: (hid.device | None) = None  # type: ignore
         self.__stop = False
@@ -71,7 +71,7 @@ class Plugin(BaseUserGpioDriver):
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "device":     Option("",  type=valid_abs_path, unpack_as="device_path"),
+            "device":     Option("",  type=valid_abs_path),
             "state_poll": Option(5.0, type=valid_float_f01),
         }
 

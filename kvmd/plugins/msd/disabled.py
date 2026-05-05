@@ -24,6 +24,8 @@ import contextlib
 
 from typing import AsyncGenerator
 
+from ...yamlconf import Section
+
 from ... import aiotools
 
 from . import MsdOperationError
@@ -40,7 +42,8 @@ class MsdDisabledError(MsdOperationError):
 
 # =====
 class Plugin(BaseMsd):
-    def __init__(self) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
         self.__notifier = aiotools.AioNotifier()
 
     async def get_state(self) -> dict:

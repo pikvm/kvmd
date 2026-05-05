@@ -24,15 +24,16 @@ import os
 import contextlib
 import time
 
+from typing import Final
 from typing import Generator
 from typing import Callable
-from typing import Any
 
 import spidev
 import gpiod
 
 from ...logging import get_logger
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_bool
@@ -93,28 +94,16 @@ class _SpiPhyConnection(BasePhyConnection):
 
 
 class _SpiPhy(BasePhy):  # pylint: disable=too-many-instance-attributes
-    def __init__(
-        self,
-        gpio_device_path: str,
-        bus: int,
-        chip: int,
-        hw_cs: bool,
-        sw_cs_pin: int,
-        sw_cs_per_byte: bool,
-        max_freq: int,
-        block_usec: int,
-        read_timeout: float,
-    ) -> None:
-
-        self.__gpio_device_path = gpio_device_path
-        self.__bus = bus
-        self.__chip = chip
-        self.__hw_cs = hw_cs
-        self.__sw_cs_pin = sw_cs_pin
-        self.__sw_cs_per_byte = sw_cs_per_byte
-        self.__max_freq = max_freq
-        self.__block_usec = block_usec
-        self.__read_timeout = read_timeout
+    def __init__(self, c: Section) -> None:
+        self.__gpio_device_path: Final[str] = c.gpio_device
+        self.__bus:            Final[int]   = c.bus
+        self.__chip:           Final[int]   = c.chip
+        self.__hw_cs:          Final[bool]  = c.hw_cs
+        self.__sw_cs_pin:      Final[int]   = c.sw_cs_pin
+        self.__sw_cs_per_byte: Final[bool]  = c.sw_cs_per_byte
+        self.__max_freq:       Final[bool]  = c.max_freq
+        self.__block_usec:     Final[int]   = c.block_usec
+        self.__read_timeout:   Final[float] = c.read_timeout
 
     def has_device(self) -> bool:
         return os.path.exists(f"/dev/spidev{self.__bus}.{self.__chip}")
@@ -175,20 +164,11 @@ class _SpiPhy(BasePhy):  # pylint: disable=too-many-instance-attributes
 
 # =====
 class Plugin(BaseMcuHid):
-    def __init__(self, **kwargs: Any) -> None:
-        phy_kwargs: dict = {key: kwargs.pop(key) for key in self.__get_phy_options()}
-        phy_kwargs["gpio_device_path"] = kwargs["gpio_device_path"]
-        super().__init__(phy=_SpiPhy(**phy_kwargs), **kwargs)
+    def __init__(self, c: Section) -> None:
+        super().__init__(c=c, phy=_SpiPhy(c))
 
     @classmethod
     def get_plugin_options(cls) -> dict:
-        return {
-            **cls.__get_phy_options(),
-            **BaseMcuHid.get_plugin_options(),
-        }
-
-    @classmethod
-    def __get_phy_options(cls) -> dict:
         return {
             "bus":            Option(-1,     type=valid_int_f0),
             "chip":           Option(-1,     type=valid_int_f0),
@@ -198,4 +178,5 @@ class Plugin(BaseMcuHid):
             "max_freq":       Option(100000, type=valid_int_f1),
             "block_usec":     Option(1,      type=valid_int_f0),
             "read_timeout":   Option(0.5,    type=valid_float_f01),
+            **BaseMcuHid.get_plugin_options(),
         }

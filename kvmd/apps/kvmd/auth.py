@@ -31,6 +31,8 @@ import pyotp
 
 from ...logging import get_logger
 
+from ...yamlconf import Section
+
 from ...plugins.auth import BaseAuthService
 from ...plugins.auth import get_auth_service_class
 
@@ -63,12 +65,10 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
         usc_groups: list[str],
         unauth_paths: list[str],
 
-        int_type: str,
-        int_kwargs: dict,
-        force_int_users: list[str],
+        int_c: Section,
+        ext_c: Section,
 
-        ext_type: str,
-        ext_kwargs: dict,
+        force_int_users: list[str],
 
         totp_secret_path: str,
     ) -> None:
@@ -101,15 +101,15 @@ class AuthManager:  # pylint: disable=too-many-arguments,too-many-instance-attri
 
         self.__int_service: (BaseAuthService | None) = None
         if enabled:
-            self.__int_service = get_auth_service_class(int_type)(**int_kwargs)
+            self.__int_service = get_auth_service_class(int_c.type)(int_c)
             logger.info("Using internal auth service %r",
                         self.__int_service.get_plugin_name())
 
         self.__force_int_users = force_int_users
 
         self.__ext_service: (BaseAuthService | None) = None
-        if enabled and ext_type:
-            self.__ext_service = get_auth_service_class(ext_type)(**ext_kwargs)
+        if enabled and ext_c.type:
+            self.__ext_service = get_auth_service_class(ext_c.type)(ext_c)
             logger.info("Using external auth service %r",
                         self.__ext_service.get_plugin_name())
 

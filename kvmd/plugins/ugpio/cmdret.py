@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -29,6 +30,7 @@ from ... import tools
 from ... import aiotools
 from ... import aioproc
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.os import valid_command
@@ -44,13 +46,11 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        cmd: list[str],
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
-
-        self.__cmd = cmd
+        super().__init__(instance_name, notifier, c)
+        self.__cmd: Final[list[str]] = c.cmd
 
     @classmethod
     def get_plugin_options(cls) -> dict:

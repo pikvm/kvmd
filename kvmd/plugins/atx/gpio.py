@@ -23,6 +23,7 @@
 import asyncio
 import copy
 
+from typing import Final
 from typing import AsyncGenerator
 
 import gpiod
@@ -32,6 +33,7 @@ from ...logging import get_logger
 from ... import aiotools
 from ... import aiogp
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_bool
@@ -46,33 +48,18 @@ from . import BaseAtx
 
 # =====
 class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
-    def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
-        self,
-        device_path: str,
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        power_led_pin: int,
-        power_led_inverted: bool,
-        power_led_debounce: float,
+        self.__device_path: Final[str] = c.device
 
-        hdd_led_pin: int,
-        hdd_led_inverted: bool,
-        hdd_led_debounce: float,
+        self.__power_led_pin:    Final[int] = c.power_led_pin
+        self.__hdd_led_pin:      Final[int] = c.hdd_led_pin
+        self.__power_switch_pin: Final[int] = c.power_switch_pin
+        self.__reset_switch_pin: Final[int] = c.reset_switch_pin
 
-        power_switch_pin: int,
-        reset_switch_pin: int,
-        click_delay: float,
-        long_click_delay: float,
-    ) -> None:
-
-        self.__device_path = device_path
-
-        self.__power_led_pin = power_led_pin
-        self.__hdd_led_pin = hdd_led_pin
-        self.__power_switch_pin = power_switch_pin
-        self.__reset_switch_pin = reset_switch_pin
-
-        self.__click_delay = click_delay
-        self.__long_click_delay = long_click_delay
+        self.__click_delay:      Final[float] = c.click_delay
+        self.__long_click_delay: Final[float] = c.long_click_delay
 
         self.__notifier = aiotools.AioNotifier()
         self.__power_region = aiotools.AioExclusiveRegion(AtxIsBusyError, self.__notifier)
@@ -84,8 +71,8 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
             path=self.__device_path,
             consumer="kvmd::atx",
             pins={
-                power_led_pin: aiogp.AioReaderPinParams(power_led_inverted, power_led_debounce),
-                hdd_led_pin: aiogp.AioReaderPinParams(hdd_led_inverted, hdd_led_debounce),
+                c.power_led_pin: aiogp.AioReaderPinParams(c.power_led_inverted, c.power_led_debounce),
+                c.hdd_led_pin: aiogp.AioReaderPinParams(c.hdd_led_inverted, c.hdd_led_debounce),
             },
             notifier=self.__notifier,
         )
@@ -93,7 +80,7 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "device": Option("/dev/gpiochip0", type=valid_abs_path, unpack_as="device_path"),
+            "device": Option("/dev/gpiochip0", type=valid_abs_path),
 
             "power_led_pin":      Option(24,    type=valid_gpio_pin),
             "power_led_inverted": Option(False, type=valid_bool),

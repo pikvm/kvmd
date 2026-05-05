@@ -25,10 +25,10 @@ import copy
 import time
 
 from typing import AsyncGenerator
-from typing import Any
 
 from ....logging import get_logger
 
+from ....yamlconf import Section
 from ....yamlconf import Option
 
 from ....validators.basic import valid_bool
@@ -60,30 +60,10 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
-
-        ignore_keys: list[str],
-        mouse_x_range: dict[str, Any],
-        mouse_y_range: dict[str, Any],
-        jiggler: dict[str, Any],
-
-        manufacturer: str,
-        product: str,
-        description: str,
-
-        iface: str,
-        alias: str,
-
-        pairing_required: bool,
-        auth_required: bool,
-        control_public: bool,
-        unpair_on_close: bool,
-
-        max_clients: int,
-        socket_timeout: float,
-        select_timeout: float,
+        c: Section,
     ) -> None:
 
-        super().__init__(ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
+        super().__init__(c)
         self._set_jiggler_absolute(False)
 
         self.__proc = aiomulti.AioMpProcess("hid", self.__server_worker)
@@ -93,17 +73,17 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
 
         self.__server = BtServer(
             iface=BluezIface(
-                iface=iface,
-                alias=alias,
-                sdp_record=make_sdp_record(manufacturer, product, description),
-                pairing_required=pairing_required,
-                auth_required=auth_required,
+                iface=c.iface,
+                alias=c.alias,
+                sdp_record=make_sdp_record(c.manufacturer, c.product, c.description),
+                pairing_required=c.pairing_required,
+                auth_required=c.auth_required,
             ),
-            control_public=control_public,
-            unpair_on_close=unpair_on_close,
-            max_clients=max_clients,
-            socket_timeout=socket_timeout,
-            select_timeout=select_timeout,
+            control_public=c.control_public,
+            unpair_on_close=c.unpair_on_close,
+            max_clients=c.max_clients,
+            socket_timeout=c.socket_timeout,
+            select_timeout=c.select_timeout,
             notifier=self.__notifier,
             stop_event=self.__stop_event,
         )

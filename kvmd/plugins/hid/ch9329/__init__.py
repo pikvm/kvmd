@@ -26,13 +26,13 @@ import copy
 import time
 
 from typing import AsyncGenerator
-from typing import Any
 
 from ....logging import get_logger
 
 from .... import tools
 from .... import aiomulti
 
+from ....yamlconf import Section
 from ....yamlconf import Option
 
 from ....validators.basic import valid_float_f01
@@ -52,21 +52,10 @@ from .keyboard import Keyboard
 class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
-        ignore_keys: list[str],
-        mouse_x_range: dict[str, Any],
-        mouse_y_range: dict[str, Any],
-        jiggler: dict[str, Any],
-
-        device_path: str,
-        speed: int,
-        read_timeout: float,
+        c: Section,
     ) -> None:
 
-        super().__init__(ignore_keys=ignore_keys, **mouse_x_range, **mouse_y_range, **jiggler)
-
-        self.__device_path = device_path
-        self.__speed = speed
-        self.__read_timeout = read_timeout
+        super().__init__(c)
 
         self.__reset_required_event = multiprocessing.Event()
         self.__cmd_q: aiomulti.AioMpQueue[bytes] = aiomulti.AioMpQueue()
@@ -81,14 +70,14 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         self.__proc = aiomulti.AioMpProcess("hid", self.__subprocess)
         self.__stop_event = multiprocessing.Event()
 
-        self.__chip = Chip(device_path, speed, read_timeout)
+        self.__chip = Chip(c.device, c.speed, c.read_timeout)
         self.__keyboard = Keyboard()
         self.__mouse = Mouse()
 
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "device":       Option("/dev/kvmd-hid", type=valid_abs_path, unpack_as="device_path"),
+            "device":       Option("/dev/kvmd-hid", type=valid_abs_path),
             "speed":        Option(9600, type=valid_tty_speed),
             "read_timeout": Option(0.3,  type=valid_float_f01),
             **cls._get_base_options(),
