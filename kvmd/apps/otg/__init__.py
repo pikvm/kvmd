@@ -113,7 +113,14 @@ class _GadgetConfig:
         self.__msd_instance = 0
         _mkdir(meta_path)
 
-    def add_audio_mic(self, starter: list[str], start: bool) -> None:
+    def add_audio_mic(
+        self,
+        starter: list[str],
+        start: bool,
+        vendor_id: (int | None)=None,
+        product_id: (int | None)=None,
+        product: str="",
+    ) -> None:
         eps = 2
         func = "uac2.usb0"
         func_path = self.__create_function(func)
@@ -121,6 +128,12 @@ class _GadgetConfig:
         _write(join(func_path, "p_chmask"), 0b11)
         _write(join(func_path, "p_srate"), 48000)
         _write(join(func_path, "p_ssize"), 2)
+        if vendor_id is not None:
+            _write(join(func_path, "b_vendor_id"), f"0x{vendor_id:04X}", optional=True)
+        if product_id is not None:
+            _write(join(func_path, "b_product_id"), f"0x{product_id:04X}", optional=True)
+        if product:
+            _write(join(func_path, "function_name"), product, optional=True)
         if start:
             self.__start_function(func, eps)
         self.__create_meta(func, "Microphone", eps, starter)
@@ -353,7 +366,13 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     if cod.audio.enabled:
         logger.info("===== Microphone =====")
-        gc.add_audio_mic(["audio"], cod.audio.start)
+        gc.add_audio_mic(
+            ["audio"],
+            cod.audio.start,
+            vendor_id=cod.audio.vendor_id,
+            product_id=cod.audio.product_id,
+            product=cod.audio.product,
+        )
 
     logger.info("===== Preparing complete =====")
 

@@ -572,6 +572,9 @@ def make_config_scheme() -> dict:
                 "audio": {
                     "enabled":  Option(False, type=valid_bool),
                     "start":    Option(True,  type=valid_bool),
+                    "vendor_id":  Option(None, type=valid_otg_id, if_none=None),
+                    "product_id": Option(None, type=valid_otg_id, if_none=None),
+                    "product":    Option("",   type=valid_stripped_string, if_empty=""),
                 },
 
                 "drives": {
