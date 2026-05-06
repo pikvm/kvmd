@@ -86,6 +86,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return {
             "host":   Option("",  type=valid_ip_or_host),
             "port":   Option(623, type=valid_port),
+            "cipher": Option(17,  type=valid_number.mk(min=0, max=19)),
             "user":   Option(""),
             "passwd": Option(""),
 
@@ -93,6 +94,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             "cmd": Option([
                 "/usr/bin/ipmitool",
                 "-I", "lanplus",
+                "-C", "{cipher}",
                 "-U", "{user}", "-E",
                 "-H", "{host}", "-p", "{port}",
                 "power", "{action}",
