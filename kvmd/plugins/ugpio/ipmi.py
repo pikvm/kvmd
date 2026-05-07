@@ -38,6 +38,7 @@ from ...yamlconf import Option
 
 from ...validators import check_string_in_list
 from ...validators.basic import valid_float_f01
+from ...validators.basic import valid_number
 from ...validators.net import valid_ip_or_host
 from ...validators.net import valid_port
 from ...validators.os import valid_command
@@ -70,6 +71,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
         self.__host:   Final[str] = c.host
         self.__port:   Final[int] = c.port
+        self.__cipher: Final[int] = c.cipher
         self.__user:   Final[str] = c.user
         self.__passwd: Final[str] = c.passwd
 
@@ -179,6 +181,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                 part.format(
                     host=self.__host,
                     port=self.__port,
+                    cipher=self.__cipher,
                     user=self.__user,
                     passwd=self.__passwd,
                     action=action,
