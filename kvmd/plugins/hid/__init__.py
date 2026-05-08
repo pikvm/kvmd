@@ -69,7 +69,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
         self.__j_last_y = 0
 
     @classmethod
-    def _get_base_options(cls) -> dict[str, Any]:
+    def get_plugin_options(cls) -> dict[str, Any]:
         return {
             "ignore_keys": Option([], type=valid_string_list.mk(subval=valid_hid_key)),
             "mouse_x_range": {

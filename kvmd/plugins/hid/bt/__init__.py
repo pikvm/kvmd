@@ -107,7 +107,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
             "socket_timeout": Option(5.0, type=valid_float_f01),
             "select_timeout": Option(1.0, type=valid_float_f01),
 
-            **cls._get_base_options(),
+            **super().get_plugin_options(),
         }
 
     async def sysprep(self) -> None:

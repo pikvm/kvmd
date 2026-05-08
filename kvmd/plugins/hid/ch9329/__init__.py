@@ -80,7 +80,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
             "device":       Option("/dev/kvmd-hid", type=valid_abs_path),
             "speed":        Option(9600, type=valid_tty_speed),
             "read_timeout": Option(0.3,  type=valid_float_f01),
-            **cls._get_base_options(),
+            **super().get_plugin_options(),
         }
 
     async def sysprep(self) -> None:

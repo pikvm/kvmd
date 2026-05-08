@@ -122,7 +122,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 "horizontal_wheel": Option(True, type=valid_bool),
             },
             "noop": Option(False, type=valid_bool),
-            **cls._get_base_options(),
+            **super().get_plugin_options(),
         }
 
     async def sysprep(self) -> None:

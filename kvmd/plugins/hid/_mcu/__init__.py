@@ -162,7 +162,7 @@ class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
             "errors_threshold": Option(5,     type=valid_int_f0),
             "noop":             Option(False, type=valid_bool),
 
-            **cls._get_base_options(),
+            **super().get_plugin_options(),
         }
 
     async def sysprep(self) -> None:
