@@ -24,9 +24,12 @@ import asyncio
 
 import aiohttp
 
+from typing import Final
+
 from ... import tools
 from ... import htclient
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_bool
@@ -43,24 +46,15 @@ from . import BaseNbdRemote
 
 # =====
 class NbdHttpRemote(BaseNbdRemote):
-    def __init__(
-        self,
-        url: str,
-        verify: bool,
-        user: str,
-        passwd: str,
-        timeout: float,
-        retries_delay: float,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        super().__init__()
-
-        self.__url = url
-        self.__verify = verify
-        self.__user = user
-        self.__passwd = passwd
-        self.__timeout = timeout
-        self.__retries_delay = retries_delay
+        self.__url:           Final[str]   = c.url
+        self.__verify:        Final[bool]  = c.verify
+        self.__user:          Final[str]   = c.user
+        self.__passwd:        Final[str]   = c.passwd
+        self.__timeout:       Final[float] = c.timeout
+        self.__retries_delay: Final[float] = c.retries_delay
 
         self.__session: (aiohttp.ClientSession | None) = None
 

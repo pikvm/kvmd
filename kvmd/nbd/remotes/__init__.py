@@ -26,6 +26,7 @@ import errno
 
 from typing import Final
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ... import tools
@@ -56,7 +57,9 @@ class BaseNbdRemote:
     __OP_WRITE: Final[int] = 1
     __OP_STOP:  Final[int] = 2
 
-    def __init__(self) -> None:
+    def __init__(self, c: Section) -> None:
+        _ = c
+
         self.__recv_st = struct.Struct(">IHHQQI")
         self.__send_st = struct.Struct(">IIQ")
 

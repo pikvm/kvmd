@@ -97,7 +97,7 @@ class NbdController:
             except Exception as ex:
                 raise ValidatorError(f"{cls.__name__}: {tools.efmt(ex)}")
 
-            remote = cls(**config._unpack())
+            remote = cls(config)
             try:
                 image = await remote.probe()
             except Exception as ex:
