@@ -572,6 +572,12 @@ def make_config_scheme() -> dict:
                 "audio": {
                     "enabled":  Option(False, type=valid_bool),
                     "start":    Option(True,  type=valid_bool),
+                    "speakers": {
+                        "enabled": Option(False, type=valid_bool),
+                    },
+                    "mic": {
+                        "enabled": Option(True, type=valid_bool),
+                    },
                 },
 
                 "drives": {

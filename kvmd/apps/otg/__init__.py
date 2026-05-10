@@ -113,14 +113,23 @@ class _GadgetConfig:
         self.__msd_instance = 0
         _mkdir(meta_path)
 
-    def add_audio_mic(self, starter: list[str], start: bool) -> None:
+    def add_audio(self, starter: list[str], start: bool, speakers: bool, mic: bool) -> None:
+        assert speakers or mic
         eps = 2
         func = "uac2.usb0"
         func_path = self.__create_function(func)
-        _write(join(func_path, "c_chmask"), 0)
-        _write(join(func_path, "p_chmask"), 0b11)
-        _write(join(func_path, "p_srate"), 48000)
-        _write(join(func_path, "p_ssize"), 2)
+        if speakers:
+            _write(join(func_path, "c_chmask"), 0b11)
+            _write(join(func_path, "c_srate"), 48000)
+            _write(join(func_path, "c_ssize"), 2)
+        else:
+            _write(join(func_path, "c_chmask"), 0)
+        if mic:
+            _write(join(func_path, "p_chmask"), 0b11)
+            _write(join(func_path, "p_srate"), 48000)
+            _write(join(func_path, "p_ssize"), 2)
+        else:
+            _write(join(func_path, "p_chmask"), 0)
         if start:
             self.__start_function(func, eps)
         self.__create_meta(func, "Microphone", eps, starter)
@@ -351,9 +360,9 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         logger.info("===== Serial =====")
         gc.add_serial(["serial"], cod.serial.start)
 
-    if cod.audio.enabled:
-        logger.info("===== Microphone =====")
-        gc.add_audio_mic(["audio"], cod.audio.start)
+    if cod.audio.enabled and (cod.audio.speakers.enabled or cod.audio.mic.enabled):
+        logger.info("===== Audio =====")
+        gc.add_audio(["audio"], cod.audio.start, cod.audio.speakers.enabled, cod.audio.mic.enabled)
 
     logger.info("===== Preparing complete =====")
 
