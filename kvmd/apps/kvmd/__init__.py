@@ -111,4 +111,5 @@ def main() -> None:
         keymap_path=config.hid.keymap,
 
         stream_forever=config.streamer.forever,
+        presence_enabled=config.presence.enabled,
     ).run(**config.server._unpack())
