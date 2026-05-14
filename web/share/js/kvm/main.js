@@ -45,7 +45,7 @@ export function main() {
 		}
 	}, false);
 
-	tools.storage.bindSimpleSwitch($("page-close-ask-switch"), "page.close.ask", true, function(value) {
+	tools.storage.bindSimpleSwitch($("page-close-ask-switch"), "page.close.ask", tools.config.getBool("kvm--page-close-ask", true), function(value) {
 		if (value) {
 			window.onbeforeunload = function(ev) {
 				let text = "Are you sure you want to close PiKVM session?";
