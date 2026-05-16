@@ -145,8 +145,10 @@ conflicts=(
 	python-bcrypt
 )
 makedepends=(
+	python-build
+	python-installer
+	python-wheel
 	python-setuptools
-	python-pip
 )
 source=("kvmd-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
 md5sums=(SKIP)
@@ -160,12 +162,16 @@ backup=(
 	etc/kvmd/web.css
 )
 
+build() {
+	cd "$srcdir/kvmd-$pkgver"
+	python -m build --wheel --no-isolation
+}
 
 package_kvmd() {
 	install=kvmd.install
 
 	cd "$srcdir/kvmd-$pkgver"
-	pip install --root="$pkgdir" --no-deps .
+	python -m installer --destdir="$pkgdir" dist/*.whl
 
 	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot}
 
