@@ -21,39 +21,11 @@
 # ========================================================================== #
 
 
-import textwrap
-
-import setuptools.command.easy_install
 from setuptools import setup
 
 
 # =====
-class _Template(str):
-    def __init__(self, text: str) -> None:
-        self.__text = textwrap.dedent(text).strip()
-
-    def __mod__(self, kv: dict) -> str:
-        kv = {"module_name": kv["ep"].module_name, **kv}
-        return (self.__text % (kv))
-
-
-class _ScriptWriter(setuptools.command.easy_install.ScriptWriter):
-    template = _Template("""
-        # EASY-INSTALL-ENTRY-SCRIPT: %(spec)r,%(group)r,%(name)r
-
-        __requires__ = %(spec)r
-
-        from %(module_name)s import main
-
-        if __name__ == '__main__':
-            main()
-    """)
-
-
-# =====
 def main() -> None:
-    setuptools.command.easy_install.ScriptWriter = _ScriptWriter
-
     setup(
         name="kvmd",
         version="4.168",
