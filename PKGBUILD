@@ -148,7 +148,7 @@ makedepends=(
 	python-setuptools
 	python-pip
 )
-source=("$url/archive/v$pkgver.tar.gz")
+source=("kvmd-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
 md5sums=(SKIP)
 backup=(
 	etc/kvmd/{override,meta}.yaml
@@ -216,7 +216,7 @@ for _variant in "${_variants[@]}"; do
 	_base=${_platform%-*}
 	_video=${_platform#*-}
 	eval "package_kvmd-platform-$_platform-$_board() {
-		cd \"kvmd-\$pkgver\"
+		cd \"kvmd-$pkgver\"
 
 		install=platform.install
 
