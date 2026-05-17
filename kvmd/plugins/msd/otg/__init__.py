@@ -74,7 +74,7 @@ class _State:
         self.vd: (_VirtualDrive | None) = None
 
         self.__region = aiotools.AioExclusiveRegion(MsdIsBusyError)
-        self._lock = asyncio.Lock()
+        self.__lock = asyncio.Lock()
 
     @contextlib.contextmanager
     def busy_unlocked(self) -> Generator[None]:
@@ -88,17 +88,22 @@ class _State:
     @contextlib.asynccontextmanager
     async def locked_under_busy(self) -> AsyncGenerator[None, None]:
         assert self.__region.is_busy()
-        async with self._lock:
+        async with self.__lock:
             yield
 
     @contextlib.asynccontextmanager
-    async def busy_online(self) -> AsyncGenerator[None, None]:
+    async def busy_locked_online(self) -> AsyncGenerator[None, None]:
         with self.busy_unlocked():
             async with self.locked_under_busy():
                 if self.vd is None:
                     raise MsdOfflineError()
                 assert self.storage
                 yield
+
+    @contextlib.asynccontextmanager
+    async def locked_only(self) -> AsyncGenerator[None, None]:
+        async with self.__lock:
+            yield
 
     def is_busy(self) -> bool:
         return self.__region.is_busy()
@@ -148,7 +153,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         await self.__unsafe_reload_state()
 
     async def get_state(self) -> dict:
-        async with self.__state._lock:  # pylint: disable=protected-access
+        async with self.__state.locked_only():
             storage: (dict | None) = None
             if self.__state.storage:
                 assert self.__state.vd
@@ -227,7 +232,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         rw: (bool | None)=None,
     ) -> None:
 
-        async with self.__state.busy_online():
+        async with self.__state.busy_locked_online():
             assert self.__state.vd
             self.__STATE_check_disconnected()
 
@@ -249,7 +254,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     @aiotools.atomic_fg
     async def set_connected(self, connected: bool) -> None:
-        async with self.__state.busy_online():
+        async with self.__state.busy_locked_online():
             assert self.__state.vd
             if connected:
                 self.__STATE_check_disconnected()
@@ -350,7 +355,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     @aiotools.atomic_fg
     async def remove(self, name: str) -> None:
-        async with self.__state.busy_online():
+        async with self.__state.busy_locked_online():
             assert self.__state.storage
             assert self.__state.vd
             self.__STATE_check_disconnected()
@@ -466,13 +471,13 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                     await self.__reload_parts_info()
 
     async def __reload_state(self) -> None:
-        async with self.__state._lock:  # pylint: disable=protected-access
+        async with self.__state.locked_only():
             await self.__unsafe_reload_state()
         self.__nr.notify()
 
     async def __reload_parts_info(self) -> None:
         assert self.__writer  # Использовать только при записи образа
-        async with self.__state._lock:  # pylint: disable=protected-access
+        async with self.__state.locked_only():
             await self.__storage.reload_parts_info()
         self.__nr.notify()
 
