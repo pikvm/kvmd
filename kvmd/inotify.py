@@ -30,6 +30,8 @@ import dataclasses
 import types
 import errno
 
+from typing import Final
+from typing import Self
 from typing import Generator
 
 from .logging import get_logger
@@ -38,12 +40,12 @@ from . import libc
 
 
 # =====
-_EVENT_HEAD_FMT = "iIII"
-_EVENT_HEAD_SIZE = struct.calcsize(_EVENT_HEAD_FMT)
-_EVENTS_BUFFER_LENGTH = 4096 * (_EVENT_HEAD_SIZE + 256)  # count * (head + max_file_name_size + null_character)
+_EVENT_HEAD_FMT:       Final[str] = "iIII"
+_EVENT_HEAD_SIZE:      Final[int] = struct.calcsize(_EVENT_HEAD_FMT)
+_EVENTS_BUFFER_LENGTH: Final[int] = 4096 * (_EVENT_HEAD_SIZE + 256)  # count * (head + max_file_name_size + null_character)
 
-_FS_FALLBACK_ENCODING = "utf-8"
-_FS_ENCODING = (sys.getfilesystemencoding() or _FS_FALLBACK_ENCODING)
+_FS_FALLBACK_ENCODING: Final[str] = "utf-8"
+_FS_ENCODING:          Final[str] = (sys.getfilesystemencoding() or _FS_FALLBACK_ENCODING)
 
 
 # =====
@@ -90,24 +92,24 @@ def _fs_decode(path: bytes) -> str:
 # =====
 class InotifyMask:
     # Userspace events
-    ACCESS = 0x00000001         # File was accessed
-    ATTRIB = 0x00000004         # Meta-data changed
-    CLOSE_WRITE = 0x00000008    # Writable file was closed
-    CLOSE_NOWRITE = 0x00000010  # Unwritable file closed
-    CREATE = 0x00000100         # Subfile was created
-    DELETE = 0x00000200         # Subfile was deleted
-    DELETE_SELF = 0x00000400    # Self was deleted
-    MODIFY = 0x00000002         # File was modified
-    MOVE_SELF = 0x00000800      # Self was moved
-    MOVED_FROM = 0x00000040     # File was moved from X
-    MOVED_TO = 0x00000080       # File was moved to Y
-    OPEN = 0x00000020           # File was opened
+    ACCESS:        Final[int] = 0x00000001  # File was accessed
+    ATTRIB:        Final[int] = 0x00000004  # Meta-data changed
+    CLOSE_WRITE:   Final[int] = 0x00000008  # Writable file was closed
+    CLOSE_NOWRITE: Final[int] = 0x00000010  # Unwritable file closed
+    CREATE:        Final[int] = 0x00000100  # Subfile was created
+    DELETE:        Final[int] = 0x00000200  # Subfile was deleted
+    DELETE_SELF:   Final[int] = 0x00000400  # Self was deleted
+    MODIFY:        Final[int] = 0x00000002  # File was modified
+    MOVE_SELF:     Final[int] = 0x00000800  # Self was moved
+    MOVED_FROM:    Final[int] = 0x00000040  # File was moved from X
+    MOVED_TO:      Final[int] = 0x00000080  # File was moved to Y
+    OPEN:          Final[int] = 0x00000020  # File was opened
 
     # Events sent by the kernel to a watch
-    IGNORED = 0x00008000     # File was ignored
-    ISDIR = 0x40000000       # Event occurred against directory
-    Q_OVERFLOW = 0x00004000  # Event queued overflowed
-    UNMOUNT = 0x00002000     # Backing file system was unmounted
+    IGNORED:    Final[int] = 0x00008000  # File was ignored
+    ISDIR:      Final[int] = 0x40000000  # Event occurred against directory
+    Q_OVERFLOW: Final[int] = 0x00004000  # Event queued overflowed
+    UNMOUNT:    Final[int] = 0x00002000  # Backing file system was unmounted
 
     # Helper userspace events
 #    CLOSE = CLOSE_WRITE | CLOSE_NOWRITE  # Close
@@ -130,7 +132,7 @@ class InotifyMask:
 #    )
 
     # Helper for all changes events except MODIFY, because it fires on each write()
-    ALL_CHANGES_EVENTS = (
+    ALL_CHANGES_EVENTS: Final[int] = (
         CLOSE_WRITE
         | CREATE
         | DELETE
@@ -141,7 +143,7 @@ class InotifyMask:
     )
 
     # Helper for typicals events when we need to restart watcher
-    ALL_RESTART_EVENTS = (
+    ALL_RESTART_EVENTS: Final[int] = (
         DELETE_SELF
         | MOVE_SELF
         | UNMOUNT
@@ -172,11 +174,11 @@ class InotifyMask:
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class InotifyEvent:
-    wd: int
-    mask: int
+    wd:     int
+    mask:   int
     cookie: int
-    name: str
-    path: str
+    name:   str
+    path:   str
 
     @property
     def restart(self) -> bool:
@@ -225,7 +227,7 @@ class Inotify:
 #    def has_events(self) -> bool:
 #        return (not self.__events_q.empty())
 
-    async def get_event(self, timeout: float) -> (InotifyEvent | None):
+    async def get_event(self, timeout: float=1.0) -> (InotifyEvent | None):
         assert timeout > 0
         try:
             return (await asyncio.wait_for(
@@ -235,7 +237,7 @@ class Inotify:
         except asyncio.TimeoutError:
             return None
 
-    async def get_series(self, timeout: float, max_series: int=64) -> list[InotifyEvent]:
+    async def get_series(self, timeout: float=1.0, max_series: int=64) -> list[InotifyEvent]:
         series: list[InotifyEvent] = []
         event = await self.get_event(timeout)
         if event:
@@ -249,7 +251,6 @@ class Inotify:
         return series
 
     def __read_and_queue_events(self) -> None:
-        logger = get_logger()
         for event in self.__read_parsed_events():
             # XXX: Ни в коем случае не приводить self.__read_parsed_events() к списку.
             # Он использует self.__wd_by_path и self.__path_by_wd, содержимое которых
@@ -268,7 +269,7 @@ class Inotify:
             if event.mask & InotifyMask.IGNORED:
                 ignored_path = self.__path_by_wd[event.wd]
                 if self.__wd_by_path[ignored_path] == event.wd:
-                    logger.info("Unwatching %s because IGNORED was received", ignored_path)
+                    get_logger().info("Unwatching %s because IGNORED was received", ignored_path)
                     del self.__wd_by_path[ignored_path]
                 continue
 
@@ -290,7 +291,7 @@ class Inotify:
                 if ex.errno == errno.EINTR:
                     pass
 
-    def __enter__(self) -> "Inotify":
+    def __enter__(self) -> Self:
         assert self.__fd < 0
         self.__fd = _inotify_check(libc.inotify_init())
         asyncio.get_event_loop().add_reader(self.__fd, self.__read_and_queue_events)
