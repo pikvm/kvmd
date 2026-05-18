@@ -250,6 +250,19 @@ class Inotify:
                     break
         return series
 
+    async def consume_until_restart(self, timeout: float=1.0) -> (bool | None):
+        # None = timeout
+        # False = No restart events
+        # True = Got at least one restart event
+        restart: (bool | None) = None
+        for event in (await self.get_series(timeout)):
+            restart = False
+            if event.restart:
+                get_logger(2).info("Got restart event: %s", event)
+                restart = True
+                break
+        return restart
+
     def __read_and_queue_events(self) -> None:
         for event in self.__read_parsed_events():
             # XXX: Ни в коем случае не приводить self.__read_parsed_events() к списку.

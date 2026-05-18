@@ -450,22 +450,13 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             await self.__reload_state()
 
             while self.__state.vd:  # Если живы после предыдущей проверки
-                need_restart = self.__reset
-                self.__reset = False
-                need_reload_state = False
-                for event in (await inotify.get_series(timeout=1)):
-                    need_reload_state = True
-                    if event.restart:
-                        # Если выгрузили OTG, изменили каталоги, что-то отмонтировали или делают еще какую-то странную фигню.
-                        # Проверяется маска InotifyMask.ALL_RESTART_EVENTS
-                        get_logger(0).info("Got a big inotify event: %s; reinitializing MSD ...", event)
-                        need_restart = True
-                        break
-                if need_restart:
+                restart = await inotify.consume_until_restart()
+                if self.__reset or restart:
+                    self.__reset = False
                     break
-                if need_reload_state:
+                elif restart is False:  # Неразрушительный эвент
                     await self.__reload_state()
-                elif self.__writer:
+                elif self.__writer:  # Таймаут
                     # При загрузке файла обновляем статистику раз в секунду (по таймауту).
                     # Это не нужно при обычном релоаде, потому что там и так проверяются все разделы.
                     await self.__reload_parts_info()

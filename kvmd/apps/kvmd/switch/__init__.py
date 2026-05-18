@@ -366,17 +366,10 @@ class Switch:  # pylint: disable=too-many-public-methods
                         await inotify.watch_all_changes(os.path.realpath(self.__default_edid_path))
                     yield None
                     while True:
-                        need_restart = False
-                        need_notify = False
-                        for event in (await inotify.get_series(timeout=1)):
-                            need_notify = True
-                            if event.restart:
-                                logger.warning("Got fatal inotify event: %s; reinitializing ...", event)
-                                need_restart = True
-                                break
-                        if need_restart:
+                        restart = await inotify.consume_until_restart()
+                        if restart:
                             break
-                        if need_notify:
+                        elif restart is not None:
                             yield None
             except Exception:
                 logger.exception("Unexpected watcher error")
