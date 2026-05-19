@@ -25,8 +25,6 @@ from typing import Any
 from . import add_validator_magic
 from . import check_in_list
 from . import check_string_in_list
-from . import check_re_match
-from . import check_len
 
 from .basic import valid_number
 
