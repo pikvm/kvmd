@@ -87,7 +87,6 @@ class _Service:  # pylint: disable=too-many-instance-attributes
         self.__pre_stop_cmd: list[str] = build_cmd("pre_stop_cmd")
         self.__post_stop_cmd: list[str] = build_cmd("post_stop_cmd")
 
-        self.__gadget: str = config.otg.gadget
         self.__driver: str = config.otg.devices.ethernet.driver
 
     def start(self) -> None:
@@ -180,8 +179,7 @@ class _Service:  # pylint: disable=too-many-instance-attributes
         real_driver = self.__driver
         if self.__driver == "rndis5":
             real_driver = "rndis"
-        path = usb.get_gadget_path(self.__gadget, usb.G_FUNCTIONS, f"{real_driver}.usb0/ifname")
-        logger.info("Using OTG gadget %r ...", self.__gadget)
+        path = usb.get_gadget_path(usb.G_FUNCTIONS, f"{real_driver}.usb0/ifname")
         with open(path) as file:
             iface = file.read().strip()
             logger.info("Using OTG Ethernet interface %r ...", iface)

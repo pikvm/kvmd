@@ -50,10 +50,6 @@ def main() -> None:
         load_gpio=True,
     ).config
 
-    msd_kwargs = {"c": config.kvmd.msd}
-    if config.kvmd.msd.type == "otg":
-        msd_kwargs["gadget"] = config.otg.gadget  # XXX: Small crutch to pass gadget name to the plugin
-
     hid_kwargs = {"c": config.kvmd.hid}
     if config.kvmd.hid.type == "otg":
         hid_kwargs["udc"] = config.otg.udc  # XXX: Small crutch to pass UDC to the plugin
@@ -97,7 +93,7 @@ def main() -> None:
 
         hid=hid,
         atx=get_atx_class(config.atx.type)(config.atx),
-        msd=get_msd_class(config.msd.type)(**msd_kwargs),
+        msd=get_msd_class(config.msd.type)(config.msd),
         streamer=streamer,
 
         snapshoter=Snapshoter(

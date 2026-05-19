@@ -33,18 +33,18 @@ from .. import init
 
 
 # =====
-def _get_param_path(gadget: str, instance: int, param: str) -> str:
-    return usb.get_gadget_path(gadget, usb.G_FUNCTIONS, f"mass_storage.usb{instance}/lun.0", param)
+def _get_param_path(instance: int, param: str) -> str:
+    return usb.get_gadget_path(usb.G_FUNCTIONS, f"mass_storage.usb{instance}/lun.0", param)
 
 
-def _get_param(gadget: str, instance: int, param: str) -> str:
-    with open(_get_param_path(gadget, instance, param)) as file:
+def _get_param(instance: int, param: str) -> str:
+    with open(_get_param_path(instance, param)) as file:
         return file.read().strip()
 
 
-def _set_param(gadget: str, instance: int, param: str, value: str) -> None:
+def _set_param(instance: int, param: str, value: str) -> None:
     try:
-        with open(_get_param_path(gadget, instance, param), "w") as file:
+        with open(_get_param_path(instance, param), "w") as file:
             file.write(value + "\n")
     except OSError as ex:
         if ex.errno == errno.EBUSY:
@@ -82,8 +82,8 @@ def main() -> None:
         raise SystemExit(f"Error: KVMD MSD not using 'otg'"
                          f" (now configured {ia.config.kvmd.msd.type!r})")
 
-    set_param = (lambda param, value: _set_param(ia.config.otg.gadget, options.instance, param, value))
-    get_param = (lambda param: _get_param(ia.config.otg.gadget, options.instance, param))
+    set_param = (lambda param, value: _set_param(options.instance, param, value))
+    get_param = (lambda param: _get_param(options.instance, param))
 
     if options.eject:
         set_param("forced_eject", "")

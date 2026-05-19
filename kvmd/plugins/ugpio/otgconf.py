@@ -56,10 +56,9 @@ class Plugin(BaseUserGpioDriver):
         self.__init_delay: Final[float] = otg_config.init_delay
         self.__udc: str = otg_config.udc
 
-        gadget: str = otg_config.gadget
-        self.__udc_path = usb.get_gadget_path(gadget, usb.G_UDC)
-        self.__functions_path = usb.get_gadget_path(gadget, usb.G_FUNCTIONS)
-        self.__profile_path = usb.get_gadget_path(gadget, usb.G_PROFILE)
+        self.__udc_path = usb.get_gadget_path(usb.G_UDC)
+        self.__functions_path = usb.get_gadget_path(usb.G_FUNCTIONS)
+        self.__profile_path = usb.get_gadget_path(usb.G_PROFILE)
 
         self.__lock = asyncio.Lock()
 

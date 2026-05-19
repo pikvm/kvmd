@@ -65,14 +65,12 @@ class _GadgetControl:
     def __init__(
         self,
         meta_path: str,
-        gadget: str,
         udc: str,
         eps: int,
         init_delay: float,
     ) -> None:
 
         self.__meta_path = meta_path
-        self.__gadget = gadget
         self.__udc = udc
         self.__eps = eps
         self.__init_delay = init_delay
@@ -80,7 +78,7 @@ class _GadgetControl:
     @contextlib.contextmanager
     def __udc_stopped(self) -> Generator[None, None, None]:
         udc = usb.find_udc(self.__udc)
-        udc_path = usb.get_gadget_path(self.__gadget, usb.G_UDC)
+        udc_path = usb.get_gadget_path(usb.G_UDC)
         with open(udc_path) as file:
             enabled = bool(file.read().strip())
         if enabled:
@@ -123,12 +121,12 @@ class _GadgetControl:
                 )
 
     def __get_fsrc_path(self, func: str) -> str:
-        return usb.get_gadget_path(self.__gadget, usb.G_FUNCTIONS, func)
+        return usb.get_gadget_path(usb.G_FUNCTIONS, func)
 
     def __get_fdest_path(self, func: (str | None)=None) -> str:
         if func is None:
-            return usb.get_gadget_path(self.__gadget, usb.G_PROFILE)
-        return usb.get_gadget_path(self.__gadget, usb.G_PROFILE, func)
+            return usb.get_gadget_path(usb.G_PROFILE)
+        return usb.get_gadget_path(usb.G_PROFILE, func)
 
     def change_functions(self, enable: set[str], disable: set[str]) -> None:
         funcs = list(self.__read_metas())
@@ -315,7 +313,6 @@ def main() -> None:
 
     gc = _GadgetControl(
         meta_path=ia.config.otg.meta,
-        gadget=ia.config.otg.gadget,
         udc=ia.config.otg.udc,
         eps=ia.config.otg.endpoints,
         init_delay=ia.config.otg.init_delay,

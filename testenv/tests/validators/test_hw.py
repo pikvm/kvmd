@@ -28,7 +28,6 @@ from kvmd.validators import ValidatorError
 from kvmd.validators.hw import valid_tty_speed
 from kvmd.validators.hw import valid_gpio_pin
 from kvmd.validators.hw import valid_gpio_pin_optional
-from kvmd.validators.hw import valid_otg_gadget
 from kvmd.validators.hw import valid_otg_id
 from kvmd.validators.hw import valid_otg_ethernet
 
@@ -73,37 +72,6 @@ def test_ok__valid_gpio_pin_optional(arg: Any) -> None:
 def test_fail__valid_gpio_pin_optional(arg: Any) -> None:
     with pytest.raises(ValidatorError):
         print(valid_gpio_pin_optional(arg))
-
-
-# =====
-@pytest.mark.parametrize("arg", [
-    "test-",
-    "glados",
-    "test",
-    "_",
-    "_foo_bar_",
-    " aix",
-    "a" * 255,
-])
-def test_ok__valid_otg_gadget(arg: Any) -> None:
-    assert valid_otg_gadget(arg) == arg.strip()
-
-
-@pytest.mark.parametrize("arg", [
-    "тест",
-    "-molestia",
-    "te~st",
-    "-",
-    "-foo_bar",
-    "foo bar",
-    "a" * 256,
-    "  ",
-    "",
-    None,
-])
-def test_fail__valid_otg_gadget(arg: Any) -> None:
-    with pytest.raises(ValidatorError):
-        print(valid_otg_gadget(arg))
 
 
 # =====

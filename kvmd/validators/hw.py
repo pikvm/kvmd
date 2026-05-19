@@ -50,12 +50,6 @@ def valid_gpio_pin_optional(arg: Any) -> int:
 
 
 @add_validator_magic
-def valid_otg_gadget(arg: Any) -> str:
-    name = "OTG gadget name"
-    return check_len(check_re_match(arg, name, r"^[a-z_][a-z0-9_-]*$"), name, 255)
-
-
-@add_validator_magic
 def valid_otg_id(arg: Any) -> int:
     return int(valid_number(arg, min=0, max=65535, name="OTG ID"))
 

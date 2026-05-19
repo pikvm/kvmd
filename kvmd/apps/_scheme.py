@@ -84,7 +84,6 @@ from ..validators.ugpio import valid_ugpio_channel
 from ..validators.ugpio import valid_ugpio_mode
 
 from ..validators.hw import valid_tty_speed
-from ..validators.hw import valid_otg_gadget
 from ..validators.hw import valid_otg_id
 from ..validators.hw import valid_otg_ethernet
 
@@ -511,7 +510,6 @@ def make_config_scheme() -> dict:
             "max_power":      Option(250,    type=valid_number.mk(min=50, max=500)),
             "remote_wakeup":  Option(True,   type=valid_bool),
 
-            "gadget":     Option("kvmd", type=valid_otg_gadget),
             "udc":        Option("",     type=valid_stripped_string),
             "endpoints":  Option(9,      type=valid_int_f0),
             "init_delay": Option(3.0,    type=valid_float_f01),

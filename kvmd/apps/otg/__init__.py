@@ -270,8 +270,8 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
     udc = usb.find_udc(config.otg.udc)
     logger.info("Using UDC %s", udc)
 
-    logger.info("Creating gadget %r ...", config.otg.gadget)
-    gadget_path = usb.get_gadget_path(config.otg.gadget)
+    gadget_path = usb.get_gadget_path()
+    logger.info("Creating the gadget: %s ...", gadget_path)
     _mkdir(gadget_path)
 
     _write(join(gadget_path, "idVendor"), f"0x{config.otg.vendor_id:04X}")
@@ -383,9 +383,8 @@ def _cmd_stop(config: Section) -> None:
 
     _check_config(config)
 
-    gadget_path = usb.get_gadget_path(config.otg.gadget)
-
-    logger.info("Disabling gadget %r ...", config.otg.gadget)
+    logger.info("Disabling the gadget ...")
+    gadget_path = usb.get_gadget_path()
     _write(join(gadget_path, "UDC"), "\n")
 
     _unlink(join(gadget_path, "os_desc", usb.G_PROFILE_NAME), optional=True)

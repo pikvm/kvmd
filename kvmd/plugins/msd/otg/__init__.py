@@ -111,19 +111,14 @@ class _State:
 
 # =====
 class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
-    def __init__(  # pylint: disable=super-init-not-called
-        self,
-        c: Section,
-        gadget: str,  # XXX: Not from options, see /kvmd/apps/kvmd/__init__.py for details
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
         self.__read_chunk_size = c.read_chunk_size
         self.__write_chunk_size = c.write_chunk_size
         self.__sync_chunk_size = c.sync_chunk_size
 
-        self.__gadget = gadget
-
-        self.__drive = Drive(self.__gadget, instance=0, lun=0)
+        self.__drive = Drive(instance=0, lun=0)
         self.__storage = Storage(fstab.find_msd().root_path, c.remount_cmd)
 
         self.__reader: (MsdFileReader | None) = None
@@ -149,7 +144,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     # =====
 
     async def sysprep(self) -> None:
-        get_logger(0).info("Using OTG gadget %r as MSD", self.__gadget)
+        get_logger(0).info("Using OTG drive %s as MSD ...", self.__drive.get_name())
         await self.__unsafe_reload_state()
 
     async def get_state(self) -> dict:
