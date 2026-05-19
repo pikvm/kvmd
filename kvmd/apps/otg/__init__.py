@@ -29,6 +29,8 @@ import argparse
 
 from os.path import join  # pylint: disable=ungrouped-imports
 
+from typing import Final
+
 from ...logging import get_logger
 
 from ...yamlconf import Section
@@ -103,49 +105,54 @@ def _check_config(config: Section) -> None:
 
 # =====
 class _GadgetConfig:
-    def __init__(self, gadget_path: str, profile_path: str, meta_path: str, eps: int) -> None:
-        self.__gadget_path = gadget_path
-        self.__profile_path = profile_path
-        self.__meta_path = meta_path
-        self.__eps_max = eps
+    def __init__(
+        self,
+        gadget_path: str,
+        profile_path: str,
+        meta_path: str,
+        eps_max: int,
+    ) -> None:
+
+        self.__gadget_path:  Final[str] = gadget_path
+        self.__profile_path: Final[str] = profile_path
+        self.__meta_path:    Final[str] = meta_path
+        self.__eps_max:      Final[int] = eps_max
+
         self.__eps_used = 0
         self.__hid_instance = 0
         self.__msd_instance = 0
+
         _mkdir(meta_path)
 
     def add_audio(self, starter: list[str], start: bool, speakers: bool, mic: bool) -> None:
         assert speakers or mic
-        eps = 2
+        desc: list[str] = []
         func = "uac2.usb0"
         func_path = self.__create_function(func)
         if speakers:
             _write(join(func_path, "c_chmask"), 0b11)
             _write(join(func_path, "c_srate"), 48000)
             _write(join(func_path, "c_ssize"), 2)
+            desc.append("Speakers")
         else:
             _write(join(func_path, "c_chmask"), 0)
         if mic:
             _write(join(func_path, "p_chmask"), 0b11)
             _write(join(func_path, "p_srate"), 48000)
             _write(join(func_path, "p_ssize"), 2)
+            desc.append("Microphone")
         else:
             _write(join(func_path, "p_chmask"), 0)
-        if start:
-            self.__start_function(func, eps)
-        self.__create_meta(func, "Microphone", eps, starter)
+        self.__setup_function(func, "+".join(desc), len(desc) + 1, starter, start)
 
     def add_serial(self, starter: list[str], start: bool) -> None:
-        eps = 3
         func = "acm.usb0"
         self.__create_function(func)
-        if start:
-            self.__start_function(func, eps)
-        self.__create_meta(func, "Serial Port", eps, starter)
+        self.__setup_function(func, "Serial Port", 3, starter, start)
 
     def add_ethernet(self, starter: list[str], start: bool, driver: str, host_mac: str, kvm_mac: str) -> None:
-        eps = 3
         if host_mac and kvm_mac and host_mac == kvm_mac:
-            raise RuntimeError("Ethernet host_mac should not be equal to kvm_mac")
+            get_logger().error("Ethernet will not be created: host_mac should not be equal to kvm_mac")
         real_driver = driver
         if driver == "rndis5":
             real_driver = "rndis"
@@ -169,9 +176,7 @@ class _GadgetConfig:
                 _write(join(func_path, "os_desc/interface.rndis/compatible_id"), "RNDIS")
                 _write(join(func_path, "os_desc/interface.rndis/sub_compatible_id"), "5162001")
             _symlink(self.__profile_path, join(self.__gadget_path, "os_desc", usb.G_PROFILE_NAME))
-        if start:
-            self.__start_function(func, eps)
-        self.__create_meta(func, "Ethernet", eps, starter)
+        self.__setup_function(func, "Ethernet", 3, starter, start)
 
     def add_keyboard(self, starter: list[str], start: bool, remote_wakeup: bool) -> None:
         self.__add_hid("Keyboard", starter, start, remote_wakeup, make_keyboard_hid())
@@ -181,7 +186,6 @@ class _GadgetConfig:
         self.__add_hid(desc, starter, start, remote_wakeup, make_mouse_hid(absolute, horizontal_wheel))
 
     def __add_hid(self, desc: str, starter: list[str], start: bool, remote_wakeup: bool, hid: Hid) -> None:
-        eps = 1
         func = f"hid.usb{self.__hid_instance}"
         func_path = self.__create_function(func)
         _write(join(func_path, "no_out_endpoint"), "1", optional=True)
@@ -191,9 +195,7 @@ class _GadgetConfig:
         _write(join(func_path, "subclass"), hid.subclass)
         _write(join(func_path, "report_length"), hid.report_length)
         _write_bytes(join(func_path, "report_desc"), hid.report_descriptor)
-        if start:
-            self.__start_function(func, eps)
-        self.__create_meta(func, desc, eps, starter)
+        self.__setup_function(func, desc, 1, starter, start)
         self.__hid_instance += 1
 
     def add_msd(  # pylint: disable=too-many-arguments,too-many-locals
@@ -211,10 +213,6 @@ class _GadgetConfig:
         inquiry_string_flash: str,
     ) -> None:
 
-        # Endpoints number depends on transport_type but we can consider that this is 2
-        # because transport_type is always USB_PR_BULK by default if CONFIG_USB_FILE_STORAGE_TEST
-        # is not defined. See drivers/usb/gadget/function/storage_common.c
-        eps = 2
         func = f"mass_storage.usb{self.__msd_instance}"
         func_path = self.__create_function(func)
         _write(join(func_path, "stall"), int(stall))
@@ -231,10 +229,11 @@ class _GadgetConfig:
             _chown(join(func_path, "lun.0/ro"), user)
             _chown(join(func_path, "lun.0/file"), user)
             _chown(join(func_path, "lun.0/forced_eject"), user)
-        if start:
-            self.__start_function(func, eps)
         desc = ("Mass Storage Drive" if self.__msd_instance == 0 else f"Extra Drive #{self.__msd_instance}")
-        self.__create_meta(func, desc, eps, starter)
+        # Endpoints number depends on transport_type but we can consider that this is 2
+        # because transport_type is always USB_PR_BULK by default if CONFIG_USB_FILE_STORAGE_TEST
+        # is not defined. See drivers/usb/gadget/function/storage_common.c
+        self.__setup_function(func, desc, 2, starter, start)
         self.__msd_instance += 1
 
     def __create_function(self, func: str) -> str:
@@ -242,13 +241,18 @@ class _GadgetConfig:
         _mkdir(func_path)
         return func_path
 
+    def __setup_function(self, func: str, desc: str, eps: int, starter: list[str], start: bool) -> None:
+        self.__create_meta(func, desc, eps, starter)
+        if start:
+            self.__start_function(func, eps)
+
     def __start_function(self, func: str, eps: int) -> None:
         func_path = join(self.__gadget_path, "functions", func)
         if self.__eps_max - self.__eps_used >= eps:
             _symlink(func_path, join(self.__profile_path, func))
             self.__eps_used += eps
         else:
-            get_logger().info("Will not be started: No available endpoints")
+            get_logger().info("Function %r not be started: No available endpoints", func)
 
     def __create_meta(self, func: str, desc: str, eps: int, starter: list[str]) -> None:
         _write(join(self.__meta_path, f"{func}@meta.json"), json.dumps({
