@@ -39,6 +39,7 @@ RUN \
 		python-build \
 		python-wheel \
 		python-setuptools \
+		python-installer \
 		python-tox \
 		python-mako \
 		python-yaml \
