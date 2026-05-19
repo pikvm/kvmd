@@ -20,7 +20,10 @@
 # ========================================================================== #
 
 
+from typing import Final
+
+
 # =====
-ETC_PREFIX = ""
-SYSFS_PREFIX = ""
-PROCFS_PREFIX = ""
+ETC_PREFIX:    Final[str] = ""
+SYSFS_PREFIX:  Final[str] = ""
+PROCFS_PREFIX: Final[str] = ""
