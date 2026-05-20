@@ -35,7 +35,10 @@ from ... import aiotools
 from ... import usb
 
 from ...yamlconf import Section
+from ...yamlconf import Option
 
+from ...validators.basic import valid_float_f01
+from ...validators.basic import valid_stripped_string
 from ...validators.basic import valid_stripped_string_not_empty
 
 from . import BaseUserGpioDriver
@@ -48,19 +51,25 @@ class Plugin(BaseUserGpioDriver):
         instance_name: str,
         notifier: aiotools.AioNotifier,
         c: Section,
-        otg_config: Section,  # XXX: Not from options, see /kvmd/apps/kvmd/__init__.py for details
     ) -> None:
 
         super().__init__(instance_name, notifier, c)
 
-        self.__init_delay: Final[float] = otg_config.init_delay
-        self.__udc: str = otg_config.udc
+        self.__init_delay: Final[float] = c.init_delay
+        self.__udc: str = c.udc
 
         self.__udc_path = usb.get_gadget_path(usb.G_UDC)
         self.__functions_path = usb.get_gadget_path(usb.G_FUNCTIONS)
         self.__profile_path = usb.get_gadget_path(usb.G_PROFILE)
 
         self.__lock = asyncio.Lock()
+
+    @classmethod
+    def get_plugin_options(cls) -> dict[str, Option]:
+        return {
+            "udc":        Option("",  type=valid_stripped_string),
+            "init_delay": Option(3.0, type=valid_float_f01),
+        }
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:

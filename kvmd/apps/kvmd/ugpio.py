@@ -232,7 +232,7 @@ class _GpioOutput:  # pylint: disable=too-many-instance-attributes
 
 # =====
 class UserGpio:
-    def __init__(self, config: Section, otg_config: Section) -> None:
+    def __init__(self, config: Section) -> None:
         self.__notifier = aiotools.AioNotifier()
 
         self.__drivers = {
@@ -240,7 +240,6 @@ class UserGpio:
                 instance_name=driver,
                 notifier=self.__notifier,
                 c=drv_config,
-                **({"otg_config": otg_config} if drv_config.type == "otgconf" else {}),  # Hack
             )
             for (driver, drv_config) in tools.sorted_kvs(config.drivers)
         }

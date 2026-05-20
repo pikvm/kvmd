@@ -81,7 +81,7 @@ def main() -> None:
         ),
         im=InfoManager(global_config),
         log_reader=(LogReader() if config.log_reader.enabled else None),
-        ugpio=UserGpio(config.gpio, global_config.otg),
+        ugpio=UserGpio(config.gpio),
         ocr=Ocr(**config.ocr._unpack()),
         switch=Switch(
             pst_unix_path=global_config.pst.server.unix,
