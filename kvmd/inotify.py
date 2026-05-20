@@ -303,6 +303,7 @@ class Inotify:
             except OSError as ex:
                 if ex.errno == errno.EINTR:
                     pass
+                raise
 
     def __enter__(self) -> Self:
         assert self.__fd < 0
