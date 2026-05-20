@@ -28,6 +28,18 @@ from . import env
 
 
 # =====
+GADGET:         Final[str] = "kvmd"
+G_UDC:          Final[str] = "UDC"
+G_FUNCTIONS:    Final[str] = "functions"
+G_PROFILE_NAME: Final[str] = "c.1"
+G_PROFILE:      Final[str] = f"configs/{G_PROFILE_NAME}"
+
+
+def get_gadget_path(*parts: str) -> str:
+    return os.path.join(f"{env.SYSFS_PREFIX}/sys/kernel/config/usb_gadget/{GADGET}", *parts)
+
+
+# =====
 def find_udc(udc: str) -> str:
     path = f"{env.SYSFS_PREFIX}/sys/class/udc"
     candidates = sorted(os.listdir(path))
@@ -40,24 +52,19 @@ def find_udc(udc: str) -> str:
     return udc  # fe980000.usb
 
 
-# =====
-U_STATE: Final[str] = "state"
-
-
-def get_udc_path(udc: str, *parts: str) -> str:
-    return os.path.join(f"{env.SYSFS_PREFIX}/sys/class/udc", udc, *parts)
-
-
-# =====
-GADGET:         Final[str] = "kvmd"
-G_UDC:          Final[str] = "UDC"
-G_FUNCTIONS:    Final[str] = "functions"
-G_PROFILE_NAME: Final[str] = "c.1"
-G_PROFILE:      Final[str] = f"configs/{G_PROFILE_NAME}"
-
-
-def get_gadget_path(*parts: str) -> str:
-    return os.path.join(f"{env.SYSFS_PREFIX}/sys/kernel/config/usb_gadget", GADGET, *parts)
+def is_udc_configured() -> bool:
+    # Fast path build-up without join()
+    try:
+        udc_path = f"{env.SYSFS_PREFIX}/sys/kernel/config/usb_gadget/{GADGET}/UDC"
+        with open(udc_path) as file:
+            udc = file.read().strip()
+        if len(udc) > 0:
+            state_path = f"{env.SYSFS_PREFIX}/sys/class/udc/{udc}/state"
+            with open(state_path) as file:
+                return (file.read().strip() == "configured")
+    except FileNotFoundError:
+        pass
+    return False
 
 
 # =====

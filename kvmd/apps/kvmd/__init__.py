@@ -50,14 +50,11 @@ def main() -> None:
         load_gpio=True,
     ).config
 
-    hid_kwargs = {"c": config.kvmd.hid}
-    if config.kvmd.hid.type == "otg":
-        hid_kwargs["udc"] = config.otg.udc  # XXX: Small crutch to pass UDC to the plugin
-
     global_config = config
     config = config.kvmd
 
-    hid = get_hid_class(config.hid.type)(**hid_kwargs)
+    hid = get_hid_class(config.hid.type)(config.hid)
+
     streamer = Streamer(
         **config.streamer._unpack(ignore=["forever", "desired_fps", "resolution", "h264_bitrate", "h264_gop"]),
         **config.streamer.resolution._unpack(),

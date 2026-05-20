@@ -25,10 +25,7 @@ import copy
 
 from typing import AsyncGenerator
 
-from ....logging import get_logger
-
 from .... import aiomulti
-from .... import usb
 
 from ....yamlconf import Section
 from ....yamlconf import Option
@@ -46,15 +43,8 @@ from .mouse import MouseProcess
 
 # =====
 class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
-    def __init__(
-        self,
-        c: Section,
-        udc: str,  # XXX: Not from options, see /kvmd/apps/kvmd/__init__.py for details
-    ) -> None:
-
+    def __init__(self, c: Section) -> None:
         super().__init__(c)
-
-        self.__udc = udc
 
         self.__notifier = aiomulti.AioMpNotifier()
 
@@ -126,12 +116,10 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         }
 
     async def sysprep(self) -> None:
-        udc = usb.find_udc(self.__udc)
-        get_logger(0).info("Using UDC %s", udc)
-        self.__keyboard_proc.start(udc)
-        self.__mouse_proc.start(udc)
+        self.__keyboard_proc.start()
+        self.__mouse_proc.start()
         if self.__mouse_alt_proc:
-            self.__mouse_alt_proc.start(udc)
+            self.__mouse_alt_proc.start()
 
     async def get_state(self) -> dict:
         keyboard_state = await self.__keyboard_proc.get_state()

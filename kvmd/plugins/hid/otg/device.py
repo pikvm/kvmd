@@ -69,14 +69,12 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
         self.__state_flags = aiomulti.AioSharedFlags({"online": True, **initial_state}, notifier)
         self.__stop_event = multiprocessing.Event()
 
-        self.__udc_state_path = ""
         self.__fd = -1
         self.__no_device_reported = False
 
         self.__logger: (logging.Logger | None) = None
 
-    def start(self, udc: str) -> None:  # type: ignore  # pylint: disable=arguments-differ
-        self.__udc_state_path = usb.get_udc_path(udc, usb.U_STATE)
+    def start(self) -> None:
         self.__proc.start()
 
     def __subprocess(self) -> None:  # pylint: disable=too-many-branches
@@ -99,7 +97,7 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
                         #    - https://github.com/raspberrypi/linux/commit/61b7f805dc2fd364e0df682de89227e94ce88e2
                         # Так что нам нужно проверять состояние контроллера, чтобы не спамить
                         # в устройство и отслеживать его состояние.
-                        if not self.__is_udc_configured():
+                        if not usb.is_udc_configured():
                             self.__state_flags.update(online=False)
                     else:
                         # Посылка свежих репортов важнее старого
@@ -168,10 +166,6 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
         if self.__logger is not None:
             return self.__logger
         return get_logger()
-
-    def __is_udc_configured(self) -> bool:
-        with open(self.__udc_state_path) as file:
-            return (file.read().strip().lower() == "configured")
 
     def __write_report(self, report: bytes) -> bool:
         assert report
