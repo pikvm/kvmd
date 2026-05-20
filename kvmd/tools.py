@@ -46,6 +46,14 @@ def efmt(ex: Exception) -> str:
     return f"{type(ex).__name__}: {ex}"
 
 
+def is_oserror(ex: Exception, *errnos: int) -> bool:
+    if not isinstance(ex, OSError):
+        return False
+    if len(errnos) == 0 or ex.errno in errnos:
+        return True
+    return False
+
+
 # =====
 _DictKeyT = TypeVar("_DictKeyT")
 _DictValueT = TypeVar("_DictValueT")

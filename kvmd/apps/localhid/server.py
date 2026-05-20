@@ -90,7 +90,7 @@ class LocalHidServer:  # pylint: disable=too-many-instance-attributes
             try:
                 await func()
             except Exception as ex:
-                if isinstance(ex, OSError) and ex.errno == errno.ENODEV:  # pylint: disable=no-member
+                if tools.is_oserror(ex, errno.ENODEV):
                     pass  # Device disconnected
                 elif isinstance(ex, aiohttp.ClientError):
                     get_logger(0).error("KVMD client error: %s", tools.efmt(ex))
