@@ -60,10 +60,10 @@ from .drive import Drive
 # =====
 @dataclasses.dataclass
 class _VirtualDrive:
-    image: (Image | None)
+    image:     (Image | None)
     connected: bool
-    cdrom: bool
-    rw: bool
+    cdrom:     bool
+    rw:        bool
 
 
 class _State:

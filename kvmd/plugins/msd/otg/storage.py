@@ -26,7 +26,6 @@ import operator
 import dataclasses
 
 from typing import Generator
-from typing import Optional
 
 import aiofiles
 import aiofiles.os
@@ -39,17 +38,17 @@ from .. import MsdError
 # =====
 @dataclasses.dataclass(frozen=True)
 class _ImageDc:
-    name: str
-    path: str
-    in_storage: bool = dataclasses.field(init=False, compare=False)
-    complete: bool = dataclasses.field(init=False, compare=False)
-    removable: bool = dataclasses.field(init=False, compare=False)
-    size: int = dataclasses.field(init=False, compare=False)
-    mod_ts: float = dataclasses.field(init=False, compare=False)
+    name:       str
+    path:       str
+    in_storage: bool  = dataclasses.field(init=False, compare=False)
+    complete:   bool  = dataclasses.field(init=False, compare=False)
+    removable:  bool  = dataclasses.field(init=False, compare=False)
+    size:       int   = dataclasses.field(init=False, compare=False)
+    mod_ts:     float = dataclasses.field(init=False, compare=False)
 
 
 class Image(_ImageDc):
-    def __init__(self, name: str, path: str, storage: Optional["Storage"]) -> None:
+    def __init__(self, name: str, path: str, storage: ("Storage" | None)) -> None:
         super().__init__(name, path)
         self.__storage = storage
         (self.__dir_path, file_name) = os.path.split(path)
@@ -143,9 +142,9 @@ class Image(_ImageDc):
 # =====
 @dataclasses.dataclass(frozen=True)
 class _PartDc:
-    name: str
-    size: int = dataclasses.field(init=False, compare=False)
-    free: int = dataclasses.field(init=False, compare=False)
+    name:     str
+    size:     int  = dataclasses.field(init=False, compare=False)
+    free:     int  = dataclasses.field(init=False, compare=False)
     writable: bool = dataclasses.field(init=False, compare=False)
 
 
@@ -169,7 +168,7 @@ class _Part(_PartDc):
 @dataclasses.dataclass(frozen=True, eq=False)
 class _StorageDc:
     images: dict[str, Image] = dataclasses.field(init=False)
-    parts: dict[str, _Part] = dataclasses.field(init=False)
+    parts:  dict[str, _Part] = dataclasses.field(init=False)
 
 
 class Storage(_StorageDc):
