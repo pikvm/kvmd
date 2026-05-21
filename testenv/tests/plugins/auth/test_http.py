@@ -42,7 +42,7 @@ async def _handle_auth(req: aiohttp.web.BaseRequest) -> aiohttp.web.Response:
 
 
 @pytest_asyncio.fixture(name="auth_server_port")
-async def _auth_server_port_fixture(aiohttp_server) -> AsyncGenerator[int, None]:  # type: ignore
+async def _auth_server_port_fixture(aiohttp_server) -> AsyncGenerator[int]:  # type: ignore
     auth = aiohttp_basicauth.BasicAuthMiddleware(
         username="server-admin",
         password="server-pass",

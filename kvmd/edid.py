@@ -35,7 +35,7 @@ class EdidNoBlockError(Exception):
 
 
 @contextlib.contextmanager
-def _smart_open(path: str, mode: str) -> Generator[IO, None, None]:
+def _smart_open(path: str, mode: str) -> Generator[IO]:
     fd = (0 if "r" in mode else 1)
     with (os.fdopen(fd, mode, closefd=False) if path == "-" else open(path, mode)) as file:
         yield file

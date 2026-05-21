@@ -269,7 +269,7 @@ class UserGpio:
     async def trigger_state(self) -> None:
         self.__notifier.notify(1)
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         # ==== Granularity table ====
         #   - model -- Full
         #   - state.inputs  -- Partial

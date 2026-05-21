@@ -42,7 +42,7 @@ def _make_passwd(user: str) -> str:
 
 
 @pytest.fixture(name="htpasswd", params=[[], ["admin"], ["admin", "user"]])
-def _htpasswd_fixture(request) -> Generator[KvmdHtpasswdFile, None, None]:  # type: ignore
+def _htpasswd_fixture(request) -> Generator[KvmdHtpasswdFile]:  # type: ignore
     (fd, path) = tempfile.mkstemp()
     os.close(fd)
     htpasswd = KvmdHtpasswdFile(path)

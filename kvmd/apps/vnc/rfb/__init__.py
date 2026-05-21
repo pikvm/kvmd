@@ -203,7 +203,7 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
 
     # =====
 
-    async def _send_fb_allowed(self) -> AsyncGenerator[None, None]:
+    async def _send_fb_allowed(self) -> AsyncGenerator[None]:
         while True:
             await self.__fb_notifier.wait()
             yield

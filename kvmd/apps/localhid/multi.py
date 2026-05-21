@@ -46,7 +46,7 @@ def _udev_check(device: pyudev.Device) -> str:
     return ""
 
 
-async def _follow_udev_hids() -> AsyncGenerator[tuple[bool, str], None]:
+async def _follow_udev_hids() -> AsyncGenerator[tuple[bool, str]]:
     ctx = pyudev.Context()
 
     monitor = pyudev.Monitor.from_netlink(pyudev.Context())

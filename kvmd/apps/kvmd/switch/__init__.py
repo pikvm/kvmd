@@ -293,7 +293,7 @@ class Switch:  # pylint: disable=too-many-public-methods
     async def trigger_state(self) -> None:
         await self.__cache.trigger_state()
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         async for state in self.__cache.poll_state():
             yield state
 
@@ -354,7 +354,7 @@ class Switch:  # pylint: disable=too-many-public-methods
                 else:
                     self.__x_set_edids(edids, save=False)
 
-    async def __poll_default_edid(self) -> AsyncGenerator[None, None]:
+    async def __poll_default_edid(self) -> AsyncGenerator[None]:
         logger = get_logger(0)
         while True:
             while not os.path.exists(self.__default_edid_path):

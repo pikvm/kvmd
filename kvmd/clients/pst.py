@@ -59,7 +59,7 @@ class PstClient:
                 return os.path.join(path, self.__subdir)
 
     @contextlib.asynccontextmanager
-    async def writable(self) -> AsyncGenerator[str, None]:
+    async def writable(self) -> AsyncGenerator[str]:
         async with self.__inner_writable() as path:
             path = os.path.join(path, self.__subdir)
             if not os.path.exists(path):
@@ -67,7 +67,7 @@ class PstClient:
             yield path
 
     @contextlib.asynccontextmanager
-    async def __inner_writable(self) -> AsyncGenerator[str, None]:
+    async def __inner_writable(self) -> AsyncGenerator[str]:
         async with self.__make_http_session() as session:
             async with session.ws_connect("http://localhost:0/ws") as ws:
                 path = ""

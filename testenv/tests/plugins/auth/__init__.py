@@ -33,7 +33,7 @@ from kvmd.plugins.auth import get_auth_service_class
 
 # =====
 @contextlib.asynccontextmanager
-async def get_configured_auth_service(name: str, **kwargs: Any) -> AsyncGenerator[BaseAuthService, None]:
+async def get_configured_auth_service(name: str, **kwargs: Any) -> AsyncGenerator[BaseAuthService]:
     service_class = get_auth_service_class(name)
     config = make_config({}, kwargs, service_class.get_plugin_options())
     service = service_class(config)

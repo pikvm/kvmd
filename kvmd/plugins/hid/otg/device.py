@@ -126,7 +126,7 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
 
     # =====
 
-    def _process_event(self, event: BaseEvent) -> Generator[bytes, None, None]:
+    def _process_event(self, event: BaseEvent) -> Generator[bytes]:
         _ = event
         if self is not None:  # XXX: Vulture and pylint hack
             raise NotImplementedError()

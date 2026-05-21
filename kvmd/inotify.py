@@ -49,7 +49,7 @@ _FS_ENCODING:          Final[str] = (sys.getfilesystemencoding() or _FS_FALLBACK
 
 
 # =====
-def _inotify_parsed_buffer(data: bytes) -> Generator[tuple[int, int, int, bytes], None, None]:
+def _inotify_parsed_buffer(data: bytes) -> Generator[tuple[int, int, int, bytes]]:
     offset = 0
     while offset + _EVENT_HEAD_SIZE <= len(data):
         (wd, mask, cookie, length) = struct.unpack_from("iIII", data, offset)
@@ -288,7 +288,7 @@ class Inotify:
 
             self.__events_q.put_nowait(event)
 
-    def __read_parsed_events(self) -> Generator[InotifyEvent, None, None]:
+    def __read_parsed_events(self) -> Generator[InotifyEvent]:
         for (wd, mask, cookie, name_bytes) in _inotify_parsed_buffer(self.__read_buffer()):
             wd_path = self.__path_by_wd.get(wd, None)
             if wd_path is not None:

@@ -98,7 +98,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
     async def trigger_state(self) -> None:
         raise NotImplementedError
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         # ==== Granularity table ====
         #   - enabled   -- Full
         #   - online    -- Partial

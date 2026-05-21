@@ -105,7 +105,7 @@ class StateCache:  # pylint: disable=too-many-instance-attributes,too-many-publi
     async def trigger_state(self) -> None:
         self.__bump_state(self.__FULL)
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         atx_ts: float = 0
         while True:
             try:

@@ -84,7 +84,7 @@ class HealthInfoSubmanager(BaseInfoSubmanager):
     async def trigger_state(self) -> None:
         self.__notifier.notify(1)
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         prev: dict = {}
         while True:
             if (await self.__notifier.wait(timeout=self.__state_poll)) > 0:

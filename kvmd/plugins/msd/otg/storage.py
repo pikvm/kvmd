@@ -224,7 +224,7 @@ class Storage(_StorageDc):
     def __walk(self) -> list[tuple[str, bool, list[str]]]:
         return list(self.__inner_walk(self.__path))
 
-    def __inner_walk(self, root_path: str) -> Generator[tuple[str, bool, list[str]], None, None]:
+    def __inner_walk(self, root_path: str) -> Generator[tuple[str, bool, list[str]]]:
         files: list[str] = []
         with os.scandir(root_path) as dir_iter:
             for item in sorted(dir_iter, key=operator.attrgetter("name")):

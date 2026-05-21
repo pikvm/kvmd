@@ -58,7 +58,7 @@ class Plugin(BaseMsd):
     async def trigger_state(self) -> None:
         self.__notifier.notify()
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         while True:
             await self.__notifier.wait()
             yield (await self.get_state())
@@ -81,7 +81,7 @@ class Plugin(BaseMsd):
         raise MsdDisabledError()
 
     @contextlib.asynccontextmanager
-    async def read_image(self, name: str) -> AsyncGenerator[BaseMsdReader, None]:
+    async def read_image(self, name: str) -> AsyncGenerator[BaseMsdReader]:
         if self is not None:  # XXX: Vulture and pylint hack
             raise MsdDisabledError()
         yield BaseMsdReader()
@@ -92,7 +92,7 @@ class Plugin(BaseMsd):
         name: str,
         size: int,
         remove_incomplete: bool,
-    ) -> AsyncGenerator[BaseMsdWriter, None]:
+    ) -> AsyncGenerator[BaseMsdWriter]:
 
         if self is not None:  # XXX: Vulture and pylint hack
             raise MsdDisabledError()

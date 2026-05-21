@@ -71,7 +71,7 @@ class _SerialPhy(BasePhy):
         return os.path.exists(self.__device_path)
 
     @contextlib.contextmanager
-    def connected(self) -> Generator[_SerialPhyConnection, None, None]:  # type: ignore
+    def connected(self) -> Generator[_SerialPhyConnection]:  # type: ignore
         with serial.Serial(self.__device_path, self.__speed, timeout=self.__read_timeout) as tty:
             yield _SerialPhyConnection(tty)
 

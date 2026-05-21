@@ -24,6 +24,8 @@ import os
 import random
 import types
 
+from typing import Self
+
 import serial
 
 from .lib import tools
@@ -62,7 +64,7 @@ class Device:
         self.__tty: (serial.Serial | None) = None
         self.__buf: bytes = b""
 
-    def __enter__(self) -> "Device":
+    def __enter__(self) -> Self:
         try:
             self.__tty = serial.Serial(
                 self.__device_path,

@@ -86,13 +86,13 @@ class _State:
             self.__nr.notify()
 
     @contextlib.asynccontextmanager
-    async def locked_under_busy(self) -> AsyncGenerator[None, None]:
+    async def locked_under_busy(self) -> AsyncGenerator[None]:
         assert self.__region.is_busy()
         async with self.__lock:
             yield
 
     @contextlib.asynccontextmanager
-    async def busy_locked_online(self) -> AsyncGenerator[None, None]:
+    async def busy_locked_online(self) -> AsyncGenerator[None]:
         with self.busy_unlocked():
             async with self.locked_under_busy():
                 if self.vd is None:
@@ -101,7 +101,7 @@ class _State:
                 yield
 
     @contextlib.asynccontextmanager
-    async def locked_only(self) -> AsyncGenerator[None, None]:
+    async def locked_only(self) -> AsyncGenerator[None]:
         async with self.__lock:
             yield
 
@@ -181,7 +181,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     async def trigger_state(self) -> None:
         self.__nr.notify(1)
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         prev: dict = {}
         while True:
             if (await self.__nr.wait()) > 0:
@@ -276,7 +276,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             self.__state.vd.connected = connected
 
     @contextlib.asynccontextmanager
-    async def read_image(self, name: str) -> AsyncGenerator[MsdFileReader, None]:
+    async def read_image(self, name: str) -> AsyncGenerator[MsdFileReader]:
         with self.__state.busy_unlocked():
             try:
                 async with self.__state.locked_under_busy():
@@ -302,7 +302,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         name: str,
         size: int,
         remove_incomplete: bool,
-    ) -> AsyncGenerator[MsdFileWriter, None]:
+    ) -> AsyncGenerator[MsdFileWriter]:
 
         image: (Image | None) = None
         complete = False

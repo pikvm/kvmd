@@ -73,7 +73,7 @@ class BaseStreamerClient:
         raise NotImplementedError()
 
     @contextlib.asynccontextmanager
-    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]], None]:
+    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]]]:
         if self is not None:  # XXX: Vulture and pylint hack
             raise NotImplementedError()
         yield
@@ -149,7 +149,7 @@ class HttpStreamerClientSession(BaseHttpClientSession):
 
 
 @contextlib.contextmanager
-def _http_reading_handle_errors() -> Generator[None, None, None]:
+def _http_reading_handle_errors() -> Generator[None]:
     try:
         yield
     except Exception as ex:  # Тут бывают и ассерты, и KeyError, и прочая херня
@@ -166,7 +166,7 @@ class HttpStreamerClient(BaseHttpClient, BaseStreamerClient):
         return StreamerFormats.JPEG
 
     @contextlib.asynccontextmanager
-    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]], None]:
+    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]]]:
         with _http_reading_handle_errors():
             async with self._make_http_session() as session:
                 async with session.get(
@@ -222,7 +222,7 @@ class HttpStreamerClient(BaseHttpClient, BaseStreamerClient):
 
 # =====
 @contextlib.contextmanager
-def _memsink_reading_handle_errors() -> Generator[None, None, None]:
+def _memsink_reading_handle_errors() -> Generator[None]:
     try:
         yield
     except StreamerPermError:
@@ -255,7 +255,7 @@ class MemsinkStreamerClient(BaseStreamerClient):
         return self.__fmt
 
     @contextlib.asynccontextmanager
-    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]], None]:
+    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]]]:
         with _memsink_reading_handle_errors():
             with ustreamer.Memsink(**self.__kwargs) as sink:
                 async def read_frame(key_required: bool) -> dict:

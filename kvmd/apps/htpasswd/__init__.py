@@ -50,7 +50,7 @@ def _get_htpasswd_path(config: Section) -> str:
 
 
 @contextlib.contextmanager
-def _get_htpasswd_for_write(config: Section) -> Generator[KvmdHtpasswdFile, None, None]:
+def _get_htpasswd_for_write(config: Section) -> Generator[KvmdHtpasswdFile]:
     path = _get_htpasswd_path(config)
     with tools.atomic_file_edit(path) as tmp_path:
         htpasswd = KvmdHtpasswdFile(tmp_path)

@@ -162,7 +162,7 @@ class KvmdClientWs:
         self.__ws = ws
         self.__communicated = False
 
-    async def communicate(self) -> AsyncGenerator[tuple[str, dict], None]:  # pylint: disable=too-many-branches
+    async def communicate(self) -> AsyncGenerator[tuple[str, dict]]:  # pylint: disable=too-many-branches
         assert not self.__communicated
         self.__communicated = True
         try:
@@ -223,7 +223,7 @@ class KvmdClientSession(BaseHttpClientSession):
         self.switch = _SwitchApiPart(self._ensure_http_session)
 
     @contextlib.asynccontextmanager
-    async def ws(self, stream: bool=True) -> AsyncGenerator[KvmdClientWs, None]:
+    async def ws(self, stream: bool=True) -> AsyncGenerator[KvmdClientWs]:
         session = self._ensure_http_session()
         async with session.ws_connect("/ws", params={"stream": int(stream)}) as ws:
             yield KvmdClientWs(ws)

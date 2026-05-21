@@ -178,7 +178,7 @@ class Storage:
         self.__lock = asyncio.Lock()
 
     @contextlib.asynccontextmanager
-    async def readable(self) -> AsyncGenerator[StorageContext, None]:
+    async def readable(self) -> AsyncGenerator[StorageContext]:
         async with self.__lock:
             if self.__pst is None:
                 yield StorageContext("", False)
@@ -187,7 +187,7 @@ class Storage:
                 yield StorageContext(path, False)
 
     @contextlib.asynccontextmanager
-    async def writable(self) -> AsyncGenerator[StorageContext, None]:
+    async def writable(self) -> AsyncGenerator[StorageContext]:
         async with self.__lock:
             if self.__pst is None:
                 yield StorageContext("", True)

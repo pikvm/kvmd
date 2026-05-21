@@ -22,6 +22,8 @@
 
 import types
 
+from typing import Self
+
 import dbus_next
 import dbus_next.aio
 import dbus_next.aio.proxy_object
@@ -70,7 +72,7 @@ class SystemdUnitInfo:
         systemd = self.__bus.get_proxy_object("org.freedesktop.systemd1", "/org/freedesktop/systemd1", self.__intr)
         self.__manager = systemd.get_interface("org.freedesktop.systemd1.Manager")
 
-    async def __aenter__(self) -> "SystemdUnitInfo":
+    async def __aenter__(self) -> Self:
         await self.open()
         return self
 

@@ -60,7 +60,7 @@ def _ch_to_keysym(ch: str) -> int:
 def text_to_evdev_keys(  # pylint: disable=too-many-branches
     text: str,
     symmap: dict[int, dict[int, int]],
-) -> Generator[tuple[int, bool], None, None]:
+) -> Generator[tuple[int, bool]]:
 
     shift = False
     altgr = False

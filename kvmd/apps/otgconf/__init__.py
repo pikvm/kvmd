@@ -76,7 +76,7 @@ class _GadgetControl:
         self.__init_delay = init_delay
 
     @contextlib.contextmanager
-    def __udc_stopped(self) -> Generator[None, None, None]:
+    def __udc_stopped(self) -> Generator[None]:
         udc = usb.find_udc(self.__udc)
         udc_path = usb.get_gadget_path(usb.G_UDC)
         with open(udc_path) as file:
@@ -107,7 +107,7 @@ class _GadgetControl:
                 except (FileNotFoundError, FileExistsError):
                     pass
 
-    def __read_metas(self) -> Generator[_Function, None, None]:
+    def __read_metas(self) -> Generator[_Function]:
         for name in sorted(os.listdir(self.__meta_path)):
             with open(os.path.join(self.__meta_path, name)) as file:
                 meta = json.loads(file.read())

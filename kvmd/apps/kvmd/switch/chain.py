@@ -276,7 +276,7 @@ class Chain:  # pylint: disable=too-many-instance-attributes
 
     # =====
 
-    async def poll_events(self) -> AsyncGenerator[BaseEvent, None]:
+    async def poll_events(self) -> AsyncGenerator[BaseEvent]:
         proc = aiomulti.AioMpProcess("switch", self.__subprocess)
         proc.start()
         try:

@@ -163,7 +163,7 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
     async def trigger_state(self) -> None:
         self.__notifier.notify(self.__ST_FULL)
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         # ==== Granularity table ====
         #   - features -- Full
         #   - limits   -- Partial
