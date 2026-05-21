@@ -31,9 +31,13 @@ from . import env
 @dataclasses.dataclass(frozen=True)
 class Partition:
     mount_path: str
-    root_path: str
-    user: str
-    group: str
+    root_path:  str
+    user:       str
+    group:      str
+
+    def __post_init__(self) -> None:
+        assert self.mount_path.startswith("/")
+        assert self.root_path.startswith("/")
 
 
 # =====
@@ -58,17 +62,28 @@ def _find_partitions(part_type: str, single: bool) -> list[Partition]:
     with open(f"{env.ETC_PREFIX}/etc/fstab") as file:
         for line in file.read().split("\n"):
             line = line.strip()
-            if line and not line.startswith("#"):
-                fields = line.split()
-                if len(fields) == 6:
-                    options = dict(re.findall(r"X-kvmd\.%s-(root|user|group)(?:=([^,]+))?" % (part_type), fields[3]))
-                    if options:
-                        parts.append(Partition(
-                            mount_path=os.path.normpath(fields[1]),
-                            root_path=os.path.normpath(options.get("root", "") or fields[1]),
-                            user=options.get("user", ""),
-                            group=options.get("group", ""),
-                        ))
-                        if single:
-                            break
+            if not line or line.startswith("#"):
+                continue
+
+            fields = line.split()
+            if len(fields) != 6:
+                continue
+
+            options = dict(re.findall(r"X-kvmd\.%s-(root|user|group)(?:=([^,]+))?" % (part_type), fields[3]))
+            if not options:
+                continue
+
+            mount_path = os.path.normpath(fields[1].strip())
+            root_path = os.path.normpath((options.get("root", "") or fields[1]).strip())
+            if not (mount_path.startswith("/") and root_path.startswith("/")):
+                continue
+
+            parts.append(Partition(
+                mount_path=mount_path,
+                root_path=root_path,
+                user=options.get("user", "").strip(),
+                group=options.get("group", "").strip(),
+            ))
+            if single:
+                break
     return parts
