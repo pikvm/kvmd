@@ -25,6 +25,7 @@ import re
 import dataclasses
 
 from . import env
+from . import tools
 
 
 # =====
@@ -36,8 +37,8 @@ class Partition:
     group:      str
 
     def __post_init__(self) -> None:
-        assert self.mount_path.startswith("/")
-        assert self.root_path.startswith("/")
+        tools.check_abs(self.mount_path)
+        tools.check_abs(self.root_path)
 
 
 # =====
@@ -75,7 +76,10 @@ def _find_partitions(part_type: str, single: bool) -> list[Partition]:
 
             mount_path = os.path.normpath(fields[1].strip())
             root_path = os.path.normpath((options.get("root", "") or fields[1]).strip())
-            if not (mount_path.startswith("/") and root_path.startswith("/")):
+            try:
+                tools.check_abs(mount_path)
+                tools.check_abs(root_path)
+            except ValueError:
                 continue
 
             parts.append(Partition(

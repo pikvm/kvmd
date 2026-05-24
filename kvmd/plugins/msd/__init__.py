@@ -87,6 +87,11 @@ class MsdImageExistsError(MsdOperationError):
         super().__init__("This image is already exists")
 
 
+class MsdImageStaticError(MsdOperationError):
+    def __init__(self) -> None:
+        super().__init__("This image can't be removed")
+
+
 # =====
 class BaseMsdReader:
     def get_state(self) -> dict:

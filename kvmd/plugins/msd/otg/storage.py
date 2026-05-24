@@ -22,17 +22,23 @@
 
 import os
 import asyncio
-import operator
 import dataclasses
 
-from typing import Generator
+from typing import AsyncGenerator
 
 import aiofiles
 import aiofiles.os
 
+from .... import tools
+from .... import fstab
 from .... import aiohelpers
 
 from .. import MsdError
+from .. import MsdOfflineError
+from .. import MsdUnknownImageError
+from .. import MsdImageExistsError
+
+from . import fs
 
 
 # =====
@@ -40,7 +46,8 @@ from .. import MsdError
 class _ImageDc:
     name:       str
     path:       str
-    in_storage: bool  = dataclasses.field(init=False, compare=False)
+    in_storage: bool  = dataclasses.field(compare=False)
+    # For _reload():
     complete:   bool  = dataclasses.field(init=False, compare=False)
     removable:  bool  = dataclasses.field(init=False, compare=False)
     size:       int   = dataclasses.field(init=False, compare=False)
@@ -48,16 +55,19 @@ class _ImageDc:
 
 
 class Image(_ImageDc):
-    def __init__(self, name: str, path: str, storage: ("Storage" | None)) -> None:
-        super().__init__(name, path)
-        self.__storage = storage
+    def __init__(self, name: str, path: str, in_storage: bool, adopted: bool) -> None:
+        tools.check_abs(path)
+        path = os.path.normpath(path)
+        if not in_storage:
+            assert not adopted
+
+        super().__init__(name, path, in_storage)
+
+        self.__adopted = adopted
         (self.__dir_path, file_name) = os.path.split(path)
         self.__incomplete_path = os.path.join(self.__dir_path, f".__{file_name}.incomplete")
-        self.__adopted = False
 
-    async def _reload(self) -> None:  # Only for Storage() and set_complete()
-        # adopted используется в последующих проверках
-        self.__adopted = await asyncio.to_thread(self.__is_adopted)
+    async def _reload(self) -> None:
         complete = await self.__is_complete()
         removable = await self.__is_removable()
         (size, mod_ts) = await self.__get_stat()
@@ -66,27 +76,17 @@ class Image(_ImageDc):
         object.__setattr__(self, "size", size)
         object.__setattr__(self, "mod_ts", mod_ts)
 
-    def __is_adopted(self) -> bool:
-        # True, если образ находится вне хранилища
-        # или в другой точке монтирования под ним
-        if self.__storage is None:
-            return True
-        path = self.path
-        while not os.path.ismount(path):
-            path = os.path.dirname(path)
-        return (self.__storage._get_root_path() != path)  # pylint: disable=protected-access
-
     async def __is_complete(self) -> bool:
-        if self.__storage:
-            return (not (await aiofiles.os.path.exists(self.__incomplete_path)))
-        return True
+        if not self.in_storage:
+            return True
+        return (not (await aiofiles.os.path.exists(self.__incomplete_path)))
 
     async def __is_removable(self) -> bool:
-        if not self.__storage:
+        if not self.in_storage:
             return False
         if not self.__adopted:
             return True
-        return (await aiofiles.os.access(self.__dir_path, os.W_OK))  # type: ignore
+        return (await aiofiles.os.access(self.__dir_path, os.W_OK))
 
     async def __get_stat(self) -> tuple[int, float]:
         try:
@@ -97,25 +97,16 @@ class Image(_ImageDc):
 
     # =====
 
-    @property
-    def in_storage(self) -> bool:
-        return bool(self.__storage)
-
     async def exists(self) -> bool:
         return (await aiofiles.os.path.exists(self.path))
 
-    async def remount_rw(self, rw: bool, fatal: bool=True) -> None:
-        assert self.__storage
-        if not self.__adopted:
-            await self.__storage.remount_rw(rw, fatal)
-
-    async def remove(self, fatal: bool) -> None:
-        assert self.__storage
+    async def _remove(self, fatal: bool) -> None:
+        assert self.in_storage
+        assert self.removable
         removed = False
         try:
             await aiofiles.os.remove(self.path)
             removed = True
-            self.__storage.images.pop(self.name, None)
         except FileNotFoundError:
             pass
         except Exception:
@@ -127,7 +118,7 @@ class Image(_ImageDc):
                 await self.set_complete(True)
 
     async def set_complete(self, flag: bool) -> None:
-        assert self.__storage
+        assert self.in_storage
         if flag:
             try:
                 await aiofiles.os.remove(self.__incomplete_path)
@@ -139,10 +130,17 @@ class Image(_ImageDc):
         await self._reload()
 
 
+async def _make_image(name: str, path: str, in_storage: bool, adopted: bool) -> Image:
+    image = Image(name, path, in_storage, adopted)
+    await image._reload()  # pylint: disable=protected-access
+    return image
+
+
 # =====
 @dataclasses.dataclass(frozen=True)
 class _PartDc:
     name:     str
+    # For _reload():
     size:     int  = dataclasses.field(init=False, compare=False)
     free:     int  = dataclasses.field(init=False, compare=False)
     writable: bool = dataclasses.field(init=False, compare=False)
@@ -150,133 +148,175 @@ class _PartDc:
 
 class _Part(_PartDc):
     def __init__(self, name: str, path: str) -> None:
+        assert not name.startswith("/")
+        assert not name.endswith("/")
+        tools.check_abs(path)
+        path = os.path.normpath(path)
+
         super().__init__(name)
+
         self.__path = path
 
     async def _reload(self) -> None:  # Only for Storage()
-        st = await asyncio.to_thread(os.statvfs, self.__path)
+        st = await aiofiles.os.statvfs(self.__path)
         if self.name == "":
-            writable = True
+            writable = True  # Специальный случай для корневого раздела хранилища
         else:
-            writable = await aiofiles.os.access(self.__path, os.W_OK)  # type: ignore
+            writable = (await aiofiles.os.access(self.__path, os.W_OK))
         object.__setattr__(self, "size", st.f_blocks * st.f_frsize)
         object.__setattr__(self, "free", st.f_bavail * st.f_frsize)
         object.__setattr__(self, "writable", writable)
 
 
+async def _make_part(name: str, path: str) -> _Part:
+    part = _Part(name, path)
+    await part._reload()  # pylint: disable=protected-access
+    return part
+
+
 # =====
-@dataclasses.dataclass(frozen=True, eq=False)
-class _StorageDc:
-    images: dict[str, Image] = dataclasses.field(init=False)
-    parts:  dict[str, _Part] = dataclasses.field(init=False)
+def _check_image_name(name: str) -> None:
+    if (
+        not name
+        or name.startswith((".", "/"))
+        or name.endswith("/")
+        or ".." in name.split("/")
+    ):
+        raise ValueError(f"Invalid relative image name: {name}")
 
 
-class Storage(_StorageDc):
-    def __init__(self, path: str, remount_cmd: list[str]) -> None:
-        super().__init__()
-        self.__path = path
+class Storage:
+    def __init__(self, remount_cmd: list[str]) -> None:
         self.__remount_cmd = remount_cmd
 
-        self.__watchable_paths: (list[str] | None) = None
+        self.__root_path: (str | None) = None
         self.__images: (dict[str, Image] | None) = None
         self.__parts: (dict[str, _Part] | None) = None
 
-    @property
-    def images(self) -> dict[str, Image]:
-        assert self.__images is not None
+    def __get_root_path(self) -> str:  # Only for Image()
+        if self.__root_path is None:
+            raise MsdOfflineError()
+        return self.__root_path
+
+    def __get_images(self) -> dict[str, Image]:
+        if self.__images is None:
+            raise MsdOfflineError()
         return dict(self.__images)
 
-    @property
-    def parts(self) -> dict[str, _Part]:
-        assert self.__parts is not None
+    def __get_parts(self) -> dict[str, _Part]:
+        if self.__parts is None:
+            raise MsdOfflineError()
         return dict(self.__parts)
 
-    async def reload(self) -> None:
-        self.__watchable_paths = None
-        self.__images = {}
+    async def is_probably_enabled(self) -> bool:
+        try:
+            root_path = fstab.find_msd().root_path
+        except Exception:
+            return False
+        return (await aiofiles.os.access(root_path, (os.R_OK | os.X_OK)))
 
-        watchable_paths: list[str] = []
+    def get_state(self) -> dict:
+        images: dict = self.__get_images()
+        for name in list(images):
+            images[name] = dataclasses.asdict(images[name])
+            del images[name]["name"]
+            del images[name]["path"]
+            del images[name]["in_storage"]
+        parts: dict = self.__get_parts()
+        for name in list(parts):
+            parts[name] = dataclasses.asdict(parts[name])
+            del parts[name]["name"]
+        return {"images": images, "parts": parts}
+
+    async def reload(self) -> AsyncGenerator[str]:
+        self.__root_path = None
+        self.__images = None
+        self.__parts = None
+
+        root_path = fstab.find_msd().root_path
         images: dict[str, Image] = {}
         parts: dict[str, _Part] = {}
-        for (root_path, is_part, files) in (await asyncio.to_thread(self.__walk)):
-            watchable_paths.append(root_path)
-            for path in files:
-                name = self.__make_relative_name(path)
-                images[name] = await self.make_image_by_name(name)
-            if is_part:
-                name = self.__make_relative_name(root_path, dot_to_empty=True)
-                part = _Part(name, root_path)
-                await part._reload()  # pylint: disable=protected-access
-                parts[name] = part
-        assert "" in parts, parts
 
-        self.__watchable_paths = watchable_paths
+        async for (dir_path, files) in fs.walk_storage(root_path):
+            if files is None:
+                yield dir_path
+                continue
+
+            mnt_path = await fs.find_closest_mountpoint(dir_path)
+            for file_path in files:
+                name = os.path.relpath(file_path, root_path)
+                _check_image_name(name)
+                images[name] = await _make_image(name, file_path, True, (mnt_path != root_path))
+
+            if dir_path != root_path and os.path.ismount(dir_path):
+                name = os.path.relpath(dir_path, root_path)
+                _check_image_name(name)
+                parts[name] = await _make_part(name, dir_path)
+
+        parts[""] = await _make_part("", root_path)
+
+        self.__root_path = root_path
         self.__images = images
         self.__parts = parts
 
-    async def reload_parts_info(self) -> None:
-        await asyncio.gather(*[part._reload() for part in self.parts.values()])  # pylint: disable=protected-access
-
-    def get_watchable_paths(self) -> list[str]:
-        assert self.__watchable_paths is not None
-        return list(self.__watchable_paths)
-
-    def __walk(self) -> list[tuple[str, bool, list[str]]]:
-        return list(self.__inner_walk(self.__path))
-
-    def __inner_walk(self, root_path: str) -> Generator[tuple[str, bool, list[str]]]:
-        files: list[str] = []
-        with os.scandir(root_path) as dir_iter:
-            for item in sorted(dir_iter, key=operator.attrgetter("name")):
-                if item.name.startswith(".") or item.name == "lost+found":
-                    continue
-                try:
-                    if item.is_dir(follow_symlinks=False):
-                        item.stat()  # Проверяем, не сдохла ли смонтированная NFS
-                        yield from self.__inner_walk(item.path)
-                    elif item.is_file(follow_symlinks=False):
-                        files.append(item.path)
-                except Exception:
-                    pass
-        yield (root_path, (root_path == self.__path or os.path.ismount(root_path)), files)
-
-    def __make_relative_name(self, path: str, dot_to_empty: bool=False) -> str:
-        name = os.path.relpath(path, self.__path)
-        assert name
-        if dot_to_empty and name == ".":
-            name = ""
-        assert not name.startswith(".")
-        return name
+    async def reload_parts(self) -> None:
+        await asyncio.gather(*[
+            part._reload()  # pylint: disable=protected-access
+            for part in self.__get_parts().values()
+        ])
 
     # =====
 
-    async def make_image_by_name(self, name: str) -> Image:
-        assert name
-        path = os.path.join(self.__path, name)
-        return (await self.__make_image(name, path, True))
+    async def remove_image(self, image: Image, fatal: bool) -> None:
+        assert image.in_storage
+        assert image.removable
+        if image.name in self.__get_images():
+            await image._remove(fatal)  # pylint: disable=protected-access
 
-    async def make_image_by_path(self, path: str) -> Image:
-        assert path
-        in_storage = (os.path.commonpath([self.__path, path]) == self.__path)
-        if in_storage:
-            name = self.__make_relative_name(path)
-        else:
-            name = os.path.basename(path)
-        return (await self.__make_image(name, path, in_storage))
-
-    async def __make_image(self, name: str, path: str, in_storage: bool) -> Image:
-        assert name
-        assert path
-        image = Image(name, path, (self if in_storage else None))
-        await image._reload()  # pylint: disable=protected-access
+    async def make_image(self, name: str) -> Image:
+        _check_image_name(name)
+        root_path = self.__get_root_path()
+        path = os.path.join(root_path, name)
+        mnt_path = await fs.find_closest_mountpoint(path)
+        image = await _make_image(name, path, True, (mnt_path != root_path))
+        if image.name in self.__get_images() or (await image.exists()):
+            raise MsdImageExistsError()
         return image
 
-    def _get_root_path(self) -> str:  # Only for Image()
-        return self.__path
+    async def get_image_by_name(self, name: str) -> Image:
+        _check_image_name(name)
+        image = self.__get_images().get(name)
+        if image is None or not (await image.exists()):
+            raise MsdUnknownImageError()
+        assert image.in_storage
+        return image
+
+    async def get_image_by_path(self, path: str) -> Image:
+        tools.check_abs(path)
+        path = os.path.normpath(path)
+        for image in self.__get_images().values():
+            if image.path == path:
+                return image
+        name = os.path.basename(path)
+        return (await _make_image(name, path, False, False))
 
     # =====
 
-    async def remount_rw(self, rw: bool, fatal: bool=True) -> None:
+    async def remount_rw(self, image: Image) -> None:
+        assert image.in_storage
+        root_path = self.__get_root_path()
+        mnt_path = await fs.find_closest_mountpoint(image.path)
+        if mnt_path == root_path:
+            await self.__remount(rw=True, fatal=True)
+
+    async def remount_ro(self) -> None:
+        await self.__remount(rw=False, fatal=False)
+
+    async def remount_probe(self) -> None:
+        await self.__remount(rw=True, fatal=True)
+        await self.__remount(rw=False, fatal=True)
+
+    async def __remount(self, rw: bool, fatal: bool) -> None:
         if not (await aiohelpers.remount("MSD", self.__remount_cmd, rw)):
             if fatal:
                 raise MsdError("Can't execute remount helper")

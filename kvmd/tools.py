@@ -32,6 +32,17 @@ from typing import Any
 
 
 # =====
+def check_abs(path: str) -> None:
+    if not path:
+        raise ValueError("The path is empty")
+    if not path.startswith("/"):
+        raise ValueError(f"The path is not an absolute: {path}")
+    # if ".." in path.split("/"):
+    if "/../" in path or path.endswith("/.."):  # It's a bit faster
+        raise ValueError(f"Tha path contains forbidden '..' component: {path}")
+
+
+# =====
 def remap(value: int, in_min: int, in_max: int, out_min: int, out_max: int) -> int:
     result = int((value - in_min) * (out_max - out_min) // ((in_max - in_min) or 1) + out_min)
     return min(max(result, out_min), out_max)

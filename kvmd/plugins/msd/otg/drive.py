@@ -47,7 +47,10 @@ class Drive:
         return self.__name
 
     def is_enabled(self) -> bool:
-        return os.path.exists(self.__profile_func_path)
+        return (
+            os.path.exists(self.__profile_func_path)
+            and os.path.exists(self.__lun_path)
+        )
 
     def get_watchable_paths(self) -> list[str]:
         return [self.__lun_path, self.__profile_path]
