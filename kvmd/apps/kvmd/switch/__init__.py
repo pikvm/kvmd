@@ -25,10 +25,15 @@ import asyncio
 
 from typing import AsyncGenerator
 
-from .lib import OperationError
-from .lib import get_logger
-from .lib import aiotools
-from .lib import Inotify
+from ....logging import get_logger
+
+from ....errors import OperationError
+
+from ....inotify import Inotify
+
+from ....clients.pst import PstClient
+
+from .... import aiotools
 
 from .types import Edid
 from .types import Edids
@@ -85,15 +90,15 @@ class Switch:  # pylint: disable=too-many-public-methods
         self,
         device_path: str,
         default_edid_path: str,
-        pst_unix_path: str,
         ignore_hpd_on_top: bool,
+        pst: PstClient,
     ) -> None:
 
         self.__default_edid_path = default_edid_path
 
         self.__chain = Chain(device_path, ignore_hpd_on_top)
         self.__cache = StateCache()
-        self.__storage = Storage(pst_unix_path)
+        self.__storage = Storage(pst)
 
         self.__lock = asyncio.Lock()
 

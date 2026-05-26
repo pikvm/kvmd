@@ -55,6 +55,7 @@ from ._scheme import patch_raw
 
 if typing.TYPE_CHECKING:
     from ..clients.kvmd import KvmdClient
+    from ..clients.pst import PstClient
     from ..clients.streamer import HttpStreamerClient
 
 
@@ -80,6 +81,16 @@ class InitAttrs:
         return KvmdClient(
             unix_path=self.config.kvmd.server.unix,
             timeout=self.config.clients.kvmd.timeout,
+            user_agent=user_agent,
+        )
+
+    def make_pst_client(self, subdir: str, user_agent: str) -> "PstClient":
+        from ..clients.pst import PstClient  # pylint: disable=import-outside-toplevel
+
+        return PstClient(
+            subdir=subdir,
+            unix_path=self.config.pst.server.unix,
+            timeout=self.config.clients.pst.timeout,
             user_agent=user_agent,
         )
 

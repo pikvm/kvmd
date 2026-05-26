@@ -39,7 +39,7 @@ from .server import KvmdServer
 
 # =====
 def main() -> None:
-    config = init(
+    ia = init(
         prog="kvmd",
         description="The main PiKVM daemon",
         check_run=True,
@@ -48,10 +48,10 @@ def main() -> None:
         load_atx=True,
         load_msd=True,
         load_gpio=True,
-    ).config
+    )
 
-    global_config = config
-    config = config.kvmd
+    global_config = ia.config
+    config = ia.config.kvmd
 
     hid = get_hid_class(config.hid.type)(config.hid)
 
@@ -83,9 +83,12 @@ def main() -> None:
         log_reader=(LogReader() if config.log_reader.enabled else None),
         ugpio=UserGpio(config.gpio),
         ocr=Ocr(**config.ocr._unpack()),
+
         switch=Switch(
-            pst_unix_path=global_config.pst.server.unix,
-            **config.switch._unpack(),
+            device_path=config.switch.device,
+            default_edid_path=config.switch.default_edid,
+            ignore_hpd_on_top=config.switch.ignore_hpd_on_top,
+            pst=ia.make_pst_client("__switch__", "KVMD"),
         ),
 
         hid=hid,

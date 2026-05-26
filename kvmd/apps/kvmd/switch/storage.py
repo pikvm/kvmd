@@ -27,15 +27,11 @@ import contextlib
 
 from typing import AsyncGenerator
 
-try:
-    from ....clients.pst import PstClient
-except ImportError:
-    PstClient = None  # type: ignore
+from ....logging import get_logger
 
-# from .lib import get_logger
-from .lib import aiotools
-from .lib import htclient
-from .lib import get_logger
+from ....clients.pst import PstClient
+
+from .... import aiotools
 
 from .types import Edid
 from .types import Edids
@@ -102,8 +98,6 @@ class StorageContext:
         await self.__write_json_keyvals(self.__F_ATX_CR_DELAYS, delays.kvs)
 
     async def __write_json_keyvals(self, name: str, kvs: dict) -> None:
-        if len(self.__path) == 0:
-            return
         assert self.__rw
         kvs = {str(key): value for (key, value) in kvs.items()}
         if (await self.__read_json_keyvals(name)) == kvs:
@@ -150,8 +144,6 @@ class StorageContext:
         return (await self.__read_json_keyvals(name, int_keys=True))
 
     async def __read_json_keyvals(self, name: str, int_keys: bool=False) -> dict:
-        if len(self.__path) == 0:
-            return {}
         path = os.path.join(self.__path, name)
         try:
             kvs: dict = json.loads(await aiotools.read_file(path))
@@ -163,34 +155,18 @@ class StorageContext:
 
 
 class Storage:
-    __SUBDIR = "__switch__"
-    __TIMEOUT = 5.0
-
-    def __init__(self, unix_path: str) -> None:
-        self.__pst: (PstClient | None) = None
-        if len(unix_path) > 0 and PstClient is not None:
-            self.__pst = PstClient(
-                subdir=self.__SUBDIR,
-                unix_path=unix_path,
-                timeout=self.__TIMEOUT,
-                user_agent=htclient.make_user_agent("KVMD"),
-            )
+    def __init__(self, pst: PstClient) -> None:
+        self.__pst = pst
         self.__lock = asyncio.Lock()
 
     @contextlib.asynccontextmanager
     async def readable(self) -> AsyncGenerator[StorageContext]:
         async with self.__lock:
-            if self.__pst is None:
-                yield StorageContext("", False)
-            else:
-                path = await self.__pst.get_path()
-                yield StorageContext(path, False)
+            path = await self.__pst.get_path()
+            yield StorageContext(path, False)
 
     @contextlib.asynccontextmanager
     async def writable(self) -> AsyncGenerator[StorageContext]:
         async with self.__lock:
-            if self.__pst is None:
-                yield StorageContext("", True)
-            else:
-                async with self.__pst.writable() as path:
-                    yield StorageContext(path, True)
+            async with self.__pst.writable() as path:
+                yield StorageContext(path, True)

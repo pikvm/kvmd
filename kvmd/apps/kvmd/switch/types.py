@@ -28,9 +28,10 @@ import dataclasses
 from typing import TypeVar
 from typing import Generic
 
-from .lib import bitbang
-from .lib import ParsedEdidNoBlockError
-from .lib import ParsedEdid
+from ....edid import EdidNoBlockError as ParsedEdidNoBlockError
+from ....edid import Edid as ParsedEdid
+
+from .... import bitbang
 
 
 # =====

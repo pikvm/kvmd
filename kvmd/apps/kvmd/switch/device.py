@@ -28,7 +28,7 @@ from typing import Self
 
 import serial
 
-from .lib import tools
+from .... import tools
 
 from .types import Edid
 from .types import Colors

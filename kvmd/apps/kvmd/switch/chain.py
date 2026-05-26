@@ -27,9 +27,10 @@ import time
 
 from typing import AsyncGenerator
 
-from .lib import get_logger
-from .lib import tools
-from .lib import aiomulti
+from ....logging import get_logger
+
+from .... import tools
+from .... import aiomulti
 
 from .types import Edids
 from .types import Dummies
