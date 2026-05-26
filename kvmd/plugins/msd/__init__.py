@@ -27,6 +27,7 @@ import time
 
 from typing import Self
 from typing import AsyncGenerator
+from typing import Any
 
 import aiofiles
 import aiofiles.os
@@ -36,6 +37,10 @@ from ...logging import get_logger
 
 from ...errors import OperationError
 from ...errors import IsBusyError
+
+from ...yamlconf import Section
+
+from ...clients.nbd import NbdClient
 
 from ... import aiotools
 
@@ -121,6 +126,10 @@ class BaseMsdWriter:
 
 
 class BaseMsd(BasePlugin):
+    def __init__(self, c: Section, nbd: NbdClient) -> None:
+        super().__init__(c)
+        _ = nbd
+
     async def get_state(self) -> dict:
         raise NotImplementedError()
 
@@ -157,6 +166,7 @@ class BaseMsd(BasePlugin):
         name: (str | None)=None,
         cdrom: (bool | None)=None,
         rw: (bool | None)=None,
+        remote_params: (dict[str, Any] | None)=None,
     ) -> None:
 
         raise NotImplementedError()

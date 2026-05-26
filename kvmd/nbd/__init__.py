@@ -85,7 +85,7 @@ class NbdController:
             for (scheme, cls) in self.__REMOTES.items()
         }
 
-    async def bind(self, url: str, **kwargs: Any) -> None:
+    async def bind(self, url: str, **params: Any) -> None:
         async with self.__lock:
             if self.__proc:
                 raise NbdBoundError("NBD is already bound")
@@ -96,7 +96,7 @@ class NbdController:
                 raise ValidatorError("Unsupported remote URL scheme")
 
             try:
-                config = make_config({"url": url, **kwargs}, {}, cls.get_options())
+                config = make_config({"url": url, **params}, {}, cls.get_options())
             except Exception as ex:
                 raise ValidatorError(f"{cls.__name__}: {tools.efmt(ex)}")
 

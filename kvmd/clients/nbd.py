@@ -65,9 +65,9 @@ class NbdClient:
                 assert isinstance(remotes, dict)
                 return remotes
 
-    async def bind(self, url: str, **kwargs: Any) -> None:
+    async def bind(self, url: str, **params: Any) -> None:
         async with self.__make_session() as session:
-            async with session.post("/bind", params={"url": url, **kwargs}) as resp:
+            async with session.post("/bind", params={"url": url, **params}) as resp:
                 await htclient.raise_known_not_200(resp, NbdBoundError, NbdProbeError, ValidatorError)
 
     async def unbind(self) -> None:

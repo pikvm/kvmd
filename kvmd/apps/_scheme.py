@@ -267,6 +267,9 @@ def make_config_scheme() -> dict:
             "kvmd": {
                 "timeout": Option(5.0, type=valid_float_f01),
             },
+            "nbd": {
+                "timeout": Option(5.0, type=valid_float_f01),
+            },
             "pst": {
                 "timeout": Option(5.0, type=valid_float_f01),
             },

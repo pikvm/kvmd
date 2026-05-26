@@ -23,8 +23,11 @@
 import contextlib
 
 from typing import AsyncGenerator
+from typing import Any
 
 from ...yamlconf import Section
+
+from ...clients.nbd import NbdClient
 
 from ... import aiotools
 
@@ -42,8 +45,8 @@ class MsdDisabledError(MsdOperationError):
 
 # =====
 class Plugin(BaseMsd):
-    def __init__(self, c: Section) -> None:
-        super().__init__(c)
+    def __init__(self, c: Section, nbd: NbdClient) -> None:
+        super().__init__(c, nbd)
         self.__notifier = aiotools.AioNotifier()
 
     async def get_state(self) -> dict:
@@ -73,6 +76,7 @@ class Plugin(BaseMsd):
         name: (str | None)=None,
         cdrom: (bool | None)=None,
         rw: (bool | None)=None,
+        remote_params: (dict[str, Any] | None)=None,
     ) -> None:
 
         raise MsdDisabledError()

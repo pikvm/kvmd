@@ -93,7 +93,7 @@ def main() -> None:
 
         hid=hid,
         atx=get_atx_class(config.atx.type)(config.atx),
-        msd=get_msd_class(config.msd.type)(config.msd),
+        msd=get_msd_class(config.msd.type)(config.msd, ia.make_nbd_client("KVMD")),
         streamer=streamer,
 
         snapshoter=Snapshoter(

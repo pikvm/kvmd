@@ -55,6 +55,7 @@ from ._scheme import patch_raw
 
 if typing.TYPE_CHECKING:
     from ..clients.kvmd import KvmdClient
+    from ..clients.nbd import NbdClient
     from ..clients.pst import PstClient
     from ..clients.streamer import HttpStreamerClient
 
@@ -81,6 +82,15 @@ class InitAttrs:
         return KvmdClient(
             unix_path=self.config.kvmd.server.unix,
             timeout=self.config.clients.kvmd.timeout,
+            user_agent=user_agent,
+        )
+
+    def make_nbd_client(self, user_agent: str) -> "NbdClient":
+        from ..clients.nbd import NbdClient  # pylint: disable=import-outside-toplevel
+
+        return NbdClient(
+            unix_path=self.config.nbd.server.unix,
+            timeout=self.config.clients.nbd.timeout,
             user_agent=user_agent,
         )
 

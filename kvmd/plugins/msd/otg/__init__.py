@@ -27,6 +27,7 @@ import copy
 
 from typing import Generator
 from typing import AsyncGenerator
+from typing import Any
 
 from ....logging import get_logger
 
@@ -34,6 +35,8 @@ from ....inotify import Inotify
 
 from ....yamlconf import Section
 from ....yamlconf import Option
+
+from ....clients.nbd import NbdClient
 
 from ....validators.basic import valid_number
 from ....validators.os import valid_command
@@ -174,8 +177,8 @@ class _State:
 
 # =====
 class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, c: Section) -> None:
-        super().__init__(c)
+    def __init__(self, c: Section, nbd: NbdClient) -> None:
+        super().__init__(c, nbd)
 
         self.__read_chunk_size = c.read_chunk_size
         self.__write_chunk_size = c.write_chunk_size
@@ -277,6 +280,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         name: (str | None)=None,
         cdrom: (bool | None)=None,
         rw: (bool | None)=None,
+        remote_params: (dict[str, Any] | None)=None,
     ) -> None:
 
         async with self.__state.busy_locked():

@@ -67,16 +67,17 @@ class MsdApi:
 
     @exposed_http("POST", "/msd/set_params")
     async def __set_params_handler(self, req: Request) -> Response:
+        query = dict(req.query)
         params = {
-            key: validator(req.query.get(param))  # type: ignore
+            key: validator(query.pop(param))  # type: ignore
             for (param, key, validator) in [
                 ("image", "name",  valid_msd_image_name.mk(allow_eject=True)),
                 ("cdrom", "cdrom", valid_bool),
                 ("rw",    "rw",    valid_bool),
             ]
-            if req.query.get(param) is not None
+            if query.get(param) is not None
         }
-        await self.__msd.set_params(**params)  # type: ignore
+        await self.__msd.set_params(remote_params=query, **params)  # type: ignore
         return make_json_response()
 
     @exposed_http("POST", "/msd/set_connected")
