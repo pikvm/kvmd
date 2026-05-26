@@ -61,7 +61,7 @@ class YamlInlinedItemsList(list):
 
 
 class _SimpleRepresenter(RoundTripRepresenter):
-    def ignore_aliases(self, data: Any) -> bool:
+    def ignore_aliases(self, data: Any) -> bool:  # noqa vulture-ignore
         return True
 
     def _represent_hex_int(self, value: YamlHexInt) -> ScalarNode:
@@ -78,7 +78,7 @@ class _SimpleRepresenter(RoundTripRepresenter):
         node = self.represent_sequence("tag:yaml.org,2002:seq", seq)
         for child in node.value:
             if isinstance(child, CollectionNode):
-                child.flow_style = True
+                child.flow_style = True  # noqa vulture-ignore
         return node
 
 
@@ -101,7 +101,7 @@ class _ConfigRepresenter(_SimpleRepresenter):
         # They should not have Sections() inside.
         # Avoid potential recursion too.
         self.__handler = _YamlHandler()
-        self.__handler.Representer = _SimpleRepresenter
+        self.__handler.Representer = _SimpleRepresenter  # noqa vulture-ignore
 
     def _represent_section(self, config: Section) -> MappingNode:
         self.__depth += 1
@@ -167,7 +167,7 @@ _ConfigRepresenter.add_representer(Section, _ConfigRepresenter._represent_sectio
 class _YamlHandler(YAML):
     def __init__(self) -> None:
         super().__init__()
-        self.preserve_quotes = True
+        self.preserve_quotes = True  # noqa vulture-ignore
         self.indent(mapping=_INDENT, sequence=_INDENT, offset=_INDENT)
         # ruamel.yaml ignores oOyYnN by default: https://stackoverflow.com/questions/36463531
 
@@ -179,7 +179,7 @@ class _YamlHandler(YAML):
 
 def dump_yaml(data: Any, only_changed: bool=False, colored: bool=False) -> str:
     handler = _YamlHandler()
-    handler.Representer = _ConfigRepresenter
+    handler.Representer = _ConfigRepresenter  # noqa vulture-ignore
     handler.representer.only_changed = only_changed
     text = handler.dump_as_string(data)
     if colored:
@@ -194,7 +194,7 @@ def dump_yaml(data: Any, only_changed: bool=False, colored: bool=False) -> str:
 @contextlib.contextmanager
 def override_yaml_file(path: str, validator: Callable[[str], None]) -> Generator[Any]:
     handler = _YamlHandler()
-    handler.Representer = _ConfigRepresenter
+    handler.Representer = _ConfigRepresenter  # noqa vulture-ignore
     with tools.atomic_file_edit(path) as tmp_path:
         # ruamel.yaml can't keep comments for an empty file
         # but there is a trick: we can create a new CommentedMap()

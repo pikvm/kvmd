@@ -41,7 +41,7 @@ async def _handle_auth(req: aiohttp.web.BaseRequest) -> aiohttp.web.Response:
     return aiohttp.web.Response(text=str(status), status=status)
 
 
-@pytest_asyncio.fixture(name="auth_server_port")
+@pytest_asyncio.fixture(name="auth_server_port")  # noqa vulture-ignore
 async def _auth_server_port_fixture(aiohttp_server) -> AsyncGenerator[int]:  # type: ignore
     auth = aiohttp_basicauth.BasicAuthMiddleware(
         username="server-admin",

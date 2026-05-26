@@ -219,7 +219,7 @@ class Edid:
                 speakers = True
         return (audio and speakers and self.__get_basic_audio())
 
-    def set_audio(self, enabled: bool) -> None:
+    def set_audio(self, enabled: bool) -> None:  # noqa vulture-ignore
         (cbs, dtds) = self.__parse_cea()
         cbs = [cb for cb in cbs if cb.tag not in [_CEA_AUDIO, _CEA_SPEAKERS]]
         if enabled:

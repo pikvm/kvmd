@@ -65,7 +65,7 @@ class StorageContext:
 
     # =====
 
-    async def write_edids(self, edids: Edids) -> None:
+    async def write_edids(self, edids: Edids) -> None:  # noqa vulture-ignore
         await self.__write_json_keyvals(self.__F_EDIDS_ALL, {
             edid_id.lower(): {"name": edid.name, "data": edid.as_text()}
             for (edid_id, edid) in edids.all.items()
@@ -73,10 +73,10 @@ class StorageContext:
         })
         await self.__write_json_keyvals(self.__F_EDIDS_PORT, edids.port)
 
-    async def write_dummies(self, dummies: Dummies) -> None:
+    async def write_dummies(self, dummies: Dummies) -> None:  # noqa vulture-ignore
         await self.__write_json_keyvals(self.__F_DUMMIES, dummies.kvs)
 
-    async def write_colors(self, colors: Colors) -> None:
+    async def write_colors(self, colors: Colors) -> None:  # noqa vulture-ignore
         await self.__write_json_keyvals(self.__F_COLORS, {
             role: {
                 comp: getattr(getattr(colors, role), comp)
@@ -85,16 +85,16 @@ class StorageContext:
             for role in Colors.ROLES
         })
 
-    async def write_port_names(self, port_names: PortNames) -> None:
+    async def write_port_names(self, port_names: PortNames) -> None:  # noqa vulture-ignore
         await self.__write_json_keyvals(self.__F_PORT_NAMES, port_names.kvs)
 
-    async def write_atx_cp_delays(self, delays: AtxClickPowerDelays) -> None:
+    async def write_atx_cp_delays(self, delays: AtxClickPowerDelays) -> None:  # noqa vulture-ignore
         await self.__write_json_keyvals(self.__F_ATX_CP_DELAYS, delays.kvs)
 
-    async def write_atx_cpl_delays(self, delays: AtxClickPowerLongDelays) -> None:
+    async def write_atx_cpl_delays(self, delays: AtxClickPowerLongDelays) -> None:  # noqa vulture-ignore
         await self.__write_json_keyvals(self.__F_ATX_CPL_DELAYS, delays.kvs)
 
-    async def write_atx_cr_delays(self, delays: AtxClickResetDelays) -> None:
+    async def write_atx_cr_delays(self, delays: AtxClickResetDelays) -> None:  # noqa vulture-ignore
         await self.__write_json_keyvals(self.__F_ATX_CR_DELAYS, delays.kvs)
 
     async def __write_json_keyvals(self, name: str, kvs: dict) -> None:
@@ -108,7 +108,7 @@ class StorageContext:
 
     # =====
 
-    async def read_edids(self) -> Edids:
+    async def read_edids(self) -> Edids:  # noqa vulture-ignore
         all_edids = {
             edid_id.lower(): Edid.from_data(edid["name"], edid["data"])
             for (edid_id, edid) in (await self.__read_json_keyvals(self.__F_EDIDS_ALL)).items()
@@ -116,11 +116,11 @@ class StorageContext:
         port_edids = await self.__read_json_keyvals_int(self.__F_EDIDS_PORT)
         return Edids(all_edids, port_edids)
 
-    async def read_dummies(self) -> Dummies:
+    async def read_dummies(self) -> Dummies:  # noqa vulture-ignore
         kvs = await self.__read_json_keyvals_int(self.__F_DUMMIES)
         return Dummies({key: bool(value) for (key, value) in kvs.items()})
 
-    async def read_colors(self) -> Colors:
+    async def read_colors(self) -> Colors:  # noqa vulture-ignore
         raw = await self.__read_json_keyvals(self.__F_COLORS)
         return Colors(**{  # type: ignore
             role: Color(**{comp: raw[role][comp] for comp in Color.COMPONENTS})
@@ -128,16 +128,16 @@ class StorageContext:
             if role in raw
         })
 
-    async def read_port_names(self) -> PortNames:
+    async def read_port_names(self) -> PortNames:  # noqa vulture-ignore
         return PortNames(await self.__read_json_keyvals_int(self.__F_PORT_NAMES))
 
-    async def read_atx_cp_delays(self) -> AtxClickPowerDelays:
+    async def read_atx_cp_delays(self) -> AtxClickPowerDelays:  # noqa vulture-ignore
         return AtxClickPowerDelays(await self.__read_json_keyvals_int(self.__F_ATX_CP_DELAYS))
 
-    async def read_atx_cpl_delays(self) -> AtxClickPowerLongDelays:
+    async def read_atx_cpl_delays(self) -> AtxClickPowerLongDelays:  # noqa vulture-ignore
         return AtxClickPowerLongDelays(await self.__read_json_keyvals_int(self.__F_ATX_CPL_DELAYS))
 
-    async def read_atx_cr_delays(self) -> AtxClickResetDelays:
+    async def read_atx_cr_delays(self) -> AtxClickResetDelays:  # noqa vulture-ignore
         return AtxClickResetDelays(await self.__read_json_keyvals_int(self.__F_ATX_CR_DELAYS))
 
     async def __read_json_keyvals_int(self, name: str) -> dict:

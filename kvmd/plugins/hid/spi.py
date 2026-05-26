@@ -113,8 +113,8 @@ class _SpiPhy(BasePhy):  # pylint: disable=too-many-instance-attributes
         with self.__sw_cs_connected() as switch_cs:  # pylint: disable=contextmanager-generator-missing-cleanup
             with contextlib.closing(spidev.SpiDev(self.__bus, self.__chip)) as spi:
                 spi.mode = 0
-                spi.no_cs = (not self.__hw_cs)
-                spi.max_speed_hz = self.__max_freq
+                spi.no_cs = (not self.__hw_cs)  # noqa vulture-ignore
+                spi.max_speed_hz = self.__max_freq  # noqa vulture-ignore
 
                 def inner_xfer(data: bytes) -> bytes:
                     try:

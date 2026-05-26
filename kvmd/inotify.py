@@ -92,23 +92,23 @@ def _fs_decode(path: bytes) -> str:
 # =====
 class InotifyMask:
     # Userspace events
-    ACCESS:        Final[int] = 0x00000001  # File was accessed
-    ATTRIB:        Final[int] = 0x00000004  # Meta-data changed
+    ACCESS:        Final[int] = 0x00000001  # File was accessed  # noqa vulture-ignore
+    ATTRIB:        Final[int] = 0x00000004  # Meta-data changed  # noqa vulture-ignore
     CLOSE_WRITE:   Final[int] = 0x00000008  # Writable file was closed
-    CLOSE_NOWRITE: Final[int] = 0x00000010  # Unwritable file closed
+    CLOSE_NOWRITE: Final[int] = 0x00000010  # Unwritable file closed  # noqa vulture-ignore
     CREATE:        Final[int] = 0x00000100  # Subfile was created
     DELETE:        Final[int] = 0x00000200  # Subfile was deleted
     DELETE_SELF:   Final[int] = 0x00000400  # Self was deleted
-    MODIFY:        Final[int] = 0x00000002  # File was modified
+    MODIFY:        Final[int] = 0x00000002  # File was modified  # noqa vulture-ignore
     MOVE_SELF:     Final[int] = 0x00000800  # Self was moved
     MOVED_FROM:    Final[int] = 0x00000040  # File was moved from X
     MOVED_TO:      Final[int] = 0x00000080  # File was moved to Y
-    OPEN:          Final[int] = 0x00000020  # File was opened
+    OPEN:          Final[int] = 0x00000020  # File was opened  # noqa vulture-ignore
 
     # Events sent by the kernel to a watch
     IGNORED:    Final[int] = 0x00008000  # File was ignored
     ISDIR:      Final[int] = 0x40000000  # Event occurred against directory
-    Q_OVERFLOW: Final[int] = 0x00004000  # Event queued overflowed
+    Q_OVERFLOW: Final[int] = 0x00004000  # Event queued overflowed  # noqa vulture-ignore
     UNMOUNT:    Final[int] = 0x00002000  # Backing file system was unmounted
 
     # Helper userspace events

@@ -77,10 +77,10 @@ class Header(Packable, Unpackable):
 class Nak(Unpackable):
     reason: int
 
-    INVALID_COMMAND   = 0
-    BUSY              = 1
-    NO_DOWNLINK       = 2
-    DOWNLINK_OVERFLOW = 3
+    INVALID_COMMAND   = 0  # noqa vulture-ignore
+    BUSY              = 1  # noqa vulture-ignore
+    NO_DOWNLINK       = 2  # noqa vulture-ignore
+    DOWNLINK_OVERFLOW = 3  # noqa vulture-ignore
 
     __struct = struct.Struct("<B")
 
@@ -102,9 +102,9 @@ class UnitVersion:
 @dataclasses.dataclass(frozen=True)
 class UnitFlags:
     changing_busy: bool
-    flashing_busy: bool
+    flashing_busy: bool  # noqa vulture-ignore
     has_downlink:  bool
-    has_hpd:       bool
+    has_hpd:       bool  # noqa vulture-ignore
 
 
 @dataclasses.dataclass(frozen=True)

@@ -79,19 +79,19 @@ class StateCache:  # pylint: disable=too-many-instance-attributes,too-many-publi
     def get_edids(self) -> Edids:
         return self.__edids.copy()
 
-    def get_dummies(self) -> Dummies:
+    def get_dummies(self) -> Dummies:  # noqa vulture-ignore
         return self.__dummies.copy()
 
     def get_colors(self) -> Colors:
         return self.__colors
 
-    def get_port_names(self) -> PortNames:
+    def get_port_names(self) -> PortNames:  # noqa vulture-ignore
         return self.__port_names.copy()
 
-    def get_atx_cp_delays(self) -> AtxClickPowerDelays:
+    def get_atx_cp_delays(self) -> AtxClickPowerDelays:  # noqa vulture-ignore
         return self.__atx_cp_delays.copy()
 
-    def get_atx_cpl_delays(self) -> AtxClickPowerLongDelays:
+    def get_atx_cpl_delays(self) -> AtxClickPowerLongDelays:  # noqa vulture-ignore
         return self.__atx_cpl_delays.copy()
 
     def get_atx_cr_delays(self) -> AtxClickResetDelays:

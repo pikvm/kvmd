@@ -112,7 +112,7 @@ class Switch:  # pylint: disable=too-many-public-methods
         if save:
             self.__save_notifier.notify()
 
-    def __x_set_dummies(self, dummies: Dummies, save: bool=True) -> None:
+    def __x_set_dummies(self, dummies: Dummies, save: bool=True) -> None:  # noqa vulture-ignore
         self.__chain.set_dummies(dummies)
         self.__cache.set_dummies(dummies)
         if save:
@@ -124,22 +124,22 @@ class Switch:  # pylint: disable=too-many-public-methods
         if save:
             self.__save_notifier.notify()
 
-    def __x_set_port_names(self, port_names: PortNames, save: bool=True) -> None:
+    def __x_set_port_names(self, port_names: PortNames, save: bool=True) -> None:  # noqa vulture-ignore
         self.__cache.set_port_names(port_names)
         if save:
             self.__save_notifier.notify()
 
-    def __x_set_atx_cp_delays(self, delays: AtxClickPowerDelays, save: bool=True) -> None:
+    def __x_set_atx_cp_delays(self, delays: AtxClickPowerDelays, save: bool=True) -> None:  # noqa vulture-ignore
         self.__cache.set_atx_cp_delays(delays)
         if save:
             self.__save_notifier.notify()
 
-    def __x_set_atx_cpl_delays(self, delays: AtxClickPowerLongDelays, save: bool=True) -> None:
+    def __x_set_atx_cpl_delays(self, delays: AtxClickPowerLongDelays, save: bool=True) -> None:  # noqa vulture-ignore
         self.__cache.set_atx_cpl_delays(delays)
         if save:
             self.__save_notifier.notify()
 
-    def __x_set_atx_cr_delays(self, delays: AtxClickResetDelays, save: bool=True) -> None:
+    def __x_set_atx_cr_delays(self, delays: AtxClickResetDelays, save: bool=True) -> None:  # noqa vulture-ignore
         self.__cache.set_atx_cr_delays(delays)
         if save:
             self.__save_notifier.notify()

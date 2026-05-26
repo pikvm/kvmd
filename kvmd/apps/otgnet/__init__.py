@@ -54,12 +54,12 @@ from .netctl import CustomCtl
 class _Netcfg:  # pylint: disable=too-many-instance-attributes
     iface: str
     iface_ip: str
-    net_ip: str
+    net_ip: str  # noqa vulture-ignore
     net_prefix: int
-    net_mask: str
+    net_mask: str  # noqa vulture-ignore
     dhcp_ip_begin: str
     dhcp_ip_end: str
-    dhcp_option_3: str
+    dhcp_option_3: str  # noqa vulture-ignore
 
 
 class _Service:  # pylint: disable=too-many-instance-attributes

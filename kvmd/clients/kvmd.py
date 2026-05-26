@@ -121,7 +121,7 @@ class _AtxApiPart(_BaseApiPart):
             htclient.raise_not_200(resp)
             return (await resp.json())["result"]
 
-    async def switch_power(self, action: str) -> bool:
+    async def switch_power(self, action: str) -> bool:  # noqa vulture-ignore
         session = self._ensure_http_session()
         try:
             async with session.post(
