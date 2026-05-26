@@ -37,6 +37,7 @@ RUN \
 		python \
 		python-pip \
 		python-build \
+		python-installer \
 		python-wheel \
 		python-setuptools \
 		python-installer \
