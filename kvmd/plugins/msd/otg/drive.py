@@ -29,9 +29,14 @@ from .. import MsdOperationError
 
 
 # =====
-class MsdDriveLockedError(MsdOperationError):
+class MsdPermissionsError(MsdOperationError):
     def __init__(self) -> None:
-        super().__init__("MSD drive is locked on IO operation")
+        super().__init__("MSD can't insert the image due to file permissions")
+
+
+class MsdLockedError(MsdOperationError):
+    def __init__(self) -> None:
+        super().__init__("MSD is locked on IO operation")
 
 
 # =====
@@ -59,7 +64,10 @@ class Drive:
 
     def set_image_path(self, path: str) -> None:
         if path:
-            self.__set_param("file", path)
+            try:
+                self.__set_param("file", path)
+            except PermissionError:
+                raise MsdPermissionsError()
         else:
             self.__set_param("forced_eject", "")
 
@@ -91,5 +99,5 @@ class Drive:
                 file.write(value + "\n")
         except OSError as ex:
             if ex.errno == errno.EBUSY:
-                raise MsdDriveLockedError()
+                raise MsdLockedError()
             raise
