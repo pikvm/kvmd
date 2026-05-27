@@ -109,8 +109,6 @@ class Plugin(BaseUserGpioDriver):
             if (await self.read(pin)) == state:
                 return
             if pin == "udc":
-                if state:
-                    self.__recreate_profile()
                 self.__set_udc_enabled(state)
             else:
                 if self.__is_udc_enabled():
@@ -123,22 +121,7 @@ class Plugin(BaseUserGpioDriver):
                 except (FileNotFoundError, FileExistsError):
                     pass
                 finally:
-                    self.__recreate_profile()
                     self.__set_udc_enabled(True)
-
-    def __recreate_profile(self) -> None:
-        # XXX: See pikvm/pikvm#1235
-        # After unbind and bind, the gadgets stop working,
-        # unless we recreate their links in the profile.
-        # Some kind of kernel bug.
-        for func in os.listdir(self.__profile_path):
-            path = self.__get_fdest_path(func)
-            if os.path.islink(path):
-                try:
-                    os.unlink(path)
-                    os.symlink(self.__get_fsrc_path(func), path)
-                except (FileNotFoundError, FileNotFoundError):
-                    pass
 
     def __get_fsrc_path(self, func: str) -> str:
         return os.path.join(self.__functions_path, func)
