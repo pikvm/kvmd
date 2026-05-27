@@ -25,6 +25,7 @@ import re
 import shutil
 import json
 import math
+import errno
 import time
 import argparse
 
@@ -95,18 +96,10 @@ def _write_bytes(path: str, data: bytes) -> None:
         file.write(data)
 
 
-def _check_config(config: Section) -> None:
-    if (
-        not config.otg.devices.serial.enabled
-        and not config.otg.devices.ethernet.enabled
-        and config.kvmd.hid.type != "otg"
-        and config.kvmd.msd.type != "otg"
-    ):
-        raise RuntimeError("Nothing to do")
-
-
 # =====
 class _GadgetConfig:
+    # https://www.kernel.org/doc/Documentation/usb/gadget_configfs.txt
+
     def __init__(
         self,
         gadget_path: str,
@@ -345,18 +338,33 @@ class _GadgetConfig:
         }))
 
 
-def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,too-many-branches
-    # https://www.kernel.org/doc/Documentation/usb/gadget_configfs.txt
-    # https://www.isticktoit.net/?p=1383
+def _check_config(config: Section) -> bool:
+    cod = config.otg.devices
+    return (
+        cod.camera.enabled
+        or not (cod.audio.enabled and (cod.audio.speakers.enabled or cod.audio.mic.enabled))
+        or not cod.serial.enabled
+        or not cod.ethernet.enabled
+        or config.kvmd.hid.type != "otg"
+        or config.kvmd.msd.type != "otg"
+    )
 
+
+def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,too-many-branches
     logger = get_logger()
 
-    _check_config(config)
+    if not _check_config(config):
+        logger.info("Nothing to do")
+        return
+
+    gadget_path = usb.get_gadget_path()
+    if os.path.exists(gadget_path):
+        logger.info("Already started/prepared, nothing to do")
+        return
 
     udc = usb.find_udc(config.otg.udc)
     logger.info("Using UDC %s", udc)
 
-    gadget_path = usb.get_gadget_path()
     logger.info("Creating the gadget: %s ...", gadget_path)
     _mkdir(gadget_path)
 
@@ -466,16 +474,20 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
 
 # =====
-def _cmd_stop(config: Section) -> None:
-    # https://www.kernel.org/doc/Documentation/usb/gadget_configfs.txt
-
+def _cmd_stop(config: Section) -> None:  # pylint: disable=too-many-branches
     logger = get_logger()
 
-    _check_config(config)
+    gadget_path = usb.get_gadget_path()
+    if not os.path.exists(gadget_path):
+        logger.info("Already stopped, nothing to do")
+        return
 
     logger.info("Disabling the gadget ...")
-    gadget_path = usb.get_gadget_path()
-    _write(join(gadget_path, "UDC"), "\n")
+    try:
+        _write(join(gadget_path, "UDC"), "\n")
+    except OSError as ex:
+        if ex.errno != errno.ENODEV:
+            raise
 
     _unlink(join(gadget_path, "os_desc", usb.G_PROFILE_NAME), optional=True)
 
