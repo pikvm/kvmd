@@ -515,7 +515,6 @@ def make_config_scheme() -> dict:
 
             "udc":        Option("",     type=valid_stripped_string),
             "endpoints":  Option(9,      type=valid_int_f0),
-            "init_delay": Option(3.0,    type=valid_float_f01),
 
             "user": Option("kvmd", type=valid_user),
             "meta": Option("/run/kvmd/otg", type=valid_abs_path),
