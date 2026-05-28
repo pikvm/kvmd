@@ -166,6 +166,7 @@ class BaseMsd(BasePlugin):
         name: (str | None)=None,
         cdrom: (bool | None)=None,
         rw: (bool | None)=None,
+        remote_url: (str | None)=None,
         remote_params: (dict[str, Any] | None)=None,
     ) -> None:
 
