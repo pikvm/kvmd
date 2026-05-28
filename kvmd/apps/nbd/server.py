@@ -65,10 +65,20 @@ class NbdServer(HttpServer):
     async def __remotes_handler(self, _: Request) -> Response:
         return make_json_response(self.__ctl.get_remotes())
 
+    @exposed_http("POST", "/probe")
+    async def __probe_handler(self, req: Request) -> Response:
+        image = await self.__ctl.probe(**dict(req.query))
+        return make_json_response({
+            "image": dataclasses.asdict(image),
+        })
+
     @exposed_http("POST", "/bind")
     async def __bind_handler(self, req: Request) -> Response:
-        await self.__ctl.bind(**dict(req.query))
-        return make_json_response({})
+        (image, device_path) = await self.__ctl.bind(**dict(req.query))
+        return make_json_response({
+            "device": device_path,
+            "image":  dataclasses.asdict(image),
+        })
 
     @exposed_http("POST", "/unbind")
     async def __unbind_handler(self, _: Request) -> Response:

@@ -65,10 +65,16 @@ class NbdClient:
                 assert isinstance(remotes, dict)
                 return remotes
 
-    async def bind(self, url: str, **params: Any) -> None:
+    async def probe(self, url: str, **params: Any) -> None:
+        async with self.__make_session() as session:
+            async with session.post("/probe", params={"url": url, **params}) as resp:
+                await self.__parse_response(resp)
+
+    async def bind(self, url: str, **params: Any) -> str:
         async with self.__make_session() as session:
             async with session.post("/bind", params={"url": url, **params}) as resp:
-                await htclient.raise_known_not_200(resp, NbdBoundError, NbdProbeError, ValidatorError)
+                result = await self.__parse_response(resp)
+                return result["device"]
 
     async def unbind(self) -> None:
         async with self.__make_session() as session:
@@ -89,6 +95,10 @@ class NbdClient:
                             changed=(None if event["changed"] is None else NbdStatusEvent(**event["changed"])),
                             stopped=(None if event["stopped"] is None else NbdStopped(**event["stopped"])),
                         )
+
+    async def __parse_response(self, resp: aiohttp.ClientResponse) -> dict:
+        await htclient.raise_known_not_200(resp, NbdBoundError, NbdProbeError, ValidatorError)
+        return (await resp.json())["result"]
 
     def __make_session(self) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(

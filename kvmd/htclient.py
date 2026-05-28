@@ -76,6 +76,7 @@ async def raise_known_not_200(
                         raise ex_type(error_msg)
         finally:
             resp.release()
+
         raise aiohttp.ClientResponseError(
             resp.request_info,
             resp.history,

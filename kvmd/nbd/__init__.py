@@ -40,6 +40,7 @@ from .errors import NbdError
 from .errors import NbdBoundError
 from .errors import NbdProbeError
 
+from .types import NbdImage
 from .types import BaseNbdEvent
 from .types import NbdSetupEvent
 from .types import NbdStartEvent
@@ -85,30 +86,39 @@ class NbdController:
             for (scheme, cls) in self.__REMOTES.items()
         }
 
-    async def bind(self, url: str, **params: Any) -> None:
+    async def probe(self, url: str, **params: Any) -> NbdImage:
+        (_, image) = await self.__inner_probe(url, **params)
+        return image
+
+    async def __inner_probe(self, url: str, **params: Any) -> tuple[BaseNbdRemote, NbdImage]:
+        scheme = urllib.parse.urlparse(url).scheme
+        cls = self.__REMOTES.get(scheme)
+        if cls is None:
+            raise ValidatorError("Unsupported remote URL scheme")
+
+        try:
+            config = make_config({"url": url, **params}, {}, cls.get_options())
+        except Exception as ex:
+            raise ValidatorError(f"{cls.__name__}: {tools.efmt(ex)}")
+
+        remote = cls(config)
+        try:
+            image = await remote.probe()
+        except Exception as ex:
+            raise NbdProbeError(f"{cls.__name__}: {tools.efmt(ex)}")
+        return (remote, image)
+
+    async def bind(self, url: str, **params: Any) -> tuple[NbdImage, str]:
         async with self.__lock:
             if self.__proc:
                 raise NbdBoundError("NBD is already bound")
 
-            scheme = urllib.parse.urlparse(url).scheme
-            cls = self.__REMOTES.get(scheme)
-            if cls is None:
-                raise ValidatorError("Unsupported remote URL scheme")
-
-            try:
-                config = make_config({"url": url, **params}, {}, cls.get_options())
-            except Exception as ex:
-                raise ValidatorError(f"{cls.__name__}: {tools.efmt(ex)}")
-
-            remote = cls(config)
-            try:
-                image = await remote.probe()
-            except Exception as ex:
-                raise NbdProbeError(f"{cls.__name__}: {tools.efmt(ex)}")
+            (remote, image) = await self.__inner_probe(url, **params)
 
             assert self.__proc is None
             self.__nr.notify()
             self.__proc = NbdProcess(self.__device, remote, image)
+            return (image, self.__device_path)
 
     def unbind(self) -> None:
         if self.__proc:
