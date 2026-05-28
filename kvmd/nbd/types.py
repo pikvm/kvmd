@@ -26,9 +26,11 @@ import dataclasses
 # =====
 @dataclasses.dataclass(frozen=True)
 class NbdImage:
-    url:  str
-    size: int
-    rw:   bool
+    url:   str
+    proto: str
+    name:  str
+    size:  int
+    rw:    bool
 
 
 # =====
