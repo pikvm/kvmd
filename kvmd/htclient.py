@@ -98,6 +98,15 @@ def get_filename(resp: aiohttp.ClientResponse) -> str:
             raise aiohttp.ClientError("Can't determine filename")
 
 
+def get_mtime(resp: aiohttp.ClientResponse) -> float:
+    try:
+        date = resp.headers["Last-Modified"]
+        parsed = aiohttp.helpers.parse_http_date(date)
+        return parsed.timestamp()
+    except Exception:
+        raise aiohttp.ClientError("Can't determine mtime")
+
+
 @contextlib.asynccontextmanager
 async def download(
     url: str,

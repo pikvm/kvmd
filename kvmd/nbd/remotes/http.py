@@ -91,16 +91,25 @@ class NbdHttpRemote(BaseNbdRemote):
     async def __probe(self, session: aiohttp.ClientSession) -> NbdImage:
         async with session.head(self.__url) as resp:
             htclient.raise_not_200(resp)
+
             proto = resp.request_info.url.scheme.upper()
             name = htclient.get_filename(resp)
+
             cl = resp.content_length
             if not isinstance(cl, int) or cl < 0:
                 raise NbdRemoteError(f"Invalid Content-Length: {cl}")
+
+            try:
+                mod_ts = htclient.get_mtime(resp)
+            except Exception:
+                mod_ts = 0
+
             return NbdImage(
                 url=self.__url,
                 proto=proto,
                 name=name,
                 size=cl,
+                mod_ts=mod_ts,
                 rw=False,
             )
 
