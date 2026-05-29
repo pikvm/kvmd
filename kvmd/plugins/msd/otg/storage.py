@@ -43,7 +43,7 @@ from . import fs
 
 # =====
 @dataclasses.dataclass(frozen=True)
-class _ImageDc:
+class _ImageDc:  # pylint: disable=too-many-instance-attributes
     name:       str
     path:       str
     in_storage: bool  = dataclasses.field(compare=False)

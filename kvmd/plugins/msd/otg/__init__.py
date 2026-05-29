@@ -297,7 +297,6 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             if vd.rw and (vd.cdrom or (vd.image and not vd.image.writable)):
                 vd.rw = False
 
-
     @aiotools.atomic_fg
     async def set_connected(self, connected: bool) -> None:
         async with self.__state.busy_locked():
