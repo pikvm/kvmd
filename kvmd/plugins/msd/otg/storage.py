@@ -50,6 +50,7 @@ class _ImageDc:
     # For _reload():
     complete:   bool  = dataclasses.field(init=False, compare=False)
     removable:  bool  = dataclasses.field(init=False, compare=False)
+    writable:   bool  = dataclasses.field(init=False, compare=False)
     size:       int   = dataclasses.field(init=False, compare=False)
     mod_ts:     float = dataclasses.field(init=False, compare=False)
 
@@ -70,9 +71,11 @@ class Image(_ImageDc):
     async def _reload(self) -> None:
         complete = await self.__is_complete()
         removable = await self.__is_removable()
+        writable = await self.__is_writable()
         (size, mod_ts) = await self.__get_stat()
         object.__setattr__(self, "complete", complete)
         object.__setattr__(self, "removable", removable)
+        object.__setattr__(self, "writable", writable)
         object.__setattr__(self, "size", size)
         object.__setattr__(self, "mod_ts", mod_ts)
 
@@ -87,6 +90,13 @@ class Image(_ImageDc):
         if not self.__adopted:
             return True
         return (await aiofiles.os.access(self.__dir_path, os.W_OK))
+
+    async def __is_writable(self) -> bool:
+        if self.name.lower().endswith(".iso"):
+            return False
+        if self.in_storage and not self.__adopted:
+            return True
+        return (await aiofiles.os.access(self.path, os.W_OK))
 
     async def __get_stat(self) -> tuple[int, float]:
         try:
