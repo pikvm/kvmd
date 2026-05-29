@@ -102,9 +102,11 @@ def get_mtime(resp: aiohttp.ClientResponse) -> float:
     try:
         date = resp.headers["Last-Modified"]
         parsed = aiohttp.helpers.parse_http_date(date)
-        return parsed.timestamp()
+        if parsed is not None:
+            return parsed.timestamp()
     except Exception:
-        raise aiohttp.ClientError("Can't determine mtime")
+        pass
+    raise aiohttp.ClientError("Can't determine mtime")
 
 
 @contextlib.asynccontextmanager
