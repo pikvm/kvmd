@@ -74,9 +74,8 @@ class NbdServer(HttpServer):
 
     @exposed_http("POST", "/bind")
     async def __bind_handler(self, req: Request) -> Response:
-        (image, device_path) = await self.__ctl.bind(**dict(req.query))
+        image = await self.__ctl.bind(**dict(req.query))
         return make_json_response({
-            "device": device_path,
             "image":  dataclasses.asdict(image),
         })
 

@@ -108,7 +108,7 @@ class NbdController:
             raise NbdProbeError(f"{cls.__name__}: {tools.efmt(ex)}")
         return (remote, image)
 
-    async def bind(self, url: str, **params: Any) -> tuple[NbdImage, str]:
+    async def bind(self, url: str, **params: Any) -> NbdImage:
         async with self.__lock:
             if self.__proc:
                 raise NbdBoundError("NBD is already bound")
@@ -118,7 +118,7 @@ class NbdController:
             assert self.__proc is None
             self.__nr.notify()
             self.__proc = NbdProcess(self.__device, remote, image)
-            return (image, self.__device_path)
+            return image
 
     def unbind(self) -> None:
         if self.__proc:

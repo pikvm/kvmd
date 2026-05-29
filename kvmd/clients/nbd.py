@@ -65,16 +65,17 @@ class NbdClient:
                 assert isinstance(remotes, dict)
                 return remotes
 
-    async def probe(self, url: str, **params: Any) -> None:
-        async with self.__make_session() as session:
-            async with session.post("/probe", params={"url": url, **params}) as resp:
-                await self.__parse_response(resp)
+    async def probe(self, url: str, **params: Any) -> NbdImage:
+        return (await self.__probe_or_bind("/probe", url, **params))
 
-    async def bind(self, url: str, **params: Any) -> str:
+    async def bind(self, url: str, **params: Any) -> NbdImage:
+        return (await self.__probe_or_bind("/bind", url, **params))
+
+    async def __probe_or_bind(self, handle: str, url: str, **params: Any) -> NbdImage:
         async with self.__make_session() as session:
-            async with session.post("/bind", params={"url": url, **params}) as resp:
+            async with session.post(handle, params={"url": url, **params}) as resp:
                 result = await self.__parse_response(resp)
-                return result["device"]
+                return NbdImage(**result["image"])
 
     async def unbind(self) -> None:
         async with self.__make_session() as session:
