@@ -50,6 +50,7 @@ from .. import MsdDisconnectedError
 from .. import MsdImageNotSelected
 from .. import MsdUnknownImageError
 from .. import MsdImageStaticError
+from .. import MsdRemoteDisabledError
 from .. import BaseMsd
 from .. import MsdFileReader
 from .. import MsdFileWriter
@@ -283,6 +284,10 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         remote_url: (str | None)=None,
         remote_params: (dict[str, Any] | None)=None,
     ) -> None:
+
+        if remote_url is not None:
+            _ = remote_params
+            raise MsdRemoteDisabledError()
 
         async with self.__state.busy_locked():
             (storage, vd) = self.__state.check_online_disconnected(self.__drive)

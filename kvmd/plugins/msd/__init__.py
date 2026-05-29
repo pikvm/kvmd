@@ -97,6 +97,11 @@ class MsdImageStaticError(MsdOperationError):
         super().__init__("This image can't be removed")
 
 
+class MsdRemoteDisabledError(MsdOperationError):
+    def __init__(self) -> None:
+        super().__init__("Remote images binding is disabled")
+
+
 # =====
 class BaseMsdReader:
     def get_state(self) -> dict:

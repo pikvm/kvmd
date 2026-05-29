@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import re
 import asyncio
 import lzma
 import time
@@ -47,6 +48,7 @@ from ....htserver import stream_json_exception
 from ....plugins.msd import BaseMsd
 
 from ....validators import check_string_in_list
+from ....validators.basic import valid_stripped_string
 from ....validators.basic import valid_bool
 from ....validators.basic import valid_int_f0
 from ....validators.basic import valid_float_f01
@@ -68,15 +70,24 @@ class MsdApi:
     @exposed_http("POST", "/msd/set_params")
     async def __set_params_handler(self, req: Request) -> Response:
         query = dict(req.query)
+
         params = {
             key: validator(query.pop(param))  # type: ignore
             for (param, key, validator) in [
-                ("image", "name",  valid_msd_image_name.mk(allow_eject=True)),
-                ("cdrom", "cdrom", valid_bool),
-                ("rw",    "rw",    valid_bool),
+                ("image", "__image__", valid_stripped_string.mk(name="MSD image name or URL")),
+                ("cdrom", "cdrom",     valid_bool),
+                ("rw",    "rw",        valid_bool),
             ]
             if query.get(param) is not None
         }
+
+        if "__image__" in params:
+            image = params.pop("__image__")
+            if re.match(r"^[a-zA-Z][a-zA-Z0-9\._+-]+[a-zA-Z]://[a-zA-Z0-9\[]", image) is None:
+                params["name"] = valid_msd_image_name(image, allow_eject=True)
+            else:  # XXX: We don't validate a URL, it should be passed as-is to the lower level
+                params["remote_url"] = image
+
         await self.__msd.set_params(remote_params=query, **params)  # type: ignore
         return make_json_response()
 
