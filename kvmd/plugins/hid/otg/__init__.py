@@ -26,6 +26,7 @@ import copy
 from typing import AsyncGenerator
 
 from .... import aiomulti
+from .... import usb
 
 from ....yamlconf import Section
 from ....yamlconf import Option
@@ -33,6 +34,7 @@ from ....yamlconf import Option
 from ....validators.basic import valid_bool
 from ....validators.basic import valid_int_f1
 from ....validators.basic import valid_float_f01
+from ....validators.basic import valid_stripped_string_not_empty
 from ....validators.os import valid_abs_path
 
 from .. import BaseHid
@@ -40,6 +42,7 @@ from .. import BaseHid
 from .keyboard import KeyboardProcess
 from .mouse import MouseProcess
 from .gamepad import GamepadProcess
+from .xinput import XInputProcess
 
 
 # =====
@@ -83,9 +86,22 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 # но так было проще реализовать переключение режимов
                 self.__mouses["usb_win98"] = self.__mouses["usb"]
 
-        self.__gamepad_proc: (GamepadProcess | None) = None
+        # The gamepad backend is either a generic HID pad (GamepadProcess, an
+        # f_hid device) or an Xbox 360 / XInput pad (XInputProcess, a FunctionFS
+        # device serviced from user space). Both expose the same send_*/get_state
+        # interface, so the rest of the plugin treats them identically.
+        self.__gamepad_proc: (GamepadProcess | XInputProcess | None) = None
         if c.gamepad.device:
-            self.__gamepad_proc = GamepadProcess(**make_kwargs(c.gamepad))
+            if c.gamepad.mode == "xinput":
+                self.__gamepad_proc = XInputProcess(
+                    notifier=self.__notifier,
+                    ffs_path=c.gamepad.xinput_ffs,
+                    gadget_path=usb.get_gadget_path(),
+                    udc="",
+                    noop=c.noop,
+                )
+            else:
+                self.__gamepad_proc = GamepadProcess(**make_kwargs(c.gamepad))
 
         self._set_jiggler_absolute(self.__mouse_current.is_absolute())
 
@@ -117,9 +133,12 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 "horizontal_wheel": Option(True, type=valid_bool),
             },
             "gamepad": {
-                # Disabled by default: set the device path (and add a matching udev
-                # rule + otg.devices.hid.gamepad) to enable a generic HID gamepad.
+                # Disabled by default. Set the device path to enable. mode="hid" is
+                # a generic HID gamepad (needs a udev rule + otg.devices.hid.gamepad);
+                # mode="xinput" is an Xbox 360 controller via FunctionFS at xinput_ffs.
                 "device":         Option("", type=valid_abs_path, if_empty=""),
+                "mode":           Option("hid", type=valid_stripped_string_not_empty),
+                "xinput_ffs":     Option("/run/kvmd/otg-xinput", type=valid_abs_path),
                 "select_timeout": Option(0.1, type=valid_float_f01),
                 "queue_timeout":  Option(0.1, type=valid_float_f01),
                 "write_retries":  Option(150, type=valid_int_f1),
