@@ -194,7 +194,7 @@ def _find_inputs() -> set[str]:
     ctx = pyudev.Context()
     for device in ctx.list_devices(subsystem="input"):
         props = device.properties
-        if props.get("ID_INPUT") == "1" and props.get("ID_BUS") == "usb":
+        if props.get("ID_INPUT") == "1":
             parent = device.find_parent("usb", "usb_device")
             if parent is not None:
                 path = parent.properties.get("DEVPATH")
