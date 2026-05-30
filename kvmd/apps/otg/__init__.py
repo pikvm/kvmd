@@ -27,6 +27,7 @@ import json
 import math
 import errno
 import argparse
+import subprocess
 
 from os.path import join  # pylint: disable=ungrouped-imports
 
@@ -45,12 +46,18 @@ from .. import init
 from .hid import Hid
 from .hid.keyboard import make_keyboard_hid
 from .hid.mouse import make_mouse_hid
+from .hid.gamepad import make_gamepad_hid
 
 
 # =====
 def _mkdir(path: str) -> None:
     get_logger().info("MKDIR --- %s", path)
     os.mkdir(path)
+
+
+def _mount(fstype: str, source: str, target: str) -> None:
+    get_logger().info("MOUNT --- %s %s --> %s", fstype, source, target)
+    subprocess.check_call(["mount", "-t", fstype, source, target])
 
 
 def _chown(path: str, user: str) -> None:
@@ -259,6 +266,22 @@ class _GadgetConfig:
         desc = ("Absolute" if absolute else "Relative") + " Mouse"
         self.__add_hid(desc, starter, start, remote_wakeup, make_mouse_hid(absolute, horizontal_wheel))
 
+    def add_gamepad(self, starter: list[str], start: bool, remote_wakeup: bool) -> None:
+        self.__add_hid("Gamepad", starter, start, remote_wakeup, make_gamepad_hid())
+
+    def add_xinput(self, starter: list[str], start: bool, ffs_path: str) -> None:
+        # An Xbox 360 (XInput) controller is a USB vendor-specific interface, not
+        # HID, so it can't use f_hid like the functions above. It is a FunctionFS
+        # function serviced from user space by kvmd's XInputProcess. We create and
+        # mount the function here; the servicer writes its descriptors and -- since
+        # a FunctionFS function has no endpoints until then -- performs the UDC bind
+        # itself (see _cmd_start, which defers the bind in this mode).
+        func = "ffs.xinput"  # the instance name after "ffs." is the mount source
+        self.__create_function(func)
+        _mkdir(ffs_path)
+        _mount("functionfs", "xinput", ffs_path)
+        self.__setup_function(func, "XInput", 2, starter, start)
+
     def __add_hid(self, desc: str, starter: list[str], start: bool, remote_wakeup: bool, hid: Hid) -> None:
         func = f"hid.usb{self.__hid_instance}"
         func_path = self.__create_function(func)
@@ -367,8 +390,17 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
     logger.info("Creating the gadget: %s ...", gadget_path)
     _mkdir(gadget_path)
 
-    _write(join(gadget_path, "idVendor"), f"0x{config.otg.vendor_id:04X}")
-    _write(join(gadget_path, "idProduct"), f"0x{config.otg.product_id:04X}")
+    # In XInput mode the whole gadget presents as a Microsoft Xbox 360 controller
+    # so the Linux xpad driver (and game consoles) bind it; the keyboard/mouse
+    # remain as separate interfaces. The bind is also deferred (see below).
+    xinput_mode = (
+        config.kvmd.hid.type == "otg"
+        and bool(config.kvmd.hid.gamepad.device)
+        and config.kvmd.hid.gamepad.mode == "xinput"
+    )
+    (vendor_id, product_id) = ((0x045E, 0x028E) if xinput_mode else (config.otg.vendor_id, config.otg.product_id))
+    _write(join(gadget_path, "idVendor"), f"0x{vendor_id:04X}")
+    _write(join(gadget_path, "idProduct"), f"0x{product_id:04X}")
     _write(join(gadget_path, "bcdUSB"), f"0x{config.otg.usb_version:04X}")
 
     # bcdDevice should be incremented any time there are breaking changes
@@ -415,6 +447,13 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
             logger.info("===== HID-Mouse-Alt =====")
             gc.add_mouse(["hid", "mouse_alt"], cod.hid.mouse_alt.start,
                          config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
+        if config.kvmd.hid.gamepad.device:
+            if config.kvmd.hid.gamepad.mode == "xinput":
+                logger.info("===== HID-Gamepad (XInput / Xbox 360) =====")
+                gc.add_xinput(["hid", "gamepad"], cod.hid.gamepad.start, config.kvmd.hid.gamepad.xinput_ffs)
+            else:
+                logger.info("===== HID-Gamepad =====")
+                gc.add_gamepad(["hid", "gamepad"], cod.hid.gamepad.start, config.otg.remote_wakeup)
 
     def make_inquiry_string(isc: Section) -> str:
         kwargs = isc._unpack()
@@ -463,9 +502,15 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     logger.info("===== Preparing complete =====")
 
-    logger.info("Enabling the gadget ...")
-    _write(join(gadget_path, "UDC"), udc)
+    # The UDC must be chown'd to the kvmd user either way: in XInput mode the bind
+    # is deferred to the XInput servicer (a FunctionFS function has no endpoints
+    # until its descriptors are written), which runs as that user.
     _chown(join(gadget_path, "UDC"), config.otg.user)
+    if xinput_mode:
+        logger.info("Deferring the UDC bind to the XInput servicer ...")
+    else:
+        logger.info("Enabling the gadget ...")
+        _write(join(gadget_path, "UDC"), udc)
     _chown(profile_path, config.otg.user)
 
     logger.info("Ready to work")

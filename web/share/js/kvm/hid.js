@@ -28,6 +28,7 @@ import {wm} from "../wm.js";
 
 import {Keyboard} from "./keyboard.js";
 import {Mouse} from "./mouse.js";
+import {Gamepad} from "./gamepad.js";
 
 
 export function Hid(__getGeometry, __recorder) {
@@ -38,10 +39,12 @@ export function Hid(__getGeometry, __recorder) {
 	var __state = null;
 	var __keyboard = null;
 	var __mouse = null;
+	var __gamepad = null;
 
 	var __init__ = function() {
 		__keyboard = new Keyboard(__recorder.recordWsEvent);
 		__mouse = new Mouse(__getGeometry, __recorder.recordWsEvent);
+		__gamepad = new Gamepad(__recorder.recordWsEvent);
 
 		document.addEventListener("visibilitychange", function() {
 			if (document.visibilityState === "hidden") {
@@ -88,12 +91,13 @@ export function Hid(__getGeometry, __recorder) {
 		}
 		__keyboard.setSocket(ws);
 		__mouse.setSocket(ws);
+		__gamepad.setSocket(ws);
 	};
 
 	self.setState = function(state) {
 		if (state) {
 			if (!__state) {
-				__state = {"keyboard": {}, "mouse": {}};
+				__state = {"keyboard": {}, "mouse": {}, "gamepad": {}};
 			}
 			if (state.enabled !== undefined) {
 				__state.enabled = state.enabled; // Currently unused, always true
@@ -137,6 +141,17 @@ export function Hid(__getGeometry, __recorder) {
 					|| state.online !== undefined || state.busy !== undefined
 				) {
 					__mouse.setState(__state.mouse.online, __state.mouse.absolute, __state.online, __state.busy);
+				}
+				if (state.gamepad !== undefined) {
+					__state.gamepad = state.gamepad;
+				}
+				if (
+					(state.gamepad !== undefined && state.gamepad.online !== undefined)
+					|| state.online !== undefined || state.busy !== undefined
+				) {
+					__gamepad.setState(
+						(__state.gamepad !== undefined ? __state.gamepad.online : false),
+						__state.online, __state.busy);
 				}
 				if (state.online !== undefined || state.busy !== undefined) {
 					tools.radio.setEnabled("hid-outputs-keyboard-radio", (__state.online && !__state.busy));
@@ -228,6 +243,7 @@ export function Hid(__getGeometry, __recorder) {
 	var __releaseAll = function() {
 		__keyboard.releaseAll();
 		__mouse.releaseAll();
+		__gamepad.releaseAll();
 	};
 
 	var __emitShortcut = function(codes) {

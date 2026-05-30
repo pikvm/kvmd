@@ -26,6 +26,7 @@ import copy
 from typing import AsyncGenerator
 
 from .... import aiomulti
+from .... import usb
 
 from ....yamlconf import Section
 from ....yamlconf import Option
@@ -33,12 +34,15 @@ from ....yamlconf import Option
 from ....validators.basic import valid_bool
 from ....validators.basic import valid_int_f1
 from ....validators.basic import valid_float_f01
+from ....validators.basic import valid_stripped_string_not_empty
 from ....validators.os import valid_abs_path
 
 from .. import BaseHid
 
 from .keyboard import KeyboardProcess
 from .mouse import MouseProcess
+from .gamepad import GamepadProcess
+from .xinput import XInputProcess
 
 
 # =====
@@ -82,6 +86,23 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 # но так было проще реализовать переключение режимов
                 self.__mouses["usb_win98"] = self.__mouses["usb"]
 
+        # The gamepad backend is either a generic HID pad (GamepadProcess, an
+        # f_hid device) or an Xbox 360 / XInput pad (XInputProcess, a FunctionFS
+        # device serviced from user space). Both expose the same send_*/get_state
+        # interface, so the rest of the plugin treats them identically.
+        self.__gamepad_proc: (GamepadProcess | XInputProcess | None) = None
+        if c.gamepad.device:
+            if c.gamepad.mode == "xinput":
+                self.__gamepad_proc = XInputProcess(
+                    notifier=self.__notifier,
+                    ffs_path=c.gamepad.xinput_ffs,
+                    gadget_path=usb.get_gadget_path(),
+                    udc="",
+                    noop=c.noop,
+                )
+            else:
+                self.__gamepad_proc = GamepadProcess(**make_kwargs(c.gamepad))
+
         self._set_jiggler_absolute(self.__mouse_current.is_absolute())
 
     @classmethod
@@ -111,6 +132,17 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 # Also no absolute_win98_fix
                 "horizontal_wheel": Option(True, type=valid_bool),
             },
+            "gamepad": {
+                # Disabled by default. Set the device path to enable. mode="hid" is
+                # a generic HID gamepad (needs a udev rule + otg.devices.hid.gamepad);
+                # mode="xinput" is an Xbox 360 controller via FunctionFS at xinput_ffs.
+                "device":         Option("", type=valid_abs_path, if_empty=""),
+                "mode":           Option("hid", type=valid_stripped_string_not_empty),
+                "xinput_ffs":     Option("/run/kvmd/otg-xinput", type=valid_abs_path),
+                "select_timeout": Option(0.1, type=valid_float_f01),
+                "queue_timeout":  Option(0.1, type=valid_float_f01),
+                "write_retries":  Option(150, type=valid_int_f1),
+            },
             "noop": Option(False, type=valid_bool),
             **super().get_plugin_options(),
         }
@@ -120,10 +152,13 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         self.__mouse_proc.start()
         if self.__mouse_alt_proc:
             self.__mouse_alt_proc.start()
+        if self.__gamepad_proc:
+            self.__gamepad_proc.start()
 
     async def get_state(self) -> dict:
         keyboard_state = await self.__keyboard_proc.get_state()
         mouse_state = await self.__mouse_current.get_state()
+        gamepad_state = (await self.__gamepad_proc.get_state()) if self.__gamepad_proc else {"online": False}
         return {
             "enabled": True,
             "online": True,
@@ -145,6 +180,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 },
                 **mouse_state,
             },
+            "gamepad": {"online": gamepad_state["online"]},
             **self._get_jiggler_state(),
         }
 
@@ -166,6 +202,8 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         self.__mouse_proc.send_reset_event()
         if self.__mouse_alt_proc:
             self.__mouse_alt_proc.send_reset_event()
+        if self.__gamepad_proc:
+            self.__gamepad_proc.send_reset_event()
 
     async def cleanup(self) -> None:
         coros = [
@@ -174,6 +212,8 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         ]
         if self.__mouse_alt_proc:
             coros.append(self.__mouse_alt_proc.cleanup())
+        if self.__gamepad_proc:
+            coros.append(self.__gamepad_proc.cleanup())
         await asyncio.gather(*coros)
 
     # =====
@@ -211,11 +251,24 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
     def _send_mouse_wheel_event(self, delta_x: int, delta_y: int) -> None:
         self.__mouse_current.send_wheel_event(delta_x, delta_y)
 
+    def _send_gamepad_event(  # pylint: disable=too-many-arguments
+        self,
+        buttons: int,
+        lx: int, ly: int, rx: int, ry: int,
+        lt: int, rt: int,
+        hat: int,
+    ) -> None:
+
+        if self.__gamepad_proc:
+            self.__gamepad_proc.send_state_event(buttons, lx, ly, rx, ry, lt, rt, hat)
+
     def _clear_events(self) -> None:
         self.__keyboard_proc.send_clear_event()
         self.__mouse_proc.send_clear_event()
         if self.__mouse_alt_proc:
             self.__mouse_alt_proc.send_clear_event()
+        if self.__gamepad_proc:
+            self.__gamepad_proc.send_clear_event()
 
     # =====
 

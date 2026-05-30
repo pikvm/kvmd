@@ -216,6 +216,31 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
 
     # =====
 
+    def send_gamepad_event(  # pylint: disable=too-many-arguments
+        self,
+        buttons: int,
+        lx: int, ly: int, rx: int, ry: int,
+        lt: int, rt: int,
+        hat: int,
+    ) -> None:
+
+        self._send_gamepad_event(buttons, lx, ly, rx, ry, lt, rt, hat)
+        self.__bump_activity()
+
+    def _send_gamepad_event(  # pylint: disable=too-many-arguments
+        self,
+        buttons: int,
+        lx: int, ly: int, rx: int, ry: int,
+        lt: int, rt: int,
+        hat: int,
+    ) -> None:
+
+        # Default no-op: only the OTG backend implements a gamepad for now,
+        # the others (ch9329, serial, spi, bt) simply ignore the events.
+        _ = (buttons, lx, ly, rx, ry, lt, rt, hat)
+
+    # =====
+
     def clear_events(self) -> None:
         self._clear_events()  # Don't bump activity here
 

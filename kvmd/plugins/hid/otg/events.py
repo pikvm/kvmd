@@ -177,3 +177,33 @@ def make_mouse_report(
         return struct.pack(("<BHHbb" if absolute else "<Bbbbb"), buttons, move_x, move_y, wheel_y, wheel_x)
     else:
         return struct.pack(("<BHHb" if absolute else "<Bbbb"), buttons, move_x, move_y, wheel_y)
+
+
+# =====
+@dataclasses.dataclass(frozen=True)
+class GamepadStateEvent(BaseEvent):
+    buttons: int  # Bitmask, bit 0 == button 1
+    lx: int       # Left stick X,  0..255, center 128
+    ly: int       # Left stick Y,  0..255, center 128
+    rx: int       # Right stick X, 0..255, center 128
+    ry: int       # Right stick Y, 0..255, center 128
+    lt: int       # Left trigger,  0..255, released 0
+    rt: int       # Right trigger, 0..255, released 0
+    hat: int      # D-pad, 0..7 clockwise from up, 8 == centered
+
+    def __post_init__(self) -> None:
+        assert 0 <= self.buttons <= 0xFFFF
+        for axis in (self.lx, self.ly, self.rx, self.ry, self.lt, self.rt):
+            assert 0 <= axis <= 0xFF
+        assert 0 <= self.hat <= 8
+
+
+def make_gamepad_report(  # pylint: disable=too-many-arguments
+    buttons: int,
+    lx: int, ly: int, rx: int, ry: int,
+    lt: int, rt: int,
+    hat: int,
+) -> bytes:
+
+    # See /kvmd/apps/otg/hid/gamepad.py for the matching report descriptor
+    return struct.pack("<BBBBBBBH", lx, ly, rx, ry, lt, rt, (hat & 0x0F), (buttons & 0xFFFF))
