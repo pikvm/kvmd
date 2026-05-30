@@ -65,3 +65,18 @@ def valid_hid_mouse_button(arg: Any) -> str:
 def valid_hid_mouse_delta(arg: Any) -> int:
     arg = valid_number(arg, name="Mouse delta")
     return MouseDelta.normalize(arg)
+
+
+@add_validator_magic
+def valid_hid_gamepad_axis(arg: Any) -> int:
+    return int(valid_number(arg, min=0, max=0xFF, name="Gamepad axis"))
+
+
+@add_validator_magic
+def valid_hid_gamepad_buttons(arg: Any) -> int:
+    return int(valid_number(arg, min=0, max=0xFFFF, name="Gamepad buttons"))
+
+
+@add_validator_magic
+def valid_hid_gamepad_hat(arg: Any) -> int:
+    return int(valid_number(arg, min=0, max=8, name="Gamepad hat"))

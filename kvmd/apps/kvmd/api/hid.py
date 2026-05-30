@@ -59,6 +59,9 @@ from ....validators.hid import valid_hid_key
 from ....validators.hid import valid_hid_mouse_move
 from ....validators.hid import valid_hid_mouse_button
 from ....validators.hid import valid_hid_mouse_delta
+from ....validators.hid import valid_hid_gamepad_axis
+from ....validators.hid import valid_hid_gamepad_buttons
+from ....validators.hid import valid_hid_gamepad_hat
 
 
 # =====
@@ -277,6 +280,41 @@ class HidApi:
         except Exception:
             return
         handler(deltas, squash)
+
+    # =====
+
+    @exposed_ws("gamepad")
+    async def __ws_gamepad_handler(self, _: WsSession, event: dict) -> None:
+        try:
+            state = self.__parse_gamepad_event(event)
+        except Exception:
+            return
+        self.__hid.send_gamepad_event(**state)
+
+    @exposed_ws(6)
+    async def __ws_bin_gamepad_handler(self, _: WsSession, data: bytes) -> None:
+        # >H == 16-bit button bitmask, then 7 bytes: lx, ly, rx, ry, lt, rt, hat
+        try:
+            (buttons, lx, ly, rx, ry, lt, rt, hat) = struct.unpack(">HBBBBBBB", data)
+            state = {
+                "buttons": valid_hid_gamepad_buttons(buttons),
+                "lx": valid_hid_gamepad_axis(lx), "ly": valid_hid_gamepad_axis(ly),
+                "rx": valid_hid_gamepad_axis(rx), "ry": valid_hid_gamepad_axis(ry),
+                "lt": valid_hid_gamepad_axis(lt), "rt": valid_hid_gamepad_axis(rt),
+                "hat": valid_hid_gamepad_hat(hat),
+            }
+        except Exception:
+            return
+        self.__hid.send_gamepad_event(**state)
+
+    def __parse_gamepad_event(self, event: dict) -> dict:
+        return {
+            "buttons": valid_hid_gamepad_buttons(event["buttons"]),
+            "lx": valid_hid_gamepad_axis(event["lx"]), "ly": valid_hid_gamepad_axis(event["ly"]),
+            "rx": valid_hid_gamepad_axis(event["rx"]), "ry": valid_hid_gamepad_axis(event["ry"]),
+            "lt": valid_hid_gamepad_axis(event["lt"]), "rt": valid_hid_gamepad_axis(event["rt"]),
+            "hat": valid_hid_gamepad_hat(event["hat"]),
+        }
 
     # =====
 

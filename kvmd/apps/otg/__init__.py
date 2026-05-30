@@ -45,6 +45,7 @@ from .. import init
 from .hid import Hid
 from .hid.keyboard import make_keyboard_hid
 from .hid.mouse import make_mouse_hid
+from .hid.gamepad import make_gamepad_hid
 
 
 # =====
@@ -259,6 +260,9 @@ class _GadgetConfig:
         desc = ("Absolute" if absolute else "Relative") + " Mouse"
         self.__add_hid(desc, starter, start, remote_wakeup, make_mouse_hid(absolute, horizontal_wheel))
 
+    def add_gamepad(self, starter: list[str], start: bool, remote_wakeup: bool) -> None:
+        self.__add_hid("Gamepad", starter, start, remote_wakeup, make_gamepad_hid())
+
     def __add_hid(self, desc: str, starter: list[str], start: bool, remote_wakeup: bool, hid: Hid) -> None:
         func = f"hid.usb{self.__hid_instance}"
         func_path = self.__create_function(func)
@@ -415,6 +419,9 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
             logger.info("===== HID-Mouse-Alt =====")
             gc.add_mouse(["hid", "mouse_alt"], cod.hid.mouse_alt.start,
                          config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
+        if config.kvmd.hid.gamepad.device:
+            logger.info("===== HID-Gamepad =====")
+            gc.add_gamepad(["hid", "gamepad"], cod.hid.gamepad.start, config.otg.remote_wakeup)
 
     def make_inquiry_string(isc: Section) -> str:
         kwargs = isc._unpack()
