@@ -85,7 +85,9 @@ class MsdApi:
             image = params.pop("__image__")
             if re.match(r"^[a-zA-Z][a-zA-Z0-9\._+-]+[a-zA-Z]://[a-zA-Z0-9\[]", image) is None:
                 params["name"] = valid_msd_image_name(image, allow_eject=True)
-            else:  # XXX: We don't validate a URL, it should be passed as-is to the lower level
+            else:
+                # XXX: We don't validate a URL, it should be passed as-is to the lower level.
+                # remote_params are not validated too.
                 params["remote_url"] = image
 
         await self.__msd.set_params(remote_params=query, **params)  # type: ignore
