@@ -43,6 +43,8 @@ from .keyboard import KeyboardProcess
 from .mouse import MouseProcess
 from .gamepad import GamepadProcess
 from .xinput import XInputProcess
+from .switchpro import SwitchProProcess
+from .dualsense import DualSenseProcess
 
 
 # =====
@@ -90,12 +92,28 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         # f_hid device) or an Xbox 360 / XInput pad (XInputProcess, a FunctionFS
         # device serviced from user space). Both expose the same send_*/get_state
         # interface, so the rest of the plugin treats them identically.
-        self.__gamepad_proc: (GamepadProcess | XInputProcess | None) = None
+        self.__gamepad_proc: (GamepadProcess | XInputProcess | SwitchProProcess | DualSenseProcess | None) = None
         if c.gamepad.device:
             if c.gamepad.mode == "xinput":
                 self.__gamepad_proc = XInputProcess(
                     notifier=self.__notifier,
                     ffs_path=c.gamepad.xinput_ffs,
+                    gadget_path=usb.get_gadget_path(),
+                    udc="",
+                    noop=c.noop,
+                )
+            elif c.gamepad.mode == "switchpro":
+                self.__gamepad_proc = SwitchProProcess(
+                    notifier=self.__notifier,
+                    ffs_path=c.gamepad.switchpro_ffs,
+                    gadget_path=usb.get_gadget_path(),
+                    udc="",
+                    noop=c.noop,
+                )
+            elif c.gamepad.mode == "dualsense":
+                self.__gamepad_proc = DualSenseProcess(
+                    notifier=self.__notifier,
+                    ffs_path=c.gamepad.dualsense_ffs,
                     gadget_path=usb.get_gadget_path(),
                     udc="",
                     noop=c.noop,
@@ -139,6 +157,8 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 "device":         Option("", type=valid_abs_path, if_empty=""),
                 "mode":           Option("hid", type=valid_stripped_string_not_empty),
                 "xinput_ffs":     Option("/run/kvmd/otg-xinput", type=valid_abs_path),
+                "switchpro_ffs":  Option("/run/kvmd/otg-switchpro", type=valid_abs_path),
+                "dualsense_ffs":  Option("/run/kvmd/otg-dualsense", type=valid_abs_path),
                 "select_timeout": Option(0.1, type=valid_float_f01),
                 "queue_timeout":  Option(0.1, type=valid_float_f01),
                 "write_retries":  Option(150, type=valid_int_f1),

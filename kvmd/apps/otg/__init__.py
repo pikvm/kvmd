@@ -282,6 +282,20 @@ class _GadgetConfig:
         _mount("functionfs", "xinput", ffs_path)
         self.__setup_function(func, "XInput", 2, starter, start)
 
+    def add_switchpro(self, starter: list[str], start: bool, ffs_path: str) -> None:
+        func = "ffs.switchpro"
+        self.__create_function(func)
+        _mkdir(ffs_path)
+        _mount("functionfs", "switchpro", ffs_path)
+        self.__setup_function(func, "SwitchPro", 2, starter, start)
+
+    def add_dualsense(self, starter: list[str], start: bool, ffs_path: str) -> None:
+        func = "ffs.dualsense"
+        self.__create_function(func)
+        _mkdir(ffs_path)
+        _mount("functionfs", "dualsense", ffs_path)
+        self.__setup_function(func, "DualSense", 2, starter, start)
+
     def __add_hid(self, desc: str, starter: list[str], start: bool, remote_wakeup: bool, hid: Hid) -> None:
         func = f"hid.usb{self.__hid_instance}"
         func_path = self.__create_function(func)
@@ -393,12 +407,21 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
     # In XInput mode the whole gadget presents as a Microsoft Xbox 360 controller
     # so the Linux xpad driver (and game consoles) bind it; the keyboard/mouse
     # remain as separate interfaces. The bind is also deferred (see below).
-    xinput_mode = (
-        config.kvmd.hid.type == "otg"
-        and bool(config.kvmd.hid.gamepad.device)
-        and config.kvmd.hid.gamepad.mode == "xinput"
-    )
-    (vendor_id, product_id) = ((0x045E, 0x028E) if xinput_mode else (config.otg.vendor_id, config.otg.product_id))
+    gamepad_mode = ""
+    if config.kvmd.hid.type == "otg" and bool(config.kvmd.hid.gamepad.device):
+        gamepad_mode = config.kvmd.hid.gamepad.mode
+    xinput_mode = (gamepad_mode == "xinput")
+    switchpro_mode = (gamepad_mode == "switchpro")
+    dualsense_mode = (gamepad_mode == "dualsense")
+    ffs_mode = xinput_mode or switchpro_mode or dualsense_mode
+    if xinput_mode:
+        (vendor_id, product_id) = (0x045E, 0x028E)
+    elif switchpro_mode:
+        (vendor_id, product_id) = (0x057E, 0x2009)
+    elif dualsense_mode:
+        (vendor_id, product_id) = (0x054C, 0x0CE6)
+    else:
+        (vendor_id, product_id) = (config.otg.vendor_id, config.otg.product_id)
     _write(join(gadget_path, "idVendor"), f"0x{vendor_id:04X}")
     _write(join(gadget_path, "idProduct"), f"0x{product_id:04X}")
     _write(join(gadget_path, "bcdUSB"), f"0x{config.otg.usb_version:04X}")
@@ -451,6 +474,12 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
             if config.kvmd.hid.gamepad.mode == "xinput":
                 logger.info("===== HID-Gamepad (XInput / Xbox 360) =====")
                 gc.add_xinput(["hid", "gamepad"], cod.hid.gamepad.start, config.kvmd.hid.gamepad.xinput_ffs)
+            elif config.kvmd.hid.gamepad.mode == "switchpro":
+                logger.info("===== HID-Gamepad (Switch Pro Controller) =====")
+                gc.add_switchpro(["hid", "gamepad"], cod.hid.gamepad.start, config.kvmd.hid.gamepad.switchpro_ffs)
+            elif config.kvmd.hid.gamepad.mode == "dualsense":
+                logger.info("===== HID-Gamepad (DualSense / PS5) =====")
+                gc.add_dualsense(["hid", "gamepad"], cod.hid.gamepad.start, config.kvmd.hid.gamepad.dualsense_ffs)
             else:
                 logger.info("===== HID-Gamepad =====")
                 gc.add_gamepad(["hid", "gamepad"], cod.hid.gamepad.start, config.otg.remote_wakeup)
@@ -506,8 +535,8 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
     # is deferred to the XInput servicer (a FunctionFS function has no endpoints
     # until its descriptors are written), which runs as that user.
     _chown(join(gadget_path, "UDC"), config.otg.user)
-    if xinput_mode:
-        logger.info("Deferring the UDC bind to the XInput servicer ...")
+    if ffs_mode:
+        logger.info("Deferring the UDC bind to the FunctionFS servicer ...")
     else:
         logger.info("Enabling the gadget ...")
         _write(join(gadget_path, "UDC"), udc)
