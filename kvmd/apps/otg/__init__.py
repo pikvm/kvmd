@@ -26,6 +26,7 @@ import shutil
 import json
 import math
 import errno
+import time
 import argparse
 
 from os.path import join  # pylint: disable=ungrouped-imports
@@ -465,6 +466,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     logger.info("Enabling the gadget ...")
     _write(join(gadget_path, "UDC"), udc)
+    time.sleep(config.otg.init_delay)
     _chown(join(gadget_path, "UDC"), config.otg.user)
     _chown(profile_path, config.otg.user)
 

@@ -23,6 +23,7 @@
 import os
 import asyncio
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -36,6 +37,7 @@ from ... import usb
 from ...yamlconf import Section
 from ...yamlconf import Option
 
+from ...validators.basic import valid_float_f01
 from ...validators.basic import valid_stripped_string
 from ...validators.basic import valid_stripped_string_not_empty
 
@@ -53,6 +55,7 @@ class Plugin(BaseUserGpioDriver):
 
         super().__init__(instance_name, notifier, c)
 
+        self.__init_delay: Final[float] = c.init_delay
         self.__udc: str = c.udc
 
         self.__udc_path = usb.get_gadget_path(usb.G_UDC)
@@ -64,7 +67,8 @@ class Plugin(BaseUserGpioDriver):
     @classmethod
     def get_plugin_options(cls) -> dict[str, Option]:
         return {
-            "udc": Option("", type=valid_stripped_string),
+            "udc":        Option("",  type=valid_stripped_string),
+            "init_delay": Option(3.0, type=valid_float_f01),
         }
 
     @classmethod
@@ -124,7 +128,10 @@ class Plugin(BaseUserGpioDriver):
                     pass
                 finally:
                     self.__recreate_profile()
-                    self.__set_udc_enabled(True)
+                    try:
+                        await asyncio.sleep(self.__init_delay)
+                    finally:
+                        self.__set_udc_enabled(True)
 
     def __recreate_profile(self) -> None:
         # XXX: See pikvm/pikvm#1235
