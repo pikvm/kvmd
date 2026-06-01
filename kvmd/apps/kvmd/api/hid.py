@@ -287,15 +287,22 @@ class HidApi:
     async def __ws_gamepad_handler(self, _: WsSession, event: dict) -> None:
         try:
             state = self.__parse_gamepad_event(event)
+            index = int(event.get("index", 0)) & 0x03
         except Exception:
             return
-        self.__hid.send_gamepad_event(**state)
+        self.__hid.send_gamepad_event(**state, index=index)
 
     @exposed_ws(6)
     async def __ws_bin_gamepad_handler(self, _: WsSession, data: bytes) -> None:
-        # >H == 16-bit button bitmask, then 7 bytes: lx, ly, rx, ry, lt, rt, hat
+        # 9 bytes (legacy): >H7B = buttons(16) + lx,ly,rx,ry,lt,rt,hat (index=0)
+        # 10 bytes (multi): >BH7B = index(8) + buttons(16) + 7 axes
         try:
-            (buttons, lx, ly, rx, ry, lt, rt, hat) = struct.unpack(">HBBBBBBB", data)
+            if len(data) == 10:
+                (index, buttons, lx, ly, rx, ry, lt, rt, hat) = struct.unpack(">BH7B", data)
+                index &= 0x03
+            else:
+                (buttons, lx, ly, rx, ry, lt, rt, hat) = struct.unpack(">HBBBBBBB", data)
+                index = 0
             state = {
                 "buttons": valid_hid_gamepad_buttons(buttons),
                 "lx": valid_hid_gamepad_axis(lx), "ly": valid_hid_gamepad_axis(ly),
@@ -305,7 +312,7 @@ class HidApi:
             }
         except Exception:
             return
-        self.__hid.send_gamepad_event(**state)
+        self.__hid.send_gamepad_event(**state, index=index)
 
     def __parse_gamepad_event(self, event: dict) -> dict:
         return {

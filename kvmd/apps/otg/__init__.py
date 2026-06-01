@@ -296,6 +296,14 @@ class _GadgetConfig:
         _mount("functionfs", "dualsense", ffs_path)
         self.__setup_function(func, "DualSense", 2, starter, start)
 
+    def add_ffs_gamepad(self, starter: list[str], start: bool, ffs_path: str,
+                        instance: str, desc: str) -> None:
+        func = f"ffs.{instance}"
+        self.__create_function(func)
+        _mkdir(ffs_path)
+        _mount("functionfs", instance, ffs_path)
+        self.__setup_function(func, desc, 2, starter, start)
+
     def __add_hid(self, desc: str, starter: list[str], start: bool, remote_wakeup: bool, hid: Hid) -> None:
         func = f"hid.usb{self.__hid_instance}"
         func_path = self.__create_function(func)
@@ -471,18 +479,26 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
             gc.add_mouse(["hid", "mouse_alt"], cod.hid.mouse_alt.start,
                          config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
         if config.kvmd.hid.gamepad.device:
-            if config.kvmd.hid.gamepad.mode == "xinput":
-                logger.info("===== HID-Gamepad (XInput / Xbox 360) =====")
-                gc.add_xinput(["hid", "gamepad"], cod.hid.gamepad.start, config.kvmd.hid.gamepad.xinput_ffs)
-            elif config.kvmd.hid.gamepad.mode == "switchpro":
-                logger.info("===== HID-Gamepad (Switch Pro Controller) =====")
-                gc.add_switchpro(["hid", "gamepad"], cod.hid.gamepad.start, config.kvmd.hid.gamepad.switchpro_ffs)
-            elif config.kvmd.hid.gamepad.mode == "dualsense":
-                logger.info("===== HID-Gamepad (DualSense / PS5) =====")
-                gc.add_dualsense(["hid", "gamepad"], cod.hid.gamepad.start, config.kvmd.hid.gamepad.dualsense_ffs)
-            else:
-                logger.info("===== HID-Gamepad =====")
-                gc.add_gamepad(["hid", "gamepad"], cod.hid.gamepad.start, config.otg.remote_wakeup)
+            gp_mode = config.kvmd.hid.gamepad.mode
+            gp_count = min(getattr(config.kvmd.hid.gamepad, "count", 2), 4)
+            ffs_base = config.kvmd.hid.gamepad.ffs_base
+            for i in range(gp_count):
+                start = cod.hid.gamepad.start if i < 2 else False
+                ffs_path = f"{ffs_base}{i}"
+                label = f"HID-Gamepad-{i}"
+                if gp_mode == "xinput":
+                    logger.info("===== %s (XInput / Xbox 360) =====", label)
+                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}")
+                elif gp_mode == "switchpro":
+                    logger.info("===== %s (Switch Pro Controller) =====", label)
+                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}")
+                elif gp_mode == "dualsense":
+                    logger.info("===== %s (DualSense / PS5) =====", label)
+                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}")
+                else:
+                    if i == 0:
+                        logger.info("===== %s (HID) =====", label)
+                        gc.add_gamepad(["hid", "gamepad"], start, config.otg.remote_wakeup)
 
     def make_inquiry_string(isc: Section) -> str:
         kwargs = isc._unpack()
