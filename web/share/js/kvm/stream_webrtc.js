@@ -64,78 +64,90 @@ export function WebrtcStreamer(__setActive, __setInactive, __setInfo, __organize
 
 	/************************************************************************/
 
+	// Signaling rides on kvmd's existing /ws WebSocket (event_type "webrtc_signal").
+	// kvmd transparently bridges these frames to the GamerStreamer subprocess.
+
 	var __connect = function() {
-		// Connect to the gamer-mode streamer's signaling WebSocket.
-		// In production this would go through kvmd's /ws, but for the
-		// standalone spike it connects directly to port 8765.
 		let proto = (location.protocol === "https:" ? "wss:" : "ws:");
-		let url = proto + "//" + location.hostname + ":8765/ws";
-
+		let url = proto + "//" + location.host + "/api/ws?stream=0";
 		__ws = new WebSocket(url);
-
 		__ws.onopen = function() {
-			__setInfo(false, false, "Gamer mode: waiting for offer...");
+			__setInfo(false, false, "Gamer mode: requesting offer...");
+			// Poke the server to start the pipeline; the message body is unused
+			// on the very first call (it just triggers ensure_start in the handler).
+			__ws.send(JSON.stringify({event_type: "webrtc_signal", event: {type: "hello"}}));
 		};
-
-		__ws.onmessage = async function(ev) {
-			let msg = JSON.parse(ev.data);
-
-			if (msg.type === "offer") {
-				__setInfo(false, false, "Got offer, creating answer...");
-
-				__pc = new RTCPeerConnection({
-					iceServers: [{urls: "stun:stun.l.google.com:19302"}],
-				});
-
-				__pc.ontrack = function(event) {
-					__setActive();
-					__setInfo(false, false, "Gamer mode: streaming!");
-					$("stream-video").srcObject = event.streams[0];
-				};
-
-				__pc.onicecandidate = function(event) {
-					if (event.candidate && __ws) {
-						__ws.send(JSON.stringify({
-							type: "ice",
-							candidate: event.candidate.candidate,
-							sdpMLineIndex: event.candidate.sdpMLineIndex,
-						}));
-					}
-				};
-
-				__pc.oniceconnectionstatechange = function() {
-					let state = __pc.iceConnectionState;
-					if (state === "failed" || state === "disconnected" || state === "closed") {
-						__setInactive();
-						__setInfo(false, false, "Gamer mode: ICE " + state);
-						__scheduleRetry();
-					}
-				};
-
-				await __pc.setRemoteDescription({type: "offer", sdp: msg.sdp});
-				let answer = await __pc.createAnswer();
-				await __pc.setLocalDescription(answer);
-				__ws.send(JSON.stringify({type: "answer", sdp: answer.sdp}));
-			}
-
-			else if (msg.type === "ice") {
-				if (__pc && msg.candidate) {
-					await __pc.addIceCandidate({
-						candidate: msg.candidate,
-						sdpMLineIndex: msg.sdpMLineIndex,
-					});
-				}
-			}
-		};
-
+		__ws.onmessage = (ev) => __onSignal(JSON.parse(ev.data));
 		__ws.onclose = function() {
 			__setInactive();
 			__scheduleRetry();
 		};
-
 		__ws.onerror = function() {
 			if (__ws) __ws.close();
 		};
+	};
+
+	var __sendSignal = function(payload) {
+		if (__ws && __ws.readyState === WebSocket.OPEN) {
+			__ws.send(JSON.stringify({event_type: "webrtc_signal", event: payload}));
+		}
+	};
+
+	var __onSignal = async function(frame) {
+		// kvmd wraps events as {event_type: "webrtc_signal", event: {...}}
+		if (frame.event_type !== "webrtc_signal") return;
+		let msg = frame.event;
+
+		if (msg.type === "offer") {
+			__setInfo(false, false, "Got offer, creating answer...");
+			__pc = new RTCPeerConnection({
+				iceServers: [{urls: "stun:stun.l.google.com:19302"}],
+			});
+
+			__pc.ontrack = function(event) {
+				__setActive();
+				__setInfo(false, false, "Gamer mode: streaming!");
+				$("stream-video").srcObject = event.streams[0];
+			};
+
+			__pc.onicecandidate = function(event) {
+				if (event.candidate) {
+					__sendSignal({
+						type: "ice",
+						candidate: event.candidate.candidate,
+						sdpMLineIndex: event.candidate.sdpMLineIndex,
+					});
+				}
+			};
+
+			__pc.oniceconnectionstatechange = function() {
+				let state = __pc.iceConnectionState;
+				if (state === "failed" || state === "disconnected" || state === "closed") {
+					__setInactive();
+					__setInfo(false, false, "Gamer mode: ICE " + state);
+					__scheduleRetry();
+				}
+			};
+
+			await __pc.setRemoteDescription({type: "offer", sdp: msg.sdp});
+			let answer = await __pc.createAnswer();
+			await __pc.setLocalDescription(answer);
+			__sendSignal({type: "answer", sdp: answer.sdp});
+		}
+		else if (msg.type === "ice") {
+			if (__pc && msg.candidate) {
+				await __pc.addIceCandidate({
+					candidate: msg.candidate,
+					sdpMLineIndex: msg.sdpMLineIndex,
+				});
+			}
+		}
+		else if (msg.type === "signal_lost") {
+			__setInfo(false, false, "Gamer mode: capture signal lost (port switch?)");
+		}
+		else if (msg.type === "signal_restored") {
+			__setInfo(false, false, "Gamer mode: streaming!");
+		}
 	};
 
 	var __cleanup = function() {

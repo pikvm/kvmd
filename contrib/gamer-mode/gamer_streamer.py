@@ -2,20 +2,19 @@
 """
 PiKVM Gamer Mode Streamer - Low-latency WebRTC video via GStreamer webrtcbin.
 
-Replaces the Janus→ustreamer path with a direct GStreamer pipeline:
-  v4l2src → v4l2h264enc → rtph264pay → webrtcbin → browser
+Replaces the Janus->ustreamer path with a direct GStreamer pipeline:
+  v4l2src -> v4l2h264enc -> rtph264pay -> webrtcbin -> browser
 
-WebRTC signaling is handled via a simple aiohttp WebSocket server.
-The browser connects, exchanges SDP offer/answer and ICE candidates,
-and receives the H.264 stream directly — no Janus middleman.
-
-Usage:
-  python3 gamer_streamer.py [--device /dev/video0] [--port 8765] [--fps 60]
+Two signaling transports:
+  --stdio (default): JSON lines on stdin/stdout. kvmd parents this process
+    and bridges to the browser via its existing /ws WebSocket.
+  --port N (legacy spike mode): standalone aiohttp WS server + embedded
+    HTML client. Useful for development without kvmd.
 
 Dependencies:
   - GStreamer 1.x with gst-plugins-bad (for webrtcbin)
   - PyGObject (gi.repository.Gst, GstSdp, GstWebRTC)
-  - aiohttp
+  - aiohttp (only when --port is used)
 """
 
 import argparse
@@ -30,10 +29,7 @@ gi.require_version("GstSdp", "1.0")
 gi.require_version("GstWebRTC", "1.0")
 from gi.repository import Gst, GstSdp, GstWebRTC, GLib
 
-import aiohttp
-from aiohttp import web
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", stream=sys.stderr)
 logger = logging.getLogger("gamer")
 
 Gst.init(None)
@@ -46,34 +42,86 @@ class GamerPipeline:
         self._bitrate = bitrate
         self._pipe = None
         self._webrtcbin = None
-        self._ws = None
+        self._send = None  # async callable: (dict) -> awaitable
         self._loop = None
+        self._signal_lost = False
 
     def build(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
 
         encoder = self._detect_encoder()
+        # input-selector lets us swap between live v4l2 capture and a black
+        # placeholder source on the fly, so a V4 port switch / EDID drop
+        # doesn't tear down the WebRTC session. We point at video2 first;
+        # the bus error handler swaps to videotestsrc on capture failure.
+        # Both branches feed the same encoder->rtp->webrtcbin downstream.
         pipe_str = (
-            f"v4l2src device={self._device} "
+            f"input-selector name=sel "
+            f"! videoconvert ! videoscale "
             f"! video/x-raw,framerate={self._fps}/1 "
-            f"! videoconvert "
             f"! {encoder} "
             f"! video/x-h264,profile=constrained-baseline "
             f"! rtph264pay config-interval=-1 pt=96 "
             f"! application/x-rtp,media=video,encoding-name=H264,payload=96 "
             f"! webrtcbin name=webrtc bundle-policy=max-bundle "
-            f"  stun-server=stun://stun.l.google.com:19302"
+            f"  stun-server=stun://stun.l.google.com:19302 "
+            f"v4l2src device={self._device} name=cap "
+            f"! video/x-raw,framerate={self._fps}/1 "
+            f"! sel.sink_0 "
+            f"videotestsrc pattern=black is-live=true name=fallback "
+            f"! video/x-raw,framerate={self._fps}/1,width=1280,height=720 "
+            f"! sel.sink_1"
         )
         logger.info("Pipeline: %s", pipe_str)
         self._pipe = Gst.parse_launch(pipe_str)
         self._webrtcbin = self._pipe.get_by_name("webrtc")
+        self._selector = self._pipe.get_by_name("sel")
+
+        # Start on the live capture branch (sink_0).
+        sink0 = self._selector.get_static_pad("sink_0")
+        self._selector.set_property("active-pad", sink0)
 
         self._webrtcbin.connect("on-negotiation-needed", self._on_negotiation_needed)
         self._webrtcbin.connect("on-ice-candidate", self._on_ice_candidate)
         self._webrtcbin.connect("pad-added", self._on_pad_added)
-
-        # Disable jitter buffer for minimum latency
         self._webrtcbin.set_property("latency", 0)
+
+        # Watch the bus for v4l2src errors -> swap to black fallback,
+        # then poll for the device coming back and swap back.
+        bus = self._pipe.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message::error", self._on_bus_error)
+
+    def _on_bus_error(self, _bus, message):
+        src_name = message.src.get_name() if message.src else "?"
+        err, dbg = message.parse_error()
+        logger.warning("Bus error from %s: %s", src_name, err)
+        # If the capture source died (port switch / EDID drop), swap to the
+        # black fallback branch without tearing down the encoder/webrtc.
+        if src_name in ("cap", "v4l2src0") and not self._signal_lost:
+            self._signal_lost = True
+            self._emit({"type": "signal_lost", "src": src_name})
+            sink1 = self._selector.get_static_pad("sink_1")
+            self._selector.set_property("active-pad", sink1)
+            # Try to recover the capture branch periodically.
+            GLib.timeout_add(1000, self._try_recover_capture)
+
+    def _try_recover_capture(self):
+        cap = self._pipe.get_by_name("cap")
+        if not cap:
+            return False
+        # Re-trigger READY->PLAYING on the capture branch.
+        cap.set_state(Gst.State.READY)
+        cap.set_state(Gst.State.PLAYING)
+        ret, state, _pending = cap.get_state(timeout=Gst.SECOND)
+        if ret == Gst.StateChangeReturn.SUCCESS and state == Gst.State.PLAYING:
+            sink0 = self._selector.get_static_pad("sink_0")
+            self._selector.set_property("active-pad", sink0)
+            self._signal_lost = False
+            self._emit({"type": "signal_restored"})
+            logger.info("v4l2src recovered, swapped back to live capture")
+            return False  # stop the timer
+        return True  # keep polling
 
     def _detect_encoder(self) -> str:
         hw = Gst.ElementFactory.find("v4l2h264enc")
@@ -99,11 +147,16 @@ class GamerPipeline:
             self._pipe.set_state(Gst.State.NULL)
             logger.info("Pipeline stopped")
 
-    def set_ws(self, ws):
-        self._ws = ws
+    def set_sender(self, send):
+        """send(dict) -> awaitable. Called from any thread; scheduled on _loop."""
+        self._send = send
+
+    def _emit(self, msg: dict):
+        if self._send and self._loop:
+            asyncio.run_coroutine_threadsafe(self._send(msg), self._loop)
 
     def _on_negotiation_needed(self, webrtcbin):
-        logger.info("Negotiation needed — creating offer")
+        logger.info("Negotiation needed -- creating offer")
         promise = Gst.Promise.new_with_change_func(self._on_offer_created)
         webrtcbin.emit("create-offer", None, promise)
 
@@ -114,22 +167,14 @@ class GamerPipeline:
         self._webrtcbin.emit("set-local-description", offer, None)
         sdp_text = offer.sdp.as_text()
         logger.info("SDP offer created (%d chars)", len(sdp_text))
-        if self._ws and self._loop:
-            asyncio.run_coroutine_threadsafe(
-                self._ws.send_json({"type": "offer", "sdp": sdp_text}),
-                self._loop,
-            )
+        self._emit({"type": "offer", "sdp": sdp_text})
 
     def _on_ice_candidate(self, webrtcbin, mline_index, candidate):
-        if self._ws and self._loop:
-            asyncio.run_coroutine_threadsafe(
-                self._ws.send_json({
-                    "type": "ice",
-                    "candidate": candidate,
-                    "sdpMLineIndex": mline_index,
-                }),
-                self._loop,
-            )
+        self._emit({
+            "type": "ice",
+            "candidate": candidate,
+            "sdpMLineIndex": mline_index,
+        })
 
     def _on_pad_added(self, webrtcbin, pad):
         logger.info("Pad added: %s", pad.get_name())
@@ -160,19 +205,24 @@ class GamerServer:
         self._pipeline = None
 
     async def _ws_handler(self, request):
+        import aiohttp
+        from aiohttp import web
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         logger.info("WebSocket client connected")
 
         loop = asyncio.get_event_loop()
 
-        # Build a fresh pipeline for each connection (1:1 streaming)
         if self._pipeline:
             self._pipeline.stop()
 
         self._pipeline = GamerPipeline(self._device, self._fps, self._bitrate)
         self._pipeline.build(loop)
-        self._pipeline.set_ws(ws)
+
+        async def send(msg):
+            await ws.send_json(msg)
+
+        self._pipeline.set_sender(send)
         self._pipeline.start()
 
         try:
@@ -191,9 +241,11 @@ class GamerServer:
         return ws
 
     async def _index_handler(self, request):
+        from aiohttp import web
         return web.Response(text=_INDEX_HTML, content_type="text/html")
 
     def run(self):
+        from aiohttp import web
         app = web.Application()
         app.router.add_get("/", self._index_handler)
         app.router.add_get("/ws", self._ws_handler)
@@ -289,16 +341,67 @@ connect();
 """
 
 
+async def run_stdio(device: str, fps: int, bitrate: int):
+    """Bridge signaling over stdin/stdout JSON-line frames.
+
+    kvmd parents this process: it forwards browser-WS messages into stdin,
+    and reads stdout for SDP offer / ICE candidates / signal-loss events
+    to forward back to the browser WS. One frame per line.
+    """
+    loop = asyncio.get_event_loop()
+    pipeline = GamerPipeline(device, fps, bitrate)
+    pipeline.build(loop)
+
+    # Writer: a coroutine that emits one JSON line to stdout.
+    write_lock = asyncio.Lock()
+
+    async def send(msg: dict) -> None:
+        async with write_lock:
+            sys.stdout.write(json.dumps(msg) + "\n")
+            sys.stdout.flush()
+
+    pipeline.set_sender(send)
+    pipeline.start()
+
+    # Reader: stdin lines -> pipeline. Use a thread executor since
+    # sys.stdin.readline() is blocking.
+    def read_line():
+        return sys.stdin.readline()
+
+    try:
+        while True:
+            line = await loop.run_in_executor(None, read_line)
+            if not line:
+                logger.info("stdin EOF, shutting down")
+                break
+            try:
+                msg = json.loads(line.strip())
+            except json.JSONDecodeError as ex:
+                logger.warning("Bad JSON on stdin: %s", ex)
+                continue
+            await pipeline.handle_message(msg)
+    finally:
+        pipeline.stop()
+
+
 def main():
     parser = argparse.ArgumentParser(description="PiKVM Gamer Mode Streamer")
     parser.add_argument("--device", default="/dev/video0", help="V4L2 device")
-    parser.add_argument("--port", type=int, default=8765, help="WebSocket port")
     parser.add_argument("--fps", type=int, default=60, help="Target framerate")
     parser.add_argument("--bitrate", type=int, default=5000, help="H.264 bitrate (kbps)")
+    parser.add_argument("--port", type=int, default=0,
+                        help="If >0, run standalone HTTP server on this port "
+                             "(legacy spike mode). Default 0 = stdio mode.")
     args = parser.parse_args()
 
-    server = GamerServer(args.device, args.fps, args.bitrate, args.port)
-    server.run()
+    if args.port > 0:
+        # Standalone spike mode: import aiohttp on demand.
+        from aiohttp import web  # noqa: F401
+        server = GamerServer(args.device, args.fps, args.bitrate, args.port)
+        server.run()
+    else:
+        # stdio mode: kvmd-managed.
+        asyncio.run(run_stdio(args.device, args.fps, args.bitrate))
 
 
 if __name__ == "__main__":

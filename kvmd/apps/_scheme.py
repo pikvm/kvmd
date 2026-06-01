@@ -362,7 +362,16 @@ def make_config_scheme() -> dict:
             },
 
             "streamer": {
+                # "default" = ustreamer (+ optional Janus, the legacy path).
+                # "gamer"   = direct GStreamer webrtcbin pipeline, no Janus.
+                "mode":    Option("default", type=valid_stripped_string_not_empty),
                 "forever": Option(False, type=valid_bool),
+
+                "gamer": {
+                    "device":  Option("/dev/video0", type=valid_abs_path),
+                    "fps":     Option(60,   type=valid_stream_fps),
+                    "bitrate": Option(5000, type=valid_stream_h264_bitrate),
+                },
 
                 "reset_delay":    Option(1.0,  type=valid_float_f0),
                 "shutdown_delay": Option(10.0, type=valid_float_f01),

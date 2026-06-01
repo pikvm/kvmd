@@ -31,6 +31,7 @@ from .info import InfoManager
 from .logreader import LogReader
 from .ugpio import UserGpio
 from .streamer import Streamer
+from .streamer.gamer import GamerStreamer
 from .snapshoter import Snapshoter
 from .ocr import Ocr
 from .switch import Switch
@@ -55,13 +56,24 @@ def main() -> None:
 
     hid = get_hid_class(config.hid.type)(config.hid)
 
-    streamer = Streamer(
-        **config.streamer._unpack(ignore=["forever", "desired_fps", "resolution", "h264_bitrate", "h264_gop"]),
-        **config.streamer.resolution._unpack(),
-        **config.streamer.desired_fps._unpack(),
-        **config.streamer.h264_bitrate._unpack(),
-        **config.streamer.h264_gop._unpack(),
-    )
+    streamer: (Streamer | GamerStreamer)
+    if config.streamer.mode == "gamer":
+        streamer = GamerStreamer(
+            device=config.streamer.gamer.device,
+            fps=config.streamer.gamer.fps,
+            bitrate=config.streamer.gamer.bitrate,
+        )
+    else:
+        streamer = Streamer(
+            **config.streamer._unpack(ignore=[
+                "mode", "forever", "gamer",
+                "desired_fps", "resolution", "h264_bitrate", "h264_gop",
+            ]),
+            **config.streamer.resolution._unpack(),
+            **config.streamer.desired_fps._unpack(),
+            **config.streamer.h264_bitrate._unpack(),
+            **config.streamer.h264_gop._unpack(),
+        )
 
     KvmdServer(
         auth=AuthManager(

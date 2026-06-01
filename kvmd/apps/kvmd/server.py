@@ -64,6 +64,7 @@ from .info import InfoManager
 from .logreader import LogReader
 from .ugpio import UserGpio
 from .streamer import Streamer
+from .streamer.gamer import GamerStreamer
 from .snapshoter import Snapshoter
 from .ocr import Ocr
 from .switch import Switch
@@ -156,7 +157,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         hid: BaseHid,
         atx: BaseAtx,
         msd: BaseMsd,
-        streamer: Streamer,
+        streamer: "Streamer | GamerStreamer",
         snapshoter: Snapshoter,
 
         allow_redirects: list[str],
@@ -265,6 +266,23 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
     @exposed_ws(0)
     async def __ws_bin_ping_handler(self, ws: WsSession, _: bytes) -> None:
         await ws.send_bin(255, b"")  # Ping-pong
+
+    # ===== GAMER-MODE WEBRTC SIGNALING
+    #
+    # When streamer.mode == "gamer", the browser exchanges SDP / ICE with the
+    # GamerStreamer subprocess directly through this handler. kvmd is a
+    # transparent bridge: browser -> subprocess via handle_browser_message,
+    # subprocess -> browser via ws.send_event("webrtc_signal", ...).
+
+    @exposed_ws("webrtc_signal")
+    async def __ws_webrtc_signal_handler(self, ws: WsSession, msg: dict) -> None:
+        if not isinstance(self.__streamer, GamerStreamer):
+            return
+        # First message from any browser session also starts/attaches the pipeline.
+        await self.__streamer.ensure_start(
+            lambda outbound: ws.send_event("webrtc_signal", outbound),
+        )
+        await self.__streamer.handle_browser_message(msg)
 
     # ===== SYSTEM STUFF
 
