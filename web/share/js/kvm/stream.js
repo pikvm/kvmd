@@ -29,6 +29,7 @@ import {wm} from "../wm.js";
 import {JanusStreamer} from "./stream_janus.js";
 import {MediaStreamer} from "./stream_media.js";
 import {MjpegStreamer} from "./stream_mjpeg.js";
+import {WebrtcStreamer} from "./stream_webrtc.js";
 
 
 export function Streamer() {
@@ -344,9 +345,13 @@ export function Streamer() {
 			let allow_mic = (tools.feature.isEnabled($("stream-mic")) && $("stream-mic-switch").checked);
 			let allow_cam = (tools.feature.isEnabled($("stream-cam")) && $("stream-cam-switch").checked);
 			__streamer = new JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient, allow_audio, allow_mic, allow_cam);
-			// Firefox doesn't support RTP orientation:
-			//  - https://bugzilla.mozilla.org/show_bug.cgi?id=1316448
 			tools.feature.setEnabled($("stream-orient"), !tools.browser.is_firefox);
+		} else if (mode === "webrtc") {
+			__streamer = new WebrtcStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient);
+			tools.feature.setEnabled($("stream-orient"), true);
+			tools.feature.setEnabled($("stream-audio"), false);
+			tools.feature.setEnabled($("stream-mic"), false);
+			tools.feature.setEnabled($("stream-cam"), false);
 		} else {
 			if (mode === "media") {
 				__streamer = new MediaStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient);
@@ -355,9 +360,9 @@ export function Streamer() {
 				__streamer = new MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeHook);
 				tools.feature.setEnabled($("stream-orient"), false);
 			}
-			tools.feature.setEnabled($("stream-audio"), false); // Enabling in stream_janus.js
-			tools.feature.setEnabled($("stream-mic"), false); // Ditto
-			tools.feature.setEnabled($("stream-cam"), false); // Ditto
+			tools.feature.setEnabled($("stream-audio"), false);
+			tools.feature.setEnabled($("stream-mic"), false);
+			tools.feature.setEnabled($("stream-cam"), false);
 		}
 		if (__isStreamRequired()) {
 			__streamer.ensureStream((__state && __state.streamer !== undefined) ? __state.streamer : null);
@@ -370,7 +375,7 @@ export function Streamer() {
 		if (mode !== __streamer.getMode()) {
 			tools.hidden.setVisible($("stream-canvas"), (mode === "media"));
 			tools.hidden.setVisible($("stream-image"), (mode === "mjpeg"));
-			tools.hidden.setVisible($("stream-video"), (mode === "janus"));
+			tools.hidden.setVisible($("stream-video"), (mode === "janus" || mode === "webrtc"));
 			__resetStream(mode);
 		}
 	};
