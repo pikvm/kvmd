@@ -46,13 +46,13 @@ from . import fs
 class _ImageDc:  # pylint: disable=too-many-instance-attributes
     name:       str
     path:       str
-    in_storage: bool  = dataclasses.field(compare=False)
+    in_storage: bool  = dataclasses.field(default=False, compare=False)
     # For _reload():
-    complete:   bool  = dataclasses.field(init=False, compare=False)
-    removable:  bool  = dataclasses.field(init=False, compare=False)
-    writable:   bool  = dataclasses.field(init=False, compare=False)
-    size:       int   = dataclasses.field(init=False, compare=False)
-    mod_ts:     float = dataclasses.field(init=False, compare=False)
+    complete:   bool  = dataclasses.field(default=False, compare=False)
+    removable:  bool  = dataclasses.field(default=False, compare=False)
+    writable:   bool  = dataclasses.field(default=False, compare=False)
+    size:       int   = dataclasses.field(default=False, compare=False)
+    mod_ts:     float = dataclasses.field(default=False, compare=False)
 
 
 class Image(_ImageDc):
