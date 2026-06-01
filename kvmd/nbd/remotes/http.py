@@ -80,6 +80,9 @@ class NbdHttpRemote(BaseNbdRemote):
     def get_timeout(self) -> float:
         return self.__timeout
 
+    async def _do_explore(self) -> NbdImage:
+        return (await self._do_probe())
+
     async def _do_probe(self) -> NbdImage:
         async with self.__make_session() as session:
             return (await self.__probe(session))

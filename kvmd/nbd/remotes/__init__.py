@@ -81,6 +81,9 @@ class BaseNbdRemote:
     def get_timeout(self) -> float:
         raise NotImplementedError
 
+    async def _do_explore(self) -> NbdImage:
+        raise NotImplementedError
+
     async def _do_probe(self) -> NbdImage:
         raise NotImplementedError
 
@@ -121,7 +124,10 @@ class BaseNbdRemote:
 
     # =====
 
-    async def probe(self) -> NbdImage:
+    async def explore(self) -> NbdImage:
+        return (await self._do_explore())
+
+    async def probe(self) -> NbdImage:  # noqa vulture-ignore
         assert self.__events_q is None  # Not running
         self.__image = await self._do_probe()
         return self.__image

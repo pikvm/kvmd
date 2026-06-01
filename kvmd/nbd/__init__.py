@@ -86,11 +86,11 @@ class NbdController:
             for (scheme, cls) in self.__REMOTES.items()
         }
 
-    async def probe(self, url: str, **params: Any) -> NbdImage:
-        (_, image) = await self.__inner_probe(url, **params)
+    async def explore(self, url: str, **params: Any) -> NbdImage:
+        (_, image) = await self.__resolve("explore", url, **params)
         return image
 
-    async def __inner_probe(self, url: str, **params: Any) -> tuple[BaseNbdRemote, NbdImage]:
+    async def __resolve(self, func: str, url: str, **params: Any) -> tuple[BaseNbdRemote, NbdImage]:
         scheme = urllib.parse.urlparse(url).scheme
         cls = self.__REMOTES.get(scheme)
         if cls is None:
@@ -103,7 +103,7 @@ class NbdController:
 
         remote = cls(config)
         try:
-            image = await remote.probe()
+            image = await getattr(remote, func)()
         except Exception as ex:
             raise NbdProbeError(f"{cls.__name__}: {tools.efmt(ex)}")
         return (remote, image)
@@ -113,7 +113,7 @@ class NbdController:
             if self.__proc:
                 raise NbdBoundError("NBD is already bound")
 
-            (remote, image) = await self.__inner_probe(url, **params)
+            (remote, image) = await self.__resolve("probe", url, **params)
 
             assert self.__proc is None
             self.__nr.notify()

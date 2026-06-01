@@ -65,9 +65,9 @@ class NbdServer(HttpServer):
     async def __remotes_handler(self, _: Request) -> Response:
         return make_json_response(self.__ctl.get_remotes())
 
-    @exposed_http("POST", "/probe")
-    async def __probe_handler(self, req: Request) -> Response:
-        image = await self.__ctl.probe(**dict(req.query))
+    @exposed_http("POST", "/explore")
+    async def __explore_handler(self, req: Request) -> Response:
+        image = await self.__ctl.explore(**dict(req.query))
         return make_json_response({
             "image": dataclasses.asdict(image),
         })
