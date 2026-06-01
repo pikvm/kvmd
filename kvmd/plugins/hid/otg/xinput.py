@@ -183,10 +183,10 @@ class XInputProcess:  # pylint: disable=too-many-instance-attributes
                     endpoint_list=[
                         {"endpoint": {"bEndpointAddress": ch9.USB_DIR_IN,
                                       "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
-                                      "wMaxPacketSize": 0x20, "bInterval": 4}},
+                                      "wMaxPacketSize": 0x20, "bInterval": 1}},
                         {"endpoint": {"bEndpointAddress": ch9.USB_DIR_OUT,
                                       "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
-                                      "wMaxPacketSize": 0x20, "bInterval": 8}},
+                                      "wMaxPacketSize": 0x20, "bInterval": 1}},
                     ],
                 )
                 super().__init__(path, fs_list=fs_list, hs_list=hs_list, ss_list=ss_list,

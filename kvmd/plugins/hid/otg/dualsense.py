@@ -220,10 +220,10 @@ class DualSenseProcess:
                     endpoint_list=[
                         {"endpoint": {"bEndpointAddress": ch9.USB_DIR_IN,
                                       "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
-                                      "wMaxPacketSize": 64, "bInterval": 4}},
+                                      "wMaxPacketSize": 64, "bInterval": 1}},
                         {"endpoint": {"bEndpointAddress": ch9.USB_DIR_OUT,
                                       "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
-                                      "wMaxPacketSize": 64, "bInterval": 4}},
+                                      "wMaxPacketSize": 64, "bInterval": 1}},
                     ],
                     class_descriptor_list=[
                         {

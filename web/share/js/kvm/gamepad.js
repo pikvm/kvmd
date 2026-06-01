@@ -32,10 +32,11 @@ export function Gamepad(__recordWsEvent) {
 	/************************************************************************/
 
 	var __ws = null;
-	var __enabled = false; // HID online and a gamepad device present on the target
-	var __index = null;    // Index of the active browser gamepad
-	var __raf = null;
-	var __last = null;     // Last sent snapshot (JSON) for change detection
+	var __enabled = false;
+	var __connected = {};  // {browser_index: true} for all connected gamepads
+	var __interval = null;
+	var __last = {};       // {pad_index: "json"} for change detection
+	var __pollMs = 4;      // 4ms = 250Hz (browser minimum reliable interval)
 
 	var __NEUTRAL = {"buttons": 0, "lx": 128, "ly": 128, "rx": 128, "ry": 128, "lt": 0, "rt": 0, "hat": 8};
 
@@ -59,7 +60,7 @@ export function Gamepad(__recordWsEvent) {
 	self.setSocket = function(ws) {
 		__ws = ws;
 		if (!__ws) {
-			__last = null;
+			__last = {};
 		}
 		__updateLoop();
 	};
@@ -71,50 +72,54 @@ export function Gamepad(__recordWsEvent) {
 
 	self.releaseAll = function() {
 		if (__ws) {
-			__last = null;
-			__send(__NEUTRAL);
+			__last = {};
+			for (let idx in __connected) {
+				__send(parseInt(idx), __NEUTRAL);
+			}
 		}
 	};
 
 	/************************************************************************/
 
 	var __connectHandler = function(ev) {
-		if (__index === null) {
-			__index = ev.gamepad.index;
-			tools.info("Gamepad: connected:", ev.gamepad.id);
-			__updateLoop();
-		}
+		__connected[ev.gamepad.index] = true;
+		tools.info("Gamepad: connected [" + ev.gamepad.index + "]:", ev.gamepad.id);
+		__updateLoop();
 	};
 
 	var __disconnectHandler = function(ev) {
-		if (ev.gamepad.index === __index) {
-			tools.info("Gamepad: disconnected:", ev.gamepad.id);
-			__index = null;
-			self.releaseAll();
+		let idx = ev.gamepad.index;
+		if (__connected[idx]) {
+			tools.info("Gamepad: disconnected [" + idx + "]:", ev.gamepad.id);
+			delete __connected[idx];
+			if (__ws) {
+				__send(idx, __NEUTRAL);
+			}
+			delete __last[idx];
 			__updateLoop();
 		}
 	};
 
 	var __updateLoop = function() {
-		if (__enabled && __ws && __index !== null) {
-			if (__raf === null) {
-				__raf = window.requestAnimationFrame(__poll);
-			}
-		} else if (__raf !== null) {
-			window.cancelAnimationFrame(__raf);
-			__raf = null;
+		let active = __enabled && __ws && Object.keys(__connected).length > 0;
+		if (active && __interval === null) {
+			__interval = setInterval(__poll, __pollMs);
+		} else if (!active && __interval !== null) {
+			clearInterval(__interval);
+			__interval = null;
 		}
 	};
 
 	var __poll = function() {
-		__raf = null;
-		if (__enabled && __ws && __index !== null) {
-			let pads = navigator.getGamepads();
-			let gp = (pads ? pads[__index] : null);
-			if (gp) {
-				__send(__readPad(gp));
+		if (!__enabled || !__ws) return;
+		let pads = navigator.getGamepads();
+		if (!pads) return;
+		for (let idx in __connected) {
+			let i = parseInt(idx);
+			let gp = pads[i];
+			if (gp && i < 4) {
+				__send(i, __readPad(gp));
 			}
-			__raf = window.requestAnimationFrame(__poll);
 		}
 	};
 
@@ -165,16 +170,28 @@ export function Gamepad(__recordWsEvent) {
 
 	/************************************************************************/
 
-	var __send = function(state) {
+	var __send = function(padIndex, state) {
 		let snapshot = JSON.stringify(state);
-		if (snapshot === __last) {
-			return; // Only send when something actually changed
+		if (snapshot === __last[padIndex]) {
+			return;
 		}
-		__last = snapshot;
-		let ev = {"event_type": "gamepad", "event": state};
+		__last[padIndex] = snapshot;
+		// Use 10-byte binary format: index(1) + buttons(2) + lx,ly,rx,ry,lt,rt,hat(7)
 		if (__ws && !$("hid-mute-switch").checked) {
-			__ws.sendHidEvent(ev);
+			let buf = new ArrayBuffer(10);
+			let dv = new DataView(buf);
+			dv.setUint8(0, padIndex & 0x03);
+			dv.setUint16(1, state.buttons, false); // big-endian
+			dv.setUint8(3, state.lx);
+			dv.setUint8(4, state.ly);
+			dv.setUint8(5, state.rx);
+			dv.setUint8(6, state.ry);
+			dv.setUint8(7, state.lt);
+			dv.setUint8(8, state.rt);
+			dv.setUint8(9, state.hat);
+			__ws.sendHidBin(6, new Uint8Array(buf));
 		}
+		let ev = {"event_type": "gamepad", "event": Object.assign({"index": padIndex}, state)};
 		__recordWsEvent(ev);
 	};
 
