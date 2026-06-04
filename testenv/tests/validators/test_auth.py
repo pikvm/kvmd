@@ -40,6 +40,7 @@ from kvmd.validators.auth import valid_auth_token
     "_",
     "_foo_bar_",
     " aix",
+    "user@example.com",
 ])
 def test_ok__valid_user(arg: Any) -> None:
     assert valid_user(arg) == arg.strip()
@@ -52,6 +53,9 @@ def test_ok__valid_user(arg: Any) -> None:
     "-",
     "-foo_bar",
     "foo bar",
+    "user@example.",
+    "user@",
+    "user.",
     "  ",
     "",
     None,
@@ -63,20 +67,23 @@ def test_fail__valid_user(arg: Any) -> None:
 
 # =====
 @pytest.mark.parametrize("arg, retval", [
-    ("foo, bar, ",     ["foo", "bar"]),
+    ("foo, bar, ",   ["foo", "bar"]),
     ("foo bar",      ["foo", "bar"]),
     (["foo", "bar"], ["foo", "bar"]),
-    ("",             []),
-    (" ",            []),
-    (", ",           []),
-    (", foo, ",      ["foo"]),
-    ([],             []),
+    ("user@example.com, foo, bar, ",     ["user@example.com", "foo", "bar"]),
+    ("user@example.com foo bar",         ["user@example.com", "foo", "bar"]),
+    (["user@example.com", "foo", "bar"], ["user@example.com", "foo", "bar"]),
+    ("",        []),
+    (" ",       []),
+    (", ",      []),
+    (", foo, ", ["foo"]),
+    ([],        []),
 ])
 def test_ok__valid_users_list(arg: Any, retval: list) -> None:
     assert valid_users_list(arg) == retval
 
 
-@pytest.mark.parametrize("arg", [None, [None], [""], [" "], ["user,"]])
+@pytest.mark.parametrize("arg", [None, [None], [""], [" "], ["user,"], ["user@example."], ["user@"], ["user."]])
 def test_fail__valid_users_list(arg: Any) -> None:  # pylint: disable=invalid-name
     with pytest.raises(ValidatorError):
         print(valid_users_list(arg))

@@ -32,7 +32,7 @@ from . import check_re_match
 # =====
 @add_validator_magic
 def valid_user(arg: Any) -> str:
-    return check_re_match(arg, "username characters", r"^[a-z_][a-z0-9_-]*$")
+    return check_re_match(arg, "username characters", r"^[a-z_]([a-z0-9@._-]*[a-z0-9_-])?$")
 
 
 @add_validator_magic
