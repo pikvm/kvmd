@@ -35,9 +35,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 	/************************************************************************/
 
-	__allow_mic = (__allow_audio && __allow_mic); // XXX: Mic only with audio
-	__allow_cam = (__allow_audio && __allow_cam); // XXX: Camera only with audio
-
 	var __stop = false;
 
 	var __janus = null;
@@ -61,12 +58,12 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		let name = "WebRTC H.264";
 		if (__allow_audio) {
 			name += " + Audio";
-			if (__allow_mic) {
-				name += " + Mic";
-			}
-			if (__allow_cam) {
-				name += " + Cam";
-			}
+		}
+		if (__allow_mic) {
+			name += " + Mic";
+		}
+		if (__allow_cam) {
+			name += " + Cam";
 		}
 		return name;
 	};
@@ -288,6 +285,10 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 						tools.feature.setEnabled($("stream-audio"), msg.result.features.audio);
 						tools.feature.setEnabled($("stream-mic"), msg.result.features.mic);
 						tools.feature.setEnabled($("stream-cam"), msg.result.features.cam);
+						tools.el.setEnabled($("stream-mic-switch"), msg.result.features.mic);
+						tools.el.setEnabled($("stream-cam-switch"), msg.result.features.cam);
+						__allow_mic = (msg.result.features.mic && $("stream-mic-switch").checked);
+						__allow_cam = (msg.result.features.cam && $("stream-cam-switch").checked);
 						__ice = msg.result.features.ice;
 						__sendWatch();
 					}
@@ -310,9 +311,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 				if (jsep) {
 					__logInfo("Handling SDP:", jsep);
-					let tracks = [{"type": "video", "capture": (__allow_audio && __allow_cam), "recv": true, "add": true}];
-					if (__allow_audio) {
-						tracks.push({"type": "audio", "capture": __allow_mic, "recv": true, "add": true});
+					let tracks = [{"type": "video", "capture": __allow_cam, "recv": true, "add": true}];
+					if (__allow_audio || __allow_mic) {
+						tracks.push({"type": "audio", "capture": __allow_mic, "recv": __allow_audio, "add": true});
 					}
 					__handle.createAnswer({
 						"jsep": jsep,

@@ -1,0 +1,8 @@
+otg:
+    devices:
+        audio:
+            enabled: true
+            speakers:
+                enabled: false
+            mic:
+                enabled: true

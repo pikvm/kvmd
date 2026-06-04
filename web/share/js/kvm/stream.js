@@ -94,8 +94,6 @@ export function Streamer() {
 					__resetStream();
 				}
 			}
-			tools.el.setEnabled($("stream-mic-switch"), !!value);
-			tools.el.setEnabled($("stream-cam-switch"), !!value);
 		});
 
 		tools.storage.bindSimpleSwitch($("stream-mic-switch"), "stream.mic", false, function(allow_mic) {
@@ -250,6 +248,8 @@ export function Streamer() {
 				tools.feature.setEnabled($("stream-audio"), false);
 				tools.feature.setEnabled($("stream-mic"), false);
 				tools.feature.setEnabled($("stream-cam"), false);
+				tools.el.setEnabled($("stream-mic-switch"), false);
+				tools.el.setEnabled($("stream-cam-switch"), false);
 			}
 
 			let mode = tools.storage.get("stream.mode", "janus");
@@ -358,6 +358,8 @@ export function Streamer() {
 			tools.feature.setEnabled($("stream-audio"), false); // Enabling in stream_janus.js
 			tools.feature.setEnabled($("stream-mic"), false); // Ditto
 			tools.feature.setEnabled($("stream-cam"), false); // Ditto
+			tools.el.setEnabled($("stream-mic-switch"), false);
+			tools.el.setEnabled($("stream-cam-switch"), false);
 		}
 		if (__isStreamRequired()) {
 			__streamer.ensureStream((__state && __state.streamer !== undefined) ? __state.streamer : null);
