@@ -101,7 +101,11 @@ li.right#system-dropdown
 				td #[select#hid-keyboard-magic-selector]
 
 		+menu_spoiler("Keyboard &amp; mouse (HID) settings")
-			+menu_switch_table("hid-keyboard-swap-cc-switch", true, false) Swap Left Ctrl and Caps keys:
+			table(class="kv")
+				tr
+					+menu_switch_td2("hid-keyboard-sync-caps-switch", true, false) Sync Caps Lock state to the host:
+				tr
+					+menu_switch_td2("hid-keyboard-swap-cc-switch", true, false) Swap Left Ctrl and Caps keys:
 			hr
 			table(class="kv")
 				tr
