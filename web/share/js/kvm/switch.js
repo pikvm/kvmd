@@ -45,8 +45,8 @@ export function Switch() {
 		tools.el.setOnClick($("switch-edid-remove-button"), __clickRemoveEdidButton);
 		tools.el.setOnClick($("switch-edid-copy-data-button"), __clickCopyEdidDataButton);
 
-		tools.storage.bindSimpleSwitch($("switch-atx-ask-switch"), "switch.atx.ask", true);
-		tools.storage.bindSimpleSwitch($("switch-msd-ask-switch"), "switch.msd.ask", true);
+		tools.storage.bindSimpleSwitch($("switch-atx-ask-switch"), "switch.atx.ask", tools.config.getBool("kvm--switch-atx-ask", true));
+		tools.storage.bindSimpleSwitch($("switch-msd-ask-switch"), "switch.msd.ask", tools.config.getBool("kvm--switch-msd-ask", true));
 
 		for (let role of ["inactive", "active", "flashing", "beacon", "bootloader"]) {
 			let el_brightness = $(`switch-color-${role}-brightness-slider`);
