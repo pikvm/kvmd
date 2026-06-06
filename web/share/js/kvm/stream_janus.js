@@ -50,6 +50,7 @@ export function JanusStreamer(
 
 	var __state = null;
 	var __ice = null;
+	var __camera_req = null;
 
 	/************************************************************************/
 
@@ -287,12 +288,23 @@ export function JanusStreamer(
 						__setInfo(false, false, "");
 					} else if (msg.result.status === "features") {
 						let f = msg.result.features;
-						tools.feature.setEnabled($("stream-multimedia"), (f.audio || f.mic || f.camera));
+						let camera = (f.camera && f.camera.enabled);
+						tools.feature.setEnabled($("stream-multimedia"), (f.audio || f.mic || camera));
 						tools.feature.setEnabled($("stream-audio"), f.audio);
 						tools.feature.setEnabled($("stream-mic"), f.mic);
-						tools.feature.setEnabled($("stream-camera"), f.camera);
+						tools.feature.setEnabled($("stream-camera"), camera);
 						__ice = f.ice;
+						__camera_req = ((camera && f.camera.request && __allow_camera) ? f.camera.request : null);
 						__sendWatch();
+					} else if (msg.result.status === "camera") {
+						if (__allow_camera) {
+							let action = msg.result.camera.action;
+							if (action === "requested" && __camera_req === null) {
+								__destroyJanus();
+							} else if (action == "released") {
+								__destroyJanus();
+							}
+						}
 					}
 				} else if (msg.error_code || msg.error) {
 					__logError("Got uStreamer error message:", msg.error_code, "-", msg.error);
@@ -313,10 +325,22 @@ export function JanusStreamer(
 
 				if (jsep) {
 					__logInfo("Handling SDP:", jsep);
-					let tracks = [{"type": "video", "capture": __allow_camera, "recv": true, "add": true}];
+
+
+					let capture = null;
+					if (__camera_req !== null) {
+						capture = {
+							"width": {"ideal": __camera_req.resolution.width, "max": 1920},
+							"height": {"ideal": __camera_req.resolution.height, "max": 1080},
+							"frameRate": {"ideal": __camera_req.fps, "max": 30},
+						};
+					}
+
+					let tracks = [{"type": "video", "capture": capture, "recv": true, "add": true}];
 					if (__allow_audio || __allow_mic) {
 						tracks.push({"type": "audio", "capture": __allow_mic, "recv": __allow_audio, "add": true});
 					}
+
 					__handle.createAnswer({
 						"jsep": jsep,
 
@@ -353,6 +377,13 @@ export function JanusStreamer(
 							wm.error(html, error).then(__destroyJanus);
 						},
 					});
+				}
+			},
+
+			"onlocaltrack": function(track, added) {
+				// https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
+				if (added && track.kind === "video" && "contentHint" in track) {
+					track.contentHint = "detail";
 				}
 			},
 
@@ -461,12 +492,12 @@ export function JanusStreamer(
 	var __sendWatch = function() {
 		if (__handle) {
 			$("stream-video").muted = !__allow_audio;
-			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}, camera=${__allow_camera}) ...`);
+			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}, camera=${__camera_req}) ...`);
 			__handle.send({"message": {"request": "watch", "params": {
 				"orientation": __orient,
 				"audio": __allow_audio,
 				"mic": __allow_mic,
-				"camera": __allow_camera,
+				"camera": !!__camera_req,
 			}}});
 		}
 	};
