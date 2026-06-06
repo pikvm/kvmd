@@ -65,12 +65,14 @@ li.right#system-dropdown
 					{title: "180&deg;", value: "180"},
 					{title: "270&deg;", value: "270"},
 				]) Orientation:
+			tr.feature-disabled#stream-multimedia
+				+menu_switch_td2("stream-multimedia-switch", true, false) Enable multimedia:
 			tr.feature-disabled#stream-audio
-				+menu_slider_td3("stream-audio-volume-slider", "stream-audio-volume-value") Audio volume:
+				+menu_slider_td3("stream-audio-volume-slider", "stream-audio-volume-value", false) Audio volume:
 			tr.feature-disabled#stream-mic
 				+menu_switch_td2("stream-mic-switch", false, false) Microphone:
-			tr.feature-disabled#stream-cam
-				+menu_switch_td2("stream-cam-switch", false, false) Camera:
+			tr.feature-disabled#stream-camera
+				+menu_switch_td2("stream-camera-switch", false, false) Camera:
 
 		+menu_spoiler("Video quality settings")
 			table.kv

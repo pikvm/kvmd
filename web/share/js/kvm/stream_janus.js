@@ -30,13 +30,14 @@ import {wm} from "../wm.js";
 var _Janus = null;
 
 
-export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, __orient, __allow_audio, __allow_mic, __allow_cam) {
+export function JanusStreamer(
+	__setActive, __setInactive, __setInfo, __organizeHook,
+	__orient, __allow_audio, __allow_mic, __allow_camera,
+) {
+
 	var self = this;
 
 	/************************************************************************/
-
-	__allow_mic = (__allow_audio && __allow_mic); // XXX: Mic only with audio
-	__allow_cam = (__allow_audio && __allow_cam); // XXX: Camera only with audio
 
 	var __stop = false;
 
@@ -55,18 +56,18 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	self.getOrientation = () => __orient;
 	self.isAudioAllowed = () => __allow_audio;
 	self.isMicAllowed = () => __allow_mic;
-	self.isCamAllowed = () => __allow_cam;
+	self.isCameraAllowed = () => __allow_camera;
 
 	self.getName = function() {
 		let name = "WebRTC H.264";
 		if (__allow_audio) {
 			name += " + Audio";
-			if (__allow_mic) {
-				name += " + Mic";
-			}
-			if (__allow_cam) {
-				name += " + Cam";
-			}
+		}
+		if (__allow_mic) {
+			name += " + Mic";
+		}
+		if (__allow_camera) {
+			name += " + Cam";
 		}
 		return name;
 	};
@@ -285,10 +286,12 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 						__setInactive();
 						__setInfo(false, false, "");
 					} else if (msg.result.status === "features") {
-						tools.feature.setEnabled($("stream-audio"), msg.result.features.audio);
-						tools.feature.setEnabled($("stream-mic"), msg.result.features.mic);
-						tools.feature.setEnabled($("stream-cam"), msg.result.features.cam);
-						__ice = msg.result.features.ice;
+						let f = msg.result.features;
+						tools.feature.setEnabled($("stream-multimedia"), (f.audio || f.mic || f.camera));
+						tools.feature.setEnabled($("stream-audio"), f.audio);
+						tools.feature.setEnabled($("stream-mic"), f.mic);
+						tools.feature.setEnabled($("stream-camera"), f.camera);
+						__ice = f.ice;
 						__sendWatch();
 					}
 				} else if (msg.error_code || msg.error) {
@@ -310,9 +313,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 				if (jsep) {
 					__logInfo("Handling SDP:", jsep);
-					let tracks = [{"type": "video", "capture": (__allow_audio && __allow_cam), "recv": true, "add": true}];
-					if (__allow_audio) {
-						tracks.push({"type": "audio", "capture": __allow_mic, "recv": true, "add": true});
+					let tracks = [{"type": "video", "capture": __allow_camera, "recv": true, "add": true}];
+					if (__allow_audio || __allow_mic) {
+						tracks.push({"type": "audio", "capture": __allow_mic, "recv": __allow_audio, "add": true});
 					}
 					__handle.createAnswer({
 						"jsep": jsep,
@@ -335,12 +338,12 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 							__logInfo("Error on SDP handling:", error);
 							__setInfo(false, false, error);
 							let html = "Can't connect with WebRTC (error on SDP handling).<br>";
-							if (__allow_mic || __allow_cam) {
+							if (__allow_mic || __allow_camera) {
 								let what = [];
 								if (__allow_mic) {
 									what.push("microphone");
 								}
-								if (__allow_cam) {
+								if (__allow_camera) {
 									what.push("webcam");
 								}
 								html += `<br>Most likely, your browser blocked <b>a ${what.join(" or ")}</b> usage.`;
@@ -457,12 +460,13 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 	var __sendWatch = function() {
 		if (__handle) {
-			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}, cam=${__allow_cam}) ...`);
+			$("stream-video").muted = !__allow_audio;
+			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}, camera=${__allow_camera}) ...`);
 			__handle.send({"message": {"request": "watch", "params": {
 				"orientation": __orient,
 				"audio": __allow_audio,
 				"mic": __allow_mic,
-				"cam": __allow_cam,
+				"camera": __allow_camera,
 			}}});
 		}
 	};

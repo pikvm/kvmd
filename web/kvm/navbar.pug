@@ -68,9 +68,7 @@ mixin menu_radio_td2(name, items)
 			+menu_radio_items(name, items)
 
 
-mixin menu_slider_td3(slider_id, value_id, enabled)
-	-
-		enabled = (enabled || true)
+mixin menu_slider_td3(slider_id, value_id, enabled=true)
 	td
 		block
 	td.value-slider

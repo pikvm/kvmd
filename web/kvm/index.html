@@ -288,11 +288,21 @@
                     </div>
                   </td>
             </tr>
+            <tr class="feature-disabled" id="stream-multimedia">
+                  <td>Enable multimedia:
+                  </td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input type="checkbox" id="stream-multimedia-switch">
+                      <label for="stream-multimedia-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+            </tr>
             <tr class="feature-disabled" id="stream-audio">
                   <td>Audio volume:
                   </td>
                   <td class="value-slider">
-                    <input type="range" id="stream-audio-volume-slider">
+                    <input type="range" id="stream-audio-volume-slider" disabled>
                   </td>
                   <td class="value-number" id="stream-audio-volume-value"></td>
             </tr>
@@ -306,13 +316,13 @@
                     </div>
                   </td>
             </tr>
-            <tr class="feature-disabled" id="stream-cam">
+            <tr class="feature-disabled" id="stream-camera">
                   <td>Camera:
                   </td>
                   <td align="right">
                     <div class="switch-box">
-                      <input disabled type="checkbox" id="stream-cam-switch">
-                      <label for="stream-cam-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      <input disabled type="checkbox" id="stream-camera-switch">
+                      <label for="stream-camera-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
                   </td>
             </tr>
@@ -325,7 +335,7 @@
                           <td>FPS limit:
                           </td>
                           <td class="value-slider">
-                            <input type="range" id="stream-desired-fps-slider">
+                            <input type="range" id="stream-desired-fps-slider" disabled>
                           </td>
                           <td class="value-number" id="stream-desired-fps-value"></td>
                     </tr>
@@ -333,7 +343,7 @@
                           <td>JPEG quality:
                           </td>
                           <td class="value-slider">
-                            <input type="range" id="stream-quality-slider">
+                            <input type="range" id="stream-quality-slider" disabled>
                           </td>
                           <td class="value-number" id="stream-quality-value"></td>
                     </tr>
@@ -341,7 +351,7 @@
                           <td>H.264 kbps:
                           </td>
                           <td class="value-slider">
-                            <input type="range" id="stream-h264-bitrate-slider">
+                            <input type="range" id="stream-h264-bitrate-slider" disabled>
                           </td>
                           <td class="value-number" id="stream-h264-bitrate-value"></td>
                     </tr>
@@ -349,7 +359,7 @@
                           <td><a target="_blank" href="https://docs.pikvm.org/video#settings">H.264 gop</a>:
                           </td>
                           <td class="value-slider">
-                            <input type="range" id="stream-h264-gop-slider">
+                            <input type="range" id="stream-h264-gop-slider" disabled>
                           </td>
                           <td class="value-number" id="stream-h264-gop-value"></td>
                     </tr>
@@ -420,7 +430,7 @@
                           <td>Relative sensitivity:
                           </td>
                           <td class="value-slider">
-                            <input type="range" id="hid-mouse-sens-slider">
+                            <input type="range" id="hid-mouse-sens-slider" disabled>
                           </td>
                           <td class="value-number" id="hid-mouse-sens-value"></td>
                     </tr>
@@ -428,7 +438,7 @@
                           <td>Relative boost factor:<br><i>(Firefox on Wayland)</i>
                           </td>
                           <td class="value-slider">
-                            <input type="range" id="hid-mouse-boost-slider">
+                            <input type="range" id="hid-mouse-boost-slider" disabled>
                           </td>
                           <td class="value-number" id="hid-mouse-boost-value"></td>
                     </tr>
