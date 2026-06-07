@@ -1,0 +1,9 @@
+[Unit]
+BindTo=%i.device
+After=%i.device
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=3
+ExecStart=/usr/bin/ucamera --device=/%I

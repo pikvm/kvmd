@@ -5,6 +5,11 @@ ACTION!="remove", KERNEL=="ttyACM[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", A
 ACTION!="remove", KERNEL=="ttyACM[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="1080", SYMLINK+="kvmd-switch"
 ACTION!="remove", KERNEL=="nbd15", SUBSYSTEM=="block", GROUP="kvmd-nbd", SYMLINK+="kvmd-nbd"
 
+SUBSYSTEM=="video4linux", ACTION=="add", KERNEL=="video[0-9*]", \
+	SUBSYSTEMS=="gadget", DRIVERS=="configfs-gadget.kvmd", ATTR{function_name}=="uvc.usb0", \
+	PROGRAM="/usr/bin/systemd-escape -p --template=kvmd-camera@.service $env{DEVNAME}", \
+	ENV{SYSTEMD_WANTS}+="%c", TAG+="systemd"
+
 # Disable USB autosuspend for critical devices
 ACTION!="remove", SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="eda3", GOTO="kvmd-usb"
 ACTION!="remove", SUBSYSTEM=="usb", ATTR{idVendor}=="2e8a", ATTR{idProduct}=="1080", GOTO="kvmd-usb"
