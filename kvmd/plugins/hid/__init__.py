@@ -21,6 +21,7 @@
 
 
 import asyncio
+import random
 import time
 
 from typing import Final
@@ -31,10 +32,13 @@ from typing import Any
 
 from evdev import ecodes
 
+from ...logging import get_logger
+
 from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_bool
+from ...validators.basic import valid_int_f0
 from ...validators.basic import valid_int_f1
 from ...validators.basic import valid_string_list
 from ...validators.hid import valid_hid_key
@@ -60,8 +64,10 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
 
         self.__j_enabled:  Final[bool]  = c.jiggler.enabled
         self.__j_interval: Final[float] = c.jiggler.interval
+        self.__j_randomizer_interval: Final[int] = c.jiggler.randomizer_interval
 
         self.__j_active: bool = c.jiggler.active
+        self.__j_next_interval: float = self.__roll_interval()
 
         self.__j_absolute = True
         self.__j_activity_ts = self.__get_monotonic_seconds()
@@ -84,6 +90,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
                 "enabled":  Option(True,  type=valid_bool),
                 "active":   Option(False, type=valid_bool),
                 "interval": Option(60,    type=valid_int_f1),
+                "randomizer_interval": Option(0, type=valid_int_f0),
             },
         }
 
@@ -251,6 +258,13 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
     def __get_monotonic_seconds(self) -> int:
         return int(time.monotonic())
 
+    def __roll_interval(self) -> float:
+        if self.__j_randomizer_interval <= 0:
+            return self.__j_interval
+        lo = max(1, int(self.__j_interval) - self.__j_randomizer_interval)
+        hi = int(self.__j_interval) + self.__j_randomizer_interval
+        return random.randint(lo, hi)
+
     def _set_jiggler_absolute(self, absolute: bool) -> None:
         self.__j_absolute = absolute
 
@@ -264,6 +278,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
                 "enabled":  self.__j_enabled,
                 "active":   self.__j_active,
                 "interval": self.__j_interval,
+                "randomizer_interval": self.__j_randomizer_interval,
             },
         }
 
@@ -271,7 +286,8 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
 
     async def systask(self) -> None:
         while True:
-            if self.__j_active and (self.__j_activity_ts + self.__j_interval < self.__get_monotonic_seconds()):
+            if self.__j_active and (self.__j_activity_ts + self.__j_next_interval < self.__get_monotonic_seconds()):
+                get_logger(0).info("Jiggling mouse (interval=%d seconds) ...", self.__j_next_interval)
                 if self.__j_absolute:
                     (x, y) = (self.__j_last_x, self.__j_last_y)
                     for move in (([100, -100] * 5) + [0]):
@@ -281,6 +297,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
                     for move in ([10, -10] * 5):
                         self.send_mouse_relative_event(move, move)
                         await asyncio.sleep(0.1)
+                self.__j_next_interval = self.__roll_interval()
             await asyncio.sleep(1)
 
 
