@@ -288,44 +288,6 @@
                     </div>
                   </td>
             </tr>
-            <tr class="feature-disabled" id="stream-multimedia">
-                  <td>Enable multimedia:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input type="checkbox" id="stream-multimedia-switch">
-                      <label for="stream-multimedia-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-            <tr class="feature-disabled" id="stream-audio">
-                  <td>Audio volume:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-audio-volume-slider" disabled>
-                  </td>
-                  <td class="value-number" id="stream-audio-volume-value"></td>
-            </tr>
-            <tr class="feature-disabled" id="stream-mic">
-                  <td>Microphone:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="stream-mic-switch">
-                      <label for="stream-mic-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-            <tr class="feature-disabled" id="stream-camera">
-                  <td>Camera:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="stream-camera-switch">
-                      <label for="stream-camera-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
           </table>
               <details>
                 <summary>Video quality settings</summary>
@@ -366,6 +328,46 @@
                   </table>
                 </div>
               </details>
+          <table class="kv feature-disabled" id="stream-multimedia">
+            <tr>
+                  <td>Enable multimedia:
+                  </td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input type="checkbox" id="stream-multimedia-switch">
+                      <label for="stream-multimedia-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+            </tr>
+            <tr class="feature-disabled" id="stream-audio">
+                  <td>Audio volume:
+                  </td>
+                  <td class="value-slider">
+                    <input type="range" id="stream-audio-volume-slider" disabled>
+                  </td>
+                  <td class="value-number" id="stream-audio-volume-value"></td>
+            </tr>
+            <tr class="feature-disabled" id="stream-mic">
+                  <td>Microphone:
+                  </td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input disabled type="checkbox" id="stream-mic-switch">
+                      <label for="stream-mic-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+            </tr>
+            <tr class="feature-disabled" id="stream-camera">
+                  <td>Camera:
+                  </td>
+                  <td align="right">
+                    <div class="switch-box">
+                      <input disabled type="checkbox" id="stream-camera-switch">
+                      <label for="stream-camera-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+                  </td>
+            </tr>
+          </table>
           <div class="buttons buttons-row">
             <button class="row33" data-wm-menu-force-hide data-wm-window-show="stream-window">&bull; Show stream</button>
             <button class="row33" id="stream-screenshot-button" data-wm-menu-force-hide>&bull; Screenshot</button>
@@ -396,7 +398,7 @@
                 <div class="spoiler">
                   <table class="kv">
                     <tr>
-                          <td>Sync Caps Lock state to the host:
+                          <td>Sync Caps Lock state to the host:<br><i>(Requires working Caps led)</i>
                           </td>
                           <td align="right">
                             <div class="switch-box">
@@ -942,7 +944,7 @@
           <div class="feature-disabled" id="stream-ocr">
             <hr><br>
             <hr>
-            <div class="text"><b>Text recognition <sup><i>&beta;</i></sup><br></b><sub><a target="_blank" href="https://docs.pikvm.org/ocr">OCR</a> works locally on PiKVM</sub></div>
+            <div class="text"><b>Text recognition<br></b><sub><a target="_blank" href="https://docs.pikvm.org/ocr">OCR</a> works locally on PiKVM</sub></div>
             <hr>
             <table class="kv">
               <tr>
