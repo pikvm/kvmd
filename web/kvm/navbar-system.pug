@@ -4,6 +4,7 @@ li.right#system-dropdown
 		+navbar_led("stream-led", "led-video")
 		+navbar_led("hid-keyboard-led", "led-hid-keyboard")
 		+navbar_led("hid-mouse-led", "led-hid-mouse")
+		+navbar_led("hid-gamepad-led", "led-hid-gamepad")
 		span System
 
 	.hidden.menu#system-menu
@@ -157,6 +158,7 @@ li.right#system-dropdown
 				+menu_switch_td2_gpio("__v4_locator__") Enable locator LED:
 
 		.buttons.buttons-row
-			button.row33(data-wm-menu-force-hide data-wm-window-show="keyboard-window") &bull; Keyboard
-			button.row33(data-wm-menu-force-hide data-wm-window-show="mouse-window") &bull; Mouse
-			button.row33#hid-reset-button(disabled) Reset HID
+			button.row25(data-wm-menu-force-hide data-wm-window-show="keyboard-window") &bull; Keyboard
+			button.row25(data-wm-menu-force-hide data-wm-window-show="mouse-window") &bull; Mouse
+			button.row25.feature-disabled#hid-gamepad-button(data-wm-menu-force-hide data-wm-window-show="gamepad-window") &bull; Gamepad
+			button.row25#hid-reset-button(disabled) Reset HID

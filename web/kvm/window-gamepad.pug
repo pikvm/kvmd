@@ -1,0 +1,86 @@
+.hidden.window.window-elegant#gamepad-window(
+	data-wm-window-always-on-top
+	data-wm-window-save-position
+	data-wm-window-always-on-screen
+	data-wm-window-show-centered
+)
+	.window-header
+		.window-grab Gamepad
+		.window-buttons
+			button.hidden#gamepad-window-navbar-button(data-wm-navbar-show data-wm-on-full-tab)
+			button#gamepad-window-keyboard-button(data-wm-window-show="keyboard-window")
+				img.led-gray(src=`${svg_dir}/led-hid-keyboard.svg`)
+			button(data-wm-window-close)
+
+	div(style="padding: 4px")
+		svg#gamepad-svg(viewBox="0 0 390 200" width="390" height="200")
+			//- Controller body
+			path.gp-body(d="M50,30 Q60,10 100,10 L170,10 Q195,10 195,35 L195,95 Q195,120 170,140 L140,160 Q130,170 120,170 L100,170 Q80,170 75,150 L65,120 Q60,110 50,110 L50,30 Z")
+			path.gp-body(d="M340,30 Q330,10 290,10 L220,10 Q195,10 195,35 L195,95 Q195,120 220,140 L250,160 Q260,170 270,170 L290,170 Q310,170 315,150 L325,120 Q330,110 340,110 L340,30 Z")
+
+			//- D-pad
+			rect.gp-dpad(x="72" y="85" width="40" height="12" rx="2")
+			rect.gp-dpad(x="86" y="71" width="12" height="40" rx="2")
+			rect#gp-dpad-up(x="87" y="72" width="10" height="13" rx="1" opacity="0" class="gp-dpad-active")
+			rect#gp-dpad-down(x="87" y="86" width="10" height="13" rx="1" opacity="0" class="gp-dpad-active")
+			rect#gp-dpad-left(x="73" y="86" width="13" height="10" rx="1" opacity="0" class="gp-dpad-active")
+			rect#gp-dpad-right(x="98" y="86" width="13" height="10" rx="1" opacity="0" class="gp-dpad-active")
+
+			//- Left stick background + dot
+			circle.gp-stick-bg(cx="155" cy="105" r="18")
+			circle#gp-lstick-dot.gp-stick-dot(cx="155" cy="105" r="6")
+
+			//- Right stick background + dot
+			circle.gp-stick-bg(cx="235" cy="120" r="18")
+			circle#gp-rstick-dot.gp-stick-dot(cx="235" cy="120" r="6")
+
+			//- Face buttons (ABXY)
+			g#gp-btn-a.gp-btn
+				circle(cx="310" cy="95" r="10")
+			text.gp-btn-label(x="310" y="95") A
+			g#gp-btn-b.gp-btn
+				circle(cx="330" cy="75" r="10")
+			text.gp-btn-label(x="330" y="75") B
+			g#gp-btn-x.gp-btn
+				circle(cx="290" cy="75" r="10")
+			text.gp-btn-label(x="290" y="75") X
+			g#gp-btn-y.gp-btn
+				circle(cx="310" cy="55" r="10")
+			text.gp-btn-label(x="310" y="55") Y
+
+			//- Bumpers (LB/RB)
+			g#gp-btn-lb.gp-btn
+				rect(x="70" y="15" width="55" height="14" rx="4")
+			text.gp-btn-label(x="97" y="22") LB
+			g#gp-btn-rb.gp-btn
+				rect(x="265" y="15" width="55" height="14" rx="4")
+			text.gp-btn-label(x="292" y="22") RB
+
+			//- Triggers (LT/RT) - bar style
+			rect.gp-trigger-bg(x="70" y="2" width="55" height="8" rx="3")
+			rect#gp-lt-fill.gp-trigger-fill(x="70" y="2" width="0" height="8" rx="3")
+			rect.gp-trigger-bg(x="265" y="2" width="55" height="8" rx="3")
+			rect#gp-rt-fill.gp-trigger-fill(x="265" y="2" width="0" height="8" rx="3")
+
+			//- Back / Start
+			g#gp-btn-back.gp-btn
+				rect(x="168" y="60" width="22" height="10" rx="4")
+			text.gp-btn-label(x="179" y="65" font-size="7") Back
+			g#gp-btn-start.gp-btn
+				rect(x="200" y="60" width="22" height="10" rx="4")
+			text.gp-btn-label(x="211" y="65" font-size="7") Start
+
+			//- Guide button
+			g#gp-btn-guide.gp-btn
+				circle(cx="195" cy="45" r="8")
+
+			//- L3/R3 (stick press indicators)
+			circle#gp-btn-l3.gp-btn-stick(cx="155" cy="105" r="20")
+			circle#gp-btn-r3.gp-btn-stick(cx="235" cy="120" r="20")
+
+		#gamepad-info
+			div#gamepad-info-disconnected Connect a gamepad to your browser or use the buttons above
+			div.hidden#gamepad-info-connected
+				span#gamepad-info-name
+				| &nbsp;
+				span#gamepad-info-slot

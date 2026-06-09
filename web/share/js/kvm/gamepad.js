@@ -80,6 +80,7 @@ export function Gamepad(__recordWsEvent) {
 	self.setState = function(online, hid_online, hid_busy) {
 		__enabled = !!(hid_online && online && !hid_busy);
 		__updateLoop();
+		__updateLed(online, hid_online, hid_busy);
 	};
 
 	self.releaseAll = function() {
@@ -92,6 +93,21 @@ export function Gamepad(__recordWsEvent) {
 	};
 
 	/************************************************************************/
+
+	var __updateLed = function(online, hid_online, hid_busy) {
+		let el = $("hid-gamepad-led");
+		if (!el) return;
+		if (online && hid_online && !hid_busy) {
+			el.className = (Object.keys(__connected).length > 0 ? "led-green" : "led-yellow");
+			el.title = (Object.keys(__connected).length > 0 ? "Gamepad connected" : "Gamepad ready, no controller");
+		} else if (online) {
+			el.className = "led-yellow";
+			el.title = "Gamepad inactive/busy";
+		} else {
+			el.className = "led-gray";
+			el.title = "Gamepad offline";
+		}
+	};
 
 	var __connectHandler = function(ev) {
 		__connected[ev.gamepad.index] = true;
