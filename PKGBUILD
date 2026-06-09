@@ -133,6 +133,7 @@ depends=(
 )
 optdepends=(
 	tesseract
+	"python-functionfs: gamepad emulation via FunctionFS (switchpro, xinput, dualsense modes)"
 )
 conflicts=(
 	python-pikvm
