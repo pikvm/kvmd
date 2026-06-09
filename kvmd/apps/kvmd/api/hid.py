@@ -25,6 +25,7 @@ import stat
 import functools
 import itertools
 import struct
+import asyncio
 
 from typing import Iterable
 from typing import Callable
@@ -59,6 +60,7 @@ from ....validators.hid import valid_hid_key
 from ....validators.hid import valid_hid_mouse_move
 from ....validators.hid import valid_hid_mouse_button
 from ....validators.hid import valid_hid_mouse_delta
+from ....validators.hid import valid_hid_gamepad_mode
 from ....validators.hid import valid_hid_gamepad_axis
 from ....validators.hid import valid_hid_gamepad_buttons
 from ....validators.hid import valid_hid_gamepad_hat
@@ -106,6 +108,31 @@ class HidApi:
     async def __reset_handler(self, _: Request) -> Response:
         await self.__hid.reset()
         return make_json_response()
+
+    @exposed_http("POST", "/hid/set_gamepad_mode")
+    async def __set_gamepad_mode_handler(self, req: Request) -> Response:
+        mode = valid_hid_gamepad_mode(req.query.get("mode"))
+        value = "" if mode == "disabled" else mode
+        proc = await asyncio.create_subprocess_exec(
+            "kvmd-override", "-s", f"kvmd/hid/gamepad/mode={value}",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            return make_json_response({"error": stderr.decode().strip()}, status=500)
+        asyncio.get_event_loop().call_later(1.0, lambda: asyncio.ensure_future(
+            self.__restart_otg_services()))
+        return make_json_response({"restart": True})
+
+    @staticmethod
+    async def __restart_otg_services() -> None:
+        proc = await asyncio.create_subprocess_exec(
+            "systemctl", "restart", "kvmd-otg", "kvmd",
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await proc.communicate()
 
     @exposed_http("GET", "/hid/inactivity")
     async def __inactivity_handler(self, _: Request) -> Response:

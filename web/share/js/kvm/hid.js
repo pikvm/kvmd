@@ -144,7 +144,10 @@ export function Hid(__getGeometry, __recorder) {
 				}
 				if (state.gamepad !== undefined) {
 					__state.gamepad = state.gamepad;
-					tools.feature.setEnabled($("hid-gamepad-button"), true);
+					tools.feature.setEnabled($("hid-gamepad-button"), !!state.gamepad.mode);
+					if (state.gamepad.mode !== undefined) {
+						__updateGamepadOutputs(state.gamepad.mode);
+					}
 				}
 				if (
 					(state.gamepad !== undefined && state.gamepad.online !== undefined)
@@ -239,6 +242,47 @@ export function Hid(__getGeometry, __recorder) {
 		tools.el.setEnabled($("hid-mouse-squash-switch"), has_relative_squash);
 		tools.el.setEnabled($("hid-mouse-sens-slider"), has_relative_squash);
 		tools.el.setEnabled($("hid-mouse-boost-slider"), has_relative_squash);
+	};
+
+	var __updateGamepadOutputs = function(mode) {
+		let el = $("hid-outputs-gamepad-box");
+		if (!el) return;
+		let active = mode || "disabled";
+		if (!el.__initialized) {
+			let html = "";
+			for (let kv of [
+				["Switch Pro", "switchpro"],
+				["Xbox 360", "xinput"],
+				["DualSense", "dualsense"],
+				["Off", "disabled"],
+			]) {
+				html += tools.radio.makeItem("hid-outputs-gamepad-radio", kv[0], kv[1]);
+			}
+			el.innerHTML = html;
+			tools.radio.setOnClick("hid-outputs-gamepad-radio", __clickGamepadModeRadio);
+			el.__initialized = true;
+		}
+		tools.radio.setValue("hid-outputs-gamepad-radio", active);
+		tools.feature.setEnabled($("hid-outputs-gamepad"), true);
+	};
+
+	var __clickGamepadModeRadio = function() {
+		let mode = tools.radio.getValue("hid-outputs-gamepad-radio");
+		wm.confirm("Changing gamepad mode will briefly disconnect all USB devices (keyboard, mouse). Continue?").then(function(ok) {
+			if (ok) {
+				tools.httpPost("api/hid/set_gamepad_mode", {"mode": mode}, function(http) {
+					if (http.status === 200) {
+						wm.info("Gamepad mode changed", "Services are restarting. The page will reconnect automatically.");
+					} else {
+						wm.error("Can't change gamepad mode", http.responseText);
+					}
+				});
+			} else {
+				if (__state && __state.gamepad) {
+					tools.radio.setValue("hid-outputs-gamepad-radio", __state.gamepad.mode || "disabled");
+				}
+			}
+		});
 	};
 
 	var __releaseAll = function() {

@@ -165,7 +165,7 @@
         </li>
       </div>
       <li class="right" id="system-dropdown">
-        <div class="menu-item menu-button" href="#"><img class="led-gray" id="link-led" src="../share/svg/led-link.svg"><img class="led-gray" id="stream-led" src="../share/svg/led-video.svg"><img class="led-gray" id="hid-keyboard-led" src="../share/svg/led-hid-keyboard.svg"><img class="led-gray" id="hid-mouse-led" src="../share/svg/led-hid-mouse.svg"><span>System</span>
+        <div class="menu-item menu-button" href="#"><img class="led-gray" id="link-led" src="../share/svg/led-link.svg"><img class="led-gray" id="stream-led" src="../share/svg/led-video.svg"><img class="led-gray" id="hid-keyboard-led" src="../share/svg/led-hid-keyboard.svg"><img class="led-gray" id="hid-mouse-led" src="../share/svg/led-hid-mouse.svg"><img class="led-gray" id="hid-gamepad-led" src="../share/svg/led-hid-gamepad.svg"><span>System</span>
         </div>
         <div class="hidden menu" id="system-menu">
           <table class="kv">
@@ -216,10 +216,6 @@
                       <label for="hid-jiggler-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
                   </td>
-            </tr>
-            <tr>
-                  <td>Gamepad:</td>
-                  <td align="right"><span id="hid-gamepad-status"><i>No controller</i></span></td>
             </tr>
           </table>
           <hr>
@@ -377,6 +373,12 @@
               <td><a target="_blank" href="https://docs.pikvm.org/mouse">Mouse mode</a>:</td>
               <td>
                 <div class="radio-box" id="hid-outputs-mouse-box"></div>
+              </td>
+            </tr>
+            <tr class="feature-disabled" id="hid-outputs-gamepad">
+              <td>Gamepad mode:</td>
+              <td>
+                <div class="radio-box" id="hid-outputs-gamepad-box"></div>
               </td>
             </tr>
             <tr>
@@ -583,7 +585,7 @@
           <div class="buttons buttons-row">
             <button class="row25" data-wm-menu-force-hide data-wm-window-show="keyboard-window">&bull; Keyboard</button>
             <button class="row25" data-wm-menu-force-hide data-wm-window-show="mouse-window">&bull; Mouse</button>
-            <button class="row25" data-wm-menu-force-hide data-wm-window-show="gamepad-window">&bull; Gamepad</button>
+            <button class="row25 feature-disabled" id="hid-gamepad-button" data-wm-menu-force-hide data-wm-window-show="gamepad-window">&bull; Gamepad</button>
             <button class="row25" id="hid-reset-button" disabled>Reset HID</button>
           </div>
         </div>
@@ -2368,72 +2370,76 @@
         </div>
       </div>
     </div>
-    <div class="hidden window" id="gamepad-window" data-wm-window-always-on-top data-wm-window-save-position data-wm-window-always-on-screen data-wm-window-show-centered>
+    <div class="hidden window window-elegant" id="gamepad-window" data-wm-window-always-on-top data-wm-window-save-position data-wm-window-always-on-screen data-wm-window-show-centered>
       <div class="window-header">
         <div class="window-grab">Gamepad</div>
         <div class="window-buttons">
+          <button class="hidden" id="gamepad-window-navbar-button" data-wm-navbar-show data-wm-on-full-tab></button>
+          <button id="gamepad-window-keyboard-button" data-wm-window-show="keyboard-window"><img class="led-gray" src="../share/svg/led-hid-keyboard.svg"></button>
           <button data-wm-window-close></button>
         </div>
       </div>
-      <div id="gamepad-info">
-        <span id="gamepad-info-disconnected">No controller connected</span>
-        <span class="hidden" id="gamepad-info-connected">
-          <span id="gamepad-info-name">---</span>
-          <span id="gamepad-info-slot">(Pad 0)</span>
-        </span>
+      <div style="padding: 4px">
+        <svg id="gamepad-svg" viewBox="0 0 390 200" width="390" height="200">
+          <path class="gp-body" d="M50,30 Q60,10 100,10 L170,10 Q195,10 195,35 L195,95 Q195,120 170,140 L140,160 Q130,170 120,170 L100,170 Q80,170 75,150 L65,120 Q60,110 50,110 L50,30 Z"></path>
+          <path class="gp-body" d="M340,30 Q330,10 290,10 L220,10 Q195,10 195,35 L195,95 Q195,120 220,140 L250,160 Q260,170 270,170 L290,170 Q310,170 315,150 L325,120 Q330,110 340,110 L340,30 Z"></path>
+          <rect class="gp-dpad" x="72" y="85" width="40" height="12" rx="2"></rect>
+          <rect class="gp-dpad" x="86" y="71" width="12" height="40" rx="2"></rect>
+          <rect class="gp-dpad-active" id="gp-dpad-up" x="87" y="72" width="10" height="13" rx="1" opacity="0"></rect>
+          <rect class="gp-dpad-active" id="gp-dpad-down" x="87" y="86" width="10" height="13" rx="1" opacity="0"></rect>
+          <rect class="gp-dpad-active" id="gp-dpad-left" x="73" y="86" width="13" height="10" rx="1" opacity="0"></rect>
+          <rect class="gp-dpad-active" id="gp-dpad-right" x="98" y="86" width="13" height="10" rx="1" opacity="0"></rect>
+          <circle class="gp-stick-bg" cx="155" cy="105" r="18"></circle>
+          <circle class="gp-stick-dot" id="gp-lstick-dot" cx="155" cy="105" r="6"></circle>
+          <circle class="gp-stick-bg" cx="235" cy="120" r="18"></circle>
+          <circle class="gp-stick-dot" id="gp-rstick-dot" cx="235" cy="120" r="6"></circle>
+          <g class="gp-btn" id="gp-btn-a">
+            <circle cx="310" cy="95" r="10"></circle>
+          </g>
+          <text class="gp-btn-label" x="310" y="95">A</text>
+          <g class="gp-btn" id="gp-btn-b">
+            <circle cx="330" cy="75" r="10"></circle>
+          </g>
+          <text class="gp-btn-label" x="330" y="75">B</text>
+          <g class="gp-btn" id="gp-btn-x">
+            <circle cx="290" cy="75" r="10"></circle>
+          </g>
+          <text class="gp-btn-label" x="290" y="75">X</text>
+          <g class="gp-btn" id="gp-btn-y">
+            <circle cx="310" cy="55" r="10"></circle>
+          </g>
+          <text class="gp-btn-label" x="310" y="55">Y</text>
+          <g class="gp-btn" id="gp-btn-lb">
+            <rect x="70" y="15" width="55" height="14" rx="4"></rect>
+          </g>
+          <text class="gp-btn-label" x="97" y="22">LB</text>
+          <g class="gp-btn" id="gp-btn-rb">
+            <rect x="265" y="15" width="55" height="14" rx="4"></rect>
+          </g>
+          <text class="gp-btn-label" x="292" y="22">RB</text>
+          <rect class="gp-trigger-bg" x="70" y="2" width="55" height="8" rx="3"></rect>
+          <rect class="gp-trigger-fill" id="gp-lt-fill" x="70" y="2" width="0" height="8" rx="3"></rect>
+          <rect class="gp-trigger-bg" x="265" y="2" width="55" height="8" rx="3"></rect>
+          <rect class="gp-trigger-fill" id="gp-rt-fill" x="265" y="2" width="0" height="8" rx="3"></rect>
+          <g class="gp-btn" id="gp-btn-back">
+            <rect x="168" y="60" width="22" height="10" rx="4"></rect>
+          </g>
+          <text class="gp-btn-label" x="179" y="65" font-size="7">Back</text>
+          <g class="gp-btn" id="gp-btn-start">
+            <rect x="200" y="60" width="22" height="10" rx="4"></rect>
+          </g>
+          <text class="gp-btn-label" x="211" y="65" font-size="7">Start</text>
+          <g class="gp-btn" id="gp-btn-guide">
+            <circle cx="195" cy="45" r="8"></circle>
+          </g>
+          <circle class="gp-btn-stick" id="gp-btn-l3" cx="155" cy="105" r="20"></circle>
+          <circle class="gp-btn-stick" id="gp-btn-r3" cx="235" cy="120" r="20"></circle>
+        </svg>
+        <div id="gamepad-info">
+          <div id="gamepad-info-disconnected">Connect a gamepad to your browser or use the buttons above</div>
+          <div class="hidden" id="gamepad-info-connected"><span id="gamepad-info-name"></span>&nbsp;<span id="gamepad-info-slot"></span></div>
+        </div>
       </div>
-      <svg id="gamepad-svg" width="400" height="240" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
-        <!-- Controller body -->
-        <path class="gp-body" d="M80,55 Q80,35 100,35 L180,35 Q200,35 200,45 Q200,35 220,35 L300,35 Q320,35 320,55 L325,130 Q330,170 355,190 Q370,210 350,215 Q330,220 315,200 L290,160 Q280,145 260,145 L140,145 Q120,145 110,160 L85,200 Q70,220 50,215 Q30,210 45,190 Q70,170 75,130 Z"/>
-        <!-- D-pad (left side) -->
-        <g id="gp-dpad" transform="translate(115,80)">
-          <rect class="gp-dpad" id="gp-dpad-bg" x="-12" y="-30" width="24" height="60" rx="3"/>
-          <rect class="gp-dpad" id="gp-dpad-bg2" x="-30" y="-12" width="60" height="24" rx="3"/>
-          <rect class="gp-dpad" id="gp-dpad-up" x="-10" y="-28" width="20" height="20" rx="2" opacity="0"/>
-          <rect class="gp-dpad" id="gp-dpad-down" x="-10" y="8" width="20" height="20" rx="2" opacity="0"/>
-          <rect class="gp-dpad" id="gp-dpad-left" x="-28" y="-10" width="20" height="20" rx="2" opacity="0"/>
-          <rect class="gp-dpad" id="gp-dpad-right" x="8" y="-10" width="20" height="20" rx="2" opacity="0"/>
-        </g>
-        <!-- Face buttons (right side) -->
-        <circle class="gp-btn" id="gp-btn-b" cx="265" cy="80" r="11"/>
-        <text class="gp-btn-label" x="265" y="80">B</text>
-        <circle class="gp-btn" id="gp-btn-a" cx="287" cy="95" r="11"/>
-        <text class="gp-btn-label" x="287" y="95">A</text>
-        <circle class="gp-btn" id="gp-btn-y" cx="265" cy="58" r="11"/>
-        <text class="gp-btn-label" x="265" y="58">Y</text>
-        <circle class="gp-btn" id="gp-btn-x" cx="243" cy="73" r="11"/>
-        <text class="gp-btn-label" x="243" y="73">X</text>
-        <!-- Left analog stick -->
-        <circle class="gp-stick-bg" id="gp-lstick-bg" cx="155" cy="105" r="20"/>
-        <circle class="gp-stick-dot" id="gp-lstick-dot" cx="155" cy="105" r="8"/>
-        <!-- Right analog stick -->
-        <circle class="gp-stick-bg" id="gp-rstick-bg" cx="235" cy="120" r="20"/>
-        <circle class="gp-stick-dot" id="gp-rstick-dot" cx="235" cy="120" r="8"/>
-        <!-- Bumpers -->
-        <rect class="gp-btn" id="gp-btn-lb" x="95" y="30" width="50" height="14" rx="4"/>
-        <text class="gp-btn-label" x="120" y="37">LB</text>
-        <rect class="gp-btn" id="gp-btn-rb" x="255" y="30" width="50" height="14" rx="4"/>
-        <text class="gp-btn-label" x="280" y="37">RB</text>
-        <!-- Left trigger bar -->
-        <rect class="gp-trigger-bg" x="95" y="16" width="50" height="8" rx="3"/>
-        <rect class="gp-trigger-fill" id="gp-lt-fill" x="95" y="16" width="0" height="8" rx="3"/>
-        <text class="gp-btn-label" style="font-size:8px" x="120" y="14">LT</text>
-        <!-- Right trigger bar -->
-        <rect class="gp-trigger-bg" x="255" y="16" width="50" height="8" rx="3"/>
-        <rect class="gp-trigger-fill" id="gp-rt-fill" x="255" y="16" width="0" height="8" rx="3"/>
-        <text class="gp-btn-label" style="font-size:8px" x="280" y="14">RT</text>
-        <!-- Back / Start -->
-        <rect class="gp-btn" id="gp-btn-back" x="170" y="65" width="22" height="10" rx="4"/>
-        <text class="gp-btn-label" style="font-size:7px" x="181" y="70">BK</text>
-        <rect class="gp-btn" id="gp-btn-start" x="208" y="65" width="22" height="10" rx="4"/>
-        <text class="gp-btn-label" style="font-size:7px" x="219" y="70">ST</text>
-        <!-- Guide button -->
-        <circle class="gp-btn" id="gp-btn-guide" cx="200" cy="90" r="8"/>
-        <text class="gp-btn-label" style="font-size:7px" x="200" y="90">G</text>
-        <!-- L3 / R3 indicators (on sticks) -->
-        <circle class="gp-btn gp-btn-stick" id="gp-btn-l3" cx="155" cy="105" r="5"/>
-        <circle class="gp-btn gp-btn-stick" id="gp-btn-r3" cx="235" cy="120" r="5"/>
-      </svg>
     </div>
     <div class="hidden window" id="about-window" data-wm-window-show-centered>
       <div class="window-header">

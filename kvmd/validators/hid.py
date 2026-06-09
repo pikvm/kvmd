@@ -68,6 +68,11 @@ def valid_hid_mouse_delta(arg: Any) -> int:
 
 
 @add_validator_magic
+def valid_hid_gamepad_mode(arg: Any) -> str:
+    return check_string_in_list(arg, "Gamepad mode", ["switchpro", "xinput", "dualsense", "disabled"])
+
+
+@add_validator_magic
 def valid_hid_gamepad_axis(arg: Any) -> int:
     return int(valid_number(arg, min=0, max=0xFF, name="Gamepad axis"))
 

@@ -94,6 +94,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         # Each slot is a separate FunctionFS instance with its own Process.
         # The controller type (mode) is shared across all slots.
         self.__gamepad_procs: list = []
+        self.__gamepad_mode: str = c.gamepad.mode or ""
         if c.gamepad.mode:
             count = min(c.gamepad.count, 4)
             for i in range(count):
@@ -200,7 +201,10 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 },
                 **mouse_state,
             },
-            "gamepad": {"online": gamepad_state["online"]},
+            "gamepad": {
+                "online": gamepad_state["online"],
+                "mode": self.__gamepad_mode,
+            },
             **self._get_jiggler_state(),
         }
 
