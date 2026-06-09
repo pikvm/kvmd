@@ -34,6 +34,7 @@ from ....yamlconf import Option
 from ....validators.basic import valid_bool
 from ....validators.basic import valid_int_f1
 from ....validators.basic import valid_float_f01
+from ....validators.basic import valid_stripped_string
 from ....validators.basic import valid_stripped_string_not_empty
 from ....validators.os import valid_abs_path
 
@@ -89,11 +90,11 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 self.__mouses["usb_win98"] = self.__mouses["usb"]
 
         # Up to 4 gamepad slots. Slots 0-1 are created by default when
-        # gamepad.device is set; slots 2-3 exist but start disabled.
+        # gamepad.mode is set; slots 2-3 exist but start disabled.
         # Each slot is a separate FunctionFS instance with its own Process.
         # The controller type (mode) is shared across all slots.
         self.__gamepad_procs: list = []
-        if c.gamepad.device:
+        if c.gamepad.mode:
             count = min(getattr(c.gamepad, "count", 2), 4)
             for i in range(count):
                 ffs_path = f"{c.gamepad.ffs_base}{i}"
@@ -152,7 +153,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
             },
             "gamepad": {
                 "device":         Option("", type=valid_abs_path, if_empty=""),
-                "mode":           Option("hid", type=valid_stripped_string_not_empty),
+                "mode":           Option("", type=valid_stripped_string, if_empty=""),
                 "count":          Option(2, type=valid_int_f1),
                 "ffs_base":       Option("/run/kvmd/otg-gamepad", type=valid_abs_path),
                 "select_timeout": Option(0.1, type=valid_float_f01),

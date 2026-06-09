@@ -416,7 +416,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
     # so the Linux xpad driver (and game consoles) bind it; the keyboard/mouse
     # remain as separate interfaces. The bind is also deferred (see below).
     gamepad_mode = ""
-    if config.kvmd.hid.type == "otg" and bool(config.kvmd.hid.gamepad.device):
+    if config.kvmd.hid.type == "otg" and config.kvmd.hid.gamepad.mode:
         gamepad_mode = config.kvmd.hid.gamepad.mode
     xinput_mode = (gamepad_mode == "xinput")
     switchpro_mode = (gamepad_mode == "switchpro")
@@ -478,7 +478,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
             logger.info("===== HID-Mouse-Alt =====")
             gc.add_mouse(["hid", "mouse_alt"], cod.hid.mouse_alt.start,
                          config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
-        if config.kvmd.hid.gamepad.device:
+        if config.kvmd.hid.gamepad.mode:
             gp_mode = config.kvmd.hid.gamepad.mode
             gp_count = min(getattr(config.kvmd.hid.gamepad, "count", 2), 4)
             ffs_base = config.kvmd.hid.gamepad.ffs_base
