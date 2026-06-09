@@ -45,14 +45,7 @@ from .... import usb
 
 from ....logging import get_logger
 
-try:
-    import functionfs
-    import functionfs.ch9 as ch9
-    _IMPORT_ERROR: (Exception | None) = None
-except Exception as _ex:
-    functionfs = None
-    ch9 = None
-    _IMPORT_ERROR = _ex
+from . import ffs
 
 
 # ===== Switch Pro HID Report Descriptor (209 bytes) =====
@@ -256,10 +249,6 @@ class SwitchProProcess:
 
     def __subprocess(self) -> None:
         logger = get_logger(0)
-        if functionfs is None:
-            logger.error("HID-switchpro requires python-functionfs: %s", _IMPORT_ERROR)
-            return
-
         state_q = self.__state_q
         stop_event = self.__stop_event
         state_flags = self.__state_flags
@@ -276,7 +265,7 @@ class SwitchProProcess:
         timer = [0]
         reply_queue: queue.Queue[bytearray] = queue.Queue()
 
-        class _INEndpoint(functionfs.EndpointINFile):  # type: ignore
+        class _INEndpoint(ffs.EndpointINFile):
             def onComplete(self, buffer_list: Any, user_data: Any, status: int) -> Any:
                 if status < 0:
                     if status == -errno.ESHUTDOWN:
@@ -293,7 +282,7 @@ class SwitchProProcess:
                 state[1] = timer[0]
                 return True
 
-        class _OUTEndpoint(functionfs.EndpointOUTFile):  # type: ignore
+        class _OUTEndpoint(ffs.EndpointOUTFile):
             def onComplete(self, data: Any, status: int) -> Any:
                 if status < 0:
                     return None
@@ -322,37 +311,35 @@ class SwitchProProcess:
                         reply_queue.put(_build_subcmd_reply(subcmd, b"", timer[0]))
                 return None
 
-        class _SwitchPro(functionfs.Function):  # type: ignore
+        class _SwitchPro(ffs.Function):
             def __init__(self, path: str) -> None:
-                (fs_list, hs_list, ss_list) = functionfs.getInterfaceInAllSpeeds(
+                (fs_list, hs_list, ss_list) = ffs.getInterfaceInAllSpeeds(
                     interface={
-                        "bInterfaceClass": 0x03,  # HID
+                        "bInterfaceClass": 0x03,
                         "bInterfaceSubClass": 0x00,
                         "bInterfaceProtocol": 0x00,
                         "iInterface": 1,
                     },
                     endpoint_list=[
-                        {"endpoint": {"bEndpointAddress": ch9.USB_DIR_IN,
-                                      "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
+                        {"endpoint": {"bEndpointAddress": ffs.USB_DIR_IN,
+                                      "bmAttributes": ffs.USB_ENDPOINT_XFER_INT,
                                       "wMaxPacketSize": 64, "bInterval": 8}},
-                        {"endpoint": {"bEndpointAddress": ch9.USB_DIR_OUT,
-                                      "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
+                        {"endpoint": {"bEndpointAddress": ffs.USB_DIR_OUT,
+                                      "bmAttributes": ffs.USB_ENDPOINT_XFER_INT,
                                       "wMaxPacketSize": 64, "bInterval": 8}},
                     ],
-                    # FunctionFS needs a class-specific descriptor for HID
                     class_descriptor_list=[
                         {
-                            "bDescriptorType": 0x21,  # HID
+                            "bDescriptorType": 0x21,
                             "data": struct.pack("<HBBH",
-                                                0x0111,  # bcdHID
-                                                0,       # bCountryCode
-                                                1,       # bNumDescriptors
-                                                len(_HID_REPORT_DESC)),  # wDescriptorLength
+                                                0x0111, 0, 1,
+                                                len(_HID_REPORT_DESC)),
                         },
                     ],
                 )
                 super().__init__(path, fs_list=fs_list, hs_list=hs_list, ss_list=ss_list,
-                                 lang_dict={0x0409: ["Pro Controller"]})
+                                 lang_dict={0x0409: ["Pro Controller"]},
+                                 hid_report_desc=_HID_REPORT_DESC)
 
             def getEndpointClass(self, is_in: bool, descriptor: Any) -> Any:
                 return _INEndpoint if is_in else _OUTEndpoint

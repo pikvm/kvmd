@@ -48,14 +48,7 @@ from .... import usb
 
 from ....logging import get_logger
 
-try:
-    import functionfs
-    import functionfs.ch9 as ch9
-    _IMPORT_ERROR: (Exception | None) = None
-except Exception as _ex:  # pragma: no cover -- only importable on the gadget host
-    functionfs = None
-    ch9 = None
-    _IMPORT_ERROR = _ex
+from . import ffs
 
 
 # =====
@@ -139,10 +132,6 @@ class XInputProcess:  # pylint: disable=too-many-instance-attributes
 
     def __subprocess(self) -> None:
         logger = get_logger(0)
-        if functionfs is None:
-            logger.error("HID-xinput requires python-functionfs: %s", _IMPORT_ERROR)
-            return
-
         state_q = self.__state_q
         stop_event = self.__stop_event
         state_flags = self.__state_flags
@@ -160,7 +149,7 @@ class XInputProcess:  # pylint: disable=too-many-instance-attributes
         # latest state. Must be a bytearray -- libaio requires a writable buffer.
         state = bytearray(_NEUTRAL)
 
-        class _INEndpoint(functionfs.EndpointINFile):  # type: ignore
+        class _INEndpoint(ffs.EndpointINFile):
             def onComplete(self, buffer_list: Any, user_data: Any, status: int) -> Any:
                 if status < 0:
                     if status == -errno.ESHUTDOWN:
@@ -168,13 +157,13 @@ class XInputProcess:  # pylint: disable=too-many-instance-attributes
                     raise IOError(-status)
                 return True
 
-        class _OUTEndpoint(functionfs.EndpointOUTFile):  # type: ignore
+        class _OUTEndpoint(ffs.EndpointOUTFile):
             def onComplete(self, data: Any, status: int) -> Any:
                 return None  # Discard rumble / LED writes from the host
 
-        class _XInput(functionfs.Function):  # type: ignore
+        class _XInput(ffs.Function):
             def __init__(self, path: str) -> None:
-                (fs_list, hs_list, ss_list) = functionfs.getInterfaceInAllSpeeds(
+                (fs_list, hs_list, ss_list) = ffs.getInterfaceInAllSpeeds(
                     interface={
                         "bInterfaceClass": 0xFF,
                         "bInterfaceSubClass": 0x5D,
@@ -182,11 +171,11 @@ class XInputProcess:  # pylint: disable=too-many-instance-attributes
                         "iInterface": 1,
                     },
                     endpoint_list=[
-                        {"endpoint": {"bEndpointAddress": ch9.USB_DIR_IN,
-                                      "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
+                        {"endpoint": {"bEndpointAddress": ffs.USB_DIR_IN,
+                                      "bmAttributes": ffs.USB_ENDPOINT_XFER_INT,
                                       "wMaxPacketSize": 0x20, "bInterval": 1}},
-                        {"endpoint": {"bEndpointAddress": ch9.USB_DIR_OUT,
-                                      "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
+                        {"endpoint": {"bEndpointAddress": ffs.USB_DIR_OUT,
+                                      "bmAttributes": ffs.USB_ENDPOINT_XFER_INT,
                                       "wMaxPacketSize": 0x20, "bInterval": 1}},
                     ],
                 )

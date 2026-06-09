@@ -47,14 +47,7 @@ from .... import usb
 
 from ....logging import get_logger
 
-try:
-    import functionfs
-    import functionfs.ch9 as ch9
-    _IMPORT_ERROR: (Exception | None) = None
-except Exception as _ex:
-    functionfs = None
-    ch9 = None
-    _IMPORT_ERROR = _ex
+from . import ffs
 
 
 # ===== DualSense USB HID Report Descriptor =====
@@ -179,10 +172,6 @@ class DualSenseProcess:
 
     def __subprocess(self) -> None:
         logger = get_logger(0)
-        if functionfs is None:
-            logger.error("HID-dualsense requires python-functionfs: %s", _IMPORT_ERROR)
-            return
-
         state_q = self.__state_q
         stop_event = self.__stop_event
         state_flags = self.__state_flags
@@ -197,7 +186,7 @@ class DualSenseProcess:
 
         state = bytearray(_NEUTRAL)
 
-        class _INEndpoint(functionfs.EndpointINFile):  # type: ignore
+        class _INEndpoint(ffs.EndpointINFile):
             def onComplete(self, buffer_list: Any, user_data: Any, status: int) -> Any:
                 if status < 0:
                     if status == -errno.ESHUTDOWN:
@@ -205,40 +194,65 @@ class DualSenseProcess:
                     raise IOError(-status)
                 return True
 
-        class _OUTEndpoint(functionfs.EndpointOUTFile):  # type: ignore
+        class _OUTEndpoint(ffs.EndpointOUTFile):
             def onComplete(self, data: Any, status: int) -> Any:
-                return None  # Discard LED/rumble/adaptive-trigger output reports
+                return None
 
-        class _DualSense(functionfs.Function):  # type: ignore
+        class _DualSense(ffs.Function):
             def __init__(self, path: str) -> None:
-                (fs_list, hs_list, ss_list) = functionfs.getInterfaceInAllSpeeds(
+                (fs_list, hs_list, ss_list) = ffs.getInterfaceInAllSpeeds(
                     interface={
-                        "bInterfaceClass": 0x03,  # HID
+                        "bInterfaceClass": 0x03,
                         "bInterfaceSubClass": 0x00,
                         "bInterfaceProtocol": 0x00,
                         "iInterface": 1,
                     },
                     endpoint_list=[
-                        {"endpoint": {"bEndpointAddress": ch9.USB_DIR_IN,
-                                      "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
+                        {"endpoint": {"bEndpointAddress": ffs.USB_DIR_IN,
+                                      "bmAttributes": ffs.USB_ENDPOINT_XFER_INT,
                                       "wMaxPacketSize": 64, "bInterval": 1}},
-                        {"endpoint": {"bEndpointAddress": ch9.USB_DIR_OUT,
-                                      "bmAttributes": ch9.USB_ENDPOINT_XFER_INT,
+                        {"endpoint": {"bEndpointAddress": ffs.USB_DIR_OUT,
+                                      "bmAttributes": ffs.USB_ENDPOINT_XFER_INT,
                                       "wMaxPacketSize": 64, "bInterval": 1}},
                     ],
                     class_descriptor_list=[
                         {
-                            "bDescriptorType": 0x21,  # HID
+                            "bDescriptorType": 0x21,
                             "data": struct.pack("<HBBH",
-                                                0x0111,
-                                                0,
-                                                1,
+                                                0x0111, 0, 1,
                                                 len(_HID_REPORT_DESC)),
                         },
                     ],
                 )
                 super().__init__(path, fs_list=fs_list, hs_list=hs_list, ss_list=ss_list,
-                                 lang_dict={0x0409: ["Wireless Controller"]})
+                                 lang_dict={0x0409: ["Wireless Controller"]},
+                                 hid_report_desc=_HID_REPORT_DESC)
+
+            def onSetup(self, request_type: int, request: int, value: int,
+                        index: int, length: int) -> None:
+                if ((request_type & ffs.USB_TYPE_MASK) == ffs.USB_TYPE_CLASS
+                        and (request_type & ffs.USB_DIR_IN)
+                        and request == 0x01):
+                    report_id = value & 0xFF
+                    if report_id == 0x09:
+                        resp = bytearray(20)
+                        resp[0] = 0x09
+                        resp[1:7] = _MAC_ADDR
+                        os.write(self._ep0_fd, bytes(resp[:length]))
+                        return
+                    elif report_id == 0x20:
+                        resp = bytearray(64)
+                        resp[0] = 0x20
+                        struct.pack_into("<I", resp, 1, 0x00000400)
+                        struct.pack_into("<I", resp, 5, 0x00000400)
+                        os.write(self._ep0_fd, bytes(resp[:length]))
+                        return
+                    elif report_id == 0x05:
+                        resp = bytearray(41)
+                        resp[0] = 0x05
+                        os.write(self._ep0_fd, bytes(resp[:length]))
+                        return
+                super().onSetup(request_type, request, value, index, length)
 
             def getEndpointClass(self, is_in: bool, descriptor: Any) -> Any:
                 return _INEndpoint if is_in else _OUTEndpoint
