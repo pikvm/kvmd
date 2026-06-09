@@ -1,0 +1,133 @@
+/*****************************************************************************
+#                                                                            #
+#    KVMD - The main PiKVM daemon.                                           #
+#                                                                            #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+*****************************************************************************/
+
+
+#gamepad-window {
+	min-width: 420px;
+}
+
+#gamepad-svg {
+	display: block;
+	margin: 0 auto;
+}
+
+#gamepad-info {
+	text-align: center;
+	font-size: 11px;
+	color: var(--cs-page-obscure-fg);
+	padding: 4px 8px;
+}
+#gamepad-info-name {
+	color: var(--cs-page-default-fg);
+	font-weight: bold;
+}
+#gamepad-info-disconnected {
+	font-style: italic;
+}
+
+/* SVG button/trigger highlights */
+.gp-btn {
+	fill: #3b3e43;
+	stroke: #6c7481;
+	stroke-width: 1;
+	transition: fill 0.05s;
+}
+.gp-btn.gp-active {
+	fill: #5b90bb;
+	stroke: #8ab4d6;
+}
+
+/* Face buttons get subtle letter coloring when active */
+.gp-btn-label {
+	fill: #6c7481;
+	font-size: 10px;
+	font-family: sans-serif;
+	text-anchor: middle;
+	dominant-baseline: central;
+	pointer-events: none;
+	transition: fill 0.05s;
+}
+.gp-active + .gp-btn-label,
+.gp-active .gp-btn-label {
+	fill: #ffffff;
+}
+
+/* L3/R3 stick-press rings (transparent by default, visible when active) */
+.gp-btn-stick {
+	fill: none;
+	stroke: #6c7481;
+	stroke-width: 1;
+}
+.gp-btn-stick.gp-active {
+	fill: none;
+	stroke: #5b90bb;
+	stroke-width: 2;
+}
+
+/* Analog sticks */
+.gp-stick-bg {
+	fill: #2a2d31;
+	stroke: #6c7481;
+	stroke-width: 1;
+}
+.gp-stick-dot {
+	fill: #5b90bb;
+	stroke: #8ab4d6;
+	stroke-width: 1;
+	transition: cx 0.03s, cy 0.03s;
+}
+
+/* D-pad */
+.gp-dpad {
+	fill: #3b3e43;
+	stroke: #6c7481;
+	stroke-width: 1;
+}
+.gp-dpad-active {
+	fill: #5b90bb;
+}
+
+/* Trigger bars */
+.gp-trigger-bg {
+	fill: #2a2d31;
+	stroke: #6c7481;
+	stroke-width: 1;
+}
+.gp-trigger-fill {
+	fill: #5b90bb;
+	transition: width 0.03s;
+}
+
+/* Controller body */
+.gp-body {
+	fill: #2a2d31;
+	stroke: #6c7481;
+	stroke-width: 1.5;
+}
+
+/* Status text in HID dropdown */
+#hid-gamepad-status {
+	font-size: 11px;
+	color: var(--cs-page-obscure-fg);
+}
+#hid-gamepad-status b {
+	color: var(--cs-page-default-fg);
+}
