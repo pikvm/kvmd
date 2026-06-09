@@ -218,8 +218,8 @@ class DualSenseProcess:
                     class_descriptor_list=[
                         {
                             "bDescriptorType": 0x21,
-                            "data": struct.pack("<HBBH",
-                                                0x0111, 0, 1,
+                            "data": struct.pack("<HBBBH",
+                                                0x0111, 0, 1, 0x22,
                                                 len(_HID_REPORT_DESC)),
                         },
                     ],
