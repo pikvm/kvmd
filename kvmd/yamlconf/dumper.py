@@ -204,7 +204,8 @@ def override_yaml_file(path: str, validator: Callable[[str], None]) -> Generator
             doc = handler.load(content)
             if doc is None:
                 doc = CommentedMap()
-                doc.yaml_set_start_comment(content)
+                if content:
+                    doc.yaml_set_start_comment(content)
             elif not isinstance(doc, dict):
                 raise ConfigError(f"The root in {path!r} should be a dictionary")
 
