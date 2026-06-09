@@ -73,6 +73,12 @@ export function Session() {
 			if (http.status === 200) {
 				__ws = new WebSocket(tools.makeWsUrl("api/ws"));
 				__ws.sendHidEvent = (ev) => __sendHidEvent(__ws, ev.event_type, ev.event);
+				__ws.sendHidBin = (type, data) => {
+					let frame = new Uint8Array(1 + data.length);
+					frame[0] = type;
+					frame.set(data, 1);
+					__ws.send(frame);
+				};
 				__ws.binaryType = "arraybuffer";
 				__ws.onopen = __wsOpenHandler;
 				__ws.onmessage = async (ev) => {

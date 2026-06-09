@@ -480,7 +480,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
                          config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
         if config.kvmd.hid.gamepad.mode:
             gp_mode = config.kvmd.hid.gamepad.mode
-            gp_count = min(getattr(config.kvmd.hid.gamepad, "count", 2), 4)
+            gp_count = min(config.kvmd.hid.gamepad.count, 4)
             ffs_base = config.kvmd.hid.gamepad.ffs_base
             for i in range(gp_count):
                 start = cod.hid.gamepad.start if i < 2 else False

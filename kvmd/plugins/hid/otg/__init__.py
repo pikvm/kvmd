@@ -95,7 +95,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
         # The controller type (mode) is shared across all slots.
         self.__gamepad_procs: list = []
         if c.gamepad.mode:
-            count = min(getattr(c.gamepad, "count", 2), 4)
+            count = min(c.gamepad.count, 4)
             for i in range(count):
                 ffs_path = f"{c.gamepad.ffs_base}{i}"
                 proc = self.__make_gamepad_proc(c, ffs_path)

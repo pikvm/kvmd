@@ -44,6 +44,7 @@ from typing import Any
 
 from .... import aiomulti
 from .... import tools
+from .... import usb
 
 from ....logging import get_logger
 
@@ -228,7 +229,7 @@ class XInputProcess:  # pylint: disable=too-many-instance-attributes
         return os.path.join(self.__gadget_path, "UDC")
 
     def __bind(self) -> None:
-        udc = self.__udc or sorted(os.listdir("/sys/class/udc"))[0]
+        udc = usb.find_udc(self.__udc)
         with open(self.__udc_path(), "w") as file:
             file.write(udc)
         get_logger(0).info("HID-xinput: bound gadget to UDC %s", udc)
