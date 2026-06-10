@@ -444,6 +444,8 @@ export function JanusStreamer(
 				info = kbps;
 
 				if (show_latency) {
+					// Firefox: https://bugzilla.mozilla.org/show_bug.cgi?id=1733653
+
 					const receiver = __handle.webrtcStuff.pc.getReceivers()[0];
 					const contributing_src = receiver.getSynchronizationSources()[0];
 					const capture_ts = contributing_src?.captureTimestamp;
