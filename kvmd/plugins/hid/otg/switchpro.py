@@ -294,10 +294,15 @@ class SwitchProProcess:
                 d = bytes(data)
                 if not d:
                     return None
+                # Log the pairing dance (0x80 USB commands + 0x01 subcommands)
+                # so the journal shows how far a console gets. The frequent
+                # rumble-only reports (0x10) are deliberately not logged.
                 if d[0] == 0x80 and len(d) >= 2:
+                    logger.info("HID-switchpro: host USB command 0x80 0x%02x", d[1])
                     reply_queue.put(_build_usb_reply(d[1]))
                 elif d[0] == 0x01 and len(d) >= 11:
                     subcmd = d[10]
+                    logger.info("HID-switchpro: host subcommand 0x%02x", subcmd)
                     timer[0] = (timer[0] + 1) & 0xFF
                     if subcmd == 0x02:  # device info
                         info = bytearray(12)
@@ -351,6 +356,7 @@ class SwitchProProcess:
 
             def onEnable(self) -> None:
                 super().onEnable()
+                logger.info("HID-switchpro: function enabled by host, streaming input reports")
                 state_flags.update(online=True)
                 self.getEndpoint(1).submit((state,))
 
