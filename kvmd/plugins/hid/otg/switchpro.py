@@ -109,12 +109,17 @@ def make_switchpro_report(buttons: int, lx: int, ly: int, rx: int, ry: int,
     def bit(index: int) -> int:
         return (buttons >> index) & 1
 
-    # Map browser Gamepad buttons: 0=A 1=B 2=X 3=Y 4=L 5=R 6=ZL 7=ZR
-    #   8=minus 9=plus 10=lstick
-    d[3] = (bit(3) | bit(2) << 1 | bit(1) << 2 | bit(0) << 3 |
-            bit(5) << 6 | bit(7) << 7)
-    d[4] = bit(8) | bit(9) << 1 | bit(10) << 2 | bit(10) << 3
-    d[5] = bit(4) << 6 | bit(6) << 7
+    # Wire format (web/share/js/kvm/gamepad.js __BUTTON_MAP): 0=A 1=B 2=X 3=Y
+    #   4=LB 5=RB 6=back 7=start 8=L3 9=R3 10=guide 11=capture
+    # The browser's "standard" face buttons are positional (0=bottom 1=right
+    # 2=left 3=top, Xbox lettering), and the Switch letters those positions
+    # differently, so map by position: bottom=B, right=A, left=Y, top=X.
+    # ZL/ZR arrive as the analog triggers (lt/rt), not as button bits.
+    d[3] = (bit(2) | bit(3) << 1 | bit(0) << 2 | bit(1) << 3 |
+            bit(5) << 6 | int(rt >= 0x80) << 7)
+    d[4] = (bit(6) | bit(7) << 1 | bit(9) << 2 | bit(8) << 3 |
+            bit(10) << 4 | bit(11) << 5)
+    d[5] = bit(4) << 6 | int(lt >= 0x80) << 7
 
     # Hat switch → d-pad in d[5]
     up    = int(hat in (7, 0, 1))

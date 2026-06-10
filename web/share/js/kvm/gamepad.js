@@ -48,6 +48,7 @@ export function Gamepad(__recordWsEvent) {
 		[8, 6], [9, 7],                 // Back Start
 		[10, 8], [11, 9],               // L3 R3
 		[16, 10],                       // Guide
+		[17, 11],                       // Capture (Switch) / Mute (DualSense)
 	];
 
 	// UI throttle: update visuals at ~30fps, not 250Hz
@@ -112,7 +113,7 @@ export function Gamepad(__recordWsEvent) {
 	var __connectHandler = function(ev) {
 		__connected[ev.gamepad.index] = true;
 		tools.info("Gamepad: connected [" + ev.gamepad.index + "]:", ev.gamepad.id);
-		__updateStatusText(ev.gamepad.index, ev.gamepad.id);
+		__updateStatusText(ev.gamepad.index, ev.gamepad.id, ev.gamepad.mapping);
 		__updateLoop();
 	};
 
@@ -168,12 +169,23 @@ export function Gamepad(__recordWsEvent) {
 				buttons |= (1 << bit);
 			}
 		}
+		let up = __down(gp, 12), down = __down(gp, 13), left = __down(gp, 14), right = __down(gp, 15);
+		if (gp.mapping !== "standard" && gp.axes.length >= 6) {
+			// Non-standard mappings usually expose the d-pad as a hat axis
+			// pair (ABS_HAT0X/Y), typically the last two axes.
+			let hx = gp.axes[gp.axes.length - 2] || 0;
+			let hy = gp.axes[gp.axes.length - 1] || 0;
+			up = up || (hy < -0.5);
+			down = down || (hy > 0.5);
+			left = left || (hx < -0.5);
+			right = right || (hx > 0.5);
+		}
 		return {
 			"buttons": buttons,
 			"lx": __axis(gp.axes[0]), "ly": __axis(gp.axes[1]),
 			"rx": __axis(gp.axes[2]), "ry": __axis(gp.axes[3]),
 			"lt": __trigger(gp.buttons[6]), "rt": __trigger(gp.buttons[7]),
-			"hat": __hat(__down(gp, 12), __down(gp, 13), __down(gp, 14), __down(gp, 15)),
+			"hat": __hat(up, down, left, right),
 		};
 	};
 
@@ -235,7 +247,7 @@ export function Gamepad(__recordWsEvent) {
 	// UI update functions (throttled to ~30fps via __uiInterval)
 	/************************************************************************/
 
-	var __updateStatusText = function(index, name) {
+	var __updateStatusText = function(index, name, mapping) {
 		let el_status = $("hid-gamepad-status");
 		if (el_status) {
 			el_status.innerHTML = "<b>" + __escHtml(__shortName(name)) + "</b> (Pad " + index + ")";
@@ -248,7 +260,10 @@ export function Gamepad(__recordWsEvent) {
 			el_disc.classList.add("hidden");
 			el_conn.classList.remove("hidden");
 			if (el_name) el_name.textContent = __shortName(name);
-			if (el_slot) el_slot.textContent = "(Pad " + index + ")";
+			if (el_slot) {
+				el_slot.textContent = ("(Pad " + index + ")"
+					+ (mapping === "standard" ? "" : " ⚠ non-standard browser mapping: buttons may be scrambled"));
+			}
 		}
 	};
 
@@ -259,7 +274,7 @@ export function Gamepad(__recordWsEvent) {
 			let idx = parseInt(keys[0]);
 			let pads = navigator.getGamepads();
 			if (pads && pads[idx]) {
-				__updateStatusText(idx, pads[idx].id);
+				__updateStatusText(idx, pads[idx].id, pads[idx].mapping);
 				return;
 			}
 		}
