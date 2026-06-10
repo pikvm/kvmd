@@ -62,6 +62,37 @@ SETUP = 4
 _EVENT_SIZE = 12  # sizeof(usb_functionfs_event)
 
 
+# ===== UDC binding =====
+
+def wait_bind_udc(gadget_path, udc_name, stop_event, logger=None):
+    # A gadget binds to the UDC only after every FunctionFS function in it has
+    # its descriptors written, and only one servicer's write can succeed, so:
+    # retry while sibling gamepad slots come up, and treat EBUSY with the
+    # gadget already bound as a sibling having won the race.
+    udc_path = os.path.join(gadget_path, "UDC")
+    attempts = 0
+    while not stop_event.is_set():
+        try:
+            with open(udc_path, "w") as file:
+                file.write(udc_name)
+            if logger:
+                logger.info("FFS: bound gadget to UDC %s", udc_name)
+            return True
+        except OSError as ex:
+            if ex.errno == errno.EBUSY:
+                try:
+                    with open(udc_path) as file:
+                        if file.read().strip():
+                            return True
+                except OSError:
+                    pass
+            attempts += 1
+            if logger and attempts % 20 == 0:
+                logger.warning("FFS: still waiting to bind UDC (%s): %s", udc_name, ex)
+        stop_event.wait(0.25)
+    return False
+
+
 # ===== Descriptor helpers =====
 
 def _pack_ep(addr, attrs, max_pkt, interval):

@@ -282,7 +282,11 @@ class DualSenseProcess:
         except Exception:
             logger.exception("Unexpected HID-dualsense error")
         finally:
-            self.__unbind()
+            # Only unbind on intentional shutdown: the UDC is shared with the
+            # keyboard, mouse and sibling gamepad slots, so a crashing slot
+            # must not yank the whole gadget off the bus.
+            if stop_event.is_set():
+                self.__unbind()
             state_flags.update(online=False)
 
     def __udc_path(self) -> str:
@@ -290,9 +294,7 @@ class DualSenseProcess:
 
     def __bind(self) -> None:
         udc = usb.find_udc(self.__udc)
-        with open(self.__udc_path(), "w") as file:
-            file.write(udc)
-        get_logger(0).info("HID-dualsense: bound gadget to UDC %s", udc)
+        ffs.wait_bind_udc(self.__gadget_path, udc, self.__stop_event, get_logger(0))
 
     def __unbind(self) -> None:
         try:
