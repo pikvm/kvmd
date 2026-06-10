@@ -51,6 +51,26 @@ export function Gamepad(__recordWsEvent) {
 		[17, 11],                       // Capture (Switch) / Mute (DualSense)
 	];
 
+	// Empirical layout for a Switch Pro Controller exposed with a
+	// non-standard mapping (Linux hid-nintendo through Chrome):
+	// 0=Y 1=B 2=A 3=X 4=L 5=R 6=ZL 7=ZR 8=minus 9=plus 10=L3 11=R3
+	// 12=home 13=capture; the d-pad is the hat axis pair.
+	var __NINTENDO_RAW_MAP = [
+		[1, 0], [2, 1], [0, 2], [3, 3], // bottom right left top
+		[4, 4], [5, 5],
+		[8, 6], [9, 7],
+		[10, 8], [11, 9],
+		[12, 10],                       // Home
+		[13, 11],                       // Capture
+	];
+
+	var __mapFor = function(gp) {
+		if (gp.mapping !== "standard" && /pro controller|joy-con|057e/i.test(gp.id)) {
+			return __NINTENDO_RAW_MAP;
+		}
+		return __BUTTON_MAP;
+	};
+
 	// UI throttle: update visuals at ~30fps, not 250Hz
 	var __uiInterval = null;
 	var __uiMs = 33;  // ~30fps
@@ -181,7 +201,7 @@ export function Gamepad(__recordWsEvent) {
 
 	var __readPad = function(gp) {
 		let buttons = 0;
-		for (let [bi, bit] of __BUTTON_MAP) {
+		for (let [bi, bit] of __mapFor(gp)) {
 			if (gp.buttons[bi] && gp.buttons[bi].pressed) {
 				buttons |= (1 << bit);
 			}
