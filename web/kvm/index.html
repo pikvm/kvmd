@@ -2396,19 +2396,19 @@
           <g class="gp-btn" id="gp-btn-a">
             <circle cx="310" cy="95" r="10"></circle>
           </g>
-          <text class="gp-btn-label" x="310" y="95">A</text>
+          <text class="gp-btn-label" id="gp-label-a" x="310" y="95">A</text>
           <g class="gp-btn" id="gp-btn-b">
             <circle cx="330" cy="75" r="10"></circle>
           </g>
-          <text class="gp-btn-label" x="330" y="75">B</text>
+          <text class="gp-btn-label" id="gp-label-b" x="330" y="75">B</text>
           <g class="gp-btn" id="gp-btn-x">
             <circle cx="290" cy="75" r="10"></circle>
           </g>
-          <text class="gp-btn-label" x="290" y="75">X</text>
+          <text class="gp-btn-label" id="gp-label-x" x="290" y="75">X</text>
           <g class="gp-btn" id="gp-btn-y">
             <circle cx="310" cy="55" r="10"></circle>
           </g>
-          <text class="gp-btn-label" x="310" y="55">Y</text>
+          <text class="gp-btn-label" id="gp-label-y" x="310" y="55">Y</text>
           <g class="gp-btn" id="gp-btn-lb">
             <rect x="70" y="15" width="55" height="14" rx="4"></rect>
           </g>
@@ -2424,19 +2424,23 @@
           <g class="gp-btn" id="gp-btn-back">
             <rect x="168" y="60" width="22" height="10" rx="4"></rect>
           </g>
-          <text class="gp-btn-label" x="179" y="65" font-size="7">Back</text>
+          <text class="gp-btn-label" id="gp-label-back" x="179" y="65" font-size="7">Back</text>
           <g class="gp-btn" id="gp-btn-start">
             <rect x="200" y="60" width="22" height="10" rx="4"></rect>
           </g>
-          <text class="gp-btn-label" x="211" y="65" font-size="7">Start</text>
+          <text class="gp-btn-label" id="gp-label-start" x="211" y="65" font-size="7">Start</text>
           <g class="gp-btn" id="gp-btn-guide">
-            <circle cx="195" cy="45" r="8"></circle>
+            <circle cx="202" cy="45" r="8"></circle>
+          </g>
+          <g class="gp-btn" id="gp-btn-capture">
+            <rect x="180" y="39" width="11" height="11" rx="2"></rect>
           </g>
           <circle class="gp-btn-stick" id="gp-btn-l3" cx="155" cy="105" r="20"></circle>
           <circle class="gp-btn-stick" id="gp-btn-r3" cx="235" cy="120" r="20"></circle>
         </svg>
         <div id="gamepad-info">
-          <div id="gamepad-info-disconnected">Connect a gamepad to your browser or use the buttons above</div>
+          <div id="gamepad-info-disconnected">Connect a gamepad to your browser and press any button on it</div>
+          <div id="gamepad-raw" style="font-family: monospace; font-size: 11px; opacity: 0.8; min-height: 14px"></div>
           <div class="hidden" id="gamepad-info-connected"><span id="gamepad-info-name"></span>&nbsp;<span id="gamepad-info-slot"></span></div>
         </div>
       </div>

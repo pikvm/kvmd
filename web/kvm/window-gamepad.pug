@@ -37,16 +37,16 @@
 			//- Face buttons (ABXY)
 			g#gp-btn-a.gp-btn
 				circle(cx="310" cy="95" r="10")
-			text.gp-btn-label(x="310" y="95") A
+			text#gp-label-a.gp-btn-label(x="310" y="95") A
 			g#gp-btn-b.gp-btn
 				circle(cx="330" cy="75" r="10")
-			text.gp-btn-label(x="330" y="75") B
+			text#gp-label-b.gp-btn-label(x="330" y="75") B
 			g#gp-btn-x.gp-btn
 				circle(cx="290" cy="75" r="10")
-			text.gp-btn-label(x="290" y="75") X
+			text#gp-label-x.gp-btn-label(x="290" y="75") X
 			g#gp-btn-y.gp-btn
 				circle(cx="310" cy="55" r="10")
-			text.gp-btn-label(x="310" y="55") Y
+			text#gp-label-y.gp-btn-label(x="310" y="55") Y
 
 			//- Bumpers (LB/RB)
 			g#gp-btn-lb.gp-btn
@@ -65,21 +65,26 @@
 			//- Back / Start
 			g#gp-btn-back.gp-btn
 				rect(x="168" y="60" width="22" height="10" rx="4")
-			text.gp-btn-label(x="179" y="65" font-size="7") Back
+			text#gp-label-back.gp-btn-label(x="179" y="65" font-size="7") Back
 			g#gp-btn-start.gp-btn
 				rect(x="200" y="60" width="22" height="10" rx="4")
-			text.gp-btn-label(x="211" y="65" font-size="7") Start
+			text#gp-label-start.gp-btn-label(x="211" y="65" font-size="7") Start
 
-			//- Guide button
+			//- Guide / Home button
 			g#gp-btn-guide.gp-btn
-				circle(cx="195" cy="45" r="8")
+				circle(cx="202" cy="45" r="8")
+
+			//- Capture button (small square left of center)
+			g#gp-btn-capture.gp-btn
+				rect(x="180" y="39" width="11" height="11" rx="2")
 
 			//- L3/R3 (stick press indicators)
 			circle#gp-btn-l3.gp-btn-stick(cx="155" cy="105" r="20")
 			circle#gp-btn-r3.gp-btn-stick(cx="235" cy="120" r="20")
 
 		#gamepad-info
-			div#gamepad-info-disconnected Connect a gamepad to your browser or use the buttons above
+			div#gamepad-info-disconnected Connect a gamepad to your browser and press any button on it
+			div#gamepad-raw(style="font-family: monospace; font-size: 11px; opacity: 0.8; min-height: 14px")
 			div.hidden#gamepad-info-connected
 				span#gamepad-info-name
 				| &nbsp;

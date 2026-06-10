@@ -147,6 +147,7 @@ export function Hid(__getGeometry, __recorder) {
 					tools.feature.setEnabled($("hid-gamepad-button"), !!state.gamepad.mode);
 					if (state.gamepad.mode !== undefined) {
 						__updateGamepadOutputs(state.gamepad.mode);
+						__gamepad.setMode(state.gamepad.mode);
 					}
 				}
 				if (

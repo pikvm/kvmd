@@ -70,6 +70,23 @@ export function Gamepad(__recordWsEvent) {
 
 	/************************************************************************/
 
+	var __FACE_LABELS = {
+		"switchpro": {"a": "B", "b": "A", "x": "Y", "y": "X", "back": "−", "start": "+"},
+		"dualsense": {"a": "✕", "b": "○", "x": "□", "y": "△", "back": "Share", "start": "Opt"},
+		"": {"a": "A", "b": "B", "x": "X", "y": "Y", "back": "Back", "start": "Start"},
+	};
+
+	self.setMode = function(mode) {
+		// The SVG buttons are positional; relabel them for the emulated pad
+		let labels = (__FACE_LABELS[mode] || __FACE_LABELS[""]);
+		for (let key of ["a", "b", "x", "y", "back", "start"]) {
+			let el = $("gp-label-" + key);
+			if (el) {
+				el.textContent = labels[key];
+			}
+		}
+	};
+
 	self.setSocket = function(ws) {
 		__ws = ws;
 		if (!__ws) {
@@ -169,16 +186,19 @@ export function Gamepad(__recordWsEvent) {
 				buttons |= (1 << bit);
 			}
 		}
-		let up = __down(gp, 12), down = __down(gp, 13), left = __down(gp, 14), right = __down(gp, 15);
-		if (gp.mapping !== "standard" && gp.axes.length >= 6) {
-			// Non-standard mappings usually expose the d-pad as a hat axis
-			// pair (ABS_HAT0X/Y), typically the last two axes.
+		let up = false, down = false, left = false, right = false;
+		if (gp.mapping === "standard") {
+			up = __down(gp, 12); down = __down(gp, 13); left = __down(gp, 14); right = __down(gp, 15);
+		} else if (gp.axes.length >= 6) {
+			// Non-standard mappings put other buttons at indexes 12-15 (e.g.
+			// home, capture) and expose the d-pad as a hat axis pair
+			// (ABS_HAT0X/Y), typically the last two axes.
 			let hx = gp.axes[gp.axes.length - 2] || 0;
 			let hy = gp.axes[gp.axes.length - 1] || 0;
-			up = up || (hy < -0.5);
-			down = down || (hy > 0.5);
-			left = left || (hx < -0.5);
-			right = right || (hx > 0.5);
+			up = (hy < -0.5);
+			down = (hy > 0.5);
+			left = (hx < -0.5);
+			right = (hx > 0.5);
 		}
 		return {
 			"buttons": buttons,
@@ -319,6 +339,22 @@ export function Gamepad(__recordWsEvent) {
 
 		let state = __readPad(gp);
 
+		let el_raw = $("gamepad-raw");
+		if (el_raw) {
+			let parts = [];
+			for (let i = 0; i < gp.buttons.length; i++) {
+				if (gp.buttons[i] && gp.buttons[i].pressed) {
+					parts.push("btn" + i);
+				}
+			}
+			for (let i = 0; i < gp.axes.length; i++) {
+				if (Math.abs(gp.axes[i] || 0) > 0.5) {
+					parts.push("ax" + i + "=" + gp.axes[i].toFixed(1));
+				}
+			}
+			el_raw.textContent = (parts.length ? ("Raw browser input: " + parts.join(" ")) : "");
+		}
+
 		// Quick check: skip if nothing changed
 		let snap = JSON.stringify(state);
 		if (snap === __lastUiState) return;
@@ -337,6 +373,7 @@ export function Gamepad(__recordWsEvent) {
 		__setBtnActive("gp-btn-l3", state.buttons & (1 << 8));
 		__setBtnActive("gp-btn-r3", state.buttons & (1 << 9));
 		__setBtnActive("gp-btn-guide", state.buttons & (1 << 10));
+		__setBtnActive("gp-btn-capture", state.buttons & (1 << 11));
 
 		// Analog sticks: lx/ly/rx/ry are 0-255, center 128
 		let lx_norm = (state.lx - 128) / 128;  // -1..1
@@ -415,7 +452,7 @@ export function Gamepad(__recordWsEvent) {
 		let btnIds = [
 			"gp-btn-a", "gp-btn-b", "gp-btn-x", "gp-btn-y",
 			"gp-btn-lb", "gp-btn-rb", "gp-btn-back", "gp-btn-start",
-			"gp-btn-l3", "gp-btn-r3", "gp-btn-guide",
+			"gp-btn-l3", "gp-btn-r3", "gp-btn-guide", "gp-btn-capture",
 		];
 		for (let id of btnIds) {
 			__setBtnActive(id, false);
