@@ -146,6 +146,19 @@ def make_switchpro_report(buttons: int, lx: int, ly: int, rx: int, ry: int,
 _NEUTRAL = make_switchpro_report(0, 128, 128, 128, 128, 0, 0, 8)
 
 
+# The ACK byte is NOT 0x80|subcmd: its low bits are the reply DATA TYPE, and
+# plain acks are exactly 0x80. The console validates this and endlessly
+# retries a subcommand acked with the wrong byte (hid-nintendo doesn't check,
+# which is why this passed against the Linux driver but not a real Switch).
+_SUBCMD_ACKS = {
+    0x01: 0x81,  # manual pairing
+    0x02: 0x82,  # device info
+    0x04: 0x83,  # trigger buttons elapsed time
+    0x10: 0x90,  # SPI flash read
+    0x50: 0xD0,  # regulated voltage
+}
+
+
 def _build_subcmd_reply(subcmd_id: int, data: bytes = b"", timer: int = 0) -> bytearray:
     buf = bytearray(64)
     buf[0] = 0x21
@@ -155,7 +168,7 @@ def _build_subcmd_reply(subcmd_id: int, data: bytes = b"", timer: int = 0) -> by
     rs = _pack_stick(0x800, 0x800)
     buf[6] = ls[0]; buf[7] = ls[1]; buf[8] = ls[2]
     buf[9] = rs[0]; buf[10] = rs[1]; buf[11] = rs[2]
-    buf[13] = 0x80 | subcmd_id
+    buf[13] = _SUBCMD_ACKS.get(subcmd_id, 0x80)
     buf[14] = subcmd_id
     if data:
         buf[15:15 + len(data)] = data[:49]
@@ -268,6 +281,7 @@ class SwitchProProcess:
 
         state = bytearray(_NEUTRAL)
         timer = [0]
+        subcmd_log_counts: dict = {}
         reply_queue: queue.Queue[bytearray] = queue.Queue()
 
         class _INEndpoint(ffs.EndpointINFile):
@@ -296,13 +310,17 @@ class SwitchProProcess:
                     return None
                 # Log the pairing dance (0x80 USB commands + 0x01 subcommands)
                 # so the journal shows how far a console gets. The frequent
-                # rumble-only reports (0x10) are deliberately not logged.
+                # rumble-only reports (0x10) are deliberately not logged, and
+                # repeated subcommands are deduped (a console retries forever
+                # if it dislikes a reply).
                 if d[0] == 0x80 and len(d) >= 2:
                     logger.info("HID-switchpro: host USB command 0x80 0x%02x", d[1])
                     reply_queue.put(_build_usb_reply(d[1]))
                 elif d[0] == 0x01 and len(d) >= 11:
                     subcmd = d[10]
-                    logger.info("HID-switchpro: host subcommand 0x%02x", subcmd)
+                    count = subcmd_log_counts[subcmd] = subcmd_log_counts.get(subcmd, 0) + 1
+                    if count == 1 or count % 100 == 0:
+                        logger.info("HID-switchpro: host subcommand 0x%02x (x%d)", subcmd, count)
                     timer[0] = (timer[0] + 1) & 0xFF
                     if subcmd == 0x02:  # device info
                         info = bytearray(12)
@@ -317,6 +335,8 @@ class SwitchProProcess:
                         rlen = d[15]
                         spi_data = _handle_spi_read(addr, rlen)
                         reply_queue.put(_build_subcmd_reply(subcmd, spi_data, timer[0]))
+                    elif subcmd == 0x50:  # regulated voltage: 1600 = 4.00V
+                        reply_queue.put(_build_subcmd_reply(subcmd, struct.pack("<H", 1600), timer[0]))
                     else:
                         reply_queue.put(_build_subcmd_reply(subcmd, b"", timer[0]))
                 return None
