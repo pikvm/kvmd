@@ -87,11 +87,6 @@ def _pack12(a: int, b: int) -> bytes:
     return bytes([a & 0xFF, ((a >> 8) & 0x0F) | ((b & 0x0F) << 4), (b >> 4) & 0xFF])
 
 
-# center=2048, range=±1500
-_STICK_CAL_LEFT = _pack12(0x5DC, 0x5DC) + _pack12(0x800, 0x800) + _pack12(0x5DC, 0x5DC)
-_STICK_CAL_RIGHT = _pack12(0x800, 0x800) + _pack12(0x5DC, 0x5DC) + _pack12(0x5DC, 0x5DC)
-
-
 def _pack_stick(x: int, y: int) -> bytes:
     return _pack12(x & 0xFFF, y & 0xFFF)
 
@@ -101,7 +96,7 @@ def make_switchpro_report(buttons: int, lx: int, ly: int, rx: int, ry: int,
     d = bytearray(64)
     d[0] = 0x30
     d[1] = timer & 0xFF
-    d[2] = 0x90  # battery full + USB
+    d[2] = 0x81  # battery full (high nibble) + wired connection (low nibble)
 
     # Button mapping: web Gamepad API → Switch Pro button bytes
     # d[3] = right buttons: Y(0), X(1), B(2), A(3), SR(4), SL(5), R(6), ZR(7)
@@ -147,29 +142,24 @@ def make_switchpro_report(buttons: int, lx: int, ly: int, rx: int, ry: int,
 _NEUTRAL = make_switchpro_report(0, 128, 128, 128, 128, 0, 0, 8)
 
 
-# The ACK byte is NOT 0x80|subcmd: its low bits are the reply DATA TYPE, and
-# plain acks are exactly 0x80. The console validates this and endlessly
-# retries a subcommand acked with the wrong byte (hid-nintendo doesn't check,
-# which is why this passed against the Linux driver but not a real Switch).
-_SUBCMD_ACKS = {
-    0x01: 0x81,  # manual pairing
-    0x02: 0x82,  # device info
-    0x04: 0x83,  # trigger buttons elapsed time
-    0x10: 0x90,  # SPI flash read
-    0x50: 0xD0,  # regulated voltage
-}
-
-
-def _build_subcmd_reply(subcmd_id: int, data: bytes = b"", timer: int = 0) -> bytearray:
+def _build_subcmd_reply(subcmd_id: int, data: bytes = b"", timer: int = 0, nack: bool = False) -> bytearray:
+    # The ACK byte rule (matches mzyy94/nscon, proven against a real console):
+    # plain ack = 0x80, data-bearing ack = 0x80|subcmd, NACK = 0x00. The
+    # console validates this byte and retries forever on a wrong one
+    # (hid-nintendo doesn't check, which is why the wrong byte passed
+    # against the Linux driver but not a real Switch).
     buf = bytearray(64)
     buf[0] = 0x21
     buf[1] = timer & 0xFF
-    buf[2] = 0x90  # battery full + USB
+    buf[2] = 0x81  # battery full + wired connection
     ls = _pack_stick(0x800, 0x800)
     rs = _pack_stick(0x800, 0x800)
     buf[6] = ls[0]; buf[7] = ls[1]; buf[8] = ls[2]
     buf[9] = rs[0]; buf[10] = rs[1]; buf[11] = rs[2]
-    buf[13] = _SUBCMD_ACKS.get(subcmd_id, 0x80)
+    if nack:
+        buf[13] = 0x00
+    else:
+        buf[13] = 0x80 | (subcmd_id if data else 0)
     buf[14] = subcmd_id
     if data:
         buf[15:15 + len(data)] = data[:49]
@@ -187,34 +177,44 @@ def _build_usb_reply(cmd: int) -> bytearray:
     return buf
 
 
-def _handle_spi_read(addr: int, length: int) -> bytes:
-    data = bytearray(5 + length)
-    data[0] = addr & 0xFF
-    data[1] = (addr >> 8) & 0xFF
-    data[2] = (addr >> 16) & 0xFF
-    data[3] = (addr >> 24) & 0xFF
-    data[4] = length
-    rdata = memoryview(data)[5:]
+# SPI flash content captured from a real Pro Controller (via mzyy94's
+# MITM dump, as used by mzyy94/nscon): page 0x60xx holds the serial number
+# (unset = 0xFF), factory sensor/stick calibration and body colors; page
+# 0x80xx holds user calibration. The console reads several regions during
+# pairing and aborts if the content is implausible (e.g. all zeros).
+_SPI_ROM_DATA = {
+    0x60: bytes([
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0x03, 0xa0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02, 0xff, 0xff, 0xff, 0xff,
+        0xf0, 0xff, 0x89, 0x00, 0xf0, 0x01, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0xf9, 0xff, 0x06, 0x00,
+        0x09, 0x00, 0xe7, 0x3b, 0xe7, 0x3b, 0xe7, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xba, 0x15, 0x62,
+        0x11, 0xb8, 0x7f, 0x29, 0x06, 0x5b, 0xff, 0xe7, 0x7e, 0x0e, 0x36, 0x56, 0x9e, 0x85, 0x60, 0xff,
+        0x32, 0x32, 0x32, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0x50, 0xfd, 0x00, 0x00, 0xc6, 0x0f, 0x0f, 0x30, 0x61, 0x96, 0x30, 0xf3, 0xd4, 0x14, 0x54, 0x41,
+        0x15, 0x54, 0xc7, 0x79, 0x9c, 0x33, 0x36, 0x63, 0x0f, 0x30, 0x61, 0x96, 0x30, 0xf3, 0xd4, 0x14,
+        0x54, 0x41, 0x15, 0x54, 0xc7, 0x79, 0x9c, 0x33, 0x36, 0x63, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    ]),
+    0x80: bytes([
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xb2, 0xa1, 0xbe, 0xff, 0x3e, 0x00, 0xf0, 0x01, 0x00, 0x40,
+        0x00, 0x40, 0x00, 0x40, 0xfe, 0xff, 0xfe, 0xff, 0x08, 0x00, 0xe7, 0x3b, 0xe7, 0x3b, 0xe7, 0x3b,
+    ]),
+}
 
-    if addr == 0x6020 and length >= 24:
-        rdata[:24] = bytes(24)  # IMU cal (zeros = default)
-    elif addr == 0x603D and length >= 9:
-        rdata[:9] = _STICK_CAL_LEFT
-    elif addr == 0x6046 and length >= 9:
-        rdata[:9] = _STICK_CAL_RIGHT
-    elif addr == 0x6050 and length >= 12:
-        rdata[:3] = b"\x32\x32\x32"  # body color (dark grey)
-        rdata[3:6] = b"\xFF\xFF\xFF"  # button color (white)
-        rdata[6:9] = b"\x32\x32\x32"  # left grip
-        rdata[9:12] = b"\x32\x32\x32"  # right grip
-    elif addr in (0x8010, 0x801B, 0x8026):
-        for i in range(length):
-            rdata[i] = 0xFF  # user cal not set
-    elif addr == 0x6080 and length >= 24:
-        pass  # IMU cal zeros = default
-    else:
-        pass  # unknown: return zeros
-    return bytes(data)
+
+def _handle_spi_read(addr: int, length: int) -> "tuple[bytes, bool]":
+    # Returns (reply_data, ok). The reply echoes the 5-byte read request
+    # (addr LE32 + length) followed by the flash content.
+    page = (addr >> 8) & 0xFF
+    off = addr & 0xFF
+    echo = bytes([addr & 0xFF, (addr >> 8) & 0xFF, (addr >> 16) & 0xFF, (addr >> 24) & 0xFF, length])
+    rom = _SPI_ROM_DATA.get(page)
+    if rom is None or off + length > len(rom):
+        return (echo, False)
+    return (echo + rom[off:off + length], True)
 
 
 # =====
@@ -350,17 +350,23 @@ class SwitchProProcess:
                     timer[0] = (timer[0] + 1) & 0xFF
                     if subcmd == 0x02:  # device info
                         info = bytearray(12)
-                        info[0] = 0x04; info[1] = 0x01  # fw 4.1
+                        info[0] = 0x03; info[1] = 0x48  # fw 3.48
                         info[2] = 0x03  # Pro Controller
                         info[3] = 0x02
-                        info[4:10] = _MAC_ADDR
+                        info[4:10] = bytes(reversed(_MAC_ADDR))
                         info[10] = 0x03; info[11] = 0x01
                         reply_queue.put(_build_subcmd_reply(subcmd, bytes(info), timer[0]))
                     elif subcmd == 0x10 and len(d) >= 16:  # SPI read
                         addr = d[11] | (d[12] << 8) | (d[13] << 16) | (d[14] << 24)
                         rlen = d[15]
-                        spi_data = _handle_spi_read(addr, rlen)
-                        reply_queue.put(_build_subcmd_reply(subcmd, spi_data, timer[0]))
+                        (spi_data, ok) = _handle_spi_read(addr, rlen)
+                        if not ok:
+                            logger.info("HID-switchpro: NACK for unknown SPI region 0x%04x[%d]", addr, rlen)
+                        reply_queue.put(_build_subcmd_reply(subcmd, spi_data, timer[0], nack=(not ok)))
+                    elif subcmd == 0x01:  # bluetooth manual pairing
+                        reply_queue.put(_build_subcmd_reply(subcmd, b"", timer[0]))
+                    elif subcmd == 0x21:  # NFC/IR MCU configuration
+                        reply_queue.put(_build_subcmd_reply(subcmd, bytes([0x01, 0x00, 0xFF, 0x00, 0x03, 0x00, 0x05, 0x01]), timer[0]))
                     elif subcmd == 0x50:  # regulated voltage: 1600 = 4.00V
                         reply_queue.put(_build_subcmd_reply(subcmd, struct.pack("<H", 1600), timer[0]))
                     else:
@@ -404,6 +410,11 @@ class SwitchProProcess:
                 super().onEnable()
                 logger.info("HID-switchpro: function enabled by host, streaming input reports")
                 state_flags.update(online=True)
+                # A real controller announces itself when plugged in
+                hello1 = bytearray(64); hello1[0] = 0x81; hello1[1] = 0x03
+                hello2 = bytearray(64); hello2[0] = 0x81; hello2[1] = 0x01; hello2[3] = 0x03
+                reply_queue.put(hello1)
+                reply_queue.put(hello2)
                 self.getEndpoint(1).submit((state,))
 
             def onDisable(self) -> None:
