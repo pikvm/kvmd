@@ -31,6 +31,7 @@
 
 
 import os
+import time
 import struct
 import threading
 import multiprocessing
@@ -235,6 +236,7 @@ class SwitchProProcess:
         self.__state_q: aiomulti.AioMpQueue[bytes] = aiomulti.AioMpQueue()
         self.__state_flags = aiomulti.AioSharedFlags({"online": False}, notifier)
         self.__stop_event = multiprocessing.Event()
+        self.__last_event_log = 0.0
 
     def start(self) -> None:
         self.__proc.start()
@@ -255,6 +257,11 @@ class SwitchProProcess:
         lt: int, rt: int,
         hat: int,
     ) -> None:
+        now = time.monotonic()
+        if (now - self.__last_event_log) >= 1.0:
+            # Rate-limited proof in the journal that client input reaches kvmd
+            self.__last_event_log = now
+            get_logger(0).info("HID-switchpro: client gamepad event: buttons=0x%04x hat=%d", buttons, hat)
         self.__state_q.put_nowait(make_switchpro_report(buttons, lx, ly, rx, ry, lt, rt, hat))
 
     def send_clear_event(self) -> None:
@@ -281,6 +288,7 @@ class SwitchProProcess:
 
         state = bytearray(_NEUTRAL)
         timer = [0]
+        hid_active = [True]
         subcmd_log_counts: dict = {}
         reply_queue: queue.Queue[bytearray] = queue.Queue()
 
@@ -290,6 +298,16 @@ class SwitchProProcess:
                     if status == -errno.ESHUTDOWN:
                         return False
                     raise IOError(-status)
+                # After 0x80 0x05 a real controller goes quiet except for
+                # command acks: block here until a reply is queued or the
+                # console re-enables streaming with 0x80 0x04.
+                while not hid_active[0]:
+                    if stop_event.is_set():
+                        return False
+                    try:
+                        return [(reply_queue.get(timeout=0.05),)]
+                    except queue.Empty:
+                        continue
                 # Check if there's a pending handshake reply to send
                 try:
                     reply = reply_queue.get_nowait()
@@ -315,7 +333,15 @@ class SwitchProProcess:
                 # if it dislikes a reply).
                 if d[0] == 0x80 and len(d) >= 2:
                     logger.info("HID-switchpro: host USB command 0x80 0x%02x", d[1])
-                    reply_queue.put(_build_usb_reply(d[1]))
+                    # A real controller only acks 0x01/0x02/0x03/0x06; 0x05
+                    # stops the 0x30 input stream and 0x04 (re)starts it,
+                    # neither is acked.
+                    if d[1] == 0x05:
+                        hid_active[0] = False
+                    elif d[1] == 0x04:
+                        hid_active[0] = True
+                    else:
+                        reply_queue.put(_build_usb_reply(d[1]))
                 elif d[0] == 0x01 and len(d) >= 11:
                     subcmd = d[10]
                     count = subcmd_log_counts[subcmd] = subcmd_log_counts.get(subcmd, 0) + 1

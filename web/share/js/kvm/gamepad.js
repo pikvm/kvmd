@@ -372,7 +372,9 @@ export function Gamepad(__recordWsEvent) {
 					parts.push("ax" + i + "=" + gp.axes[i].toFixed(1));
 				}
 			}
-			el_raw.textContent = (parts.length ? ("Raw browser input: " + parts.join(" ")) : "");
+			let profile = (__mapFor(gp) === __NINTENDO_RAW_MAP ? "nintendo-raw" : "standard");
+			let info = "[mapping=" + (gp.mapping || "none") + " profile=" + profile + "] " + gp.id;
+			el_raw.textContent = (parts.length ? ("Raw browser input: " + parts.join(" ") + "  ") : "") + info;
 		}
 
 		// Quick check: skip if nothing changed
