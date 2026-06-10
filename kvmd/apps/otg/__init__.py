@@ -22,6 +22,7 @@
 
 import os
 import re
+import pwd
 import shutil
 import json
 import math
@@ -55,9 +56,13 @@ def _mkdir(path: str) -> None:
     os.mkdir(path)
 
 
-def _mount(fstype: str, source: str, target: str) -> None:
-    get_logger().info("MOUNT --- %s %s --> %s", fstype, source, target)
-    subprocess.check_call(["mount", "-t", fstype, source, target])
+def _mount(fstype: str, source: str, target: str, options: str="") -> None:
+    get_logger().info("MOUNT --- %s %s --> %s%s", fstype, source, target, (f" ({options})" if options else ""))
+    cmd = ["mount", "-t", fstype]
+    if options:
+        cmd += ["-o", options]
+    cmd += [source, target]
+    subprocess.check_call(cmd)
 
 
 def _chown(path: str, user: str) -> None:
@@ -269,39 +274,21 @@ class _GadgetConfig:
     def add_gamepad(self, starter: list[str], start: bool, remote_wakeup: bool) -> None:
         self.__add_hid("Gamepad", starter, start, remote_wakeup, make_gamepad_hid())
 
-    def add_xinput(self, starter: list[str], start: bool, ffs_path: str) -> None:
-        # An Xbox 360 (XInput) controller is a USB vendor-specific interface, not
-        # HID, so it can't use f_hid like the functions above. It is a FunctionFS
-        # function serviced from user space by kvmd's XInputProcess. We create and
-        # mount the function here; the servicer writes its descriptors and -- since
-        # a FunctionFS function has no endpoints until then -- performs the UDC bind
-        # itself (see _cmd_start, which defers the bind in this mode).
-        func = "ffs.xinput"  # the instance name after "ffs." is the mount source
-        self.__create_function(func)
-        _mkdir(ffs_path)
-        _mount("functionfs", "xinput", ffs_path)
-        self.__setup_function(func, "XInput", 2, starter, start)
-
-    def add_switchpro(self, starter: list[str], start: bool, ffs_path: str) -> None:
-        func = "ffs.switchpro"
-        self.__create_function(func)
-        _mkdir(ffs_path)
-        _mount("functionfs", "switchpro", ffs_path)
-        self.__setup_function(func, "SwitchPro", 2, starter, start)
-
-    def add_dualsense(self, starter: list[str], start: bool, ffs_path: str) -> None:
-        func = "ffs.dualsense"
-        self.__create_function(func)
-        _mkdir(ffs_path)
-        _mount("functionfs", "dualsense", ffs_path)
-        self.__setup_function(func, "DualSense", 2, starter, start)
-
     def add_ffs_gamepad(self, starter: list[str], start: bool, ffs_path: str,
-                        instance: str, desc: str) -> None:
+                        instance: str, desc: str, user: str) -> None:
+        # The FFS gamepad modes are vendor-specific (or quirky-HID) interfaces,
+        # so they can't use f_hid like the functions above. Each is a FunctionFS
+        # function serviced from user space by a kvmd gamepad process. We create
+        # and mount the function here; the servicer writes its descriptors and --
+        # since a FunctionFS function has no endpoints until then -- performs the
+        # UDC bind itself (see _cmd_start, which defers the bind in this mode).
+        # The servicer runs as the kvmd user, but FunctionFS creates ep files
+        # owned by the mount's uid/gid (root by default), so pass them explicitly.
         func = f"ffs.{instance}"
         self.__create_function(func)
         _mkdir(ffs_path)
-        _mount("functionfs", instance, ffs_path)
+        pw = pwd.getpwnam(user)
+        _mount("functionfs", instance, ffs_path, f"uid={pw.pw_uid},gid={pw.pw_gid}")
         self.__setup_function(func, desc, 2, starter, start)
 
     def __add_hid(self, desc: str, starter: list[str], start: bool, remote_wakeup: bool, hid: Hid) -> None:
@@ -488,13 +475,13 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
                 label = f"HID-Gamepad-{i}"
                 if gp_mode == "xinput":
                     logger.info("===== %s (XInput / Xbox 360) =====", label)
-                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}")
+                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}", config.otg.user)
                 elif gp_mode == "switchpro":
                     logger.info("===== %s (Switch Pro Controller) =====", label)
-                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}")
+                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}", config.otg.user)
                 elif gp_mode == "dualsense":
                     logger.info("===== %s (DualSense / PS5) =====", label)
-                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}")
+                    gc.add_ffs_gamepad(["hid", f"gamepad{i}"], start, ffs_path, f"gamepad{i}", f"Gamepad{i}", config.otg.user)
                 else:
                     if i == 0:
                         logger.info("===== %s (HID) =====", label)
