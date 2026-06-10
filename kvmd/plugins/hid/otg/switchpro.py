@@ -288,7 +288,10 @@ class SwitchProProcess:
 
         state = bytearray(_NEUTRAL)
         timer = [0]
-        hid_active = [True]
+        # A real controller sends no 0x30 input reports until the host enables
+        # them with 0x80 0x04 (nscon behaves the same); only the hello packets
+        # and command acks flow before that.
+        hid_active = [False]
         subcmd_log_counts: dict = {}
         reply_queue: queue.Queue[bytearray] = queue.Queue()
 
