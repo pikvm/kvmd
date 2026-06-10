@@ -165,6 +165,9 @@ class EndpointINFile:
                 continue
             elif result:
                 self._buf = self._unwrap(result)
+        # Allow a later submit() to restart the loop (e.g. after a USB
+        # reset shuts the endpoint down and the host re-enables us).
+        self._running = False
 
     def stop(self):
         self._running = False

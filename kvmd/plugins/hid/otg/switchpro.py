@@ -320,7 +320,7 @@ class SwitchProProcess:
                 # Otherwise send the current gamepad state
                 timer[0] = (timer[0] + 1) & 0xFF
                 state[1] = timer[0]
-                return True
+                return [(state,)]
 
         class _OUTEndpoint(ffs.EndpointOUTFile):
             def onComplete(self, data: Any, status: int) -> Any:
@@ -411,14 +411,15 @@ class SwitchProProcess:
 
             def onEnable(self) -> None:
                 super().onEnable()
-                logger.info("HID-switchpro: function enabled by host, streaming input reports")
+                logger.info("HID-switchpro: function enabled by host")
                 state_flags.update(online=True)
-                # A real controller announces itself when plugged in
-                hello1 = bytearray(64); hello1[0] = 0x81; hello1[1] = 0x03
+                # Announce like a real controller plugging in -- 0x81 0x03
+                # then 0x81 0x01 -- and nothing else until the host speaks
+                # (nscon's exact wire behavior: no input reports yet).
                 hello2 = bytearray(64); hello2[0] = 0x81; hello2[1] = 0x01; hello2[3] = 0x03
-                reply_queue.put(hello1)
                 reply_queue.put(hello2)
-                self.getEndpoint(1).submit((state,))
+                hello1 = bytearray(64); hello1[0] = 0x81; hello1[1] = 0x03
+                self.getEndpoint(1).submit((hello1,))
 
             def onDisable(self) -> None:
                 state_flags.update(online=False)
