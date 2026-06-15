@@ -35,11 +35,13 @@ from typing import Any
 def check_abs(path: str) -> None:
     if not path:
         raise ValueError("The path is empty")
+    if "\0" in path:
+        raise ValueError(f"The path contains a zero character: {path!r}")
     if not path.startswith("/"):
-        raise ValueError(f"The path is not an absolute: {path}")
+        raise ValueError(f"The path is not an absolute: {path!r}")
     # if ".." in path.split("/"):
     if "/../" in path or path.endswith("/.."):  # It's a bit faster
-        raise ValueError(f"The path contains forbidden '..' component: {path}")
+        raise ValueError(f"The path contains forbidden '..' component: {path!r}")
 
 
 def check_name(name: str) -> None:
