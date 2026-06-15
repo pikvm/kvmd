@@ -55,6 +55,7 @@ from ..validators.auth import valid_users_list
 from ..validators.auth import valid_expire
 
 from ..validators.os import valid_abs_path
+from ..validators.os import valid_printable_filename
 from ..validators.os import valid_unix_mode
 from ..validators.os import valid_options
 from ..validators.os import valid_command
@@ -513,7 +514,7 @@ def make_config_scheme() -> dict:
             "max_power":      Option(250,    type=valid_number.mk(min=50, max=500)),
             "remote_wakeup":  Option(True,   type=valid_bool),
 
-            "udc":        Option("",     type=valid_stripped_string),
+            "udc":        Option("",     type=valid_printable_filename, if_empty=""),
             "endpoints":  Option(9,      type=valid_int_f0),
             "init_delay": Option(3.0,    type=valid_float_f01),
 

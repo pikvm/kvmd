@@ -33,6 +33,7 @@ from ...logging import get_logger
 
 from ...inotify import Inotify
 
+from ... import tools
 from ... import aiotools
 from ... import usb
 
@@ -40,8 +41,7 @@ from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_float_f01
-from ...validators.basic import valid_stripped_string
-from ...validators.basic import valid_stripped_string_not_empty
+from ...validators.os import valid_printable_filename
 
 from . import BaseUserGpioDriver
 
@@ -69,13 +69,13 @@ class Plugin(BaseUserGpioDriver):
     @classmethod
     def get_plugin_options(cls) -> dict[str, Option]:
         return {
-            "udc":        Option("",  type=valid_stripped_string),
+            "udc":        Option("",  type=valid_printable_filename, if_empty=""),
             "init_delay": Option(3.0, type=valid_float_f01),
         }
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return valid_stripped_string_not_empty
+        return valid_printable_filename.mk(name="OTG target")
 
     async def prepare(self) -> None:
         self.__udc = usb.find_udc(self.__udc)
@@ -106,11 +106,13 @@ class Plugin(BaseUserGpioDriver):
                 await asyncio.sleep(1)
 
     async def read(self, pin: str) -> bool:
+        tools.check_name(pin)
         if pin == "udc":
             return (await self.__is_udc_enabled())
         return (await aiofiles.os.path.exists(self.__get_fdest_path(pin)))
 
     async def write(self, pin: str, state: bool) -> None:
+        tools.check_name(pin)
         if pin == "udc":
             await self.__write_udc(state)
         else:

@@ -39,7 +39,18 @@ def check_abs(path: str) -> None:
         raise ValueError(f"The path is not an absolute: {path}")
     # if ".." in path.split("/"):
     if "/../" in path or path.endswith("/.."):  # It's a bit faster
-        raise ValueError(f"Tha path contains forbidden '..' component: {path}")
+        raise ValueError(f"The path contains forbidden '..' component: {path}")
+
+
+def check_name(name: str) -> None:
+    if not name:
+        raise ValueError("The filename is empty")
+    if name in [".", "..", "lost+found"]:
+        raise ValueError("Usage of '.', '..' and 'lost+found' as a filename is forbidden")
+    if "\0" in name:
+        raise ValueError(f"The filename contains a zero character: {name!r}")
+    if "/" in name:
+        raise ValueError(f"The filename contains the '/' character: {name!r}")
 
 
 # =====
