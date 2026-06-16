@@ -42,7 +42,7 @@ from ...yamlconf.dumper import YamlInlinedItemsList
 from ...yamlconf.dumper import dump_yaml
 from ...yamlconf.merger import yaml_merge
 
-from ...validators.basic import valid_stripped_string_not_empty
+from ...validators.os import valid_printable_filename
 
 from ... import usb
 from ... import env
@@ -59,6 +59,9 @@ class _Function:
     eps:     int
     enabled: bool
     starter: list[str]
+
+    def __post_init__(self) -> None:
+        tools.check_name(self.name)
 
 
 class _GadgetControl:
@@ -121,14 +124,18 @@ class _GadgetControl:
                 )
 
     def __get_fsrc_path(self, func: str) -> str:
+        tools.check_name(func)
         return usb.get_gadget_path(usb.G_FUNCTIONS, func)
 
     def __get_fdest_path(self, func: (str | None)=None) -> str:
         if func is None:
             return usb.get_gadget_path(usb.G_PROFILE)
+        tools.check_name(func)
         return usb.get_gadget_path(usb.G_PROFILE, func)
 
     def change_functions(self, enable: set[str], disable: set[str]) -> None:
+        for func in (enable | disable):
+            tools.check_name(func)
         funcs = list(self.__read_metas())
         new: set[str] = set(func.name for func in funcs if func.enabled)
         new = (new - disable) | enable
@@ -322,8 +329,8 @@ def main() -> None:
         gc.list_functions()
 
     elif options.enable_function or options.disable_function:
-        enable = set(map(valid_stripped_string_not_empty, options.enable_function))
-        disable = set(map(valid_stripped_string_not_empty, options.disable_function))
+        enable = set(map(valid_printable_filename, options.enable_function))
+        disable = set(map(valid_printable_filename, options.disable_function))
         gc.change_functions(enable, disable)
         gc.list_functions()
 
