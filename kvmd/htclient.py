@@ -37,16 +37,17 @@ def make_user_agent(app: str) -> str:
 
 
 def raise_not_200(resp: aiohttp.ClientResponse) -> None:
-    if resp.status != 200:
-        assert resp.reason is not None
-        resp.release()
-        raise aiohttp.ClientResponseError(
-            resp.request_info,
-            resp.history,
-            status=resp.status,
-            message=resp.reason,
-            headers=resp.headers,
-        )
+    if resp.status == 200:
+        return
+    assert resp.reason is not None
+    resp.release()
+    raise aiohttp.ClientResponseError(
+        resp.request_info,
+        resp.history,
+        status=resp.status,
+        message=resp.reason,
+        headers=resp.headers,
+    )
 
 
 async def raise_known_not_200(
@@ -54,36 +55,38 @@ async def raise_known_not_200(
     *ex_types: type[BaseException],
 ) -> None:
 
-    if resp.status != 200:
-        assert resp.reason is not None
-        try:
-            error = ""
-            error_msg = ""
-            try:
-                data = await resp.json()
-                if (
-                    not data["ok"]
-                    and isinstance(data["result"]["error"], str)
-                    and isinstance(data["result"]["error_msg"], str)
-                ):
-                    error = data["result"]["error"]
-                    error_msg = data["result"]["error_msg"]
-            except Exception:
-                pass
-            if error:
-                for ex_type in ex_types:
-                    if ex_type.__name__ == error:
-                        raise ex_type(error_msg)
-        finally:
-            resp.release()
+    if resp.status == 200:
+        return
 
-        raise aiohttp.ClientResponseError(
-            resp.request_info,
-            resp.history,
-            status=resp.status,
-            message=resp.reason,
-            headers=resp.headers,
-        )
+    assert resp.reason is not None
+    try:
+        error = ""
+        error_msg = ""
+        try:
+            data = await resp.json()
+            if (
+                not data["ok"]
+                and isinstance(data["result"]["error"], str)
+                and isinstance(data["result"]["error_msg"], str)
+            ):
+                error = data["result"]["error"]
+                error_msg = data["result"]["error_msg"]
+        except Exception:
+            pass
+        if error:
+            for ex_type in ex_types:
+                if ex_type.__name__ == error:
+                    raise ex_type(error_msg)
+    finally:
+        resp.release()
+
+    raise aiohttp.ClientResponseError(
+        resp.request_info,
+        resp.history,
+        status=resp.status,
+        message=resp.reason,
+        headers=resp.headers,
+    )
 
 
 def get_filename(resp: aiohttp.ClientResponse) -> str:
