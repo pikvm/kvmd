@@ -120,7 +120,7 @@ class NbdController:
             self.__proc = NbdProcess(self.__device, remote, image)
             return image
 
-    def unbind(self) -> None:
+    async def unbind(self) -> None:
         if self.__proc:
             self.__proc.stop()
 
