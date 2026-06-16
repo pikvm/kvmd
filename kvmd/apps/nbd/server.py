@@ -20,8 +20,6 @@
 # ========================================================================== #
 
 
-import os
-import subprocess
 import dataclasses
 
 from aiohttp.web import Request
@@ -30,9 +28,7 @@ from aiohttp.web import WebSocketResponse
 
 from ...logging import get_logger
 
-from ... import tools
 from ... import aiotools
-from ... import aioproc
 
 from ...htserver import exposed_http
 from ...htserver import exposed_ws
@@ -51,13 +47,11 @@ class NbdServer(HttpServer):
     def __init__(
         self,
         device_path: str,
-        disconnect_cmd: list[str],
     ) -> None:
 
         super().__init__()
 
         self.__device_path = device_path
-        self.__disconnect_cmd = disconnect_cmd
 
         self.__ctl = NbdController(device_path)
 
@@ -98,7 +92,7 @@ class NbdServer(HttpServer):
     # ===== SYSTEM STUFF
 
     async def _init_app(self) -> None:
-        await self.__force_disconnect()
+        await self.__ctl.force_disconnect()
         aiotools.create_deadly_task("Controller", self.__controller())
         self._add_exposed(self)
 
@@ -110,7 +104,7 @@ class NbdServer(HttpServer):
 
     async def _on_cleanup(self) -> None:
         logger = get_logger(0)
-        await self.__force_disconnect()
+        await self.__ctl.force_disconnect()
         logger.info("On-Cleanup complete")
 
     # ===== SYSTEM TASKS
@@ -120,20 +114,3 @@ class NbdServer(HttpServer):
         async for (event, state) in self.__ctl.poll_state():
             logger.info("NBD-EVENT: %s", event)
             await self._broadcast_ws_event(self.__EV_NBD, dataclasses.asdict(state))
-
-    async def __force_disconnect(self) -> bool:
-        logger = get_logger()
-        cmd = [
-            part.format(device=os.path.realpath(self.__device_path))
-            for part in self.__disconnect_cmd
-        ]
-        logger.info("Forced disconnecting NBD %s: %s", self.__device_path, tools.cmdfmt(cmd))
-        try:
-            proc = await aioproc.log_process(cmd, logger)
-            if proc.returncode != 0:
-                assert proc.returncode is not None
-                raise subprocess.CalledProcessError(proc.returncode, cmd)
-        except Exception as ex:
-            logger.error("Can't forcibly disconnect NBD: %s", tools.efmt(ex))
-            return False
-        return True

@@ -99,9 +99,6 @@ depends=(
 	raspberrypi-utils
 	"ustreamer>=6.47"
 
-	# Temporary for kvmd-nbd
-	nbd
-
 	# Systemd UDEV bug
 	"systemd>=248.3-2"
 
@@ -229,7 +226,7 @@ for _variant in "${_variants[@]}"; do
 		backup=()
 
 		pkgdesc=\"PiKVM platform configs - $_platform for $_board\"
-		depends=(kvmd=\"${epoch:+$epoch:}$pkgver-$pkgrel\" \"linux-rpi-pikvm>=6.12.56-6\" \"raspberrypi-bootloader-pikvm>=20251031-1\")
+		depends=(kvmd=\"${epoch:+$epoch:}$pkgver-$pkgrel\" \"linux-rpi-pikvm>=6.12.92-2\" \"raspberrypi-bootloader-pikvm>=20251031-1\")
 
 		if [[ $_base == v0 ]]; then
 			depends=(\"\${depends[@]}\" platformio-core avrdude make patch)

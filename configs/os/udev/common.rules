@@ -3,7 +3,7 @@
 
 ACTION!="remove", KERNEL=="ttyACM[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="eda3", SYMLINK+="kvmd-hid-bridge"
 ACTION!="remove", KERNEL=="ttyACM[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="1080", SYMLINK+="kvmd-switch"
-ACTION!="remove", KERNEL=="nbd15", SUBSYSTEM=="block", GROUP="kvmd-nbd", SYMLINK+="kvmd-nbd"
+ACTION!="remove", KERNEL=="nbd15", SUBSYSTEM=="block", GROUP="kvmd-nbd", SYMLINK+="kvmd-nbd", RUN+="/usr/bin/chgrp kvmd-nbd %S%p/disconnect", RUN+="/usr/bin/chmod g+w %S%p/disconnect"
 
 SUBSYSTEM=="video4linux", ACTION=="add", KERNEL=="video[0-9*]", \
 	SUBSYSTEMS=="gadget", DRIVERS=="configfs-gadget.kvmd", ATTR{function_name}=="uvc.usb0", \

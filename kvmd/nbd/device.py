@@ -26,6 +26,7 @@ import fcntl
 import socket
 import asyncio
 import contextlib
+import errno
 import math
 
 from typing import Final
@@ -34,7 +35,9 @@ from typing import AsyncGenerator
 
 from ..logging import get_logger
 
+from .. import env
 from .. import tools
+from .. import aiotools
 
 from .errors import NbdDeviceError
 from .types import NbdImage
@@ -79,6 +82,21 @@ class NbdDevice:
         self.__timeout = timeout
 
     # =====
+
+    async def force_disconnect(self) -> None:
+        logger = get_logger(0)
+        path = os.path.realpath(self.__path)
+        name = os.path.basename(path)
+        if name.startswith("nbd"):
+            path = f"{env.SYSFS_PREFIX}/sys/devices/virtual/block/{name}/disconnect"
+            try:
+                await aiotools.write_file(path, "\n")
+                logger.info("Force disconnection triggered via the Sysfs")
+            except Exception as ex:
+                if not tools.is_oserror(ex, errno.ENOLINK):
+                    logger.error("Force disconnection error: %s", tools.efmt(ex))
+        else:
+            logger.error("Can't trigger force disconnection: is not a NBD: %s", path)
 
     async def open_close(self) -> None:
         await asyncio.to_thread(self.__inner_open_close)

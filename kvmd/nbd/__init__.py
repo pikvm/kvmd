@@ -76,6 +76,9 @@ class NbdController:
 
     # =====
 
+    async def force_disconnect(self) -> None:
+        await self.__device.force_disconnect()
+
     def get_remotes(self) -> dict[str, dict[str, Any]]:
         return {
             scheme: {name: opt.default for (name, opt) in cls.get_options().items()}

@@ -681,8 +681,7 @@ def make_config_scheme() -> dict:
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
             },
 
-            "device":         Option("/dev/kvmd-nbd", type=valid_abs_path, unpack_as="device_path"),
-            "disconnect_cmd": Option(["/usr/bin/nbd-client", "-d", "{device}"], type=valid_command),
+            "device": Option("/dev/kvmd-nbd", type=valid_abs_path, unpack_as="device_path"),
         },
 
         "ipmi": {
