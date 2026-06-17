@@ -146,18 +146,19 @@ class BaseNbdRemote:
 
         while True:
             (op, cookie, offset, size, data) = await self.__recv_request(link.remote_r)
-            result: (tuple[int, bytes] | None) = None
+            op_error: (int | None) = None
+            op_data = b""
             match op:
                 case self.__OP_READ:
-                    result = await self.__handle_read(offset, size)
+                    (op_error, op_data) = await self.__handle_read(offset, size)
                 case self.__OP_WRITE:
-                    result = await self.__handle_write(offset, data)
+                    op_error = await self.__handle_write(offset, data)
                 case self.__OP_STOP:
                     raise NbdIoConnectionError("Closed by kernel")
                 case _:
                     raise NbdIoProtocolError(f"Unknown OP received: 0x{op:X}")
-            assert result is not None
-            await self.__send_response(link.remote_w, cookie, *result)
+            assert op_error is not None
+            await self.__send_response(link.remote_w, cookie, op_error, op_data)
 
     async def cleanup(self) -> None:
         try:
@@ -189,7 +190,7 @@ class BaseNbdRemote:
     async def __send_response(
         self,
         writer: asyncio.StreamWriter,
-        cookie: int, error: int, data: bytes=b"",
+        cookie: int, error: int, data: bytes,
     ) -> None:
 
         try:
@@ -221,16 +222,15 @@ class BaseNbdRemote:
             raise NbdIoProtocolError("Too much READ data")
         return (0, data)
 
-    async def __handle_write(self, offset: int, data: bytes) -> tuple[int, bytes]:
+    async def __handle_write(self, offset: int, data: bytes) -> int:
         assert offset >= 0
         assert self.__image
 
         if not self.__image.rw:
-            return (errno.EPERM, b"")
+            return errno.EPERM
         if offset >= self.__image.size:
-            return (errno.ENOSPC, b"")
-        if len(data) == 0:
-            return (0, b"")
+            return errno.ENOSPC
 
-        await self._on_write(offset, data)
-        return (0, b"")
+        if len(data) > 0:
+            await self._on_write(offset, data)
+        return 0
