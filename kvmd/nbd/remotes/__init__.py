@@ -202,9 +202,14 @@ class BaseNbdRemote:
             raise NbdIoConnectionError("Can't send response", ex)
 
     async def __handle_read(self, offset: int, size: int) -> tuple[int, bytes]:
+        assert offset >= 0
+        assert size >= 0
         assert self.__image
+
         if offset >= self.__image.size:
             return (errno.EINVAL, b"")
+        if size == 0:
+            return (0, b"")
 
         data = await self._on_read(offset, size)
         if len(data) < size:
@@ -214,14 +219,18 @@ class BaseNbdRemote:
                 raise NbdIoProtocolError("Insufficient READ data")
         elif len(data) > size:
             raise NbdIoProtocolError("Too much READ data")
-
         return (0, data)
 
     async def __handle_write(self, offset: int, data: bytes) -> tuple[int, bytes]:
+        assert offset >= 0
         assert self.__image
+
         if not self.__image.rw:
             return (errno.EPERM, b"")
         if offset >= self.__image.size:
             return (errno.ENOSPC, b"")
+        if len(data) == 0:
+            return (0, b"")
+
         await self._on_write(offset, data)
         return (0, b"")
