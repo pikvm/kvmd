@@ -138,10 +138,15 @@ class NbdHttpRemote(BaseNbdRemote):
                 await asyncio.sleep(self.__retries_delay)
 
     async def __read(self, offset: int, size: int) -> bytes:
+        assert offset >= 0
+        assert size > 0
+
         session = self.__ensure_session()
         async with session.get(
             url=self.__url,
-            headers={aiohttp.hdrs.RANGE: f"bytes={offset}-{offset + size}"},
+            # HTTP Range включает края: bytes=0-499 запрашивает 500 байт.
+            #  - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Range
+            headers={aiohttp.hdrs.RANGE: f"bytes={offset}-{offset + size - 1}"},
         ) as resp:
 
             resp.raise_for_status()  # 206 partial is OK here
