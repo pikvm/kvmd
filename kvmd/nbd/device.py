@@ -128,7 +128,11 @@ class NbdDevice:
     def __prepare(self, fd: int, image: NbdImage, sock: socket.SocketType) -> None:
         logger = get_logger(0)
 
-        blocks = (image.size + self.__block) // self.__block
+        # Для делящегося размера без остатка нужно  прибавить 511,
+        # чтобы деление его съело. Если у нас есть хотя бы +1,
+        # то всё округлится до следующего целого блока.
+        blocks = (image.size + (self.__block - 1)) // self.__block
+
         flags = (0 if image.rw else 2)  # NBD_FLAG_READ_ONLY
         # ro_bytes = int(not image.rw).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
 
