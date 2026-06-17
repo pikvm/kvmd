@@ -38,10 +38,8 @@ from ...yamlconf import Option
 
 from ...validators import check_string_in_list
 from ...validators.basic import valid_float_f01
-from ...validators.basic import valid_number
 from ...validators.basic import valid_bool
 from ...validators.net import valid_ip_or_host
-from ...validators.net import valid_port
 from ...validators.os import valid_command
 
 from . import GpioDriverOfflineError
@@ -179,13 +177,13 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     @functools.lru_cache()
     def __make_meshcmd_kwargs(self, action: str) -> dict:
         if action == "status":
-           action_opt = ""
+            action_opt = ""
         else:
-           action_opt = f'--{action}'
+            action_opt = f"--{action}"
         if self.__tls:
-           tls_opt = '--tls'
+            tls_opt = "--tls"
         else:
-           tls_opt = ''
+            tls_opt = ""
         return {
             "cmd": [
                 part.format(
