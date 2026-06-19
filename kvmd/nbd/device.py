@@ -55,6 +55,9 @@ _NBD_SET_SOCK:        Final[tuple[int, str]] = (0x0000AB00, "NBD_SET_SOCK")
 _NBD_SET_TIMEOUT:     Final[tuple[int, str]] = (0x0000AB09, "NBD_SET_TIMEOUT")
 # _BLKROSET:            Final[tuple[int, str]] = (0x0000125D, "BLKROSET")
 
+_NBD_FLAG_HAS_FLAGS: Final[int] = 0b01
+_NBD_FLAG_READ_ONLY: Final[int] = 0b10
+
 
 def _ioctl(fd: int, ctl: tuple[int, str], value: (int | bytes)=0) -> None:
     (req, name) = ctl
@@ -142,7 +145,9 @@ class NbdDevice:
         # то всё округлится до следующего целого блока.
         blocks = (image.size + (self.__block - 1)) // self.__block
 
-        flags = (0 if image.rw else 2)  # NBD_FLAG_READ_ONLY
+        flags = _NBD_FLAG_HAS_FLAGS
+        if not image.rw:
+            flags |= _NBD_FLAG_READ_ONLY
         # ro_bytes = int(not image.rw).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
 
         logger.info("Preparing %s: bytes=%s, bs=%s, blocks=%s, rw=%s ...",
