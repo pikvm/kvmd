@@ -20,7 +20,7 @@
 # ========================================================================== #
 
 
-# import sys
+import sys
 import os
 import fcntl
 import socket
@@ -53,7 +53,7 @@ _NBD_SET_FLAGS:       Final[tuple[int, str]] = (0x0000AB0A, "NBD_SET_FLAGS")
 _NBD_SET_SIZE_BLOCKS: Final[tuple[int, str]] = (0x0000AB07, "NBD_SET_SIZE_BLOCKS")
 _NBD_SET_SOCK:        Final[tuple[int, str]] = (0x0000AB00, "NBD_SET_SOCK")
 _NBD_SET_TIMEOUT:     Final[tuple[int, str]] = (0x0000AB09, "NBD_SET_TIMEOUT")
-# _BLKROSET:            Final[tuple[int, str]] = (0x0000125D, "BLKROSET")
+_BLKROSET:            Final[tuple[int, str]] = (0x0000125D, "BLKROSET")
 
 _NBD_FLAG_HAS_FLAGS: Final[int] = 0b01
 _NBD_FLAG_READ_ONLY: Final[int] = 0b10
@@ -79,8 +79,16 @@ def _wrap_exceptions() -> Generator[None]:
 
 # =====
 class NbdDevice:
-    def __init__(self, path: str, block: int, timeout: float) -> None:
+    def __init__(
+        self,
+        path: str,
+        use_blkroset: bool,
+        block: int,
+        timeout: float,
+    ) -> None:
+
         self.__path = path
+        self.__use_blkroset = use_blkroset
         self.__block = block
         self.__timeout = timeout
 
@@ -145,21 +153,26 @@ class NbdDevice:
         # то всё округлится до следующего целого блока.
         blocks = (image.size + (self.__block - 1)) // self.__block
 
-        flags = _NBD_FLAG_HAS_FLAGS
-        if not image.rw:
-            flags |= _NBD_FLAG_READ_ONLY
-        # ro_bytes = int(not image.rw).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
-
         logger.info("Preparing %s: bytes=%s, bs=%s, blocks=%s, rw=%s ...",
                     self.__path, image.size, self.__block, blocks, image.rw)
 
         _ioctl(fd, _NBD_SET_BLKSIZE, self.__block)
         _ioctl(fd, _NBD_SET_SIZE_BLOCKS, blocks)
+
         _ioctl(fd, _NBD_CLEAR_SOCK)
+
+        flags = _NBD_FLAG_HAS_FLAGS
+        if not image.rw:
+            flags |= _NBD_FLAG_READ_ONLY
         _ioctl(fd, _NBD_SET_FLAGS, flags)
-        # _ioctl(fd, _BLKROSET, ro_bytes)  # XXX: PiKVM kernel sets BLKROSET with NBD_SET_FLAGS
+
+        if self.__use_blkroset:
+            ro_bytes = int(not image.rw).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
+            _ioctl(fd, _BLKROSET, ro_bytes)  # XXX: PiKVM kernel sets BLKROSET with NBD_SET_FLAGS
+
         _ioctl(fd, _NBD_SET_TIMEOUT, math.ceil(self.__timeout))
         _ioctl(fd, _NBD_SET_SOCK, sock.fileno())
+
         logger.info("Prepared")
 
     def __cleanup(self, fd: int, close: bool) -> None:

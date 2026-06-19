@@ -684,7 +684,8 @@ def make_config_scheme() -> dict:
                                             " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
             },
 
-            "device": Option("/dev/kvmd-nbd", type=valid_abs_path, unpack_as="device_path"),
+            "device":       Option("/dev/kvmd-nbd", type=valid_abs_path),
+            "use_blkroset": Option(False, type=valid_bool),
         },
 
         "ipmi": {

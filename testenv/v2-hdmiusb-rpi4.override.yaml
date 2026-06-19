@@ -17,3 +17,6 @@ kvmd:
             - "--process-name-prefix={process_name_prefix}"
             - "--notify-parent"
             - "--no-log-colors"
+
+nbd:
+    use_blkroset: true

@@ -19,3 +19,6 @@ kvmd:
             - "--no-log-colors"
             - "--jpeg-sink=kvmd::ustreamer::jpeg"
             - "--jpeg-sink-mode=0660"
+
+nbd:
+    use_blkroset: true

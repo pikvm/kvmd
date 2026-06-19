@@ -67,9 +67,9 @@ class NbdController:
         for scheme in cls.get_schemes()
     }
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, use_blkroset: bool) -> None:
         self.__device_path = path
-        self.__device = NbdDevice(path, self.__DEVICE_BLOCK, self.__DEVICE_TIMEOUT)
+        self.__device = NbdDevice(path, use_blkroset, self.__DEVICE_BLOCK, self.__DEVICE_TIMEOUT)
         self.__proc: (NbdProcess | None) = None
         self.__nr = aiotools.AioNotifier()
         self.__lock = asyncio.Lock()

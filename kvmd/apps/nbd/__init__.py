@@ -34,5 +34,6 @@ def main() -> None:
     ).config
 
     NbdServer(
-        **config.nbd._unpack(ignore="server"),
+        device_path=config.nbd.device,
+        use_blkroset=config.nbd.use_blkroset,
     ).run(**config.nbd.server._unpack())
