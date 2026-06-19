@@ -168,14 +168,16 @@ class NbdProcess:
             await self.__remote.cleanup()
 
     async def __sub_checker(self, link: NbdLink, prepared: aiotools.AioStage) -> None:
+        logger = get_logger(0)
         with self.__catch_exceptions("checker"):
             with link.shutdown_at_end():
+                timeout = self.__remote.get_timeout()
                 try:
                     await prepared.wait_passed()
-                    await asyncio.wait_for(
-                        self.__device.open_close(),
-                        timeout=self.__remote.get_timeout(),
-                    )
+                    logger.info("Waiting for device PID ...")
+                    await asyncio.wait_for(self.__device.check_pid(), timeout=timeout)
+                    logger.info("Doing open+close ...")
+                    await asyncio.wait_for(self.__device.open_close(), timeout=timeout)
                 except BaseException as ex:
                     self.__ready_nr.notify(0)
                     if isinstance(ex, TimeoutError):
