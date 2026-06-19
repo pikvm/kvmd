@@ -141,6 +141,7 @@ class NbdDevice:
 
         _ioctl(fd, _NBD_SET_BLKSIZE, self.__block)
         _ioctl(fd, _NBD_SET_SIZE_BLOCKS, blocks)
+        _ioctl(fd, _NBD_CLEAR_SOCK)
         _ioctl(fd, _NBD_SET_FLAGS, flags)
         # _ioctl(fd, _BLKROSET, ro_bytes)  # XXX: PiKVM kernel sets BLKROSET with NBD_SET_FLAGS
         _ioctl(fd, _NBD_SET_TIMEOUT, math.ceil(self.__timeout))
