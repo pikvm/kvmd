@@ -95,19 +95,28 @@ def text_to_evdev_keys(  # pylint: disable=too-many-branches
                 # Not supported yet
                 continue
 
-            if mods & SymmapModifiers.SHIFT and not shift:
-                yield (ecodes.KEY_LEFTSHIFT, True)
-                shift = True
-            elif not (mods & SymmapModifiers.SHIFT) and shift:
+            need_shift = bool(mods & SymmapModifiers.SHIFT)
+            need_altgr = bool(mods & SymmapModifiers.ALTGR)
+
+            # Release the modifiers that are no longer needed BEFORE pressing
+            # the new ones. Otherwise, switching between keys with different
+            # modifiers (e.g. AltGr+key followed by Shift+key) briefly holds
+            # both Shift and AltGr at the same time, which produces a wrong
+            # symbol on many layouts and breaks the input.
+            # See https://github.com/pikvm/pikvm/issues/1549
+            if shift and not need_shift:
                 yield (ecodes.KEY_LEFTSHIFT, False)
                 shift = False
-
-            if mods & SymmapModifiers.ALTGR and not altgr:
-                yield (ecodes.KEY_RIGHTALT, True)
-                altgr = True
-            elif not (mods & SymmapModifiers.ALTGR) and altgr:
+            if altgr and not need_altgr:
                 yield (ecodes.KEY_RIGHTALT, False)
                 altgr = False
+
+            if need_shift and not shift:
+                yield (ecodes.KEY_LEFTSHIFT, True)
+                shift = True
+            if need_altgr and not altgr:
+                yield (ecodes.KEY_RIGHTALT, True)
+                altgr = True
 
             yield (key, True)
             yield (key, False)
