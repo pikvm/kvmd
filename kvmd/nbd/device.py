@@ -130,12 +130,14 @@ class NbdDevice:
         with _wrap_exceptions():
             fd = await asyncio.to_thread(os.open, self.__path, os.O_RDWR)
             try:
-                self.__cleanup(fd, close=False)
                 self.__prepare(fd, image, link.device_s)
                 yield fd
             finally:
                 try:
-                    self.__cleanup(fd, close=True)
+                    try:
+                        _ioctl(fd, _NBD_CLEAR_SOCK)
+                    finally:
+                        os.close(fd)
                 except Exception as ex:
                     get_logger(0).error("Cleanup error: %s", tools.efmt(ex))
 
@@ -174,9 +176,3 @@ class NbdDevice:
         _ioctl(fd, _NBD_SET_SOCK, sock.fileno())
 
         logger.info("Prepared")
-
-    def __cleanup(self, fd: int, close: bool) -> None:
-        _ioctl(fd, _NBD_DISCONNECT)  # Should be always OK ..
-        _ioctl(fd, _NBD_CLEAR_SOCK)  # ... accordung to kernel sources
-        if close:
-            os.close(fd)
