@@ -79,18 +79,12 @@ def _wrap_exceptions() -> Generator[None]:
 
 # =====
 class NbdDevice:
-    def __init__(
-        self,
-        path: str,
-        use_blkroset: bool,
-        block: int,
-        timeout: float,
-    ) -> None:
+    __BLOCK:   Final[int] = 512
+    __TIMEOUT: Final[int] = 3600
 
+    def __init__(self, path: str, use_blkroset: bool) -> None:
         self.__path = path
         self.__use_blkroset = use_blkroset
-        self.__block = block
-        self.__timeout = timeout
 
     # =====
 
@@ -126,6 +120,10 @@ class NbdDevice:
 
     # =====
 
+    def check_image(self, image: NbdImage) -> None:
+        if self.__get_blocks(image.size) > 0xFF_FF_FF_FF:
+            raise NbdDeviceError("The image is too big")
+
     @contextlib.asynccontextmanager
     async def open_prepared(self, link: NbdLink, image: NbdImage) -> AsyncGenerator[int]:
         with _wrap_exceptions():
@@ -148,18 +146,21 @@ class NbdDevice:
         await asyncio.to_thread(_ioctl, fd, _NBD_DO_IT)  # Blocks here
         logger.info("Stopped NBD_DO_IT")
 
+    def __get_blocks(self, size: int) -> int:
+        # Для делящегося размера без остатка нужно прибавить 511,
+        # чтобы деление его съело. Если у нас есть хотя бы +1,
+        # то всё округлится до следующего целого блока.
+        return (size + (self.__BLOCK - 1)) // self.__BLOCK
+
     def __prepare(self, fd: int, image: NbdImage, sock: socket.SocketType) -> None:
         logger = get_logger(0)
 
-        # Для делящегося размера без остатка нужно  прибавить 511,
-        # чтобы деление его съело. Если у нас есть хотя бы +1,
-        # то всё округлится до следующего целого блока.
-        blocks = (image.size + (self.__block - 1)) // self.__block
+        blocks = self.__get_blocks(image.size)
 
         logger.info("Preparing %s: bytes=%s, bs=%s, blocks=%s, rw=%s ...",
-                    self.__path, image.size, self.__block, blocks, image.rw)
+                    self.__path, image.size, self.__BLOCK, blocks, image.rw)
 
-        _ioctl(fd, _NBD_SET_BLKSIZE, self.__block)
+        _ioctl(fd, _NBD_SET_BLKSIZE, self.__BLOCK)
         _ioctl(fd, _NBD_SET_SIZE_BLOCKS, blocks)
 
         _ioctl(fd, _NBD_CLEAR_SOCK)
@@ -173,7 +174,7 @@ class NbdDevice:
             ro_bytes = int(not image.rw).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
             _ioctl(fd, _BLKROSET, ro_bytes)  # XXX: PiKVM kernel sets BLKROSET with NBD_SET_FLAGS
 
-        _ioctl(fd, _NBD_SET_TIMEOUT, math.ceil(self.__timeout))
+        _ioctl(fd, _NBD_SET_TIMEOUT, math.ceil(self.__TIMEOUT))
         _ioctl(fd, _NBD_SET_SOCK, sock.fileno())
 
         logger.info("Prepared")

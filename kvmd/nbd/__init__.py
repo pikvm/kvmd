@@ -58,9 +58,6 @@ from .remotes.http import NbdHttpRemote
 
 # =====
 class NbdController:
-    __DEVICE_BLOCK:   Final[int] = 512
-    __DEVICE_TIMEOUT: Final[int] = 3600
-
     __REMOTES: Final[dict[str, Type[BaseNbdRemote]]] = {
         scheme: cls
         for cls in [NbdHttpRemote]
@@ -69,7 +66,7 @@ class NbdController:
 
     def __init__(self, path: str, use_blkroset: bool) -> None:
         self.__device_path = path
-        self.__device = NbdDevice(path, use_blkroset, self.__DEVICE_BLOCK, self.__DEVICE_TIMEOUT)
+        self.__device = NbdDevice(path, use_blkroset)
         self.__proc: (NbdProcess | None) = None
         self.__nr = aiotools.AioNotifier()
         self.__lock = asyncio.Lock()
@@ -106,6 +103,7 @@ class NbdController:
             image = await getattr(remote, func)()
         except Exception as ex:
             raise NbdProbeError(f"{cls.__name__}: {tools.efmt(ex)}")
+        self.__device.check_image(image)
         return (remote, image)
 
     async def bind(self, url: str, **params: Any) -> NbdImage:
