@@ -175,7 +175,7 @@ class NbdProcess:
                 try:
                     await prepared.wait_passed()
                     logger.info("Waiting for device PID ...")
-                    await asyncio.wait_for(self.__device.check_pid(), timeout=timeout)
+                    await asyncio.wait_for(self.__device.wait_pid(), timeout=timeout)
                     logger.info("Doing open+close ...")
                     await asyncio.wait_for(self.__device.open_close(), timeout=timeout)
                 except BaseException as ex:

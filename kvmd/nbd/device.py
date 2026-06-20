@@ -97,14 +97,15 @@ class NbdDevice:
     async def force_disconnect(self) -> None:
         name = self.__get_device_name()
         path = f"{env.SYSFS_PREFIX}/sys/devices/virtual/block/{name}/disconnect"
-        try:
-            await aiotools.write_file(path, "\n")
-            get_logger(0).info("Forced disconnection triggered via the Sysfs")
-        except Exception as ex:
-            if not tools.is_oserror(ex, errno.ENOLINK):
-                get_logger(0).error("Forced disconnection error: %s", tools.efmt(ex))
+        if os.path.exists(f"{env.SYSFS_PREFIX}/sys/block/{name}/pid"):
+            try:
+                await aiotools.write_file(path, "\n")
+                get_logger(0).info("Forced disconnection triggered via the Sysfs")
+            except Exception as ex:
+                if not tools.is_oserror(ex, errno.ENOLINK):
+                    get_logger(0).error("Forced disconnection error: %s", tools.efmt(ex))
 
-    async def check_pid(self) -> None:
+    async def wait_pid(self) -> None:
         name = self.__get_device_name()
         path = f"{env.SYSFS_PREFIX}/sys/block/{name}/pid"
         while True:

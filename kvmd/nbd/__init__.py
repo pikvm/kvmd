@@ -167,6 +167,7 @@ class NbdController:
                     get_logger(0).exception("Unexpected error in NBD poller loop")
                 finally:
                     self.__proc = None
+                await self.__device.force_disconnect()
                 if stop is None:
                     stop = NbdStopEvent("main", "Unknown stop reason", False)
                 yield stop
