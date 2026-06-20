@@ -79,7 +79,10 @@ class NbdController:
 
     def get_remotes(self) -> dict[str, dict[str, Any]]:
         return {
-            scheme: {name: opt.default for (name, opt) in cls.get_options().items()}
+            scheme: {
+                name: opt.default
+                for (name, opt) in cls.get_options().items()
+            }
             for (scheme, cls) in self.__REMOTES.items()
         }
 
