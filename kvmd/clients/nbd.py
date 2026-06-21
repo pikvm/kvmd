@@ -73,7 +73,17 @@ class NbdClient:
 
     async def __explore_or_bind(self, handle: str, url: str, **params: Any) -> NbdImage:
         async with self.__make_session() as session:
-            async with session.post(handle, params={"url": url, **params}) as resp:
+            data: dict[str, str] = {}
+            for key in ["passwd"]:
+                if key in params:
+                    data[key] = params.pop(key)
+
+            async with session.post(
+                handle,
+                params={"url": url, **params},
+                data=(data or None),
+            ) as resp:
+
                 result = await self.__parse_response(resp)
                 return NbdImage(**result["image"])
 

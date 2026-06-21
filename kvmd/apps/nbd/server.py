@@ -22,6 +22,8 @@
 
 import dataclasses
 
+from typing import Any
+
 from aiohttp.web import Request
 from aiohttp.web import Response
 from aiohttp.web import WebSocketResponse
@@ -68,17 +70,22 @@ class NbdServer(HttpServer):
 
     @exposed_http("POST", "/explore")
     async def __explore_handler(self, req: Request) -> Response:
-        image = await self.__ctl.explore(**dict(req.query))
+        image = await self.__ctl.explore(**(await self.__get_params(req)))
         return make_json_response({
             "image": dataclasses.asdict(image),
         })
 
     @exposed_http("POST", "/bind")
     async def __bind_handler(self, req: Request) -> Response:
-        image = await self.__ctl.bind(**dict(req.query))
+        image = await self.__ctl.bind(**(await self.__get_params(req)))
         return make_json_response({
             "image":  dataclasses.asdict(image),
         })
+
+    async def __get_params(self, req: Request) -> dict[str, Any]:
+        q_params = dict(req.query)
+        p_params = await req.post()
+        return {**q_params, **p_params}
 
     @exposed_http("POST", "/unbind")
     async def __unbind_handler(self, _: Request) -> Response:
