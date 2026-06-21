@@ -109,9 +109,20 @@ def check_string_in_list(
     return check_in_list(arg, name, variants)
 
 
-def check_re_match(arg: Any, name: str, pattern: str, strip: bool=True, hide: bool=False) -> str:
+def check_re_match(
+    arg: Any,
+    name: str,
+    pattern: str,
+    strip: bool=True,
+    hide: bool=False,
+    ignorecase: bool=False,
+) -> str:
+
     arg = check_not_none_string(arg, name, strip=strip)
-    if re.match(pattern, arg, flags=re.MULTILINE) is None:
+    flags = re.MULTILINE
+    if ignorecase:
+        flags |= re.IGNORECASE
+    if re.match(pattern, arg, flags=flags) is None:
         raise_error(arg, name, hide=hide)
     return arg
 

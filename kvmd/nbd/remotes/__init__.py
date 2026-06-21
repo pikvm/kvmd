@@ -21,17 +21,22 @@
 
 
 import asyncio
+import contextlib
 import struct
 import errno
 
 from typing import Final
+from typing import AsyncGenerator
 
 from ...yamlconf import Section
 from ...yamlconf import Option
 
+from ...validators.basic import valid_number
+
 from ... import tools
 from ... import aiomulti
 
+from ..errors import NbdError
 from ..errors import NbdRemoteError
 from ..errors import NbdIoConnectionError
 from ..errors import NbdIoProtocolError
@@ -58,12 +63,13 @@ class BaseNbdRemote:
     __OP_STOP:  Final[int] = 2
 
     def __init__(self, c: Section) -> None:
-        _ = c
+        self.__retries_delay: Final[float] = c.retries_delay
 
         self.__recv_st = struct.Struct(">IHHQQI")
         self.__send_st = struct.Struct(">IIQ")
 
         self.__image: (NbdImage | None) = None
+        self.__opened: (bool | None) = None
         self.__events_q: (aiomulti.AioMpQueue[BaseNbdEvent] | None) = None
 
     # =====
@@ -74,20 +80,22 @@ class BaseNbdRemote:
 
     @classmethod
     def get_options(cls) -> dict[str, Option]:
-        return {}
+        return {
+            "retries_delay": Option(5.0, type=valid_number.mk(min=1.0, max=30.0, type=float)),
+        }
 
     # =====
 
     def get_timeout(self) -> float:
         raise NotImplementedError
 
-    async def _do_explore(self) -> NbdImage:
-        raise NotImplementedError
-
     async def _do_probe(self) -> NbdImage:
         raise NotImplementedError
 
-    async def _do_again(self) -> NbdImage:
+    async def _do_ensure(self) -> NbdImage:
+        raise NotImplementedError
+
+    async def _do_close(self) -> None:
         raise NotImplementedError
 
     async def _on_read(self, offset: int, size: int) -> bytes:
@@ -96,36 +104,10 @@ class BaseNbdRemote:
     async def _on_write(self, offset: int, data: bytes) -> None:
         raise NotImplementedError
 
-    async def _do_cleanup(self) -> None:
-        raise NotImplementedError
-
-    # =====
-
-    async def _send_status_ok(self) -> None:
-        await self.__send_event(NbdStatusEvent(True, "Online"))
-
-    async def _send_status_error(self, msg: str) -> None:
-        await self.__send_event(NbdStatusEvent(False, msg))
-
-    async def __send_event(self, event: BaseNbdEvent) -> None:
-        assert self.__events_q is not None
-        try:
-            self.__events_q.put_nowait(event)
-        except Exception as ex:
-            raise NbdRemoteError(f"Can't send event: {tools.efmt(ex)}")
-
-    async def _probe_again(self) -> None:
-        assert self.__image
-        image = await self._do_again()
-        if self.__image.rw is True and not image.rw:
-            raise NbdRemoteError("The source permissions changed: RW -> RO")
-        if self.__image.size != image.size:
-            raise NbdRemoteError(f"The source file has a new size: {self.__image.size} -> {image.size}")
-
     # =====
 
     async def explore(self) -> NbdImage:
-        return (await self._do_explore())
+        return (await self._do_probe())
 
     async def probe(self) -> NbdImage:  # noqa vulture-ignore
         assert self.__events_q is None  # Not running
@@ -142,7 +124,8 @@ class BaseNbdRemote:
         assert self.__events_q is None
         self.__events_q = events_q
 
-        await self._probe_again()  # Validate NbdImage after first probing
+        async with self.__ensured_for_io("VALIDATE", False):
+            pass  # Validate NbdImage after first probing
 
         while True:
             (op, cookie, offset, size, data) = await self.__recv_request(link.remote_r)
@@ -162,7 +145,7 @@ class BaseNbdRemote:
 
     async def cleanup(self) -> None:
         try:
-            await self._do_cleanup()
+            await self._do_close()
         finally:
             self.__events_q = None
             self.__image = None
@@ -202,6 +185,8 @@ class BaseNbdRemote:
         except ConnectionError as ex:
             raise NbdIoConnectionError("Can't send response", ex)
 
+    # =====
+
     async def __handle_read(self, offset: int, size: int) -> tuple[int, bytes]:
         assert offset >= 0
         assert size >= 0
@@ -212,7 +197,16 @@ class BaseNbdRemote:
         if size == 0:
             return (0, b"")
 
-        data = await self._on_read(offset, size)
+        while True:
+            try:
+                async with self.__ensured_for_io("READ", True):
+                    data = await self._on_read(offset, size)
+                    break
+            except NbdError:
+                raise
+            except Exception:
+                await asyncio.sleep(self.__retries_delay)
+
         if len(data) < size:
             if offset + size > self.__image.size:
                 data += b"\x00" * (size - len(data))
@@ -232,5 +226,46 @@ class BaseNbdRemote:
             return errno.ENOSPC
 
         if len(data) > 0:
-            await self._on_write(offset, data)
+            while True:
+                try:
+                    async with self.__ensured_for_io("WRITE", True):
+                        await self._on_write(offset, data)
+                        break
+                except NbdError:
+                    raise
+                except Exception:
+                    await asyncio.sleep(self.__retries_delay)
         return 0
+
+    @contextlib.asynccontextmanager
+    async def __ensured_for_io(self, action: str, send_event: bool) -> AsyncGenerator[None]:
+        assert self.__image
+        try:
+            if not self.__opened:
+                image = await self._do_ensure()
+                if self.__image.rw is True and not image.rw:
+                    raise NbdRemoteError("The source permissions changed: RW -> RO")
+                if self.__image.size != image.size:
+                    raise NbdRemoteError(f"The source file has a new size: {self.__image.size} -> {image.size}")
+            yield
+        except Exception as ex:
+            self.__opened = False
+            try:
+                await self._do_close()
+            except Exception:
+                pass
+            if send_event and not isinstance(ex, NbdError):
+                msg = f"{action}: {tools.efmt(ex)}; Retrying ..."
+                await self.__send_event(NbdStatusEvent(False, msg))
+            raise
+        else:
+            if send_event and self.__opened is False:  # Ignore for None
+                await self.__send_event(NbdStatusEvent(True, "Online"))
+            self.__opened = True
+
+    async def __send_event(self, event: BaseNbdEvent) -> None:
+        assert self.__events_q is not None
+        try:
+            self.__events_q.put_nowait(event)
+        except Exception as ex:
+            raise NbdRemoteError(f"Can't send event: {tools.efmt(ex)}")

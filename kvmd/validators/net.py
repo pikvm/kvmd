@@ -127,6 +127,9 @@ def valid_ssl_ciphers(arg: Any) -> str:
 
 
 @add_validator_magic
-def valid_url(arg: Any) -> str:
+def valid_url(arg: Any, protos: (set | frozenset)=frozenset(["http", "https"])) -> str:
     # XXX: VERY primitive
-    return check_re_match(arg, "HTTP(S) URL", r"^https?://[\[\w]+\S*")
+    assert len(protos) >= 1
+    name = "|".join(map(str.upper, protos)) + " URL"
+    part = "|".join(protos)
+    return check_re_match(arg, name, fr"^(?:{part})://[\[\w]+\S*", ignorecase=True)
