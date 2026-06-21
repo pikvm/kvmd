@@ -76,6 +76,7 @@ depends=(
 	python-six
 	python-pyrad
 	python-ldap
+	python-pysmbc
 	python-zstandard
 	python-mako
 	"python-luma-core>=2.5.2"

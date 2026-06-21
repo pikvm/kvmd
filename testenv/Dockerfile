@@ -71,6 +71,7 @@ RUN \
 		libxkbcommon \
 		python-hidapi \
 		python-ldap \
+		python-pysmbc \
 		python-zstandard \
 		libgpiod \
 		freetype2 \
