@@ -106,7 +106,7 @@ def get_mtime(resp: aiohttp.ClientResponse) -> float:
         date = resp.headers["Last-Modified"]
         parsed = aiohttp.helpers.parse_http_date(date)
         if parsed is not None:
-            return parsed.timestamp()
+            return float(parsed.timestamp())
     except Exception:
         pass
     raise aiohttp.ClientError("Can't determine mtime")
