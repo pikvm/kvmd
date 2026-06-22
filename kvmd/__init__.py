@@ -23,6 +23,25 @@
 __version__ = "4.177"
 
 
+# FIXME: Migrate to some other start method
 import multiprocessing
 
-multiprocessing.set_start_method("fork")  # FIXME
+
+multiprocessing.set_start_method("fork")
+
+
+# FIXME: Do something with bcrypt bug
+#   - https://github.com/pyca/bcrypt/pull/1000/changes
+#   - https://gitlab.archlinux.org/archlinux/packaging/packages/python-passlib/-/work_items/2
+#   - https://gitlab.archlinux.org/archlinux/packaging/packages/python-passlib/-/work_items/3
+import bcrypt  # noqa E402  # pylint: disable=wrong-import-position
+
+
+bcrypt_hashpw_orig = bcrypt.hashpw
+
+
+def bcrypt_hashpw_fixed(password, salt):  # type: ignore
+    return bcrypt_hashpw_orig(password[:72], salt)
+
+
+bcrypt.hashpw = bcrypt_hashpw_fixed

@@ -54,7 +54,7 @@ depends=(
 	python-aiofiles
 	python-async-lru
 	python-passlib
-	# python-bcrypt
+	python-bcrypt
 	python-pyotp
 	python-qrcode
 	python-pyserial
@@ -138,9 +138,6 @@ conflicts=(
 	platformio
 	avrdude-pikvm
 	kvmd-oled
-
-	# See kvmd/crypto.py
-	python-bcrypt
 )
 makedepends=(
 	python-build
