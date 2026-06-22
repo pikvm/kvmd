@@ -38,7 +38,7 @@ from ...htserver import make_json_response
 from ...htserver import WsSession
 from ...htserver import HttpServer
 
-from ...nbd import NbdController
+from ...nbd.controller import NbdController
 
 
 # =====
