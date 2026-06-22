@@ -103,8 +103,8 @@ class NbdSmbRemote(BaseNbdRemote):
         ctx.port = self.__url.port
         if self.__user:
             cb = (lambda *args: (args[2], self.__user, self.__passwd))  # args[2] is a workgroup
-            ctx.optionNoAutoAnonymousLogin = True
-            ctx.functionAuthData = cb
+            ctx.optionNoAutoAnonymousLogin = True  # noqa vulture-ignore
+            ctx.functionAuthData = cb  # noqa vulture-ignore
         try:
             file = await asyncio.to_thread(ctx.open, self.__url.raw, os.O_RDWR)
             rw = True
