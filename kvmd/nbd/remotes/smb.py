@@ -23,7 +23,6 @@
 import os
 import asyncio
 import dataclasses
-import urllib.parse
 
 import smbc
 
@@ -35,30 +34,29 @@ from ...yamlconf import Option
 from ...validators.basic import valid_number
 from ...validators.net import valid_url
 
-from ..errors import NbdRemoteError
 from ..types import NbdImage
 
+from . import NbdUrl
 from . import BaseNbdRemote
 
 
 # =====
 @dataclasses.dataclass(frozen=True)
-class _SmbFile:
-    handle: smbc.File
-    name:   str
-    rw:     bool
+class _FileHandle:
+    file: smbc.File
+    rw:   bool
 
 
 class NbdSmbRemote(BaseNbdRemote):
     def __init__(self, c: Section) -> None:
         super().__init__(c)
 
-        self.__url:     Final[str]   = c.url
-        self.__user:    Final[str]   = c.user
-        self.__passwd:  Final[str]   = c.passwd
-        self.__timeout: Final[float] = c.timeout
+        self.__url:     Final[NbdUrl] = NbdUrl(c.url, 445)
+        self.__user:    Final[str]    = c.user
+        self.__passwd:  Final[str]    = c.passwd
+        self.__timeout: Final[float]  = c.timeout
 
-        self.__file: (_SmbFile | None) = None
+        self.__fh: (_FileHandle | None) = None
 
     # =====
 
@@ -82,69 +80,62 @@ class NbdSmbRemote(BaseNbdRemote):
         return self.__timeout
 
     async def _do_probe(self) -> NbdImage:
-        file = await self.__open_file()
+        fh = await self.__open()
         try:
-            return (await self.__probe(file))
+            return (await self.__probe(fh))
         finally:
-            await asyncio.to_thread(file.handle.close)
+            await asyncio.to_thread(fh.file.close)
 
     async def _do_ensure(self) -> NbdImage:
-        if self.__file is None:
-            self.__file = await self.__open_file()
-        return (await self.__probe(self.__file))
+        if self.__fh is None:
+            self.__fh = await self.__open()
+        return (await self.__probe(self.__fh))
 
     async def _do_close(self) -> None:
-        if self.__file is not None:
+        if self.__fh is not None:
             try:
-                await asyncio.to_thread(self.__file.handle.close)
+                await asyncio.to_thread(self.__fh.file.close)
             finally:
-                self.__file = None
+                self.__fh = None
 
-    async def __open_file(self) -> _SmbFile:
-        parsed = urllib.parse.urlparse(self.__url)
-        if len(parsed.path) == 0:
-            raise NbdRemoteError("Can't parse SMB filename from URL")
-        name = os.path.basename(parsed.path)
-        if len(name) == 0:
-            raise NbdRemoteError("Zero-length SMB filename")
-
+    async def __open(self) -> _FileHandle:
         ctx = smbc.Context()  # pylint: disable=no-member
+        ctx.port = self.__url.port
         if self.__user:
             cb = (lambda *args: (args[2], self.__user, self.__passwd))  # args[2] is a workgroup
             ctx.optionNoAutoAnonymousLogin = True
             ctx.functionAuthData = cb
-
         try:
-            handle = await asyncio.to_thread(ctx.open, self.__url, os.O_RDWR)
+            file = await asyncio.to_thread(ctx.open, self.__url.raw, os.O_RDWR)
             rw = True
         except smbc.PermissionError:  # pylint: disable=no-member
-            handle = await asyncio.to_thread(ctx.open, self.__url, os.O_RDONLY)
+            file = await asyncio.to_thread(ctx.open, self.__url.raw, os.O_RDONLY)
             rw = False
-        return _SmbFile(handle, name, rw)
+        return _FileHandle(file, rw)
 
-    async def __probe(self, file: _SmbFile) -> NbdImage:
-        st = await asyncio.to_thread(file.handle.fstat)
+    async def __probe(self, fh: _FileHandle) -> NbdImage:
+        st = await asyncio.to_thread(fh.file.fstat)
         return NbdImage(
-            url=self.__url,
+            url=self.__url.raw,
             proto="SMB",
-            name=file.name,
+            name=self.__url.name,
             size=st[6],
             mod_ts=float(st[8]),
-            rw=file.rw,
+            rw=fh.rw,
         )
 
     async def _on_read(self, offset: int, size: int) -> bytes:
         return (await asyncio.to_thread(self.__seek_and_read, offset, size))
 
     def __seek_and_read(self, offset: int, size: int) -> bytes:
-        assert self.__file is not None
-        self.__file.handle.lseek(offset, os.SEEK_SET)
-        return self.__file.handle.read(size)
+        assert self.__fh is not None
+        self.__fh.file.lseek(offset, os.SEEK_SET)
+        return self.__fh.file.read(size)
 
     async def _on_write(self, offset: int, data: bytes) -> None:
         await asyncio.to_thread(self.__seek_and_write, offset, data)
 
-    def __seek_and_write(self, offset: int, data: bytes) -> bytes:
-        assert self.__file is not None
-        self.__file.handle.lseek(offset, os.SEEK_SET)
-        return self.__file.handle.write(data)
+    def __seek_and_write(self, offset: int, data: bytes) -> None:
+        assert self.__fh is not None
+        self.__fh.file.lseek(offset, os.SEEK_SET)
+        self.__fh.file.write(data)

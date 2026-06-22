@@ -20,8 +20,11 @@
 # ========================================================================== #
 
 
+import os
 import asyncio
 import contextlib
+import dataclasses
+import urllib.parse
 import struct
 import errno
 
@@ -46,6 +49,38 @@ from ..types import BaseNbdEvent
 from ..types import NbdStatusEvent
 
 from ..link import NbdLink
+
+
+# =====
+@dataclasses.dataclass(frozen=True)
+class NbdUrl:
+    raw:  str
+    port: int = dataclasses.field(compare=False)
+    host: str = dataclasses.field(init=False, compare=False)
+    name: str = dataclasses.field(init=False, compare=False)
+    path: str = dataclasses.field(init=False, compare=False)
+
+    def __post_init__(self) -> None:
+        parsed = urllib.parse.urlparse(self.raw)
+
+        if not parsed.hostname:
+            raise NbdRemoteError("Empty hostname in URL")
+        object.__setattr__(self, "host", parsed.hostname)
+
+        try:
+            port = (parsed.port or self.port)
+        except Exception:
+            raise NbdRemoteError("Invalid port in URL")
+        object.__setattr__(self, "port", port)
+
+        name = os.path.basename(parsed.path)
+        if not name:
+            raise NbdRemoteError("Empty filename in URL")
+        object.__setattr__(self, "name", name)
+
+        if not parsed.path:
+            raise NbdRemoteError("Empty file path in URL")
+        object.__setattr__(self, "path", parsed.path)
 
 
 # =====
