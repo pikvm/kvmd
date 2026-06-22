@@ -71,6 +71,7 @@ RUN \
 		python-hidapi \
 		python-ldap \
 		python-pysmbc \
+		python-paramiko \
 		python-zstandard \
 		libgpiod \
 		freetype2 \
