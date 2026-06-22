@@ -31,6 +31,7 @@ from typing import Final
 from ...yamlconf import Section
 from ...yamlconf import Option
 
+from ...validators.basic import valid_stripped_string_not_empty
 from ...validators.basic import valid_number
 from ...validators.net import valid_url
 
@@ -71,10 +72,10 @@ class NbdSftpRemote(BaseNbdRemote):
     def __init__(self, c: Section) -> None:
         super().__init__(c)
 
-        self.__url:     Final[NbdUrl] = NbdUrl(c.url, 22)
-        self.__user:    Final[str]    = c.user
-        self.__passwd:  Final[str]    = c.passwd
-        self.__timeout: Final[float]  = c.timeout
+        self.__url:     Final[NbdUrl]     = NbdUrl(c.url, 22)
+        self.__user:    Final[str]        = c.user
+        self.__passwd:  Final[str | None] = c.passwd
+        self.__timeout: Final[float]      = c.timeout
 
         self.__fh: (_FileHandle | None) = None
 
@@ -87,10 +88,10 @@ class NbdSftpRemote(BaseNbdRemote):
     @classmethod
     def get_options(cls) -> dict[str, Option]:
         return {
-            "url":     Option("", type=valid_url.mk(protos=cls.get_schemes())),
-            "user":    Option(""),
-            "passwd":  Option(""),
-            "timeout": Option(5.0, type=valid_number.mk(min=1.0, max=30.0, type=float)),
+            "url":     Option("",   type=valid_url.mk(protos=cls.get_schemes())),
+            "user":    Option("",   type=valid_stripped_string_not_empty),
+            "passwd":  Option(None, type=str, if_none=None),
+            "timeout": Option(5.0,  type=valid_number.mk(min=1.0, max=30.0, type=float)),
             **BaseNbdRemote.get_options(),
         }
 
