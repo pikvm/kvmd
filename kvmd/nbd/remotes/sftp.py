@@ -90,7 +90,7 @@ class NbdSftpRemote(BaseNbdRemote):
             "url":     Option("", type=valid_url.mk(protos=cls.get_schemes())),
             "user":    Option(""),
             "passwd":  Option(""),
-            "timeout": Option(3.0, type=valid_number.mk(min=1.0, max=30.0, type=float)),
+            "timeout": Option(5.0, type=valid_number.mk(min=1.0, max=30.0, type=float)),
             **BaseNbdRemote.get_options(),
         }
 
@@ -132,6 +132,8 @@ class NbdSftpRemote(BaseNbdRemote):
                 port=self.__url.port,
                 username=self.__user,
                 password=self.__passwd,
+                allow_agent=False,
+                look_for_keys=False,
                 banner_timeout=self.__timeout,
                 auth_timeout=self.__timeout,
                 channel_timeout=self.__timeout,
