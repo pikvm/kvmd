@@ -21,14 +21,13 @@
 
 
 import os
-import contextlib
-
-from typing import AsyncGenerator
 
 import aiohttp
 import aiohttp.multipart
 
 from . import __version__
+
+from . import tools
 
 
 # =====
@@ -93,12 +92,15 @@ def get_filename(resp: aiohttp.ClientResponse) -> str:
     try:
         disp = resp.headers["Content-Disposition"]
         parsed = aiohttp.multipart.parse_content_disposition(disp)
-        return str(parsed[1]["filename"])
+        name = str(parsed[1]["filename"])
+        tools.check_name(name)
     except Exception:
         try:
-            return os.path.basename(resp.url.path)
+            name = os.path.basename(resp.url.path)
+            tools.check_name(name)
         except Exception:
             raise aiohttp.ClientError("Can't determine filename")
+    return name
 
 
 def get_mtime(resp: aiohttp.ClientResponse) -> float:
@@ -106,30 +108,9 @@ def get_mtime(resp: aiohttp.ClientResponse) -> float:
         date = resp.headers["Last-Modified"]
         parsed = aiohttp.helpers.parse_http_date(date)
         if parsed is not None:
-            return float(parsed.timestamp())
+            ts = float(parsed.timestamp())
+            if ts >= 0:
+                return ts
     except Exception:
         pass
     raise aiohttp.ClientError("Can't determine mtime")
-
-
-@contextlib.asynccontextmanager
-async def download(
-    url: str,
-    verify: bool=True,
-    timeout: float=10.0,
-    read_timeout: (float | None)=None,
-    app: str="KVMD",
-) -> AsyncGenerator[aiohttp.ClientResponse]:
-
-    async with aiohttp.ClientSession(
-        headers={"User-Agent": make_user_agent(app)},
-        timeout=aiohttp.ClientTimeout(
-            connect=timeout,
-            sock_connect=timeout,
-            sock_read=(read_timeout if read_timeout is not None else timeout),
-        ),
-    ) as session:
-
-        async with session.get(url, verify_ssl=verify) as resp:  # type: ignore
-            raise_not_200(resp)
-            yield resp

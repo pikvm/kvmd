@@ -36,8 +36,6 @@ from aiohttp.web import StreamResponse
 
 from ....logging import get_logger
 
-from .... import htclient
-
 from ....htserver import exposed_http
 from ....htserver import make_json_response
 from ....htserver import make_json_exception
@@ -54,6 +52,8 @@ from ....validators.basic import valid_int_f0
 from ....validators.basic import valid_float_f01
 from ....validators.net import valid_url
 from ....validators.kvm import valid_msd_image_name
+
+from .. import downloader
 
 
 # ======
@@ -152,8 +152,10 @@ class MsdApi:
     async def __write_handler(self, req: Request) -> Response:
         unsafe_prefix = req.query.get("prefix", "") + "/"
         name = valid_msd_image_name(unsafe_prefix + req.query.get("image", ""))
+
         size = valid_int_f0(req.content_length)
-        remove_incomplete = self.__get_remove_incomplete(req)
+        remove_incomplete = valid_bool(req.query.get("remove_incomplete", False))
+
         written = 0
         async with self.__msd.write_image(name, size, remove_incomplete) as writer:
             chunk_size = writer.get_chunk_size()
@@ -166,42 +168,39 @@ class MsdApi:
 
     @exposed_http("POST", "/msd/write_remote")
     async def __write_remote_handler(self, req: Request) -> (Response | StreamResponse):  # pylint: disable=too-many-locals
-        unsafe_prefix = req.query.get("prefix", "") + "/"
         url = valid_url(req.query.get("url"))
         insecure = valid_bool(req.query.get("insecure", False))
         timeout = valid_float_f01(req.query.get("timeout", 10.0))
-        remove_incomplete = self.__get_remove_incomplete(req)
+        remove_incomplete = valid_bool(req.query.get("remove_incomplete", False))
 
+        resp: (StreamResponse | None) = None
         name = ""
         size = written = 0
-        resp: (StreamResponse | None) = None
 
         async def stream_write_info() -> None:
             assert resp is not None
             await stream_json(resp, self.__make_write_info(name, size, written))
 
         try:
-            async with htclient.download(
+            async with downloader.download(
                 url=url,
                 verify=(not insecure),
                 timeout=timeout,
                 read_timeout=(7 * 24 * 3600),
-            ) as remote:
+            ) as file:
 
-                name = str(req.query.get("image", "")).strip()
-                if len(name) == 0:
-                    name = htclient.get_filename(remote)
-                name = valid_msd_image_name(unsafe_prefix + name)
-
-                size = valid_int_f0(remote.content_length)
+                unsafe_prefix = req.query.get("prefix", "") + "/"
+                name = valid_msd_image_name(unsafe_prefix + req.query.get("image", file.name))
 
                 get_logger(0).info("Downloading image %r as %r to MSD ...", url, name)
-                async with self.__msd.write_image(name, size, remove_incomplete) as writer:
-                    chunk_size = writer.get_chunk_size()
+
+                async with self.__msd.write_image(name, file.size, remove_incomplete) as writer:
+                    size = file.size
                     resp = await start_streaming(req, "application/x-ndjson")
                     await stream_write_info()
+
                     last_report_ts = 0
-                    async for chunk in remote.content.iter_chunked(chunk_size):
+                    async for chunk in file.read(writer.get_chunk_size()):
                         written = await writer.write_chunk(chunk)
                         now = int(time.monotonic())
                         if last_report_ts + 1 < now:
@@ -218,10 +217,6 @@ class MsdApi:
             elif isinstance(ex, aiohttp.ClientError):
                 return make_json_exception(ex, 400)
             raise
-
-    def __get_remove_incomplete(self, req: Request) -> bool:
-        flag: (str | None) = req.query.get("remove_incomplete")
-        return (valid_bool(flag) if flag is not None else False)
 
     def __make_write_info(self, name: str, size: int, written: int) -> dict:
         return {"image": {"name": name, "size": size, "written": written}}
