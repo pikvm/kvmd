@@ -91,7 +91,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
             "passwd_env": Option("AMT_PASSWORD"),
             "cmd": Option([
-                "/usr/bin/meshcmd",
+                "/usr/local/bin/meshcmd",
                 "amtpower",
                 "{action_opt}",
                 "--host", "{host}",
