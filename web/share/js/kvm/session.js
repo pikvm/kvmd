@@ -60,6 +60,12 @@ export function Session() {
 	var __switch = new Switch();
 
 	var __init__ = function() {
+		tools.storage.bindSimpleSwitch($("presence-overlay-switch"), "presence.overlay.visible", true, function(visible) {
+			let el = $("presence-overlay");
+			if (el) {
+				el.style.display = (visible ? "block" : "none");
+			}
+		});
 		__streamer.ensureDeps(() => __startSession());
 	};
 
@@ -113,6 +119,35 @@ export function Session() {
 		}
 	};
 
+
+	var __updatePresenceOverlay = function(ev) {
+		let el = document.getElementById("presence-overlay");
+		if (!el) {
+			el = document.createElement("div");
+			el.id = "presence-overlay";
+			el.className = "presence-overlay";
+			(document.getElementById("stream-box") || document.body).appendChild(el);
+		}
+		let sw = document.getElementById("presence-overlay-switch");
+		el.style.display = (sw && !sw.checked) ? "none" : "block";
+		let connected = (ev.connected || []);
+		let controllers = (ev.controllers || []);
+		let active = (ev.active || []);
+		let lines = [];
+		for (let user of connected) {
+			if (user === "anon") continue;
+			let name = user.charAt(0).toUpperCase() + user.slice(1);
+			if (controllers.indexOf(user) >= 0) {
+				lines.push("<span class=\"presence-user-controlling\">" + name + "</span> is controlling");
+			} else if (active.indexOf(user) < 0) {
+				lines.push("<span class=\"presence-user-idle\">" + name + " is watching (idle)</span>");
+			} else {
+				lines.push(name + " is watching");
+			}
+		}
+		el.innerHTML = lines.length > 0 ? lines.join("<br>") : "";
+	};
+
 	var __wsJsonHandler = function(ev_type, ev) {
 		switch (ev_type) {
 			case "info": __info.setState(ev); break;
@@ -121,6 +156,10 @@ export function Session() {
 			case "hid_keymaps": __paste.setState(ev); break;
 			case "atx": __atx.setState(ev); break;
 			case "streamer": __streamer.setState(ev); break;
+
+			case "presence":
+				__updatePresenceOverlay(ev);
+				break;
 			case "ocr": __ocr.setState(ev); break;
 
 			case "msd":
@@ -138,6 +177,7 @@ export function Session() {
 				}
 				__switch.setState(ev);
 				break;
+
 		}
 	};
 
@@ -187,6 +227,7 @@ export function Session() {
 			__wsErrorHandler(ex.message);
 		}
 	};
+
 
 	var __ascii_encoder = new TextEncoder("ascii");
 
