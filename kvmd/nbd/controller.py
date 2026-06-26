@@ -108,11 +108,13 @@ class NbdController:
             image = await getattr(remote, func)()
         except Exception as ex:
             raise NbdProbeError(f"{cls.__name__}: {tools.efmt(ex)}")
+
         self.__device.check_image(image)
         return (remote, image)
 
     async def bind(self, url: str, **params: Any) -> NbdImage:
         async with self.__lock:
+            self.__device.check_readiness()
             if self.__proc:
                 raise NbdBoundError("NBD is already bound")
 

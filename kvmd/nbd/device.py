@@ -26,6 +26,7 @@ import fcntl
 import socket
 import asyncio
 import contextlib
+import dataclasses
 import errno
 import math
 
@@ -39,6 +40,7 @@ from .. import env
 from .. import tools
 from .. import aiotools
 
+from .errors import NbdBoundError
 from .errors import NbdDeviceError
 from .types import NbdImage
 from .link import NbdLink
@@ -78,6 +80,12 @@ def _wrap_exceptions() -> Generator[None]:
 
 
 # =====
+@dataclasses.dataclass(frozen=True)
+class _AttrPaths:
+    pid:        str
+    disconnect: str
+
+
 class NbdDevice:
     __BLOCK:   Final[int] = 512
     __TIMEOUT: Final[int] = 3600
@@ -88,22 +96,30 @@ class NbdDevice:
 
     # =====
 
+    def check_image(self, image: NbdImage) -> None:
+        self.__get_blocks(image.size)
+
+    def check_readiness(self) -> None:
+        aps = self.__get_attr_paths()
+        if not os.path.exists(self.__path):
+            raise NbdDeviceError(f"Can't find NBD device: {self.__path}")
+        if os.path.exists(aps.pid):
+            raise NbdBoundError("NBD is already bound")
+
     async def force_disconnect(self) -> None:
-        name = self.__get_device_name()
-        path = f"{env.SYSFS_PREFIX}/sys/devices/virtual/block/{name}/disconnect"
-        if os.path.exists(f"{env.SYSFS_PREFIX}/sys/block/{name}/pid"):
+        aps = self.__get_attr_paths()
+        if os.path.exists(aps.pid):
             try:
-                await aiotools.write_file(path, "\n")
+                await aiotools.write_file(aps.disconnect, "\n")
                 get_logger(0).info("Forced disconnection triggered via the Sysfs")
             except Exception as ex:
                 if not tools.is_oserror(ex, errno.ENOLINK):
                     get_logger(0).error("Forced disconnection error: %s", tools.efmt(ex))
 
     async def wait_pid(self) -> None:
-        name = self.__get_device_name()
-        path = f"{env.SYSFS_PREFIX}/sys/block/{name}/pid"
+        aps = self.__get_attr_paths()
         while True:
-            if os.path.exists(path):
+            if os.path.exists(aps.pid):
                 break
             await asyncio.sleep(1)
 
@@ -111,21 +127,22 @@ class NbdDevice:
         fd = await asyncio.to_thread(os.open, self.__path, os.O_RDONLY)
         await asyncio.to_thread(os.close, fd)
 
-    def __get_device_name(self) -> str:
+    def __get_attr_paths(self) -> _AttrPaths:
         path = os.path.realpath(self.__path)
         name = os.path.basename(path)
         if not name.startswith("nbd"):
-            raise NbdDeviceError(f"Can't parse nbd<N> from the device path: {path}")
-        return name
+            raise NbdDeviceError(f"Can't parse nbd<N> from the device: {path}")
+        return _AttrPaths(
+            pid=f"{env.SYSFS_PREFIX}/sys/block/{name}/pid",
+            disconnect=f"{env.SYSFS_PREFIX}/sys/devices/virtual/block/{name}/disconnect",
+        )
 
     # =====
 
-    def check_image(self, image: NbdImage) -> None:
-        if self.__get_blocks(image.size) > 0xFF_FF_FF_FF:
-            raise NbdDeviceError("The image is too big")
-
     @contextlib.asynccontextmanager
     async def open_prepared(self, link: NbdLink, image: NbdImage) -> AsyncGenerator[int]:
+        self.check_image(image)
+        self.check_readiness()
         with _wrap_exceptions():
             fd = await asyncio.to_thread(os.open, self.__path, os.O_RDWR)
             try:
@@ -150,7 +167,10 @@ class NbdDevice:
         # Для делящегося размера без остатка нужно прибавить 511,
         # чтобы деление его съело. Если у нас есть хотя бы +1,
         # то всё округлится до следующего целого блока.
-        return (size + (self.__BLOCK - 1)) // self.__BLOCK
+        blocks = (size + (self.__BLOCK - 1)) // self.__BLOCK
+        if blocks > 0xFF_FF_FF_FF:
+            raise NbdDeviceError("The image is too big")
+        return blocks
 
     def __prepare(self, fd: int, image: NbdImage, sock: socket.SocketType) -> None:
         logger = get_logger(0)
