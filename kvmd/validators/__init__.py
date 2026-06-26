@@ -58,15 +58,28 @@ _VP = ParamSpec("_VP")
 _VR = TypeVar("_VR")
 
 
-def add_validator_magic(validator: Callable[_VP, _VR]) -> _ContainsMkMethod[_VP, _VR]:
-    def make(**kwargs: Any) -> Callable[[Any], _VR]:
-        @functools.wraps(validator)
-        def specialized(arg: Any) -> _VR:
-            return validator(arg, **kwargs)
-        return specialized
+def add_validator_magic(max_raw_len: int=0) -> Callable[
+    [Callable[_VP, _VR]],
+    _ContainsMkMethod[_VP, _VR],
+]:
 
-    validator.mk = make  # type: ignore
-    return cast(_ContainsMkMethod, validator)
+    def make_wrapper(validator: Callable[_VP, _VR]) -> _ContainsMkMethod[_VP, _VR]:
+
+        def wrapper(arg: Any, *args: Any, **kwargs: Any) -> _VR:
+            if max_raw_len > 0 and len(str(arg)) > max_raw_len:  # pylint: disable=chained-comparison
+                raise ValidatorError("RAW limit exceed")
+            return validator(arg, *args, **kwargs)
+
+        def mk(**kwargs: Any) -> Callable[[Any], _VR]:
+            @functools.wraps(validator)
+            def specialized(arg: Any) -> _VR:
+                return wrapper(arg, **kwargs)
+            return specialized
+
+        wrapper.mk = mk  # type: ignore
+        return cast(_ContainsMkMethod, wrapper)
+
+    return make_wrapper
 
 
 # =====

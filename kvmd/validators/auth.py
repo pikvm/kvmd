@@ -30,26 +30,26 @@ from . import check_re_match
 
 
 # =====
-@add_validator_magic
+@add_validator_magic(128)
 def valid_user(arg: Any) -> str:
     return check_re_match(arg, "username characters", r"^[a-z_]([a-z0-9@._-]*[a-z0-9_-])?$")
 
 
-@add_validator_magic
+@add_validator_magic(4096)
 def valid_users_list(arg: Any) -> list[str]:
     return valid_string_list(arg, subval=valid_user, name="users list")
 
 
-@add_validator_magic
+@add_validator_magic(512)
 def valid_passwd(arg: Any) -> str:
     return check_re_match(arg, "passwd characters", r"^[\x20-\x7e]*\Z$", strip=False, hide=True)
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_expire(arg: Any) -> int:
     return int(valid_number(arg, min=0, name="expiration time"))
 
 
-@add_validator_magic
+@add_validator_magic(128)
 def valid_auth_token(arg: Any) -> str:
     return check_re_match(arg, "auth token", r"^[0-9a-f]{64}$", hide=True)

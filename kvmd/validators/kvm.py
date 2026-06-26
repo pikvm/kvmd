@@ -34,17 +34,17 @@ from .os import valid_printable_filename
 
 
 # =====
-@add_validator_magic
+@add_validator_magic(16)
 def valid_atx_power_action(arg: Any) -> str:
     return check_string_in_list(arg, "ATX power action", ["on", "off", "off_hard", "reset_hard"])
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_atx_button(arg: Any) -> str:
     return check_string_in_list(arg, "ATX button", ["power", "power_long", "reset"])
 
 
-@add_validator_magic
+@add_validator_magic(4096)
 def valid_msd_image_name(arg: Any, allow_eject: bool=False) -> str:
     name = "MSD image name"
     arg = valid_stripped_string(arg)
@@ -61,7 +61,7 @@ def valid_msd_image_name(arg: Any, allow_eject: bool=False) -> str:
     return "/".join(parts)
 
 
-@add_validator_magic
+@add_validator_magic(512)
 def valid_info_fields(arg: Any, variants: set[str]) -> set[str]:
     return set(valid_string_list(
         arg=str(arg).strip(),
@@ -70,22 +70,22 @@ def valid_info_fields(arg: Any, variants: set[str]) -> set[str]:
     ))
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_log_seek(arg: Any) -> int:
     return int(valid_number(arg, min=0, name="log seek"))
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_stream_quality(arg: Any) -> int:
     return int(valid_number(arg, min=1, max=100, name="stream quality"))
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_stream_fps(arg: Any) -> int:
     return int(valid_number(arg, min=0, max=120, name="stream FPS"))
 
 
-@add_validator_magic
+@add_validator_magic(32)
 def valid_stream_resolution(arg: Any) -> str:
     name = "stream resolution"
     arg = valid_stripped_string_not_empty(arg, name)
@@ -97,11 +97,11 @@ def valid_stream_resolution(arg: Any) -> str:
     return f"{width}x{height}"
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_stream_h264_bitrate(arg: Any) -> int:
     return int(valid_number(arg, min=25, max=20000, name="stream H264 bitrate"))
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_stream_h264_gop(arg: Any) -> int:
     return int(valid_number(arg, min=0, max=60, name="stream H264 GOP"))
