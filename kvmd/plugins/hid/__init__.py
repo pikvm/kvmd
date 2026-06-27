@@ -21,6 +21,7 @@
 
 
 import asyncio
+import random
 import time
 
 from typing import Final
@@ -30,6 +31,8 @@ from typing import AsyncGenerator
 from typing import Any
 
 from evdev import ecodes
+
+from ...logging import get_logger
 
 from ...yamlconf import Section
 from ...yamlconf import Option
@@ -62,6 +65,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
         self.__j_interval: Final[float] = c.jiggler.interval
 
         self.__j_active: bool = c.jiggler.active
+        self.__j_next_interval: float = self.__roll_interval()
 
         self.__j_absolute = True
         self.__j_activity_ts = self.__get_monotonic_seconds()
@@ -251,6 +255,14 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
     def __get_monotonic_seconds(self) -> int:
         return int(time.monotonic())
 
+    def __roll_interval(self) -> float:
+        # Randomize the wait by +/- 25% of the interval so the jiggling is less
+        # predictable (e.g. 60 -> +/-15, 120 -> +/-30, 30 -> +/-7).
+        jitter = int(self.__j_interval * 0.25)
+        lo = max(1, int(self.__j_interval) - jitter)
+        hi = int(self.__j_interval) + jitter
+        return random.randint(lo, hi)
+
     def _set_jiggler_absolute(self, absolute: bool) -> None:
         self.__j_absolute = absolute
 
@@ -271,7 +283,8 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
 
     async def systask(self) -> None:
         while True:
-            if self.__j_active and (self.__j_activity_ts + self.__j_interval < self.__get_monotonic_seconds()):
+            if self.__j_active and (self.__j_activity_ts + self.__j_next_interval < self.__get_monotonic_seconds()):
+                get_logger(0).info("Jiggling mouse (interval=%d seconds) ...", self.__j_next_interval)
                 if self.__j_absolute:
                     (x, y) = (self.__j_last_x, self.__j_last_y)
                     for move in (([100, -100] * 5) + [0]):
@@ -281,6 +294,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
                     for move in ([10, -10] * 5):
                         self.send_mouse_relative_event(move, move)
                         await asyncio.sleep(0.1)
+                self.__j_next_interval = self.__roll_interval()
             await asyncio.sleep(1)
 
 
