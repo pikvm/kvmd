@@ -34,14 +34,14 @@ multiprocessing.set_start_method("fork")
 #   - https://github.com/pyca/bcrypt/pull/1000/changes
 #   - https://gitlab.archlinux.org/archlinux/packaging/packages/python-passlib/-/work_items/2
 #   - https://gitlab.archlinux.org/archlinux/packaging/packages/python-passlib/-/work_items/3
-import bcrypt  # noqa E402  # pylint: disable=wrong-import-position
+try:
+    import bcrypt  # noqa E402  # pylint: disable=wrong-import-position
+except ModuleNotFoundError:
+    pass
+else:
+    bcrypt_hashpw_orig = bcrypt.hashpw
 
+    def bcrypt_hashpw_fixed(password, salt):  # type: ignore
+        return bcrypt_hashpw_orig(password[:72], salt)
 
-bcrypt_hashpw_orig = bcrypt.hashpw
-
-
-def bcrypt_hashpw_fixed(password, salt):  # type: ignore
-    return bcrypt_hashpw_orig(password[:72], salt)
-
-
-bcrypt.hashpw = bcrypt_hashpw_fixed
+    bcrypt.hashpw = bcrypt_hashpw_fixed
