@@ -49,6 +49,29 @@ def _preexec() -> None:
             get_logger(0).info("Can't perform tcsetpgrp(0): %s", tools.efmt(ex))
 
 
+def _get_fg_pgrp() -> int:
+    if os.isatty(0):
+        try:
+            return os.tcgetpgrp(0)
+        except Exception as ex:
+            get_logger(0).info("Can't perform tcgetpgrp(0): %s", tools.efmt(ex))
+    return -1
+
+
+def _restore_fg_pgrp(pgrp: int) -> None:
+    # _preexec() puts the child into its own foreground process group via tcsetpgrp().
+    # When the child exits, the controlling terminal still points at that now-dead group,
+    # so any subsequent process that reads stdin (e.g. the second kvmd-pstrun launched by
+    # kvmd-certbot) never receives the user's input. Hand the terminal back to the original
+    # foreground group, exactly like a job-control shell does after a foreground job exits.
+    if pgrp >= 0 and os.isatty(0):
+        signal.signal(signal.SIGTTOU, signal.SIG_IGN)
+        try:
+            os.tcsetpgrp(0, pgrp)
+        except Exception as ex:
+            get_logger(0).info("Can't restore tcsetpgrp(0): %s", tools.efmt(ex))
+
+
 async def _run_process(cmd: list[str], data_path: str) -> asyncio.subprocess.Process:  # pylint: disable=no-member
     # https://stackoverflow.com/questions/58918188/why-is-stdin-not-propagated-to-child-process-of-different-process-group
     if os.isatty(0):
@@ -68,6 +91,7 @@ async def _run_cmd_ws(cmd: list[str], ws: aiohttp.ClientWebSocketResponse) -> in
     recv_task: (asyncio.Task | None) = None
     proc_task: (asyncio.Task | None) = None
     proc: (asyncio.subprocess.Process | None) = None  # pylint: disable=no-member
+    fg_pgrp = -1
 
     try:  # pylint: disable=too-many-nested-blocks
         while True:
@@ -87,6 +111,7 @@ async def _run_cmd_ws(cmd: list[str], ws: aiohttp.ClientWebSocketResponse) -> in
                         if event["data"]["write_allowed"] and proc is None:
                             logger.info("PST write is allowed: %s", event["data"]["path"])
                             logger.info("Running the process ...")
+                            fg_pgrp = _get_fg_pgrp()
                             proc = await _run_process(cmd, event["data"]["path"])
                         elif not event["data"]["write_allowed"]:
                             logger.error("PST write is not allowed")
@@ -110,6 +135,7 @@ async def _run_cmd_ws(cmd: list[str], ws: aiohttp.ClientWebSocketResponse) -> in
         proc_task.cancel()
     if proc is not None:
         await aioproc.kill_process(proc, 1, logger)
+        _restore_fg_pgrp(fg_pgrp)
         assert proc.returncode is not None
         logger.info("Process finished: returncode=%d", proc.returncode)
         return proc.returncode
