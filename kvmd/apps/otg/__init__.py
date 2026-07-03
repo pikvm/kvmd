@@ -290,7 +290,7 @@ class _GadgetConfig:
 
         func = f"mass_storage.usb{self.__msd_instance}"
         func_path = self.__create_function(func)
-        _write(join(func_path, "stall"), int(stall))
+        _write(join(func_path, "stall"), int(stall))  # https://github.com/raspberrypi/linux/issues/7452
         if image_path:
             _write(join(func_path, "lun.0/file"), image_path)
         _write(join(func_path, "lun.0/cdrom"), int(cdrom))
