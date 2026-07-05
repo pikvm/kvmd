@@ -30,7 +30,7 @@ RUN \
 		m4 \
 		vim \
 		git \
-		libjpeg \
+		libjpeg-turbo \
 		libevent \
 		libutil-linux \
 		libbsd \
