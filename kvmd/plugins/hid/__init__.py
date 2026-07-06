@@ -21,6 +21,8 @@
 
 
 import asyncio
+import math
+import random
 import time
 
 from typing import Final
@@ -30,6 +32,8 @@ from typing import AsyncGenerator
 from typing import Any
 
 from evdev import ecodes
+
+from ...logging import get_logger
 
 from ...yamlconf import Section
 from ...yamlconf import Option
@@ -43,9 +47,19 @@ from ...validators.hid import valid_hid_mouse_move
 from ...keyboard.mappings import WEB_TO_EVDEV
 from ...keyboard.mappings import EvdevModifiers
 from ...mouse import MouseRange
+from ...mouse import MouseDelta
 
 from .. import BasePlugin
 from .. import get_plugin_class
+
+
+# =====
+# Jiggler motion tuning. These are internal constants (no config knobs) so the
+# jiggling stays a single "universal" algorithm that just looks human.
+_JIGGLE_STEPS:      Final[int]   = 40     # points traced along each Bezier segment
+_JIGGLE_STEP_DELAY: Final[float] = 0.02   # ~50 Hz, close to a real pointer's update rate
+_JIGGLE_MOVE_MIN:   Final[int]   = 50     # min nudge amplitude (HID units)
+_JIGGLE_MOVE_MAX:   Final[int]   = 400    # max nudge amplitude (HID units)
 
 
 # =====
@@ -62,6 +76,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
         self.__j_interval: Final[float] = c.jiggler.interval
 
         self.__j_active: bool = c.jiggler.active
+        self.__j_next_interval: float = self.__roll_interval()
 
         self.__j_absolute = True
         self.__j_activity_ts = self.__get_monotonic_seconds()
@@ -267,20 +282,110 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
             },
         }
 
-    # =====
+    # ===== Jiggler =====
+
+    def __roll_interval(self) -> float:
+        # Jitter the wait by +/-25% of the configured interval so the jiggle
+        # timing is not a fixed period an idle/anti-AFK detector can fingerprint
+        # (e.g. 60 -> [45, 75], 120 -> [90, 150], 30 -> [23, 37]). Re-rolled
+        # after every jiggle. No extra config knob -- derived from `interval`.
+        jitter = self.__j_interval * 0.25
+        return max(1.0, random.uniform(self.__j_interval - jitter, self.__j_interval + jitter))
+
+    async def __jiggle(self, absolute: bool) -> None:
+        # A single "universal" human-like anti-idle action. Instead of a fixed
+        # zig-zag we pick one of a few natural gestures at random; the pointer
+        # always returns to where it started, so the operator's cursor doesn't
+        # drift over time.
+        action = random.choice(("move", "move", "move", "jitter", "scroll"))
+        if action == "move":
+            await self.__jiggle_move(absolute)
+        elif action == "jitter":
+            await self.__jiggle_jitter(absolute)
+        else:
+            await self.__jiggle_scroll()
+
+    async def __jiggle_move(self, absolute: bool) -> None:
+        # Glide to a nearby random point and back along curved (cubic Bezier)
+        # paths with ease-in/out timing -- the two legs use independent random
+        # arcs, so it looks like a hand nudging the mouse rather than a machine.
+        amplitude = random.randint(_JIGGLE_MOVE_MIN, _JIGGLE_MOVE_MAX)
+        angle = random.uniform(0.0, math.tau)
+        dest = (round(amplitude * math.cos(angle)), round(amplitude * math.sin(angle)))
+        path = self.__bezier((0, 0), dest) + self.__bezier(dest, (0, 0))
+        if absolute:
+            (base_x, base_y) = (self.__j_last_x, self.__j_last_y)
+            for (off_x, off_y) in path:
+                self.send_mouse_move_event(
+                    MouseRange.normalize(base_x + off_x),
+                    MouseRange.normalize(base_y + off_y),
+                )
+                await asyncio.sleep(_JIGGLE_STEP_DELAY)
+        else:
+            (prev_x, prev_y) = (0, 0)
+            for (off_x, off_y) in path:
+                self.send_mouse_relative_event(
+                    MouseDelta.normalize(off_x - prev_x),
+                    MouseDelta.normalize(off_y - prev_y),
+                )
+                (prev_x, prev_y) = (off_x, off_y)
+                await asyncio.sleep(_JIGGLE_STEP_DELAY)
+
+    async def __jiggle_jitter(self, absolute: bool) -> None:
+        # A handful of tiny twitches in place, then settle back to the start.
+        (base_x, base_y) = (self.__j_last_x, self.__j_last_y)
+        for _ in range(random.randint(3, 6)):
+            (off_x, off_y) = (random.randint(-2, 2), random.randint(-2, 2))
+            if absolute:
+                self.send_mouse_move_event(
+                    MouseRange.normalize(base_x + off_x),
+                    MouseRange.normalize(base_y + off_y),
+                )
+            else:
+                self.send_mouse_relative_event(off_x, off_y)
+            await asyncio.sleep(random.uniform(0.05, 0.15))
+        if absolute:
+            self.send_mouse_move_event(base_x, base_y)  # Settle exactly back
+
+    async def __jiggle_scroll(self) -> None:
+        # A small wheel nudge one way and back (net-zero).
+        direction = random.choice((-1, 1))
+        self.send_mouse_wheel_event(0, direction)
+        await asyncio.sleep(random.uniform(0.1, 0.3))
+        self.send_mouse_wheel_event(0, -direction)
+
+    def __bezier(self, start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
+        # Cubic Bezier from start to end with a random perpendicular "bow" and
+        # ease-in/out timing, returned as integer points. Control points sit at
+        # 25% and 75% along the straight line, pushed sideways by a random
+        # fraction of the distance so the trajectory curves like a real hand.
+        (sx, sy) = start
+        (ex, ey) = end
+        (vx, vy) = (ex - sx, ey - sy)
+        dist = math.hypot(vx, vy)
+        if dist < 1:
+            return [end]
+        (perp_x, perp_y) = (-vy / dist, vx / dist)
+        bow = random.uniform(-0.3, 0.3) * dist
+        c1 = (sx + vx * 0.25 + perp_x * bow, sy + vy * 0.25 + perp_y * bow)
+        c2 = (sx + vx * 0.75 + perp_x * bow, sy + vy * 0.75 + perp_y * bow)
+        points: list[tuple[int, int]] = []
+        for i in range(1, _JIGGLE_STEPS + 1):
+            t = i / _JIGGLE_STEPS
+            # EaseInOutQuad: accelerate to the midpoint, then decelerate.
+            e = (2 * t * t) if t < 0.5 else (-1 + (4 - 2 * t) * t)
+            mt = 1 - e
+            x = mt ** 3 * sx + 3 * mt ** 2 * e * c1[0] + 3 * mt * e ** 2 * c2[0] + e ** 3 * ex
+            y = mt ** 3 * sy + 3 * mt ** 2 * e * c1[1] + 3 * mt * e ** 2 * c2[1] + e ** 3 * ey
+            points.append((round(x), round(y)))
+        return points
 
     async def systask(self) -> None:
         while True:
-            if self.__j_active and (self.__j_activity_ts + self.__j_interval < self.__get_monotonic_seconds()):
-                if self.__j_absolute:
-                    (x, y) = (self.__j_last_x, self.__j_last_y)
-                    for move in (([100, -100] * 5) + [0]):
-                        self.send_mouse_move_event(MouseRange.normalize(x + move), MouseRange.normalize(y + move))
-                        await asyncio.sleep(0.1)
-                else:
-                    for move in ([10, -10] * 5):
-                        self.send_mouse_relative_event(move, move)
-                        await asyncio.sleep(0.1)
+            if self.__j_active and (self.__j_activity_ts + self.__j_next_interval < self.__get_monotonic_seconds()):
+                get_logger(0).info("Jiggling mouse (interval=%.1f seconds) ...", self.__j_next_interval)
+                await self.__jiggle(self.__j_absolute)
+                self.__j_next_interval = self.__roll_interval()
             await asyncio.sleep(1)
 
 
