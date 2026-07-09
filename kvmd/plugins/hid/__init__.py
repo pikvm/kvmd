@@ -84,7 +84,7 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
             "jiggler": {
                 "enabled":  Option(True,  type=valid_bool),
                 "active":   Option(False, type=valid_bool),
-                "interval": Option(45,    type=valid_int_f1),
+                "interval": Option(60,    type=valid_int_f1),
             },
         }
 
