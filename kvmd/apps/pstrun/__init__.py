@@ -34,7 +34,6 @@ import aiohttp
 
 from ...logging import get_logger
 
-from ... import tools
 from ... import aiotools
 from ... import aioproc
 from ... import htclient
@@ -44,7 +43,7 @@ from .. import init
 
 
 # =====
-if not hasattr(termios, '_POSIX_VDISABLE'):
+if not hasattr(termios, "_POSIX_VDISABLE"):
     raise RuntimeError("termios._POSIX_VDISABLE is not available")
 
 
@@ -52,12 +51,12 @@ if not hasattr(termios, '_POSIX_VDISABLE'):
 @dataclasses.dataclass
 class _Termios:
     """Fields of struct termios, in the order of the pseudo-tuple returned by termios.tcgetattr()"""
-    iflag: int
-    oflag: int
-    cflag: int
-    lflag: int
-    ispeed: int
-    ospeed: int
+    iflag: int  # noqa: vulture-ignore
+    oflag: int  # noqa: vulture-ignore
+    cflag: int  # noqa: vulture-ignore
+    lflag: int  # noqa: vulture-ignore
+    ispeed: int  # noqa: vulture-ignore
+    ospeed: int  # noqa: vulture-ignore
     cc: list[int]
 
     def fields(self) -> list[int | list[int]]:
@@ -92,7 +91,7 @@ async def _run_process(cmd: list[str], data_path: str) -> asyncio.subprocess.Pro
     # Assorted references:
     # https://stackoverflow.com/questions/58918188/why-is-stdin-not-propagated-to-child-process-of-different-process-group
 
-    global g_ctty_fd, g_is_interactive, g_termios
+    global g_ctty_fd, g_is_interactive, g_termios  # pylint: disable=global-statement
 
     # locate our controlling terminal
     try:
@@ -119,7 +118,7 @@ async def _run_process(cmd: list[str], data_path: str) -> asyncio.subprocess.Pro
         # (suppress ^Z as we are not doing full, proper job control)
         g_termios = _Termios(*termios.tcgetattr(g_ctty_fd))
         ti = copy.deepcopy(g_termios)
-        ti.cc[termios.VSUSP] = termios._POSIX_VDISABLE  # type: ignore[attr-defined]
+        ti.cc[termios.VSUSP] = termios._POSIX_VDISABLE  # type: ignore[attr-defined]  # pylint: disable=protected-access
         termios.tcsetattr(g_ctty_fd, termios.TCSANOW, ti.fields())
 
     def _preexec() -> None:
@@ -156,8 +155,7 @@ async def _run_process(cmd: list[str], data_path: str) -> asyncio.subprocess.Pro
     return subprocess
 
 
-def _cleanup_process():
-    global g_ctty_fd, g_is_interactive, g_termios
+def _cleanup_process() -> None:
     if g_is_interactive:
         assert g_ctty_fd is not None
         assert g_termios is not None
