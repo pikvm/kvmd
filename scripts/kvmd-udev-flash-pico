@@ -55,4 +55,5 @@ picotool load \
 		--address "$_usb_addr" \
 		--update \
 		--verify \
+		--execute \
 	"$_uf2"
