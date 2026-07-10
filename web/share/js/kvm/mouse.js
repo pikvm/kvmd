@@ -351,12 +351,12 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			}
 			let indicator = $("drawing-tablet-right-indicator")
 			indicator.classList.remove("hidden");
-			let offsetx = -(indicator.clientWidth)
+			let offsetx = -(indicator.clientWidth*1.5)
 			//Rudimentary handedness detection
-			if (ev.tiltX <= 0)
-				offsetx = 0;
+			if (ev.tiltX < 0)
+				offsetx = 0+(indicator.clientWidth*0.5);
 			indicator.style.left = (__pointer_down_pos.x + offsetx) + "px";
-			indicator.style.top = (__pointer_down_pos.y - indicator.clientHeight) + "px";
+			indicator.style.top = (__pointer_down_pos.y - (indicator.clientHeight*1.5)) + "px";
 			indicator.style.setProperty("--drawing-tablet-right-progress", "100%");
 		} else 
 			__keypad.emit("left", true);
@@ -386,11 +386,11 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			indicator.style.setProperty("--drawing-tablet-right-progress", "0%");
 		}
 		else if (__pointer_state.dragging == false) {
-			let offsetx = -indicator.clientWidth;
-			if (ev.tiltX <= 0)
-				offsetx = 0;
+			let offsetx = -(indicator.clientWidth*1.5);
+			if (ev.tiltX < 0)
+				offsetx = 0+(indicator.clientWidth*0.5);
 			indicator.style.left = (pos.x + offsetx) + "px";
-			indicator.style.top = (pos.y - indicator.clientHeight) + "px";
+			indicator.style.top = (pos.y - (indicator.clientHeight*1.5)) + "px";
 		}
 	};
 
