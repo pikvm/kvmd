@@ -445,7 +445,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			return;
 		if ($("drawing-tablet-right-emulation-switch").checked) {
 			__pointer_down_pos = null;
-			if (__pointer_state.dragging == true) {
+			if (__pointer_state !== null && __pointer_state.dragging == true) {
 				__keypad.emit("left", false);
 			}
 			__pointer_state = null;
