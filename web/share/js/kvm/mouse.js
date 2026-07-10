@@ -96,11 +96,12 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		tools.storage.bindSimpleSwitch($("hid-mouse-dot-switch"), "hid.mouse.dot", true, __updateOnlineLeds);
 
 		tools.storage.bindSimpleSwitch($("drawing-tablet-switch"), "hid.mouse.drawing_tablet", false, __toggleDrawingTabletMode);
-		tools.storage.bindSimpleSwitch($("drawing-tablet-right-click-emulation-switch"), "hid.mouse.drawing_tablet_right_click_emulation", true, __toggleDrawingTabletRightClickEmulation);
-		if ($("drawing-tablet-right-click-emulation-switch").value == "on")
+		tools.storage.bindSimpleSwitch($("drawing-tablet-right-emulation-switch"), "hid.mouse.drawing_tablet_right_emulation", true, __toggleDrawingTabletRightClickEmulation);
+		if ($("drawing-tablet-right-emulation-switch").value == "on")
 			$("drawing-tablet-right-delay-slider").disabled = false;
 		tools.storage.bindSimpleSlider($("drawing-tablet-right-delay-slider"), "hid.mouse.drawing_tablet_right_delay", 100, 1000, 10, 500, function(value) {
 			$("drawing-tablet-right-delay-value").innerText = value + " ms";
+			$("drawing-tablet-right-indicator").style.setProperty("--drawing-tablet-right-duration", value + "ms");
 		});
 		tools.storage.bindSimpleSlider($("drawing-tablet-drag-threshold-slider"), "hid.mouse.drawing_tablet_drag_threshold", 1, 30, 1, 10, function(value) {
 			$("drawing-tablet-drag-threshold-value").innerText = value + " px";
@@ -274,23 +275,17 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	};
 
 	var __toggleDrawingTabletMode = function(value) {
+		let right_click_emulation = $("drawing-tablet-right-emulation-switch").checked;
+		$("drawing-tablet-right-emulation-switch").disabled = !value;
+		$("drawing-tablet-right-delay-slider").disabled = (value == false || !right_click_emulation);
+		$("drawing-tablet-drag-threshold-slider").disabled = (value == false || !right_click_emulation);
 		if (value) {
-			let right_click_emulation = $("drawing-tablet-right-click-emulation-switch").checked;
-			$("drawing-tablet-right-click-emulation-switch").disabled = !value;
-			$("drawing-tablet-right-delay-slider").disabled = !right_click_emulation;
-			$("drawing-tablet-drag-threshold-slider").disabled = !right_click_emulation;
-
 			$("stream-box").addEventListener("pointerdown", __streamPointerDownHandler);
 			$("stream-box").addEventListener("pointermove", __streamPointerMoveHandler);
 			$("stream-box").addEventListener("pointerup", __streamPointerUpHandler);
 			$("stream-box").addEventListener("pointerenter", __streamPointerEnterHandler);
 			$("stream-box").addEventListener("pointerleave", __streamPointerLeaveHandler);
 		} else {
-			let right_click_emulation = $("drawing-tablet-right-click-emulation-switch").checked;
-			$("drawing-tablet-right-click-emulation-switch").disabled = true;
-			$("drawing-tablet-right-delay-slider").disabled = true;
-			$("drawing-tablet-drag-threshold-slider").disabled = true;
-
 			$("stream-box").removeEventListener("pointerdown", __streamPointerDownHandler);
 			$("stream-box").removeEventListener("pointermove", __streamPointerMoveHandler);
 			$("stream-box").removeEventListener("pointerup", __streamPointerUpHandler);
@@ -310,12 +305,21 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			return
 		if (!__abs)
 			return
-		if ($("drawing-tablet-right-click-emulation-switch").checked) {
+		if ($("drawing-tablet-right-emulation-switch").checked) {
 			__pointer_down_pos = __getPointerPosition(ev);
 			__pointer_state = {
 				"down_when": Date.now(),
 				"dragging": false,
 			}
+			let indicator = $("drawing-tablet-right-indicator")
+			indicator.classList.remove("hidden");
+			let offsetx = -(indicator.clientWidth)
+			//Rudimentary handedness detection
+			if (ev.tiltX <= 0)
+				offsetx = 0;
+			indicator.style.left = (__pointer_down_pos.x + offsetx) + "px";
+			indicator.style.top = (__pointer_down_pos.y - indicator.clientHeight) + "px";
+			indicator.style.setProperty("--drawing-tablet-right-progress", "100%");
 		} else {
 			__keypad.emit("left", true);
 		}
@@ -325,33 +329,31 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		ev.preventDefault();
 		if (ev.pointerType != "pen")
 			return;
-		if (!__abs || !$("drawing-tablet-right-click-emulation-switch").checked ||
+		if (!__abs || !$("drawing-tablet-right-emulation-switch").checked ||
 		    __pointer_down_pos === null )
 			return;
 		let pos = __getPointerPosition(ev);
 		let drag_threshold = $("drawing-tablet-drag-threshold-slider").value
+		let indicator = $("drawing-tablet-right-indicator");
 		if ((Math.abs(pos.x - __pointer_down_pos.x) > drag_threshold ||
-		    Math.abs(pos.y - __pointer_down_pos.y) > drag_threshold) &&
-			__pointer_state.dragging == false) {
-			if (__abs) {
-				let old_abs = __abs_pos;
-				__abs_pos = __pointer_down_pos;
-				__sendPlannedMove();
-				__keypad.emit("left", true);
-				__abs_pos = old_abs;
-				__sendPlannedMove();
-			} else if (__pointer_down_pos !== null) {
-				__sendOrPlanRelativeMove({
-					"x": (__pointer_down_pos.x - pos.x),
-					"y": (__pointer_down_pos.y - pos.y),
-				});
-				__keypad.emit("left", true);
-				__sendOrPlanRelativeMove({
-					"x": (pos.x - __pointer_down_pos.x),
-					"y": (pos.y - __pointer_down_pos.y),
-				});
-			}
+				Math.abs(pos.y - __pointer_down_pos.y) > drag_threshold) &&
+				__pointer_state.dragging == false) {
+			let old_abs = __abs_pos;
+			__abs_pos = __pointer_down_pos;
+			__sendPlannedMove();
+			__keypad.emit("left", true);
+			__abs_pos = old_abs;
+			__sendPlannedMove();
 			__pointer_state.dragging = true;
+			indicator.classList.add("hidden");
+			indicator.style.setProperty("--drawing-tablet-right-progress", "0%");
+		}
+		else if (__pointer_state.dragging == false) {
+			let offsetx = -indicator.clientWidth;
+			if (ev.tiltX <= 0)
+				offsetx = 0;
+			indicator.style.left = (pos.x + offsetx) + "px";
+			indicator.style.top = (pos.y - indicator.clientHeight) + "px";
 		}
 	};
 
@@ -359,7 +361,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		ev.preventDefault();
 		if (ev.pointerType != "pen" || !__abs)
 			return;
-		if ($("drawing-tablet-right-click-emulation-switch").checked) {
+		if ($("drawing-tablet-right-emulation-switch").checked) {
 			if (__pointer_down_pos !== null ) {
 				let right_delay = $("drawing-tablet-right-delay-slider").value
 				if (Date.now() - __pointer_state.down_when < right_delay ) {
@@ -381,18 +383,22 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		} else {
 			__keypad.emit("left", false);
 		}
+		$("drawing-tablet-right-indicator").style.setProperty("--drawing-tablet-right-progress", "0%");
+		$("drawing-tablet-right-indicator").classList.add("hidden");
 	};
 
 	var __streamPointerEnterHandler = function(ev) {
 		ev.preventDefault();
 		if (!__abs)
 			return;
-		if ($("drawing-tablet-right-click-emulation-switch").checked) {
+		if ($("drawing-tablet-right-emulation-switch").checked) {
 			__pointer_down_pos = null;
 			__pointer_state = {
 				"dragging": false,
 				"down_when": null,
 			};
+			if (!$("drawing-tablet-right-indicator").classList.contains("hidden"))
+				$("drawing-tablet-right-indicator").classList.add("hidden");
 		}
 	};
 
@@ -400,12 +406,14 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		ev.preventDefault();
 		if (!__abs)
 			return;
-		if ($("drawing-tablet-right-click-emulation-switch").checked) {
+		if ($("drawing-tablet-right-emulation-switch").checked) {
 			__pointer_down_pos = null;
 			if (__pointer_state.dragging == true) {
-				__kepad.emit("left", false);
+				__keypad.emit("left", false);
 			}
 			__pointer_state = null;
+			if (!$("drawing-tablet-right-indicator").classList.contains("hidden"))
+				$("drawing-tablet-right-indicator").classList.add("hidden");
 		}
 	};
 
