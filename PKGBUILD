@@ -238,10 +238,10 @@ for _variant in "${_variants[@]}"; do
 		fi
 
 		if [[ $_platform =~ ^.*-hdmiusb$ ]]; then
-			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-hdmiusb-check
+			install -Dm755 -t \"\$pkgdir/usr/lib/kvmd\" scripts/kvmd-udev-hdmiusb-check
 		fi
 		if [[ $_base == v4plus ]]; then
-			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-restart-pass
+			install -Dm755 -t \"\$pkgdir/usr/lib/kvmd\" scripts/kvmd-udev-restart-pass
 		fi
 
 		install -DTm644 configs/os/modprobe.conf \"\$pkgdir/usr/lib/modprobe.d/99-kvmd.conf\"
