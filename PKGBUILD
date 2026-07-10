@@ -127,6 +127,9 @@ depends=(
 	# pgrep for kvmd-udev-restart-pass, sysctl for kvmd-otgnet
 	procps-ng
 
+	# For kvmd-udev-flash-pico
+	picotool
+
 	# Misc
 	hostapd
 )
@@ -170,6 +173,7 @@ package_kvmd() {
 	python -m installer --destdir="$pkgdir" dist/*.whl
 
 	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot}
+	install -Dm755 -t "$pkgdir/usr/lib/kvmd" scripts/kvmd-udev-flash-pico
 
 	install -dm755 "$pkgdir/usr/lib/systemd/system"
 	cp -rd configs/os/services -T "$pkgdir/usr/lib/systemd/system"
@@ -178,7 +182,7 @@ package_kvmd() {
 	install -DTm644 configs/os/tmpfiles.conf "$pkgdir/usr/lib/tmpfiles.d/kvmd.conf"
 
 	mkdir -p "$pkgdir/usr/share/kvmd"
-	cp -r {switch,hid,web,extras,contrib/keymaps} "$pkgdir/usr/share/kvmd"
+	cp -r {firmware,hid,web,extras,contrib/keymaps} "$pkgdir/usr/share/kvmd"
 	find "$pkgdir/usr/share/kvmd/web" -name '*.pug' -exec rm -f '{}' \;
 
 	local _cfg_default="$pkgdir/usr/share/kvmd/configs.default"
@@ -271,7 +275,6 @@ for _variant in "${_variants[@]}"; do
 			install -DTm444 configs/kvmd/edid/_no-1920x1200.hex \"\$pkgdir/etc/kvmd/switch-edid.hex\"
 		fi
 
-		mkdir -p \"\$pkgdir/usr/lib/kvmd\"
 		local _platform=\"\$pkgdir/usr/lib/kvmd/platform\"
 		rm -f \"\$_platform\"
 		echo PIKVM_MODEL=$_base > \"\$_platform\"

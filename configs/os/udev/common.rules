@@ -7,6 +7,10 @@ ACTION!="remove", KERNEL=="ttyACM[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", \
 ACTION!="remove", KERNEL=="ttyACM[0-9]*", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", \
 	ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="1080", SYMLINK+="kvmd-switch"
 
+ACTION=="add", SUBSYSTEM=="usb", \
+    ATTR{idVendor}=="2e8a", ATTR{idProduct}=="0003|000f", \
+	PROGRAM="/usr/bin/systemd-escape -p --template=kvmd-flash-pico@.service %s{busnum}/%s{devnum}"
+
 ACTION!="remove", KERNEL=="nbd15", SUBSYSTEM=="block", \
 	GROUP="kvmd-nbd", \
 	SYMLINK+="kvmd-nbd", \
