@@ -300,7 +300,7 @@ def make_config_scheme() -> dict:
                 "usc": {
                     "users":       Option([], type=valid_users_list),  # PiKVM username has a same regex as a UNIX username
                     "groups":      Option([], type=valid_users_list),  # groupname has a same regex as a username
-                    "kvmd_users":  Option([], type=valid_users_list),  # Internal users
+                    "kvmd_users":  Option(["root"], type=valid_users_list),  # Internal users
                     "kvmd_groups": Option(["kvmd-selfauth"], type=valid_users_list),  # Internal groups
                 },
 
