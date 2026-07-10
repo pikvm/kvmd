@@ -98,8 +98,6 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 		tools.storage.bindSimpleSwitch($("drawing-tablet-switch"), "hid.mouse.drawing_tablet", false, __drawingTabletModeEnable);
 		tools.storage.bindSimpleSwitch($("drawing-tablet-right-emulation-switch"), "hid.mouse.drawing_tablet_right_emulation", true, __drawingTabletRightClickEmulationEnable);
-		if ($("drawing-tablet-right-emulation-switch").value == "on")
-			tools.el.setEnabled($("drawing-tablet-right-delay-slider"), true);
 		tools.storage.bindSimpleSlider($("drawing-tablet-right-delay-slider"), "hid.mouse.drawing_tablet_right_delay", 100, 1000, 10, 500, function(value) {
 			$("drawing-tablet-right-delay-value").innerText = value + " ms";
 			$("drawing-tablet-right-indicator").style.setProperty("--drawing-tablet-right-duration", value + "ms");
@@ -107,6 +105,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		tools.storage.bindSimpleSlider($("drawing-tablet-drag-threshold-slider"), "hid.mouse.drawing_tablet_drag_threshold", 1, 30, 1, 10, function(value) {
 			$("drawing-tablet-drag-threshold-value").innerText = value + " px";
 		});
+		if ($("drawing-tablet-switch").checked && $("drawing-tablet-right-emulation-switch").checked) {
+			tools.el.setEnabled($("drawing-tablet-right-delay-slider"), true);
+			tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), true);
+		}
 		__hid_outputs_mouse_observer = new MutationObserver(__observeHidOutputsMouseBox);
 		__hid_outputs_mouse_observer.observe($("hid-outputs-mouse-box"), {"childList": true});
 
@@ -300,9 +302,11 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __drawingTabletInputOptionsEnable = function(value) {
 		tools.feature.setEnabled($("drawing-tablet-mode-hr"), value);
 		tools.feature.setEnabled($("drawing-tablet-mode-table"), value);
-	}
+	};
 
 	var __drawingTabletRightClickEmulationEnable = function(value) {
+		if (!$("drawing-tablet-switch").checked)
+			return;
 		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), value)
 		tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), value)
 	};
@@ -316,6 +320,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 						$("hid-outputs-mouse-box").addEventListener("click", __hidOutputsMouseBoxClickHandler);
 						$("hid-outputs-mouse-box").addEventListener("touchend", __hidOutputsMouseBoxClickHandler);
 						observer.disconnect();
+						__hid_outputs_mouse_observer = null;
 					}
 				}
 			}
@@ -353,9 +358,8 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			indicator.style.left = (__pointer_down_pos.x + offsetx) + "px";
 			indicator.style.top = (__pointer_down_pos.y - indicator.clientHeight) + "px";
 			indicator.style.setProperty("--drawing-tablet-right-progress", "100%");
-		} else {
+		} else 
 			__keypad.emit("left", true);
-		}
 	};
 
 	var __streamPointerMoveHandler = function(ev) {
