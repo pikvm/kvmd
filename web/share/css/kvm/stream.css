@@ -107,4 +107,30 @@ canvas#stream-canvas {
 	object-fit: contain;
 	display: block;
 	background-color: black;
+	position: relative;
+}
+
+@property --drawing-tablet-right-progress {
+	syntax: "<percentage>";
+	inherits: false;
+	initial-value: 0%;
+}
+
+@property --drawing-tablet-right-duration {
+	syntax: "<time>";
+	inherits: false;
+	initial-value: 500ms;
+}
+
+div#drawing-tablet-right-indicator {
+	--right-click-progress: 0%;
+	width: 1em;
+	height: 1em;
+	border-radius: 50%;
+    position: absolute;
+	background: conic-gradient(#5b90bb var(--drawing-tablet-right-progress), transparent 0deg);
+	transition-duration: var(--drawing-tablet-right-duration);
+	transition-property: --drawing-tablet-right-progress;
+	transition-timing-function: linear;
+	z-index: 1;
 }
