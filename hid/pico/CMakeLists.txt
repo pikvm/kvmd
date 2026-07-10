@@ -22,3 +22,7 @@ pico_sdk_init()
 # Set the path to the source code to build
 set(SRC_TO_BUILD_PATH ${CMAKE_CURRENT_LIST_DIR}/src)
 add_subdirectory(${SRC_TO_BUILD_PATH})
+
+# Metadata
+pico_set_program_name(hid "org.pikvm.hid.v1.${FAMILY}")
+pico_set_program_version(hid "1")
