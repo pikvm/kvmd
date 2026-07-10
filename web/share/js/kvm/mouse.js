@@ -44,6 +44,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 	var __pointer_down_pos = null;
 	var __pointer_state = null;
+	var __hid_outputs_mouse_observer = null;
 
 	var __abs_pos = null;
 	var __rel_deltas = [];
@@ -95,8 +96,8 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		tools.storage.bindSimpleSwitch($("hid-mouse-cumulative-scrolling-switch"), "hid.mouse.cumulative_scrolling", cumulative_scrolling);
 		tools.storage.bindSimpleSwitch($("hid-mouse-dot-switch"), "hid.mouse.dot", true, __updateOnlineLeds);
 
-		tools.storage.bindSimpleSwitch($("drawing-tablet-switch"), "hid.mouse.drawing_tablet", false, __toggleDrawingTabletMode);
-		tools.storage.bindSimpleSwitch($("drawing-tablet-right-emulation-switch"), "hid.mouse.drawing_tablet_right_emulation", true, __toggleDrawingTabletRightClickEmulation);
+		tools.storage.bindSimpleSwitch($("drawing-tablet-switch"), "hid.mouse.drawing_tablet", false, __drawingTabletModeEnable);
+		tools.storage.bindSimpleSwitch($("drawing-tablet-right-emulation-switch"), "hid.mouse.drawing_tablet_right_emulation", true, __drawingTabletRightClickEmulationEnable);
 		if ($("drawing-tablet-right-emulation-switch").value == "on")
 			tools.el.setEnabled($("drawing-tablet-right-delay-slider"), true);
 		tools.storage.bindSimpleSlider($("drawing-tablet-right-delay-slider"), "hid.mouse.drawing_tablet_right_delay", 100, 1000, 10, 500, function(value) {
@@ -106,6 +107,8 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		tools.storage.bindSimpleSlider($("drawing-tablet-drag-threshold-slider"), "hid.mouse.drawing_tablet_drag_threshold", 1, 30, 1, 10, function(value) {
 			$("drawing-tablet-drag-threshold-value").innerText = value + " px";
 		});
+		__hid_outputs_mouse_observer = new MutationObserver(__observeHidOutputsMouseBox);
+		__hid_outputs_mouse_observer.observe($("hid-outputs-mouse-box"), {"childList": true});
 
 		__updateOnlineLeds();
 	};
@@ -274,7 +277,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		__touch_pos = null;
 	};
 
-	var __toggleDrawingTabletMode = function(value) {
+	var __drawingTabletModeEnable = function(value) {
 		let right_click_emulation = $("drawing-tablet-right-emulation-switch").checked;
 		tools.el.setEnabled($("drawing-tablet-right-emulation-switch"), value);
 		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), (value != false && right_click_emulation));
@@ -294,9 +297,41 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		}
 	};
 
-	var __toggleDrawingTabletRightClickEmulation = function(value) {
+	var __drawingTabletInputOptionsEnable = function(value) {
+		tools.feature.setEnabled($("drawing-tablet-mode-hr"), value);
+		tools.feature.setEnabled($("drawing-tablet-mode-table"), value);
+	}
+
+	var __drawingTabletRightClickEmulationEnable = function(value) {
 		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), value)
 		tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), value)
+	};
+
+	var __observeHidOutputsMouseBox = function(mutations, observer) {
+		for (const mutation of mutations) {
+			if (mutation.addedNodes.length ) {
+				for (const el of mutation.addedNodes) {
+					if (el.nodeName == "INPUT" && el.value === "usb" ) {
+						__drawingTabletInputOptionsEnable(true);
+						$("hid-outputs-mouse-box").addEventListener("click", __hidOutputsMouseBoxClickHandler);
+						$("hid-outputs-mouse-box").addEventListener("touchend", __hidOutputsMouseBoxClickHandler);
+						observer.disconnect();
+					}
+				}
+			}
+		}
+	};
+
+	var __hidOutputsMouseBoxClickHandler = function(ev) {
+		if (ev.target.value == "usb") {
+			__drawingTabletInputOptionsEnable(true);
+			__drawingTabletModeEnable($("drawing-tablet-switch").checked);
+		}
+		else
+		{
+			__drawingTabletInputOptionsEnable(false);
+			__drawingTabletModeEnable(false);
+		}
 	};
 
 	var __streamPointerDownHandler = function(ev) {
