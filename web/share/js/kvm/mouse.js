@@ -98,7 +98,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		tools.storage.bindSimpleSwitch($("drawing-tablet-switch"), "hid.mouse.drawing_tablet", false, __toggleDrawingTabletMode);
 		tools.storage.bindSimpleSwitch($("drawing-tablet-right-emulation-switch"), "hid.mouse.drawing_tablet_right_emulation", true, __toggleDrawingTabletRightClickEmulation);
 		if ($("drawing-tablet-right-emulation-switch").value == "on")
-			$("drawing-tablet-right-delay-slider").disabled = false;
+			tools.el.setEnabled($("drawing-tablet-right-delay-slider"), true);
 		tools.storage.bindSimpleSlider($("drawing-tablet-right-delay-slider"), "hid.mouse.drawing_tablet_right_delay", 100, 1000, 10, 500, function(value) {
 			$("drawing-tablet-right-delay-value").innerText = value + " ms";
 			$("drawing-tablet-right-indicator").style.setProperty("--drawing-tablet-right-duration", value + "ms");
@@ -276,9 +276,9 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 	var __toggleDrawingTabletMode = function(value) {
 		let right_click_emulation = $("drawing-tablet-right-emulation-switch").checked;
-		$("drawing-tablet-right-emulation-switch").disabled = !value;
-		$("drawing-tablet-right-delay-slider").disabled = (value == false || !right_click_emulation);
-		$("drawing-tablet-drag-threshold-slider").disabled = (value == false || !right_click_emulation);
+		tools.el.setEnabled($("drawing-tablet-right-emulation-switch"), value);
+		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), (value != false && right_click_emulation));
+		tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), (value != false && right_click_emulation));
 		if (value) {
 			$("stream-box").addEventListener("pointerdown", __streamPointerDownHandler);
 			$("stream-box").addEventListener("pointermove", __streamPointerMoveHandler);
@@ -295,15 +295,13 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	};
 
 	var __toggleDrawingTabletRightClickEmulation = function(value) {
-		$("drawing-tablet-right-delay-slider").disabled = !value
-		$("drawing-tablet-drag-threshold-slider").disabled = !value
+		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), value)
+		tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), value)
 	};
 
 	var __streamPointerDownHandler = function(ev) {
 		ev.preventDefault();
-		if (ev.pointerType != "pen")
-			return
-		if (!__abs)
+		if (ev.pointerType != "pen" || !__abs )
 			return
 		if ($("drawing-tablet-right-emulation-switch").checked) {
 			__pointer_down_pos = __getPointerPosition(ev);
@@ -327,9 +325,9 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 	var __streamPointerMoveHandler = function(ev) {
 		ev.preventDefault();
-		if (ev.pointerType != "pen")
+		if (ev.pointerType != "pen" || !__abs )
 			return;
-		if (!__abs || !$("drawing-tablet-right-emulation-switch").checked ||
+		if (!$("drawing-tablet-right-emulation-switch").checked ||
 		    __pointer_down_pos === null )
 			return;
 		let pos = __getPointerPosition(ev);
