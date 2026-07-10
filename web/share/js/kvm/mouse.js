@@ -302,6 +302,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __drawingTabletInputOptionsEnable = function(value) {
 		tools.feature.setEnabled($("drawing-tablet-mode-hr"), value);
 		tools.feature.setEnabled($("drawing-tablet-mode-table"), value);
+		tools.el.setEnabled($("drawing-tablet-switch"), true);
 	};
 
 	var __drawingTabletRightClickEmulationEnable = function(value) {
