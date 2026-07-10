@@ -307,8 +307,8 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __drawingTabletRightClickEmulationEnable = function(value) {
 		if (!$("drawing-tablet-switch").checked)
 			return;
-		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), value)
-		tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), value)
+		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), value);
+		tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), value);
 	};
 
 	var __observeHidOutputsMouseBox = function(mutations, observer) {
@@ -342,16 +342,16 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	var __streamPointerDownHandler = function(ev) {
 		ev.preventDefault();
 		if (ev.pointerType != "pen" || !__abs )
-			return
+			return;
 		if ($("drawing-tablet-right-emulation-switch").checked) {
 			__pointer_down_pos = __getPointerPosition(ev);
 			__pointer_state = {
 				"down_when": Date.now(),
 				"dragging": false,
-			}
-			let indicator = $("drawing-tablet-right-indicator")
+			};
+			let indicator = $("drawing-tablet-right-indicator");
 			indicator.classList.remove("hidden");
-			let offsetx = -(indicator.clientWidth*1.5)
+			let offsetx = -(indicator.clientWidth*1.5);
 			//Rudimentary handedness detection
 			if (ev.tiltX < 0)
 				offsetx = 0+(indicator.clientWidth*0.5);
@@ -370,7 +370,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		    __pointer_down_pos === null )
 			return;
 		let pos = __getPointerPosition(ev);
-		let drag_threshold = $("drawing-tablet-drag-threshold-slider").value
+		let drag_threshold = $("drawing-tablet-drag-threshold-slider").value;
 		let indicator = $("drawing-tablet-right-indicator");
 		if ((Math.abs(pos.x - __pointer_down_pos.x) > drag_threshold ||
 				Math.abs(pos.y - __pointer_down_pos.y) > drag_threshold) &&
@@ -400,10 +400,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			return;
 		if ($("drawing-tablet-right-emulation-switch").checked) {
 			if (__pointer_down_pos !== null ) {
-				let right_delay = $("drawing-tablet-right-delay-slider").value
+				let right_delay = $("drawing-tablet-right-delay-slider").value;
 				if (Date.now() - __pointer_state.down_when < right_delay ) {
 					if (!__pointer_state.dragging)
-					__keypad.emit("left", true);
+						__keypad.emit("left", true);
 					__keypad.emit("left", false);
 				} else {
 					if (!__pointer_state.dragging) {
