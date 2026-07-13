@@ -271,9 +271,9 @@ class BaseHid(BasePlugin):  # pylint: disable=too-many-instance-attributes
     # =====
 
     async def systask(self) -> None:
+        interval = 0.0
         while True:
             if self.__j_active:
-                interval = 0.0
                 if self.__j_activity_ts + interval < self.__get_monotonic_seconds():
                     if self.__j_absolute:
                         (x, y) = (self.__j_last_x, self.__j_last_y)
