@@ -35,5 +35,9 @@ if [[ "$1" != --do-the-thing ]]; then
 	exit 1
 fi
 
-curl -s -X POST -k 'https://localhost/api/switch/reset?unit=0&bootloader=1'
+curl \
+		--unix-socket=/run/kvmd/kvmd.sock \
+		--silent \
+		-X POST \
+	'http://localhost/switch/reset?unit=0&bootloader=1'
 echo
