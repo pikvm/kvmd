@@ -532,6 +532,9 @@ def make_config_scheme() -> dict:
                     "mouse": {
                         "start": Option(True, type=valid_bool),
                     },
+                    "consumer": {
+                        "start": Option(False, type=valid_bool),
+                    },
                     "mouse_alt": {
                         "start": Option(True, type=valid_bool),
                     },

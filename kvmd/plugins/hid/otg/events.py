@@ -23,6 +23,8 @@
 import struct
 import dataclasses
 
+from typing import Final
+
 from evdev import ecodes
 
 from ....keyboard.mappings import UsbKey
@@ -43,6 +45,33 @@ class ClearEvent(BaseEvent):
 
 class ResetEvent(BaseEvent):
     pass
+
+
+# =====
+@dataclasses.dataclass(frozen=True)
+class ConsumerEvent(BaseEvent):
+    usage: int
+    state: bool
+
+
+_CONSUMER_KEYMAP: Final[dict[int, int]] = {
+    ecodes.KEY_MUTE:       0xE2,
+    ecodes.KEY_VOLUMEUP:   0xE9,
+    ecodes.KEY_VOLUMEDOWN: 0xEA,
+}
+
+
+def is_consumer_key(key: int) -> bool:
+    return (key in _CONSUMER_KEYMAP)
+
+
+def make_consumer_event(key: int, state: bool) -> ConsumerEvent:
+    return ConsumerEvent(_CONSUMER_KEYMAP[key], state)
+
+
+def make_consumer_report(usage: int) -> bytes:
+    assert 0 <= usage <= 0x3FF
+    return struct.pack("<H", usage)
 
 
 # =====

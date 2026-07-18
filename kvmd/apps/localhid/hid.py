@@ -30,6 +30,14 @@ from evdev import ecodes
 
 
 # =====
+_CONSUMER_KEYS: Final[frozenset[int]] = frozenset({
+    ecodes.KEY_MUTE,
+    ecodes.KEY_VOLUMEUP,
+    ecodes.KEY_VOLUMEDOWN,
+})
+
+
+# =====
 class Hid:  # pylint: disable=too-many-instance-attributes
     KEY:          Final[int] = 0
     MOUSE_BUTTON: Final[int] = 1
@@ -56,6 +64,7 @@ class Hid:  # pylint: disable=too-many-instance-attributes
             or ecodes.KEY_LEFTSHIFT in keys
             or ecodes.KEY_RIGHTSHIFT in keys
         )
+        self.__has_consumer = bool(_CONSUMER_KEYS.intersection(keys))
 
         rels = caps.get(ecodes.EV_REL, [])
         self.__has_mouse_rel = (
@@ -66,7 +75,7 @@ class Hid:  # pylint: disable=too-many-instance-attributes
         self.__grabbed = False
 
     def is_suitable(self) -> bool:
-        return (self.__has_keyboard or self.__has_mouse_rel)
+        return (self.__has_keyboard or self.__has_consumer or self.__has_mouse_rel)
 
     def set_leds(self, caps: bool, scroll: bool, num: bool) -> None:
         if self.__grabbed:
@@ -98,7 +107,7 @@ class Hid:  # pylint: disable=too-many-instance-attributes
             if not self.__grabbed:
                 # Клавиши перехватываются всегда для обработки хоткеев,
                 # всё остальное пропускается для экономии ресурсов.
-                if event.type == ecodes.EV_KEY and event.value != 2 and (event.code in ecodes.KEY):
+                if event.type == ecodes.EV_KEY and event.value != 2 and self.__is_key_allowed(event.code):
                     put(self.KEY, (event.code, bool(event.value)))
                 continue
 
@@ -124,10 +133,16 @@ class Hid:  # pylint: disable=too-many-instance-attributes
                     wheel_x = wheel_y = 0
 
             elif event.type == ecodes.EV_KEY and event.value != 2:
-                if event.code in ecodes.KEY:
+                if self.__is_key_allowed(event.code):
                     put(self.KEY, (event.code, bool(event.value)))
                 elif event.code in ecodes.BTN:
                     put(self.MOUSE_BUTTON, (event.code, bool(event.value)))
+
+    def __is_key_allowed(self, code: int) -> bool:
+        return (
+            code in ecodes.KEY
+            and (self.__has_keyboard or self.__has_mouse_rel or code in _CONSUMER_KEYS)
+        )
 
     def __splitted_deltas(self, delta_x: int, delta_y: int) -> Generator[tuple[int, int]]:
         sign_x = (-1 if delta_x < 0 else 1)
@@ -147,6 +162,8 @@ class Hid:  # pylint: disable=too-many-instance-attributes
             info.append("syn")
         if self.__has_keyboard:
             info.append("keyboard")
+        if self.__has_consumer:
+            info.append("consumer")
         if self.__has_mouse_rel:
             info.append("mouse_rel")
         return f"Hid({self.__device.path!r}, {self.__device.name!r}, {self.__device.phys!r}, {', '.join(info)})"
