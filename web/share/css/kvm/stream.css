@@ -107,7 +107,6 @@ canvas#stream-canvas {
 	object-fit: contain;
 	display: block;
 	background-color: black;
-	position: relative;
 }
 
 @property --drawing-tablet-right-progress {
