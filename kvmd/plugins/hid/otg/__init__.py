@@ -20,12 +20,14 @@
 # ========================================================================== #
 
 
-import asyncio
 import copy
+import os
+import asyncio
 
 from typing import AsyncGenerator
 
 from .... import aiomulti
+from .... import usb
 
 from ....yamlconf import Section
 from ....yamlconf import Option
@@ -37,8 +39,10 @@ from ....validators.os import valid_abs_path
 
 from .. import BaseHid
 
+from .consumer import ConsumerProcess
 from .keyboard import KeyboardProcess
 from .mouse import MouseProcess
+from .events import is_consumer_key
 
 
 # =====
@@ -59,6 +63,10 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
             }
 
         self.__keyboard_proc = KeyboardProcess(**make_kwargs(c.keyboard))
+        self.__consumer_proc = ConsumerProcess(**make_kwargs(c.consumer))
+        # kvmd-otg keeps this instance stable even when the alternate mouse is disabled.
+        # Unlike the hidg node, this profile link exists only while the function is active.
+        self.__consumer_profile_path = usb.get_gadget_path(usb.G_PROFILE, "hid.usb3")
         self.__mouse_current = self.__mouse_proc = MouseProcess(
             absolute=c.mouse.absolute,
             horizontal_wheel=c.mouse.horizontal_wheel,
@@ -93,6 +101,12 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
                 "queue_timeout":  Option(0.1, type=valid_float_f01),
                 "write_retries":  Option(150, type=valid_int_f1),
             },
+            "consumer": {
+                "device":         Option("/dev/kvmd-hid-consumer", type=valid_abs_path),
+                "select_timeout": Option(0.1, type=valid_float_f01),
+                "queue_timeout":  Option(0.1, type=valid_float_f01),
+                "write_retries":  Option(150, type=valid_int_f1),
+            },
             "mouse": {
                 "device":             Option("/dev/kvmd-hid-mouse", type=valid_abs_path),
                 "select_timeout":     Option(0.1,   type=valid_float_f01),
@@ -117,6 +131,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
 
     async def sysprep(self) -> None:
         self.__keyboard_proc.start()
+        self.__consumer_proc.start()
         self.__mouse_proc.start()
         if self.__mouse_alt_proc:
             self.__mouse_alt_proc.start()
@@ -163,6 +178,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
 
     async def reset(self) -> None:
         self.__keyboard_proc.send_reset_event()
+        self.__consumer_proc.send_reset_event()
         self.__mouse_proc.send_reset_event()
         if self.__mouse_alt_proc:
             self.__mouse_alt_proc.send_reset_event()
@@ -170,6 +186,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
     async def cleanup(self) -> None:
         coros = [
             self.__keyboard_proc.cleanup(),
+            self.__consumer_proc.cleanup(),
             self.__mouse_proc.cleanup(),
         ]
         if self.__mouse_alt_proc:
@@ -197,7 +214,18 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
             self.__notifier.notify()
 
     def _send_key_event(self, key: int, state: bool) -> None:
-        self.__keyboard_proc.send_key_event(key, state)
+        if not is_consumer_key(key):
+            self.__keyboard_proc.send_key_event(key, state)
+        elif state:
+            if os.path.exists(self.__consumer_profile_path):
+                self.__consumer_proc.send_key_event(key, True)
+            else:
+                self.__keyboard_proc.send_key_event(key, True)
+        else:
+            # The Consumer function can be toggled between key-down and key-up.
+            # Releasing both outputs prevents either process from retaining a key.
+            self.__keyboard_proc.send_key_event(key, False)
+            self.__consumer_proc.send_key_event(key, False)
 
     def _send_mouse_button_event(self, button: int, state: bool) -> None:
         self.__mouse_current.send_button_event(button, state)
@@ -213,6 +241,7 @@ class Plugin(BaseHid):  # pylint: disable=too-many-instance-attributes
 
     def _clear_events(self) -> None:
         self.__keyboard_proc.send_clear_event()
+        self.__consumer_proc.send_clear_event()
         self.__mouse_proc.send_clear_event()
         if self.__mouse_alt_proc:
             self.__mouse_alt_proc.send_clear_event()

@@ -44,6 +44,7 @@ from ... import usb
 from .. import init
 
 from .hid import Hid
+from .hid.consumer import make_consumer_hid
 from .hid.keyboard import make_keyboard_hid
 from .hid.mouse import make_mouse_hid
 
@@ -256,6 +257,9 @@ class _GadgetConfig:
     def add_keyboard(self, starter: list[str], start: bool, remote_wakeup: bool) -> None:
         self.__add_hid("Keyboard", starter, start, remote_wakeup, make_keyboard_hid())
 
+    def add_consumer(self, starter: list[str], start: bool, remote_wakeup: bool) -> None:
+        self.__add_hid("Consumer Control", starter, start, remote_wakeup, make_consumer_hid())
+
     def add_mouse(self, starter: list[str], start: bool, remote_wakeup: bool, absolute: bool, horizontal_wheel: bool) -> None:
         desc = ("Absolute" if absolute else "Relative") + " Mouse"
         self.__add_hid(desc, starter, start, remote_wakeup, make_mouse_hid(absolute, horizontal_wheel))
@@ -412,10 +416,13 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         ckhm = config.kvmd.hid.mouse
         gc.add_mouse(["hid", "mouse"], cod.hid.mouse.start,
                      config.otg.remote_wakeup, ckhm.absolute, ckhm.horizontal_wheel)
-        if config.kvmd.hid.mouse_alt.device:
-            logger.info("===== HID-Mouse-Alt =====")
-            gc.add_mouse(["hid", "mouse_alt"], cod.hid.mouse_alt.start,
-                         config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
+        # Reserve the established hidg2 minor even when the alternate mouse is
+        # disabled. An inactive function consumes no endpoint and keeps any
+        # later HID function on a stable device node.
+        logger.info("===== HID-Mouse-Alt =====")
+        gc.add_mouse(["hid", "mouse_alt"],
+                     (bool(config.kvmd.hid.mouse_alt.device) and cod.hid.mouse_alt.start),
+                     config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
 
     def make_inquiry_string(isc: Section) -> str:
         kwargs = isc._unpack()
@@ -461,6 +468,12 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
     if cod.camera.enabled:
         logger.info("===== Camera =====")
         gc.add_camera(["camera"], cod.camera.start, cod.camera.controls.ct_mask, cod.camera.controls.pu_mask)
+
+    # Keep new functions after the established ones so endpoint-constrained
+    # configurations retain their existing allocation priority.
+    if config.kvmd.hid.type == "otg":
+        logger.info("===== HID-Consumer =====")
+        gc.add_consumer(["hid", "consumer"], cod.hid.consumer.start, config.otg.remote_wakeup)
 
     logger.info("===== Preparing complete =====")
 
