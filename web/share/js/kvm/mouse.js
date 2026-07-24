@@ -347,10 +347,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	};
 
 	var __streamPointerDownHandler = function(ev) {
-		ev.preventDefault();
 		if (ev.pointerType != "pen" || !__abs )
 			return;
 		if ($("drawing-tablet-right-emulation-switch").checked) {
+			ev.preventDefault();
 			__pointer_down_pos = __getPointerPosition(ev);
 			__pointer_state = {
 				"down_when": Date.now(),
@@ -370,12 +370,12 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	};
 
 	var __streamPointerMoveHandler = function(ev) {
-		ev.preventDefault();
 		if (ev.pointerType != "pen" || !__abs )
 			return;
 		if (!$("drawing-tablet-right-emulation-switch").checked ||
 		    __pointer_down_pos === null )
 			return;
+		ev.preventDefault();
 		let pos = __getPointerPosition(ev);
 		let drag_threshold = $("drawing-tablet-drag-threshold-slider").value;
 		let indicator = $("drawing-tablet-right-indicator");
@@ -402,10 +402,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	};
 
 	var __streamPointerUpHandler = function(ev) {
-		ev.preventDefault();
 		if (ev.pointerType != "pen" || !__abs)
 			return;
 		if ($("drawing-tablet-right-emulation-switch").checked) {
+			ev.preventDefault();
 			if (__pointer_down_pos !== null ) {
 				let right_delay = $("drawing-tablet-right-delay-slider").value;
 				if (Date.now() - __pointer_state.down_when < right_delay ) {
@@ -432,10 +432,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	};
 
 	var __streamPointerEnterHandler = function(ev) {
-		ev.preventDefault();
 		if (!__abs)
 			return;
 		if ($("drawing-tablet-right-emulation-switch").checked) {
+			ev.preventDefault();
 			__pointer_down_pos = null;
 			__pointer_state = {
 				"dragging": false,
@@ -447,10 +447,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 	};
 
 	var __streamPointerLeaveHandler = function(ev) {
-		ev.preventDefault();
 		if (!__abs)
 			return;
 		if ($("drawing-tablet-right-emulation-switch").checked) {
+			ev.preventDefault();
 			__pointer_down_pos = null;
 			if (__pointer_state !== null && __pointer_state.dragging == true) {
 				__keypad.emit("left", false);
