@@ -329,9 +329,13 @@ export function JanusStreamer(
 
 					let capture = null;
 					if (__camera_req !== null) {
+						// Min не помогает от перебора фоксом разрешений, но пусть будет.
+						// Помогают пляски в onlocaltrack.
+						let w = __camera_req.resolution.width;
+						let h = __camera_req.resolution.height;
 						capture = {
-							"width": {"ideal": __camera_req.resolution.width, "max": 1920},
-							"height": {"ideal": __camera_req.resolution.height, "max": 1080},
+							"width": {"min": w, "ideal": w, "max": w},
+							"height": {"min": h, "ideal": h, "max": h},
 							"frameRate": {"ideal": __camera_req.fps, "max": 30},
 						};
 					}
@@ -382,8 +386,22 @@ export function JanusStreamer(
 
 			"onlocaltrack": function(track, added) {
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
-				if (added && track.kind === "video" && "contentHint" in track) {
-					track.contentHint = "detail";
+				if (added && track.kind === "video") {
+					if ("contentHint" in track) { // WebKit
+						__logInfo("Installing contentHint=detail:", track);
+						track.contentHint = "detail";
+					}
+					if (__handle?.webrtcStuff?.pc) { // Firefox
+						for (let sender of __handle.webrtcStuff.pc.getSenders()) {
+							if (sender.track === track) {
+								__logInfo("Installing degradationPreference=maintain-resolution:", track);
+								let params = sender.getParameters();
+								params.degradationPreference = "maintain-resolution";
+								sender.setParameters(params);
+								break;
+							}
+						}
+					}
 				}
 			},
 
