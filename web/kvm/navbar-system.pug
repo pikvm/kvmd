@@ -153,6 +153,16 @@ li.right#system-dropdown
 					+menu_switch_td2("page-full-tab-stream-switch", true, false) Expand for the entire tab by default:
 				tr
 					+menu_switch_td2("stream-suspend-switch", true, false) Suspend stream when tab is not active:
+			hr.feature-disabled(id="drawing-tablet-mode-hr")
+			table(id="drawing-tablet-mode-table", class="kv feature-disabled")
+				tr
+					+menu_switch_td2("drawing-tablet-switch", false, false) Drawing tablet mode:
+				tr
+					+menu_switch_td2("drawing-tablet-right-emulation-switch", false, true) Drawing tablet right-click emulation:
+				tr
+					+menu_slider_td3("drawing-tablet-right-delay-slider", "drawing-tablet-right-delay-value", false) Drawing tablet right-click delay:
+				tr
+					+menu_slider_td3("drawing-tablet-drag-threshold-slider", "drawing-tablet-drag-threshold-value", false) Drawing tablet drag threshold:
 
 		table.kv
 			tr.feature-disabled#hid-connect

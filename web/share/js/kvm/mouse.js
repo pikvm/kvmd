@@ -42,6 +42,10 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 
 	var __touch_pos = null;
 
+	var __pointer_down_pos = null;
+	var __pointer_state = null;
+	var __hid_outputs_mouse_observer = null;
+
 	var __abs_pos = null;
 	var __rel_deltas = [];
 
@@ -91,6 +95,22 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		let cumulative_scrolling = !(tools.browser.is_firefox && !tools.browser.is_mac);
 		tools.storage.bindSimpleSwitch($("hid-mouse-cumulative-scrolling-switch"), "hid.mouse.cumulative_scrolling", cumulative_scrolling);
 		tools.storage.bindSimpleSwitch($("hid-mouse-dot-switch"), "hid.mouse.dot", true, __updateOnlineLeds);
+
+		tools.storage.bindSimpleSwitch($("drawing-tablet-switch"), "hid.mouse.drawing_tablet", false, __drawingTabletModeEnable);
+		tools.storage.bindSimpleSwitch($("drawing-tablet-right-emulation-switch"), "hid.mouse.drawing_tablet_right_emulation", true, __drawingTabletRightClickEmulationEnable);
+		tools.storage.bindSimpleSlider($("drawing-tablet-right-delay-slider"), "hid.mouse.drawing_tablet_right_delay", 100, 1000, 10, 500, function(value) {
+			$("drawing-tablet-right-delay-value").innerText = value + " ms";
+			$("drawing-tablet-right-indicator").style.setProperty("--drawing-tablet-right-duration", value + "ms");
+		});
+		tools.storage.bindSimpleSlider($("drawing-tablet-drag-threshold-slider"), "hid.mouse.drawing_tablet_drag_threshold", 1, 30, 1, 10, function(value) {
+			$("drawing-tablet-drag-threshold-value").innerText = value + " px";
+		});
+		if ($("drawing-tablet-switch").checked && $("drawing-tablet-right-emulation-switch").checked) {
+			tools.el.setEnabled($("drawing-tablet-right-delay-slider"), true);
+			tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), true);
+		}
+		__hid_outputs_mouse_observer = new MutationObserver(__observeHidOutputsMouseBox);
+		__hid_outputs_mouse_observer.observe($("hid-outputs-mouse-box"), {"childList": true});
 
 		__updateOnlineLeds();
 	};
@@ -259,6 +279,182 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		__touch_pos = null;
 	};
 
+	var __drawingTabletModeEnable = function(value) {
+		let right_click_emulation = $("drawing-tablet-right-emulation-switch").checked;
+		tools.el.setEnabled($("drawing-tablet-right-emulation-switch"), value);
+		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), (value != false && right_click_emulation));
+		tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), (value != false && right_click_emulation));
+		if (value) {
+			$("stream-box").addEventListener("pointerdown", __streamPointerDownHandler);
+			$("stream-box").addEventListener("pointermove", __streamPointerMoveHandler);
+			$("stream-box").addEventListener("pointerup", __streamPointerUpHandler);
+			$("stream-box").addEventListener("pointerenter", __streamPointerEnterHandler);
+			$("stream-box").addEventListener("pointerleave", __streamPointerLeaveHandler);
+		} else {
+			$("stream-box").removeEventListener("pointerdown", __streamPointerDownHandler);
+			$("stream-box").removeEventListener("pointermove", __streamPointerMoveHandler);
+			$("stream-box").removeEventListener("pointerup", __streamPointerUpHandler);
+			$("stream-box").removeEventListener("pointerenter", __streamPointerEnterHandler);
+			$("stream-box").removeEventListener("pointerleave", __streamPointerLeaveHandler);
+		}
+	};
+
+	var __drawingTabletInputOptionsEnable = function(value) {
+		tools.feature.setEnabled($("drawing-tablet-mode-hr"), value);
+		tools.feature.setEnabled($("drawing-tablet-mode-table"), value);
+		tools.el.setEnabled($("drawing-tablet-switch"), true);
+	};
+
+	var __drawingTabletRightClickEmulationEnable = function(value) {
+		if (!$("drawing-tablet-switch").checked)
+			return;
+		tools.el.setEnabled($("drawing-tablet-right-delay-slider"), value);
+		tools.el.setEnabled($("drawing-tablet-drag-threshold-slider"), value);
+	};
+
+	var __observeHidOutputsMouseBox = function(mutations, observer) {
+		for (const mutation of mutations) {
+			if (mutation.addedNodes.length ) {
+				for (const el of mutation.addedNodes) {
+					if (el.nodeName == "INPUT" && el.value === "usb" ) {
+						__drawingTabletInputOptionsEnable(true);
+						$("hid-outputs-mouse-box").addEventListener("click", __hidOutputsMouseBoxClickHandler);
+						$("hid-outputs-mouse-box").addEventListener("touchend", __hidOutputsMouseBoxClickHandler);
+						observer.disconnect();
+						__hid_outputs_mouse_observer = null;
+					}
+				}
+			}
+		}
+	};
+
+	var __hidOutputsMouseBoxClickHandler = function(ev) {
+		if (ev.target.value == "usb") {
+			__drawingTabletInputOptionsEnable(true);
+			__drawingTabletModeEnable($("drawing-tablet-switch").checked);
+		}
+		else
+		{
+			__drawingTabletInputOptionsEnable(false);
+			__drawingTabletModeEnable(false);
+		}
+	};
+
+	var __streamPointerDownHandler = function(ev) {
+		if (ev.pointerType != "pen" || !__abs )
+			return;
+		if ($("drawing-tablet-right-emulation-switch").checked) {
+			ev.preventDefault();
+			__pointer_down_pos = __getPointerPosition(ev);
+			__pointer_state = {
+				"down_when": Date.now(),
+				"dragging": false,
+			};
+			let indicator = $("drawing-tablet-right-indicator");
+			indicator.classList.remove("hidden");
+			let offsetx = -(indicator.clientWidth*1.5);
+			//Rudimentary handedness detection
+			if (ev.tiltX < 0)
+				offsetx = 0+(indicator.clientWidth*0.5);
+			indicator.style.left = (__pointer_down_pos.x + offsetx) + "px";
+			indicator.style.top = (__pointer_down_pos.y - (indicator.clientHeight*1.5)) + "px";
+			indicator.style.setProperty("--drawing-tablet-right-progress", "100%");
+		} else 
+			__keypad.emit("left", true);
+	};
+
+	var __streamPointerMoveHandler = function(ev) {
+		if (ev.pointerType != "pen" || !__abs )
+			return;
+		if (!$("drawing-tablet-right-emulation-switch").checked ||
+		    __pointer_down_pos === null )
+			return;
+		ev.preventDefault();
+		let pos = __getPointerPosition(ev);
+		let drag_threshold = $("drawing-tablet-drag-threshold-slider").value;
+		let indicator = $("drawing-tablet-right-indicator");
+		if ((Math.abs(pos.x - __pointer_down_pos.x) > drag_threshold ||
+				Math.abs(pos.y - __pointer_down_pos.y) > drag_threshold) &&
+				__pointer_state.dragging == false) {
+			let old_abs = __abs_pos;
+			__abs_pos = __pointer_down_pos;
+			__sendPlannedMove();
+			__keypad.emit("left", true);
+			__abs_pos = old_abs;
+			__sendPlannedMove();
+			__pointer_state.dragging = true;
+			indicator.classList.add("hidden");
+			indicator.style.setProperty("--drawing-tablet-right-progress", "0%");
+		}
+		else if (__pointer_state.dragging == false) {
+			let offsetx = -(indicator.clientWidth*1.5);
+			if (ev.tiltX < 0)
+				offsetx = 0+(indicator.clientWidth*0.5);
+			indicator.style.left = (pos.x + offsetx) + "px";
+			indicator.style.top = (pos.y - (indicator.clientHeight*1.5)) + "px";
+		}
+	};
+
+	var __streamPointerUpHandler = function(ev) {
+		if (ev.pointerType != "pen" || !__abs)
+			return;
+		if ($("drawing-tablet-right-emulation-switch").checked) {
+			ev.preventDefault();
+			if (__pointer_down_pos !== null ) {
+				let right_delay = $("drawing-tablet-right-delay-slider").value;
+				if (Date.now() - __pointer_state.down_when < right_delay ) {
+					if (!__pointer_state.dragging)
+						__keypad.emit("left", true);
+					__keypad.emit("left", false);
+				} else {
+					if (!__pointer_state.dragging) {
+						__keypad.emit("right", true);
+						__keypad.emit("right", false);
+					} else {
+						__keypad.emit("left", false);
+					}
+				}
+				__pointer_down_pos = null;
+				__pointer_state.dragging = false;
+				__pointer_state.down_when = null;
+			}
+		} else {
+			__keypad.emit("left", false);
+		}
+		$("drawing-tablet-right-indicator").style.setProperty("--drawing-tablet-right-progress", "0%");
+		$("drawing-tablet-right-indicator").classList.add("hidden");
+	};
+
+	var __streamPointerEnterHandler = function(ev) {
+		if (!__abs)
+			return;
+		if ($("drawing-tablet-right-emulation-switch").checked) {
+			ev.preventDefault();
+			__pointer_down_pos = null;
+			__pointer_state = {
+				"dragging": false,
+				"down_when": null,
+			};
+			if (!$("drawing-tablet-right-indicator").classList.contains("hidden"))
+				$("drawing-tablet-right-indicator").classList.add("hidden");
+		}
+	};
+
+	var __streamPointerLeaveHandler = function(ev) {
+		if (!__abs)
+			return;
+		if ($("drawing-tablet-right-emulation-switch").checked) {
+			ev.preventDefault();
+			__pointer_down_pos = null;
+			if (__pointer_state !== null && __pointer_state.dragging == true) {
+				__keypad.emit("left", false);
+			}
+			__pointer_state = null;
+			if (!$("drawing-tablet-right-indicator").classList.contains("hidden"))
+				$("drawing-tablet-right-indicator").classList.add("hidden");
+		}
+	};
+
 	var __getTouchPosition = function(ev, index) {
 		if (ev.touches[index].target && ev.touches[index].target.getBoundingClientRect) {
 			let rect = ev.touches[index].target.getBoundingClientRect();
@@ -268,6 +464,16 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 			};
 		}
 		return null;
+	};
+
+	var __getPointerPosition = function(ev) {
+		if (ev.target.getBoundingClientRect) {
+			let rect = ev.target.getBoundingClientRect();
+			return { 
+				"x": Math.round(ev.clientX - rect.left),
+				"y": Math.round(ev.clientY - rect.top),
+			};
+		}
 	};
 
 	var __streamMoveHandler = function(ev) {
