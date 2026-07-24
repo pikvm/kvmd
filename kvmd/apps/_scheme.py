@@ -704,6 +704,7 @@ def make_config_scheme() -> dict:
                 "speed":          Option(115200, type=valid_tty_speed, unpack_as="sol_speed"),
                 "select_timeout": Option(0.1,    type=valid_float_f01, unpack_as="sol_select_timeout"),
                 "proxy_port":     Option(0,      type=valid_port, unpack_as="sol_proxy_port"),
+                "max_packet":     Option(256,    type=valid_int_f1, unpack_as="sol_max_packet"),
             },
         },
 
