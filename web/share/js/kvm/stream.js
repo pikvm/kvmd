@@ -75,45 +75,24 @@ export function Streamer() {
 		// Also don't reset Streamer at class init.
 		tools.radio.clickValue("stream-orient-radio", tools.storage.get("stream.orient", 0));
 		tools.radio.setOnClick("stream-orient-radio", function() {
-			if (["janus", "media"].includes(__streamer.getMode())) {
-				let orient = parseInt(tools.radio.getValue("stream-orient-radio"));
-				tools.storage.setInt("stream.orient", orient);
-				if (__streamer.getOrientation() !== orient) {
-					__resetStream();
-				}
-			}
+			let orient = parseInt(tools.radio.getValue("stream-orient-radio"));
+			tools.storage.setInt("stream.orient", orient);
+			__streamer.setOrientation(orient);
 		}, false);
-
-		let restartJanusFor = function (func, flag) {
-			if (
-				__streamer !== null && __streamer.getMode() === "janus"
-				&& (func === null || __streamer[func]() !== flag)
-			) {
-				__resetStream();
-			}
-		};
 
 		tools.el.setOnClick($("stream-multimedia-switch"), function() {
 			let enabled = $("stream-multimedia-switch").checked;
 			tools.el.setEnabled($("stream-audio-volume-slider"), enabled);
 			tools.el.setEnabled($("stream-mic-switch"), enabled);
 			tools.el.setEnabled($("stream-camera-switch"), enabled);
-			restartJanusFor(null, true);
+			__applyAudioVolume();
+			__applyMicEnabled();
+			__applyCameraEnabled();
 		}, false);
 
-		tools.storage.bindSimpleSlider($("stream-audio-volume-slider"), "stream.audio", 0, 100, 1, 100, function(value) {
-			$("stream-video").volume = value / 100;
-			$("stream-audio-volume-value").innerText = value + "%";
-			restartJanusFor("isAudioAllowed", !!value);
-		});
-
-		tools.storage.bindSimpleSwitch($("stream-mic-switch"), "stream.mic", false, function(allow_mic) {
-			restartJanusFor("isMicAllowed", allow_mic);
-		});
-
-		tools.storage.bindSimpleSwitch($("stream-camera-switch"), "stream.camera", false, function(allow_camera) {
-			restartJanusFor("isCameraAllowed", allow_camera);
-		});
+		tools.storage.bindSimpleSlider($("stream-audio-volume-slider"), "stream.audio", 0, 100, 1, 100, __applyAudioVolume);
+		tools.storage.bindSimpleSwitch($("stream-mic-switch"), "stream.mic", false, __applyMicEnabled);
+		tools.storage.bindSimpleSwitch($("stream-camera-switch"), "stream.camera", false, __applyCameraEnabled);
 
 		tools.el.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.el.setOnClick($("stream-reset-button"), __clickResetButton);
@@ -128,6 +107,23 @@ export function Streamer() {
 	};
 
 	/************************************************************************/
+
+	var __applyAudioVolume = function() {
+		let volume = $("stream-audio-volume-slider").valueAsNumber;
+		$("stream-audio-volume-value").innerText = volume + "%";
+		let mm = $("stream-multimedia-switch").checked;
+		__streamer.setAudioVolume(mm ? volume : 0);
+	};
+
+	var __applyMicEnabled = function() {
+		let mm = $("stream-multimedia-switch").checked;
+		__streamer.setMicEnabled(mm && $("stream-mic-switch").checked);
+	};
+
+	var __applyCameraEnabled = function() {
+		let mm = $("stream-multimedia-switch").checked;
+		__streamer.setCameraEnabled(mm && $("stream-camera-switch").checked);
+	};
 
 	var __isStreamRequired = function() {
 		return (
@@ -247,12 +243,6 @@ export function Streamer() {
 			tools.feature.setEnabled($("stream-h264-bitrate"), f.h264);
 			tools.feature.setEnabled($("stream-h264-gop"), f.h264);
 			tools.feature.setEnabled($("stream-mode"), f.h264);
-			if (!f.h264) {
-				tools.feature.setEnabled($("stream-multimedia"), false);
-				tools.feature.setEnabled($("stream-audio"), false);
-				tools.feature.setEnabled($("stream-mic"), false);
-				tools.feature.setEnabled($("stream-camera"), false);
-			}
 
 			let mode = tools.storage.get("stream.mode", "janus");
 			if (mode === "janus" && !has_janus) {
@@ -289,6 +279,9 @@ export function Streamer() {
 			let s = state.streamer;
 			__res = s.source.resolution;
 			__streamer.ensureStream(s);
+			//__applyAudioVolume();
+			//__applyMicEnabled();
+			//__applyCameraEnabled();
 		}
 	};
 
@@ -340,33 +333,17 @@ export function Streamer() {
 			mode = __streamer.getMode();
 		}
 		__streamer.stopStream();
-		let orient = tools.storage.getInt("stream.orient", 0);
-		if (mode === "janus") {
-			let mm = (tools.feature.isEnabled($("stream-multimedia")) && $("stream-multimedia-switch").checked);
-			let allow_audio = (mm && tools.feature.isEnabled($("stream-audio")) && !!$("stream-audio-volume-slider").valueAsNumber);
-			let allow_mic = (mm && tools.feature.isEnabled($("stream-mic")) && $("stream-mic-switch").checked);
-			let allow_camera = (mm && tools.feature.isEnabled($("stream-camera")) && $("stream-camera-switch").checked);
-			__streamer = new JanusStreamer(
-				__setActive, __setInactive, __setInfo, __organizeHook,
-				orient, allow_audio, allow_mic, allow_camera);
-			// Firefox doesn't support RTP orientation:
-			//  - https://bugzilla.mozilla.org/show_bug.cgi?id=1316448
-			tools.feature.setEnabled($("stream-orient"), !tools.browser.is_firefox);
-		} else {
-			if (mode === "media") {
-				__streamer = new MediaStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient);
-				tools.feature.setEnabled($("stream-orient"), true);
-			} else { // mjpeg
-				__streamer = new MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeHook);
-				tools.feature.setEnabled($("stream-orient"), false);
-			}
-			tools.feature.setEnabled($("stream-multimedia"), false); // Enabling in stream_janus.js
-			tools.feature.setEnabled($("stream-audio"), false);
-			tools.feature.setEnabled($("stream-mic"), false);
-			tools.feature.setEnabled($("stream-camera"), false);
+		let cls = MjpegStreamer;
+		switch (mode) {
+			case "janus": cls = JanusStreamer; break;
+			case "media": cls = MediaStreamer; break;
 		}
+		__streamer = new cls(__setActive, __setInactive, __setInfo, __organizeHook);
 		if (__isStreamRequired()) {
 			__streamer.ensureStream((__state && __state.streamer !== undefined) ? __state.streamer : null);
+			__applyAudioVolume();
+			__applyMicEnabled();
+			__applyCameraEnabled();
 		}
 	};
 

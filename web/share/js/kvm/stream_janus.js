@@ -30,10 +30,7 @@ import {wm} from "../wm.js";
 var _Janus = null;
 
 
-export function JanusStreamer(
-	__setActive, __setInactive, __setInfo, __organizeHook,
-	__orient, __allow_audio, __allow_mic, __allow_camera,
-) {
+export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook) {
 
 	var self = this;
 
@@ -50,21 +47,75 @@ export function JanusStreamer(
 
 	var __state = null;
 	var __ice = null;
+
+	var __has_audio = false;
+	var __use_audio = 0; // Volume
+
+	var __has_mic = false;
+	var __use_mic = false;
+
+	var __has_camera = false;
+	var __use_camera = false;
 	var __camera_req = null;
+
+	var __orient = 0;
+
+	var __init__ = function() {
+		$("stream-video").muted = true;
+
+		// Firefox doesn't support RTP orientation:
+		//   - https://bugzilla.mozilla.org/show_bug.cgi?id=1340372
+		tools.feature.setEnabled($("stream-orient"), !tools.browser.is_firefox);
+
+		tools.feature.setEnabled($("stream-multimedia"), false);
+		tools.feature.setEnabled($("stream-audio"), false);
+		tools.feature.setEnabled($("stream-mic"), false);
+		tools.feature.setEnabled($("stream-camera"), false);
+	};
 
 	/************************************************************************/
 
-	self.getOrientation = () => __orient;
-	self.isAudioAllowed = () => __allow_audio;
-	self.isMicAllowed = () => __allow_mic;
-	self.isCameraAllowed = () => __allow_camera;
+	self.setOrientation = function(orient) {
+		if (tools.browser.is_firefox) {
+			orient = 0;
+		}
+		if (__orient !== orient) {
+			__orient = orient;
+			__destroyJanus();
+		}
+	};
+
+	self.setAudioVolume = function(volume) {
+		let prev = !!__use_audio;
+		__use_audio = volume;
+		$("stream-video").volume = volume / 100;
+		if (__has_audio && (prev !== !!__use_audio)) {
+			__destroyJanus();
+		}
+	};
+
+	self.setMicEnabled = function(enabled) {
+		let prev = __use_mic;
+		__use_mic = enabled;
+		if (__has_mic && (prev !== __use_mic)) {
+			__destroyJanus();
+		}
+	};
+
+	self.setCameraEnabled = function(enabled) {
+		let prev = __use_camera;
+		__use_camera = enabled;
+		if (__has_camera && (prev !== __use_camera)) {
+			__destroyJanus();
+		}
+	};
 
 	self.getName = function() {
 		let name = "WebRTC H.264";
-		if (__allow_audio) {
+		if (__has_audio && !!__use_audio) {
 			name += " + Audio";
 		}
-		if (__allow_mic) {
+		if (__has_mic && __use_mic) {
 			name += " + Mic";
 		}
 		if (__camera_req !== null) {
@@ -289,16 +340,15 @@ export function JanusStreamer(
 						__setInfo(false, false, "");
 					} else if (msg.result.status === "features") {
 						let f = msg.result.features;
-						let camera = (f.camera && f.camera.enabled);
-						tools.feature.setEnabled($("stream-multimedia"), (f.audio || f.mic || camera));
-						tools.feature.setEnabled($("stream-audio"), f.audio);
-						tools.feature.setEnabled($("stream-mic"), f.mic);
-						tools.feature.setEnabled($("stream-camera"), camera);
+						tools.feature.setEnabled($("stream-audio"), (__has_audio = f.audio));
+						tools.feature.setEnabled($("stream-mic"), (__has_mic = f.mic));
+						tools.feature.setEnabled($("stream-camera"), (__has_camera = (f.camera && f.camera.enabled)));
+						tools.feature.setEnabled($("stream-multimedia"), (__has_audio || __has_mic || __has_camera));
 						__ice = f.ice;
-						__camera_req = ((camera && f.camera.request && __allow_camera) ? f.camera.request : null);
+						__camera_req = ((__has_camera && __use_camera && f.camera.request) ? f.camera.request : null);
 						__sendWatch();
 					} else if (msg.result.status === "camera") {
-						if (__allow_camera) {
+						if (__has_camera && __use_camera) {
 							let action = msg.result.camera.action;
 							if (action === "requested" && __camera_req === null) {
 								__destroyJanus();
@@ -327,24 +377,27 @@ export function JanusStreamer(
 				if (jsep) {
 					__logInfo("Handling SDP:", jsep);
 
+					let audio = (__has_audio && !!__use_audio);
+					let mic = (__has_mic && __use_mic);
 
-					let capture = null;
+					let camera = null;
 					if (__camera_req !== null) {
 						// Min не помогает от перебора фоксом разрешений, но пусть будет.
 						// Помогают пляски в onlocaltrack.
 						let w = __camera_req.resolution.width;
 						let h = __camera_req.resolution.height;
-						capture = {
+						camera = {
 							"width": {"min": w, "ideal": w, "max": w},
 							"height": {"min": h, "ideal": h, "max": h},
 							"frameRate": {"ideal": __camera_req.fps, "max": 30},
 						};
 					}
 
-					let tracks = [{"type": "video", "capture": capture, "recv": true, "add": true}];
-					if (__allow_audio || __allow_mic) {
-						tracks.push({"type": "audio", "capture": __allow_mic, "recv": __allow_audio, "add": true});
+					let tracks = [{"type": "video", "capture": camera, "recv": true, "add": true}];
+					if (audio || mic) {
+						tracks.push({"type": "audio", "capture": mic, "recv": audio, "add": true});
 					}
+					$("stream-video").muted = !audio;
 
 					__handle.createAnswer({
 						"jsep": jsep,
@@ -367,12 +420,12 @@ export function JanusStreamer(
 							__logInfo("Error on SDP handling:", error);
 							__setInfo(false, false, error);
 							let html = "Can't connect with WebRTC (error on SDP handling).<br>";
-							if (__allow_mic || __allow_camera) {
+							if (mic || !!__camera_req) {
 								let what = [];
-								if (__allow_mic) {
+								if (mic) {
 									what.push("microphone");
 								}
-								if (__allow_camera) {
+								if (!!__camera_req) {
 									what.push("webcam");
 								}
 								html += `<br>Most likely, your browser blocked <b>a ${what.join(" or ")}</b> usage.`;
@@ -512,12 +565,13 @@ export function JanusStreamer(
 
 	var __sendWatch = function() {
 		if (__handle) {
-			$("stream-video").muted = !__allow_audio;
-			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}, camera=${__camera_req}) ...`);
+			let audio = (__has_audio && !!__use_audio);
+			let mic = (__has_mic && __use_mic);
+			__logInfo(`Sending WATCH(orient=${__orient}, audio=${audio}, mic=${mic}, camera=${__camera_req}) ...`);
 			__handle.send({"message": {"request": "watch", "params": {
 				"orientation": __orient,
-				"audio": __allow_audio,
-				"mic": __allow_mic,
+				"audio": audio,
+				"mic": mic,
 				"camera": !!__camera_req,
 			}}});
 		}
@@ -548,6 +602,8 @@ export function JanusStreamer(
 
 	var __logInfo = (...args) => tools.info("Stream [Janus]:", ...args);
 	var __logError = (...args) => tools.error("Stream [Janus]:", ...args);
+
+	__init__();
 }
 
 JanusStreamer.ensure_janus = function(cb) {

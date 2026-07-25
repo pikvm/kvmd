@@ -26,7 +26,7 @@
 import {tools, $} from "../tools.js";
 
 
-export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeHook, __orient) {
+export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeHook) {
 	var self = this;
 
 	/************************************************************************/
@@ -47,9 +47,23 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	var __state = null;
 	var __fps_accum = 0;
 
+	var __orient = 0;
+
+	var __init__ = function() {
+		tools.feature.setEnabled($("stream-orient"), true);
+		tools.feature.setEnabled($("stream-multimedia"), false);
+		tools.feature.setEnabled($("stream-audio"), false);
+		tools.feature.setEnabled($("stream-mic"), false);
+		tools.feature.setEnabled($("stream-camera"), false);
+	};
+
 	/************************************************************************/
 
-	self.getOrientation = () => __orient;
+	self.setOrientation = function(orient) { __orient = orient; };
+	self.setAudioVolume = function(volume) {}; // eslint-disable-line no-unused-vars
+	self.setMicEnabled = function(enabled) {}; // eslint-disable-line no-unused-vars
+	self.setCameraEnabled = function(enabled) {}; // eslint-disable-line no-unused-vars
+
 	self.getName = () => "Direct H.264";
 	self.getMode = () => "media";
 
@@ -329,6 +343,8 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	var __logInfo = (...args) => tools.info("Stream [Media]:", ...args);
+
+	__init__();
 }
 
 MediaStreamer.is_videodecoder_available = function() {
