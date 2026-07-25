@@ -67,8 +67,9 @@ export function JanusStreamer(
 		if (__allow_mic) {
 			name += " + Mic";
 		}
-		if (__allow_camera) {
-			name += " + Cam";
+		if (__camera_req !== null) {
+			let res = __camera_req.resolution;
+			name += ` + Cam (${res.width}x${res.height})`;
 		}
 		return name;
 	};

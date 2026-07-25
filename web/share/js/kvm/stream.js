@@ -332,7 +332,7 @@ export function Streamer() {
 		}
 		el_grab.innerText = title;
 		// Заменяем только первое вхождение, всё ок
-		el_info.innerText = title.replace(" / ", "\n");
+		el_info.innerText = title.replace(" - ", "\n");
 	};
 
 	var __resetStream = function(mode=null) {
