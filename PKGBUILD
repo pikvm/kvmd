@@ -173,7 +173,7 @@ package_kvmd() {
 	python -m installer --destdir="$pkgdir" dist/*.whl
 
 	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot,update-switch}
-	install -Dm755 -t "$pkgdir/usr/lib/kvmd" scripts/kvmd-udev-flash-pico
+	install -Dm755 -t "$pkgdir/usr/lib/kvmd" scripts/kvmd-{udev-flash-pico,ucamera-prepare}
 
 	install -dm755 "$pkgdir/usr/lib/systemd/system"
 	cp -rd configs/os/services -T "$pkgdir/usr/lib/systemd/system"
