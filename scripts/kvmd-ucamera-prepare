@@ -3,7 +3,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2026 Ivan Shapovalov <intelfx@intelfx.name>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -20,4 +20,155 @@
 #                                                                            #
 # ========================================================================== #
 
-true
+#
+# Assign IRQ(s) of a given gadget function's UDC to isolated CPUs, if any.
+#
+
+set -eo pipefail
+shopt -s lastpipe
+
+log() {
+	echo ":: $*" >&2
+}
+
+err() {
+	echo "E: $*" >&2
+}
+
+die() {
+	err "$@"
+	exit 1
+}
+
+usage() {
+	if (( $# )); then
+		echo "${0##*/}: $*" >&2
+		echo >&2
+	fi
+	_usage >&2
+	exit 1
+}
+
+_usage() {
+	cat <<EOF
+Usage: ${0##*/} --device=DEVNODE
+EOF
+}
+
+
+#
+# args
+#
+
+if args=$(getopt -o '' --long 'device:,debug-cmdline:' -n "${0##*/}" -- "$@"); then
+	eval set -- "$args"
+else
+	usage
+fi
+unset args
+
+while :; do
+	case "$1" in
+	--device) shift; ARG_DEVNODE="$1" ;;
+	--debug-cmdline) shift; ARG_CMDLINE="$1" ;;
+	--) shift; break ;;
+	*) die "getopt error" ;;
+	esac
+	shift
+done
+
+case "$#" in
+0) ;;
+*) usage "wrong number of positional arguments" ;;
+esac
+
+if ! [[ ${ARG_DEVNODE+set} ]]; then
+	usage "--device= not specified"
+fi
+
+if ! [[ -e "$ARG_DEVNODE" && ( -c "$ARG_DEVNODE" || -b "$ARG_DEVNODE" ) ]]; then
+	die "device ${ARG_DEVNODE@Q} does not exist or is not a character or block device"
+fi
+
+
+#
+# main
+#
+
+# see if we have an isolcpus= kernel parameter
+
+ARG_ISOLCPUS=()
+
+if [[ ${ARG_CMDLINE+set} ]]; then
+	log "Assuming kernel cmdline: ${ARG_CMDLINE@Q}"
+else
+	ARG_CMDLINE="$(< /proc/cmdline)"
+fi
+
+xargs printf "%s\n" <<<"$ARG_CMDLINE" \
+| grep -E '^isolcpus=' \
+| while IFS='=' read -r _ value; do
+	log "Found isolcpus= on kernel cmdline: ${value@Q}"
+	ARG_ISOLCPUS+=( "$value" )
+done
+
+if (( ${#ARG_ISOLCPUS[@]} == 0 )); then
+	# nothing to do
+	exit 0
+elif ! (( ${#ARG_ISOLCPUS[@]} == 1 )); then
+	# not sure if the kernel joins them or overwrites the former
+	die "Unsupported: multiple isolcpus= found: ${ARG_ISOLCPUS[*]/#/isolcpus=}"
+elif ! [[ ${ARG_ISOLCPUS[0]} =~ ^[0-9]+$ ]]; then
+	# parsing full CPU masks is complicated, only support a single CPU for now
+	die "Unsupported: isolcpus= is not a number: ${ARG_ISOLCPUS[0]@Q}"
+fi
+
+TARGET_CPU="${ARG_ISOLCPUS[0]}"
+TARGET_CPU_MASK="$(( 1 << TARGET_CPU ))"
+
+log "Using CPU: ${TARGET_CPU@Q}"
+log "Using CPU affinity mask: $(printf '%#010x' "$TARGET_CPU_MASK")"  # NB: field width is inclusive of `0x`
+
+# determine sysfs path of the desired device node
+
+log "Using function device node: ${ARG_DEVNODE@Q}"
+
+SYSPATH="/sys$(udevadm info -q path "$ARG_DEVNODE")" \
+	|| die "Failed to query udev for ${ARG_DEVNODE@Q}"
+
+log "Using function sysfs path: ${SYSPATH@Q}"
+
+# find kernelname of the UDC by device node of the gadget function
+#
+# ideally, we need iterate over its parents until we find the immediate parent
+# of the gadget device, which will be the UDC. for now, rely on a sysfs attribute
+# which seems to hold the desired value (but it is not in the ABI, so it's a hack).
+
+UDC_FILE="$SYSPATH/name"
+UDC_NAME="$(< "$UDC_FILE")" \
+	|| die "Failed to determine UDC name for ${ARG_DEVNODE@Q}: cannot read sysfs attribute ${UDC_FILE@Q}"
+[[ $UDC_NAME ]] \
+	|| die "Failed to determine UDC name for ${ARG_DEVNODE@Q}"
+
+log "Using UDC kernelname: ${UDC_NAME@Q}"
+
+# find the corresponding IRQ by looking at the /proc/irq hierarchy
+# the name of the IRQ owner is reflected as an empty subdirectory(!)
+# within the directory named after the IRQ number (e.g. /proc/irq/42/ownername)
+
+find /proc/irq \
+	-mindepth 2 -maxdepth 2 -type d -name "$UDC_NAME" \
+	-printf '%h\n' \
+| readarray -t IRQS
+
+(( ${#IRQS[@]} )) \
+	|| die "Failed to find any IRQs for ${UDC_NAME@Q}"
+
+rc=0
+for irq in "${IRQS[@]}"; do
+	irq="${irq##*/}"
+	log "Setting affinity for IRQ $irq to $TARGET_CPU_MASK ($(printf '%#010x' "$TARGET_CPU_MASK"))"
+	printf "%s\n" "$TARGET_CPU_MASK" >"/proc/irq/$irq/smp_affinity" \
+		|| { rc=$?; err "Failed to set affinity for IRQ $irq"; }
+done
+exit "$rc"
