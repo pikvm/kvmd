@@ -350,9 +350,11 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 					} else if (msg.result.status === "camera") {
 						if (__has_camera && __use_camera) {
 							let action = msg.result.camera.action;
-							if (action === "requested" && __camera_req === null) {
+							if (action === "online" && __camera_req === null) {
 								__destroyJanus();
-							} else if (action == "released") {
+							} else if (action == "offline" && __camera_req !== null) {
+								__destroyJanus();
+							} else if (action === "lost") {
 								__destroyJanus();
 							}
 						}
