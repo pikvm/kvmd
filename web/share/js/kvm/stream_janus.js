@@ -421,20 +421,24 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 						"error": function(error) {
 							__logInfo("Error on SDP handling:", error);
 							__setInfo(false, false, error);
-							let html = "Can't connect with WebRTC (error on SDP handling).<br>";
-							if (mic || !!__camera_req) {
-								let what = [];
-								if (mic) {
-									what.push("microphone");
+							if (["NotAllowedError", "SecurityError"].includes(error?.name)) {
+								let html = "Can't connect with WebRTC (error on SDP handling).<br>";
+								if (mic || !!__camera_req) {
+									let what = [];
+									if (mic) {
+										what.push("microphone");
+									}
+									if (!!__camera_req) {
+										what.push("webcam");
+									}
+									html += `<br>Most likely, your browser blocked <b>a ${what.join(" or ")}</b> usage.`;
+									html += " Please unlock it (check the top left corner in the address bar)";
+									html += " and press <b>OK</b> to try again.";
 								}
-								if (!!__camera_req) {
-									what.push("webcam");
-								}
-								html += `<br>Most likely, your browser blocked <b>a ${what.join(" or ")}</b> usage.`;
-								html += " Please unlock it (check the top left corner in the address bar)";
-								html += " and press <b>OK</b> to try again.";
+								wm.error(html, error).then(__destroyJanus);
+							} else {
+								__destroyJanus();
 							}
-							wm.error(html, error).then(__destroyJanus);
 						},
 					});
 				}
