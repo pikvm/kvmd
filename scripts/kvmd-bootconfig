@@ -136,6 +136,8 @@ if [ -n "$FIRSTBOOT$FIRST_BOOT" ]; then
 		umount "$part"
 		parted "$disk" -a optimal -s resizepart "$npart" 100%
 		yes | mkfs.ext4 -L "$label" -F -m 0 "$part"
+		# ensure udev database is up-to-date after mkfs, otherwise mount won't find the fstab entry
+		udevadm trigger --settle --action=change "$part"
 		mount "$part"
 		unset disk part npart label
 	fi
