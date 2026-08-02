@@ -160,10 +160,10 @@ class _GadgetConfig:
         _mkdir(join(func_path, "streaming/mjpeg/m"))
         for (width, height, framerates) in [  # TODO: Make it configurable
             # (1920, 1080, [30]),
-            # (1280, 720,  [30]),
-            # (800,  600,  [30]),
+            (1280, 720,  [30]),
+            (800,  600,  [30]),
             (640,  480,  [30]),
-            # (640,  360,  [30]),
+            (640,  360,  [30]),
             # (320,  240,  [30]),
             # (320,  180,  [30]),
         ]:
