@@ -58,6 +58,9 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
         self.__power_switch_pin: Final[int] = c.power_switch_pin
         self.__reset_switch_pin: Final[int] = c.reset_switch_pin
 
+        self.__power_switch_inverted = c.power_switch_inverted
+        self.__reset_switch_inverted = c.reset_switch_inverted
+
         self.__click_delay:      Final[float] = c.click_delay
         self.__long_click_delay: Final[float] = c.long_click_delay
 
@@ -94,6 +97,9 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
             "reset_switch_pin": Option(27,  type=valid_gpio_pin),
             "click_delay":      Option(0.1, type=valid_float_f01),
             "long_click_delay": Option(5.5, type=valid_float_f01),
+
+            "power_switch_inverted": Option(False, type=valid_bool),
+            "reset_switch_inverted": Option(False, type=valid_bool),
         }
 
     async def sysprep(self) -> None:
@@ -102,10 +108,17 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
             self.__device_path,
             consumer="kvmd::atx",
             config={
-                (self.__power_switch_pin, self.__reset_switch_pin): gpiod.LineSettings(
-                    direction=gpiod.line.Direction.OUTPUT,
-                    output_value=gpiod.line.Value(False),
-                ),
+                self.__power_switch_pin:
+                    gpiod.LineSettings(
+                        direction=gpiod.line.Direction.OUTPUT,
+                        output_value=gpiod.line.Value(self.__power_switch_inverted),
+                    ),
+
+                self.__reset_switch_pin:
+                    gpiod.LineSettings(
+                        direction=gpiod.line.Direction.OUTPUT,
+                        output_value=gpiod.line.Value(self.__reset_switch_inverted),
+                    ),
             },
         )
 
@@ -169,13 +182,13 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
     # =====
 
     async def click_power(self, wait: bool) -> None:
-        await self.__click("power", self.__power_region, self.__power_switch_pin, self.__click_delay, wait)
+        await self.__click("power", self.__power_region, self.__power_switch_pin, self.__power_switch_inverted, self.__click_delay, wait)
 
     async def click_power_long(self, wait: bool) -> None:
-        await self.__click("power_long", self.__power_region, self.__power_switch_pin, self.__long_click_delay, wait)
+        await self.__click("power_long", self.__power_region, self.__power_switch_pin, self.__power_switch_inverted, self.__long_click_delay, wait)
 
     async def click_reset(self, wait: bool) -> None:
-        await self.__click("reset", self.__reset_region, self.__reset_switch_pin, self.__click_delay, wait)
+        await self.__click("reset", self.__reset_region, self.__reset_switch_pin, self.__reset_switch_inverted, self.__click_delay, wait)
 
     # =====
 
@@ -183,23 +196,23 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
         return (await self.get_state())["leds"]["power"]
 
     @aiotools.atomic_fg
-    async def __click(self, name: str, region: aiotools.AioExclusiveRegion, pin: int, delay: float, wait: bool) -> None:
+    async def __click(self, name: str, region: aiotools.AioExclusiveRegion, pin: int, inverted: bool, delay: float, wait: bool) -> None:
         if wait:
             with region:
-                await self.__inner_click(name, pin, delay)
+                await self.__inner_click(name, pin, inverted, delay)
         else:
             await aiotools.run_region_task(
                 f"Can't perform ATX {name} click or operation was not completed",
-                region, self.__inner_click, name, pin, delay,
+                region, self.__inner_click, name, pin, inverted, delay,
             )
 
     @aiotools.atomic_fg
-    async def __inner_click(self, name: str, pin: int, delay: float) -> None:
+    async def __inner_click(self, name: str, pin: int, inverted: bool, delay: float) -> None:
         assert self.__line_req
         try:
-            self.__line_req.set_value(pin, gpiod.line.Value(True))
+            self.__line_req.set_value(pin, gpiod.line.Value(True ^ inverted))
             await asyncio.sleep(delay)
         finally:
-            self.__line_req.set_value(pin, gpiod.line.Value(False))
+            self.__line_req.set_value(pin, gpiod.line.Value(False ^ inverted))
             await asyncio.sleep(1)
         get_logger(0).info("Clicked ATX button %r", name)
