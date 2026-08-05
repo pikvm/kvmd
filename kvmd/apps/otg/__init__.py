@@ -201,7 +201,7 @@ class _GadgetConfig:
             (ct_mask, 3, "control/terminal/camera/default/bmControls"),
             (pu_mask, 2, "control/processing/default/bmControls"),
         ]:
-            _write(join(func_path, path), "\n".join(map(str, mask.to_bytes(mask_len, "big"))))
+            _write(join(func_path, path), "\n".join(map(str, mask.to_bytes(mask_len, "little"))))
 
         _write(join(func_path, "streaming_maxpacket"), 2048)  # Maximum for USB 2.0
 
