@@ -30,7 +30,7 @@ import {wm} from "../wm.js";
 var _Janus = null;
 
 
-export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook) {
+export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook) {
 
 	var self = this;
 
@@ -580,6 +580,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				"mic": mic,
 				"camera": !!__camera_req,
 			}}});
+			__watchHook();
 		}
 	};
 

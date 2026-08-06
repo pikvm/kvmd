@@ -26,7 +26,7 @@
 import {tools, $} from "../tools.js";
 
 
-export function MediaStreamer(__setActive, __setInactive, __setInfo, __organizeHook) {
+export function MediaStreamer(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook) {
 	var self = this;
 
 	/************************************************************************/

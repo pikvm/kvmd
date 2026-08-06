@@ -27,7 +27,7 @@ import {ROOT_PREFIX} from "../vars.js";
 import {tools, $} from "../tools.js";
 
 
-export function MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeHook) {
+export function MjpegStreamer(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook) {
 	var self = this;
 
 	/************************************************************************/

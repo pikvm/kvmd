@@ -43,7 +43,7 @@ export function Streamer() {
 	var __res = {"width": 640, "height": 480};
 
 	var __init__ = function() {
-		__streamer = new MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeHook);
+		__streamer = new MjpegStreamer(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook);
 
 		$("stream-led").title = "No stream from PiKVM";
 
@@ -88,6 +88,7 @@ export function Streamer() {
 			__applyAudioVolume();
 			__applyMicEnabled();
 			__applyCameraEnabled();
+			tools.storage.setBool("stream.multimedia", enabled);
 		}, false);
 
 		tools.storage.bindSimpleSlider($("stream-audio-volume-slider"), "stream.audio", 0, 100, 1, 100, __applyAudioVolume);
@@ -143,6 +144,37 @@ export function Streamer() {
 	var __organizeHook = function() {
 		let geo = self.getGeometry();
 		wm.setAspectRatio($("stream-window"), geo.width, geo.height);
+	};
+
+	var __first_watch = true;
+	var __watchHook = function() {
+		if (__first_watch) {
+			__first_watch = false;
+			let el = $("stream-multimedia-switch");
+			if (!el.checked && tools.storage.getBool("stream.multimedia")) {
+				let text = (
+					"In the previous session, you used the multimedia features of PiKVM.<br>"
+					+ "Do you want to continue with the same settings?<br>"
+					+ "<br>"
+					+ "Due to browser limitations, this requires explicit confirmation."
+					+ "<ul><li><b>OK</b> - continue with multimedia.</li><li><b>Cancel</b> - forget about it.</li></ul>"
+				);
+				wm.confirm(text).then(function(ok) {
+					if (ok) {
+						if (!el.checked) {
+							el.click();
+						}
+						setTimeout(function() {
+							__applyAudioVolume();
+							__applyMicEnabled();
+							__applyCameraEnabled();
+						}, 100);
+					} else {
+						tools.storage.setBool("stream.multimedia", false);
+					}
+				});
+			}
+		}
 	};
 
 	self.ensureDeps = function(cb) {
@@ -338,7 +370,7 @@ export function Streamer() {
 			case "janus": cls = JanusStreamer; break;
 			case "media": cls = MediaStreamer; break;
 		}
-		__streamer = new cls(__setActive, __setInactive, __setInfo, __organizeHook);
+		__streamer = new cls(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook);
 		if (__isStreamRequired()) {
 			__streamer.ensureStream((__state && __state.streamer !== undefined) ? __state.streamer : null);
 			__applyAudioVolume();
