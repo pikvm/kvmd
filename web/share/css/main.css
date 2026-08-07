@@ -154,9 +154,10 @@ select[size]::-webkit-scrollbar-thumb {
 select:not([size]) {
 	padding: 4px 25px 4px 8px;
 }
-button.small {
+button.small,
+select.small {
 	font-size: 12px;
-	height: 20px;
+	height: 26px;
 }
 button.key,
 select.key {

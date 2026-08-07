@@ -51,7 +51,7 @@ li.right#system-dropdown
 		table.kv
 			tr.feature-disabled#stream-resolution
 				td Resolution:
-				td #[select#stream-resolution-selector(disabled)]
+				td #[select.small#stream-resolution-selector(disabled)]
 			tr.feature-disabled#stream-mode
 				+menu_radio_td2("stream-mode-radio", [
 					{title: "WebRTC<br>H.264", value: "janus"},
@@ -102,7 +102,7 @@ li.right#system-dropdown
 				td #[div.radio-box#hid-outputs-mouse-box]
 			tr
 				td #[a(target="_blank" href="https://docs.pikvm.org/shortcuts") Shortcuts magic]:
-				td #[select#hid-keyboard-magic-selector]
+				td #[select.small#hid-keyboard-magic-selector]
 
 		+menu_spoiler("Keyboard &amp; mouse (HID) settings")
 			table(class="kv")
