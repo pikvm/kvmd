@@ -15,40 +15,35 @@ mixin menu_message(icon, short, classes="")
 							block
 
 
-mixin menu_switch_td2_gpio(channel, confirm_off="")
-	td
-		block
-	td(align="right")
-		.switch-box
-			input(
-				disabled
-				type="checkbox"
-				id=`__gpio-switch-${channel}`
-				class=`__gpio-switch-${channel} gpio-switch`
-				data-gpio-channel=channel
-				data-gpio-confirm-off=confirm_off
-			)
-			label(for=`__gpio-switch-${channel}`)
-				span.switch-inner
-				span.switch
+mixin menu_switch_gpio(channel, confirm_off="")
+	.switch-box
+		input(
+			disabled
+			type="checkbox"
+			id=`__gpio-switch-${channel}`
+			class=`__gpio-switch-${channel} gpio-switch`
+			data-gpio-channel=channel
+			data-gpio-confirm-off=confirm_off
+		)
+		label(for=`__gpio-switch-${channel}`)
+			span.switch-inner
+			span.switch
 
 
-mixin menu_switch_td2(id, enabled, checked)
-	td
-		block
-	td(align="right")
-		.switch-box
-			input(checked=checked disabled=!enabled type="checkbox" id=id)
-			label(for=id)
-				span.switch-inner
-				span.switch
+mixin menu_switch(id, enabled, checked)
+	.switch-box
+		input(checked=checked disabled=!enabled type="checkbox" id=id)
+		label(for=id)
+			span.switch-inner
+			span.switch
 
 
 mixin menu_switch_table(id, enabled, checked)
 	table.kv
 		tr
-			+menu_switch_td2(id, enabled, checked)
+			td
 				block
+			td #[+menu_switch(id, enabled, checked)]
 
 
 mixin menu_radio_items(name, items)
@@ -60,20 +55,16 @@ mixin menu_radio_items(name, items)
 		label(for=id) !{item["title"]}
 
 
-mixin menu_radio_td2(name, items)
-	td
-		block
-	td
-		.radio-box
-			+menu_radio_items(name, items)
+mixin menu_radio(name, items)
+	.radio-box
+		+menu_radio_items(name, items)
 
 
-mixin menu_slider_td3(slider_id, value_id, enabled=true)
-	td
-		block
-	td.value-slider
-		input(type="range" id=slider_id disabled=!enabled)
-	td.value-number(id=value_id)
+mixin menu_slider(slider_id, value_id, enabled=true)
+	table
+		td.slider-inner
+			input(type="range" id=slider_id disabled=!enabled)
+		td.slider-value(id=value_id)
 
 
 mixin menu_spoiler(title)

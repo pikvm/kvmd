@@ -78,9 +78,11 @@ li.right.feature-disabled#switch-dropdown
 		+menu_spoiler("Interface settings")
 			table.kv
 				tr
-					+menu_switch_td2("switch-atx-ask-switch", true, true) Ask ATX click confirmation:
+					td Ask ATX click confirmation:
+					td #[+menu_switch("switch-atx-ask-switch", true, true)]
 				tr
-					+menu_switch_td2("switch-msd-ask-switch", true, true) Confirm switching when the Drive is connected:
+					td Confirm switching when the Drive is connected:
+					td #[+menu_switch("switch-msd-ask-switch", true, true)]
 
 		hr
 

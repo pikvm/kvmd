@@ -29,12 +29,14 @@ li.right#system-dropdown
 
 		table.kv
 			tr
-				+menu_switch_td2("hid-keyboard-bad-link-switch", true, false) Bad link mode (release keys immediately):
+				td Bad link mode (release keys immediately):
+				td #[+menu_switch("hid-keyboard-bad-link-switch", true, false)]
 			tr
-				+menu_switch_td2("hid-mute-switch", true, false) Mute keyboard &amp; mouse (HID):
+				td Mute keyboard &amp; mouse (HID):
+				td #[+menu_switch("hid-mute-switch", true, false)]
 			tr.feature-disabled#hid-jiggler
-				+menu_switch_td2("hid-jiggler-switch", false, false)
-					| #[a(target="_blank" href="https://docs.pikvm.org/mouse_jiggler") Mouse jiggler]:
+				td #[a(target="_blank" href="https://docs.pikvm.org/mouse_jiggler") Mouse jiggler]:
+				td #[+menu_switch("hid-jiggler-switch", false, false)]
 
 		hr
 
@@ -53,40 +55,51 @@ li.right#system-dropdown
 				td Resolution:
 				td #[select.small#stream-resolution-selector(disabled)]
 			tr.feature-disabled#stream-mode
-				+menu_radio_td2("stream-mode-radio", [
-					{title: "WebRTC<br>H.264", value: "janus"},
-					{title: "Direct<br>H.264", value: "media"},
-					{title: "Legacy<br>MJPEG", value: "mjpeg", checked: true},
-				]) #[a(target="_blank" href="https://docs.pikvm.org/webrtc") Video mode]:
+				td #[a(target="_blank" href="https://docs.pikvm.org/webrtc") Video mode]:
+				td
+					+menu_radio("stream-mode-radio", [
+						{title: "WebRTC<br>H.264", value: "janus"},
+						{title: "Direct<br>H.264", value: "media"},
+						{title: "Legacy<br>MJPEG", value: "mjpeg", checked: true},
+					])
 			tr.feature-disabled#stream-orient
-				+menu_radio_td2("stream-orient-radio", [
-					{title: "Default", value: "0", checked: true},
-					{title: "90&deg;", value: "90"},
-					{title: "180&deg;", value: "180"},
-					{title: "270&deg;", value: "270"},
-				]) Orientation:
+				td Orientation:
+				td
+					+menu_radio("stream-orient-radio", [
+						{title: "Default", value: "0", checked: true},
+						{title: "90&deg;", value: "90"},
+						{title: "180&deg;", value: "180"},
+						{title: "270&deg;", value: "270"},
+					])
 
 		+menu_spoiler("Video quality settings")
 			table.kv
 				tr
-					+menu_slider_td3("stream-desired-fps-slider", "stream-desired-fps-value", false) FPS limit:
+					td FPS limit:
+					td.slider #[+menu_slider("stream-desired-fps-slider", "stream-desired-fps-value", false)]
 				tr.feature-disabled#stream-quality
-					+menu_slider_td3("stream-quality-slider", "stream-quality-value", false) JPEG quality:
+					td JPEG quality:
+					td.slider #[+menu_slider("stream-quality-slider", "stream-quality-value", false)]
 				tr.feature-disabled#stream-h264-bitrate
-					+menu_slider_td3("stream-h264-bitrate-slider", "stream-h264-bitrate-value", false) H.264 kbps:
+					td H.264 kbps:
+					td.slider #[+menu_slider("stream-h264-bitrate-slider", "stream-h264-bitrate-value", false)]
 				tr.feature-disabled#stream-h264-gop
-					+menu_slider_td3("stream-h264-gop-slider", "stream-h264-gop-value", false)
-						| #[a(target="_blank" href="https://docs.pikvm.org/video#settings") H.264 gop]:
+					td #[a(target="_blank" href="https://docs.pikvm.org/video#settings") H.264 gop]:
+					td.slider #[+menu_slider("stream-h264-gop-slider", "stream-h264-gop-value", false)]
 
 		table.kv.feature-disabled#stream-multimedia
 			tr
-				+menu_switch_td2("stream-multimedia-switch", true, false) Enable multimedia:
+				td Enable multimedia:
+				td #[+menu_switch("stream-multimedia-switch", true, false)]
 			tr.feature-disabled#stream-audio
-				+menu_slider_td3("stream-audio-volume-slider", "stream-audio-volume-value", false) Audio volume:
+				td Audio volume:
+				td.slider #[+menu_slider("stream-audio-volume-slider", "stream-audio-volume-value", false)]
 			tr.feature-disabled#stream-mic
-				+menu_switch_td2("stream-mic-switch", false, false) Microphone:
+				td Microphone:
+				td #[+menu_switch("stream-mic-switch", false, false)]
 			tr.feature-disabled#stream-camera
-				+menu_switch_td2("stream-camera-switch", false, false) Camera:
+				td Camera:
+				td #[+menu_switch("stream-camera-switch", false, false)]
 
 		.buttons.buttons-row
 			button.row33(data-wm-menu-force-hide data-wm-window-show="stream-window") &bull; Show stream
@@ -107,63 +120,81 @@ li.right#system-dropdown
 		+menu_spoiler("Keyboard &amp; mouse (HID) settings")
 			table(class="kv")
 				tr
-					+menu_switch_td2("hid-keyboard-sync-caps-switch", true, false)
-						| Sync Caps Lock state to the host:#[br]#[i (Requires working Caps led)]
+					td Sync Caps Lock state to the host:#[br]#[i (Requires working Caps led)]
+					td #[+menu_switch("hid-keyboard-sync-caps-switch", true, false)]
 				tr
-					+menu_switch_td2("hid-keyboard-swap-cc-switch", true, false) Swap Left Ctrl and Caps keys:
+					td Swap Left Ctrl and Caps keys:
+					td #[+menu_switch("hid-keyboard-swap-cc-switch", true, false)]
 			hr
 			table(class="kv")
 				tr
-					+menu_slider_td3("hid-mouse-rate-slider", "hid-mouse-rate-value") Mouse polling:
+					td Mouse polling
+					td.slider #[+menu_slider("hid-mouse-rate-slider", "hid-mouse-rate-value")]
 				tr.feature-disabled#hid-mouse-sens
-					+menu_slider_td3("hid-mouse-sens-slider", "hid-mouse-sens-value", false) Relative sensitivity:
+					td Relative sensitivity:
+					td.slider #[+menu_slider("hid-mouse-sens-slider", "hid-mouse-sens-value", false)]
 				tr.feature-disabled#hid-mouse-boost
-					+menu_slider_td3("hid-mouse-boost-slider", "hid-mouse-boost-value", false)
-						| Relative boost factor:#[br]#[i (Firefox on Wayland)]
+					td Relative boost factor:#[br]#[i (Firefox on Wayland)]
+					td.slider #[+menu_slider("hid-mouse-boost-slider", "hid-mouse-boost-value", false)]
 				tr(id="hid-mouse-squash" class="feature-disabled")
-					+menu_switch_td2("hid-mouse-squash-switch", true, true) Squash relative moves:
+					td Squash relative moves:
+					td #[+menu_switch("hid-mouse-squash-switch", true, true)]
 				tr
 					td Reverse scrolling:
 					td
 						table
 							tr
-								+menu_switch_td2("hid-mouse-reverse-scrolling-y-switch", true, false) Vert:
+								td Vert:
+								td #[+menu_switch("hid-mouse-reverse-scrolling-y-switch", true, false)]
 								td &nbsp;&nbsp;
-								+menu_switch_td2("hid-mouse-reverse-scrolling-x-switch", true, false) Horiz:
+								td Horiz:
+								td #[+menu_switch("hid-mouse-reverse-scrolling-x-switch", true, false)]
 				tr
-					+menu_switch_td2("hid-mouse-cumulative-scrolling-switch", true, false) Cumulative scrolling:
+					td Cumulative scrolling:
+					td #[+menu_switch("hid-mouse-cumulative-scrolling-switch", true, false)]
 				tr
-					+menu_slider_td3("hid-mouse-scroll-slider", "hid-mouse-scroll-value") Scroll rate:
+					td Scroll rate:
+					td.slider #[+menu_slider("hid-mouse-scroll-slider", "hid-mouse-scroll-value")]
 				tr
-					+menu_switch_td2("hid-mouse-dot-switch", true, true) Show the blue dot:
+					td Show the blue dot:
+					td #[+menu_switch("hid-mouse-dot-switch", true, true)]
 
 		+menu_spoiler("Interface settings")
 			table.kv
 				tr
-					+menu_radio_td2("page-ui-type-radio", [
-						{title: "Auto", value: "auto", checked: true},
-						{title: "Desktop", value: "desktop"},
-						{title: "Mobile", value: "mobile"},
-					]) Interface style:
+					td Interface style:
+					td
+						+menu_radio("page-ui-type-radio", [
+							{title: "Auto", value: "auto", checked: true},
+							{title: "Desktop", value: "desktop"},
+							{title: "Mobile", value: "mobile"},
+						])
 			hr
 			table.kv
 				tr
-					+menu_switch_td2("page-close-ask-switch", true, true) Ask page close confirmation:
+					td Ask page close confirmation:
+					td #[+menu_switch("page-close-ask-switch", true, true)]
 				tr
-					+menu_switch_td2("page-full-tab-stream-switch", true, false) Expand for the entire tab by default:
+					td Expand for the entire tab by default:
+					td #[+menu_switch("page-full-tab-stream-switch", true, false)]
 				tr
-					+menu_switch_td2("stream-suspend-switch", true, false) Suspend stream when tab is not active:
+					td Suspend stream when tab is not active:
+					td #[+menu_switch("stream-suspend-switch", true, false)]
 
 		table.kv
 			tr.feature-disabled#hid-connect
-				+menu_switch_td2("hid-connect-switch", true, true) Connect HID to Server:
+				td Connect HID to Server:
+				td #[+menu_switch("hid-connect-switch", true, true)]
 			tr.feature-disabled#v3-usb-breaker
-				+menu_switch_td2_gpio(
-					"__v3_usb_breaker__",
-					"Turning off this switch will disconnect the main USB from the server.  Are you sure you want to continue?"
-				) Connect main USB to Server:
+				td Connect main USB to Server:
+				td
+					+menu_switch_gpio(
+						"__v3_usb_breaker__",
+						"Turning off this switch will disconnect the main USB from the server.  Are you sure you want to continue?"
+					)
 			tr.feature-disabled#v4-locator
-				+menu_switch_td2_gpio("__v4_locator__") Enable locator LED:
+				td Enable locator LED:
+				td #[+menu_switch_gpio("__v4_locator__")]
 
 		.buttons.buttons-row
 			button.row33(data-wm-menu-force-hide data-wm-window-show="keyboard-window") &bull; Keyboard

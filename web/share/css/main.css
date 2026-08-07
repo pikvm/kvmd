@@ -274,15 +274,18 @@ table.kv td {
 }
 table.kv td.value {
 	font-weight: bold;
-	max-width: 310px;
 	overflow: hidden;
+	max-width: 310px;
 }
-table.kv td.value-slider {
+table.kv td.slider {
 	width: 100%;
 }
-table.kv td.value-number {
+table.kv td.slider-inner {
+	width: 100%;
+	padding-right: 6px;
+}
+table.kv td.slider-value {
 	font-weight: bold;
-	max-width: 310px;
 	overflow: hidden;
 	min-width: 40px;
 	max-width: 40px;

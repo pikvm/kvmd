@@ -187,34 +187,31 @@
           <hr>
           <table class="kv">
             <tr>
-                  <td>Bad link mode (release keys immediately):
-                  </td>
-                  <td align="right">
+              <td>Bad link mode (release keys immediately):</td>
+              <td>
                     <div class="switch-box">
                       <input type="checkbox" id="hid-keyboard-bad-link-switch">
                       <label for="hid-keyboard-bad-link-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr>
-                  <td>Mute keyboard &amp; mouse (HID):
-                  </td>
-                  <td align="right">
+              <td>Mute keyboard &amp; mouse (HID):</td>
+              <td>
                     <div class="switch-box">
                       <input type="checkbox" id="hid-mute-switch">
                       <label for="hid-mute-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr class="feature-disabled" id="hid-jiggler">
-                  <td><a target="_blank" href="https://docs.pikvm.org/mouse_jiggler">Mouse jiggler</a>:
-                  </td>
-                  <td align="right">
+              <td><a target="_blank" href="https://docs.pikvm.org/mouse_jiggler">Mouse jiggler</a>:</td>
+              <td>
                     <div class="switch-box">
                       <input disabled type="checkbox" id="hid-jiggler-switch">
                       <label for="hid-jiggler-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
           </table>
           <hr>
@@ -259,9 +256,8 @@
               </td>
             </tr>
             <tr class="feature-disabled" id="stream-mode">
-                  <td><a target="_blank" href="https://docs.pikvm.org/webrtc">Video mode</a>:
-                  </td>
-                  <td>
+              <td><a target="_blank" href="https://docs.pikvm.org/webrtc">Video mode</a>:</td>
+              <td>
                     <div class="radio-box">
                           <input type="radio" id="stream-mode-radio-janus" name="stream-mode-radio" value="janus">
                           <label for="stream-mode-radio-janus">WebRTC<br>H.264</label>
@@ -270,12 +266,11 @@
                           <input type="radio" id="stream-mode-radio-mjpeg" name="stream-mode-radio" value="mjpeg" checked>
                           <label for="stream-mode-radio-mjpeg">Legacy<br>MJPEG</label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr class="feature-disabled" id="stream-orient">
-                  <td>Orientation:
-                  </td>
-                  <td>
+              <td>Orientation:</td>
+              <td>
                     <div class="radio-box">
                           <input type="radio" id="stream-orient-radio-0" name="stream-orient-radio" value="0" checked>
                           <label for="stream-orient-radio-0">Default</label>
@@ -286,7 +281,7 @@
                           <input type="radio" id="stream-orient-radio-270" name="stream-orient-radio" value="270">
                           <label for="stream-orient-radio-270">270&deg;</label>
                     </div>
-                  </td>
+              </td>
             </tr>
           </table>
               <details>
@@ -294,78 +289,90 @@
                 <div class="spoiler">
                   <table class="kv">
                     <tr>
-                          <td>FPS limit:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="stream-desired-fps-slider" disabled>
-                          </td>
-                          <td class="value-number" id="stream-desired-fps-value"></td>
+                      <td>FPS limit:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="stream-desired-fps-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="stream-desired-fps-value"></td>
+                            </table>
+                      </td>
                     </tr>
                     <tr class="feature-disabled" id="stream-quality">
-                          <td>JPEG quality:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="stream-quality-slider" disabled>
-                          </td>
-                          <td class="value-number" id="stream-quality-value"></td>
+                      <td>JPEG quality:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="stream-quality-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="stream-quality-value"></td>
+                            </table>
+                      </td>
                     </tr>
                     <tr class="feature-disabled" id="stream-h264-bitrate">
-                          <td>H.264 kbps:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="stream-h264-bitrate-slider" disabled>
-                          </td>
-                          <td class="value-number" id="stream-h264-bitrate-value"></td>
+                      <td>H.264 kbps:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="stream-h264-bitrate-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="stream-h264-bitrate-value"></td>
+                            </table>
+                      </td>
                     </tr>
                     <tr class="feature-disabled" id="stream-h264-gop">
-                          <td><a target="_blank" href="https://docs.pikvm.org/video#settings">H.264 gop</a>:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="stream-h264-gop-slider" disabled>
-                          </td>
-                          <td class="value-number" id="stream-h264-gop-value"></td>
+                      <td><a target="_blank" href="https://docs.pikvm.org/video#settings">H.264 gop</a>:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="stream-h264-gop-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="stream-h264-gop-value"></td>
+                            </table>
+                      </td>
                     </tr>
                   </table>
                 </div>
               </details>
           <table class="kv feature-disabled" id="stream-multimedia">
             <tr>
-                  <td>Enable multimedia:
-                  </td>
-                  <td align="right">
+              <td>Enable multimedia:</td>
+              <td>
                     <div class="switch-box">
                       <input type="checkbox" id="stream-multimedia-switch">
                       <label for="stream-multimedia-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr class="feature-disabled" id="stream-audio">
-                  <td>Audio volume:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-audio-volume-slider" disabled>
-                  </td>
-                  <td class="value-number" id="stream-audio-volume-value"></td>
+              <td>Audio volume:</td>
+              <td class="slider">
+                    <table>
+                      <td class="slider-inner">
+                        <input type="range" id="stream-audio-volume-slider" disabled>
+                      </td>
+                      <td class="slider-value" id="stream-audio-volume-value"></td>
+                    </table>
+              </td>
             </tr>
             <tr class="feature-disabled" id="stream-mic">
-                  <td>Microphone:
-                  </td>
-                  <td align="right">
+              <td>Microphone:</td>
+              <td>
                     <div class="switch-box">
                       <input disabled type="checkbox" id="stream-mic-switch">
                       <label for="stream-mic-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr class="feature-disabled" id="stream-camera">
-                  <td>Camera:
-                  </td>
-                  <td align="right">
+              <td>Camera:</td>
+              <td>
                     <div class="switch-box">
                       <input disabled type="checkbox" id="stream-camera-switch">
                       <label for="stream-camera-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
           </table>
           <div class="buttons buttons-row">
@@ -398,115 +405,120 @@
                 <div class="spoiler">
                   <table class="kv">
                     <tr>
-                          <td>Sync Caps Lock state to the host:<br><i>(Requires working Caps led)</i>
-                          </td>
-                          <td align="right">
+                      <td>Sync Caps Lock state to the host:<br><i>(Requires working Caps led)</i></td>
+                      <td>
                             <div class="switch-box">
                               <input type="checkbox" id="hid-keyboard-sync-caps-switch">
                               <label for="hid-keyboard-sync-caps-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                     <tr>
-                          <td>Swap Left Ctrl and Caps keys:
-                          </td>
-                          <td align="right">
+                      <td>Swap Left Ctrl and Caps keys:</td>
+                      <td>
                             <div class="switch-box">
                               <input type="checkbox" id="hid-keyboard-swap-cc-switch">
                               <label for="hid-keyboard-swap-cc-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                   </table>
                   <hr>
                   <table class="kv">
                     <tr>
-                          <td>Mouse polling:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="hid-mouse-rate-slider">
-                          </td>
-                          <td class="value-number" id="hid-mouse-rate-value"></td>
+                      <td>Mouse polling</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="hid-mouse-rate-slider">
+                              </td>
+                              <td class="slider-value" id="hid-mouse-rate-value"></td>
+                            </table>
+                      </td>
                     </tr>
                     <tr class="feature-disabled" id="hid-mouse-sens">
-                          <td>Relative sensitivity:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="hid-mouse-sens-slider" disabled>
-                          </td>
-                          <td class="value-number" id="hid-mouse-sens-value"></td>
+                      <td>Relative sensitivity:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="hid-mouse-sens-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="hid-mouse-sens-value"></td>
+                            </table>
+                      </td>
                     </tr>
                     <tr class="feature-disabled" id="hid-mouse-boost">
-                          <td>Relative boost factor:<br><i>(Firefox on Wayland)</i>
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="hid-mouse-boost-slider" disabled>
-                          </td>
-                          <td class="value-number" id="hid-mouse-boost-value"></td>
+                      <td>Relative boost factor:<br><i>(Firefox on Wayland)</i></td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="hid-mouse-boost-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="hid-mouse-boost-value"></td>
+                            </table>
+                      </td>
                     </tr>
                     <tr class="feature-disabled" id="hid-mouse-squash">
-                          <td>Squash relative moves:
-                          </td>
-                          <td align="right">
+                      <td>Squash relative moves:</td>
+                      <td>
                             <div class="switch-box">
                               <input checked type="checkbox" id="hid-mouse-squash-switch">
                               <label for="hid-mouse-squash-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                     <tr>
                       <td>Reverse scrolling:</td>
                       <td>
                         <table>
                           <tr>
-                                <td>Vert:
-                                </td>
-                                <td align="right">
+                            <td>Vert:</td>
+                            <td>
                                   <div class="switch-box">
                                     <input type="checkbox" id="hid-mouse-reverse-scrolling-y-switch">
                                     <label for="hid-mouse-reverse-scrolling-y-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                                   </div>
-                                </td>
+                            </td>
                             <td>&nbsp;&nbsp;</td>
-                                <td>Horiz:
-                                </td>
-                                <td align="right">
+                            <td>Horiz:</td>
+                            <td>
                                   <div class="switch-box">
                                     <input type="checkbox" id="hid-mouse-reverse-scrolling-x-switch">
                                     <label for="hid-mouse-reverse-scrolling-x-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                                   </div>
-                                </td>
+                            </td>
                           </tr>
                         </table>
                       </td>
                     </tr>
                     <tr>
-                          <td>Cumulative scrolling:
-                          </td>
-                          <td align="right">
+                      <td>Cumulative scrolling:</td>
+                      <td>
                             <div class="switch-box">
                               <input type="checkbox" id="hid-mouse-cumulative-scrolling-switch">
                               <label for="hid-mouse-cumulative-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                     <tr>
-                          <td>Scroll rate:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="hid-mouse-scroll-slider">
-                          </td>
-                          <td class="value-number" id="hid-mouse-scroll-value"></td>
+                      <td>Scroll rate:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="hid-mouse-scroll-slider">
+                              </td>
+                              <td class="slider-value" id="hid-mouse-scroll-value"></td>
+                            </table>
+                      </td>
                     </tr>
                     <tr>
-                          <td>Show the blue dot:
-                          </td>
-                          <td align="right">
+                      <td>Show the blue dot:</td>
+                      <td>
                             <div class="switch-box">
                               <input checked type="checkbox" id="hid-mouse-dot-switch">
                               <label for="hid-mouse-dot-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                   </table>
                 </div>
@@ -516,9 +528,8 @@
                 <div class="spoiler">
                   <table class="kv">
                     <tr>
-                          <td>Interface style:
-                          </td>
-                          <td>
+                      <td>Interface style:</td>
+                      <td>
                             <div class="radio-box">
                                   <input type="radio" id="page-ui-type-radio-auto" name="page-ui-type-radio" value="auto" checked>
                                   <label for="page-ui-type-radio-auto">Auto</label>
@@ -527,74 +538,68 @@
                                   <input type="radio" id="page-ui-type-radio-mobile" name="page-ui-type-radio" value="mobile">
                                   <label for="page-ui-type-radio-mobile">Mobile</label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                   </table>
                   <hr>
                   <table class="kv">
                     <tr>
-                          <td>Ask page close confirmation:
-                          </td>
-                          <td align="right">
+                      <td>Ask page close confirmation:</td>
+                      <td>
                             <div class="switch-box">
                               <input checked type="checkbox" id="page-close-ask-switch">
                               <label for="page-close-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                     <tr>
-                          <td>Expand for the entire tab by default:
-                          </td>
-                          <td align="right">
+                      <td>Expand for the entire tab by default:</td>
+                      <td>
                             <div class="switch-box">
                               <input type="checkbox" id="page-full-tab-stream-switch">
                               <label for="page-full-tab-stream-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                     <tr>
-                          <td>Suspend stream when tab is not active:
-                          </td>
-                          <td align="right">
+                      <td>Suspend stream when tab is not active:</td>
+                      <td>
                             <div class="switch-box">
                               <input type="checkbox" id="stream-suspend-switch">
                               <label for="stream-suspend-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                   </table>
                 </div>
               </details>
           <table class="kv">
             <tr class="feature-disabled" id="hid-connect">
-                  <td>Connect HID to Server:
-                  </td>
-                  <td align="right">
+              <td>Connect HID to Server:</td>
+              <td>
                     <div class="switch-box">
                       <input checked type="checkbox" id="hid-connect-switch">
                       <label for="hid-connect-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr class="feature-disabled" id="v3-usb-breaker">
-                  <td>Connect main USB to Server:
-                  </td>
-                  <td align="right">
+              <td>Connect main USB to Server:</td>
+              <td>
                     <div class="switch-box">
                       <input class="__gpio-switch-__v3_usb_breaker__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v3_usb_breaker__" data-gpio-channel="__v3_usb_breaker__" data-gpio-confirm-off="Turning off this switch will disconnect the main USB from the server.  Are you sure you want to continue?">
                       <label for="__gpio-switch-__v3_usb_breaker__"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr class="feature-disabled" id="v4-locator">
-                  <td>Enable locator LED:
-                  </td>
-                  <td align="right">
+              <td>Enable locator LED:</td>
+              <td>
                     <div class="switch-box">
                       <input class="__gpio-switch-__v4_locator__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v4_locator__" data-gpio-channel="__v4_locator__" data-gpio-confirm-off="">
                       <label for="__gpio-switch-__v4_locator__"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
           </table>
           <div class="buttons buttons-row">
@@ -612,14 +617,14 @@
           <hr>
               <table class="kv">
                 <tr>
-                      <td>Ask click confirmation:
-                      </td>
-                      <td align="right">
+                  <td>Ask click confirmation:
+                  </td>
+                  <td>
                         <div class="switch-box">
                           <input checked type="checkbox" id="atx-ask-switch">
                           <label for="atx-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                         </div>
-                      </td>
+                  </td>
                 </tr>
               </table>
           <div class="buttons">
@@ -740,24 +745,22 @@
               </td>
             </tr>
             <tr>
-                  <td><a target="_blank" href="https://docs.pikvm.org/msd">Mode</a>:
-                  </td>
-                  <td>
+              <td><a target="_blank" href="https://docs.pikvm.org/msd">Mode</a>:</td>
+              <td>
                     <div class="radio-box">
                           <input type="radio" id="msd-mode-radio-1" name="msd-mode-radio" value="1" checked>
                           <label for="msd-mode-radio-1">CD/DVD</label>
                           <input type="radio" id="msd-mode-radio-0" name="msd-mode-radio" value="0">
                           <label for="msd-mode-radio-0">Flash</label>
                     </div>
-                  </td>
-                  <td>Writable:
-                  </td>
-                  <td align="right">
+              </td>
+              <td>Writable:</td>
+              <td>
                     <div class="switch-box">
                       <input disabled type="checkbox" id="msd-rw-switch">
                       <label for="msd-rw-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
               <td style="width: 100%;"></td>
               <td>
                 <button id="msd-download-button" disabled title="Download image"><b>&nbsp;&nbsp;&#x21E9;&nbsp;&nbsp;</b></button>
@@ -874,14 +877,14 @@
           <hr>
               <table class="kv">
                 <tr>
-                      <td>Infinite loop playback:
-                      </td>
-                      <td align="right">
+                  <td>Infinite loop playback:
+                  </td>
+                  <td>
                         <div class="switch-box">
                           <input disabled type="checkbox" id="hid-recorder-loop-switch">
                           <label for="hid-recorder-loop-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                         </div>
-                      </td>
+                  </td>
                 </tr>
               </table>
           <input id="hid-recorder-new-script-file" type="file" style="display: none">
@@ -913,32 +916,33 @@
           </table>
           <table class="kv">
             <tr>
-                  <td>Delay between keys:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="hid-pak-delay-slider">
-                  </td>
-                  <td class="value-number" id="hid-pak-delay-value"></td>
+              <td>Delay between keys:</td>
+              <td class="slider">
+                    <table>
+                      <td class="slider-inner">
+                        <input type="range" id="hid-pak-delay-slider">
+                      </td>
+                      <td class="slider-value" id="hid-pak-delay-value"></td>
+                    </table>
+              </td>
             </tr>
             <tr>
-                  <td>Hide input text:
-                  </td>
-                  <td align="right">
+              <td>Hide input text:</td>
+              <td>
                     <div class="switch-box">
                       <input type="checkbox" id="hid-pak-secure-switch">
                       <label for="hid-pak-secure-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr>
-                  <td>Ask paste confirmation:
-                  </td>
-                  <td align="right">
+              <td>Ask paste confirmation:</td>
+              <td>
                     <div class="switch-box">
                       <input checked type="checkbox" id="hid-pak-ask-switch">
                       <label for="hid-pak-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
           </table>
           <div class="feature-disabled" id="stream-ocr">
@@ -1036,14 +1040,14 @@
           </div>
               <table class="kv">
                 <tr>
-                      <td>Ask the magic confirmation:
-                      </td>
-                      <td align="right">
+                  <td>Ask the magic confirmation:
+                  </td>
+                  <td>
                         <div class="switch-box">
                           <input checked type="checkbox" id="hid-sysrq-ask-switch">
                           <label for="hid-sysrq-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                         </div>
-                      </td>
+                  </td>
                 </tr>
               </table>
         </div>
@@ -1221,24 +1225,22 @@
                 <div class="spoiler">
                   <table class="kv">
                     <tr>
-                          <td>Ask ATX click confirmation:
-                          </td>
-                          <td align="right">
+                      <td>Ask ATX click confirmation:</td>
+                      <td>
                             <div class="switch-box">
                               <input checked type="checkbox" id="switch-atx-ask-switch">
                               <label for="switch-atx-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                     <tr>
-                          <td>Confirm switching when the Drive is connected:
-                          </td>
-                          <td align="right">
+                      <td>Confirm switching when the Drive is connected:</td>
+                      <td>
                             <div class="switch-box">
                               <input checked type="checkbox" id="switch-msd-ask-switch">
                               <label for="switch-msd-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                   </table>
                 </div>
