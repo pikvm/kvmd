@@ -1,0 +1,56 @@
+/*****************************************************************************
+#                                                                            #
+#    KVMD - The main PiKVM daemon.                                           #
+#                                                                            #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
+#                                                                            #
+#    This program is free software: you can redistribute it and/or modify    #
+#    it under the terms of the GNU General Public License as published by    #
+#    the Free Software Foundation, either version 3 of the License, or       #
+#    (at your option) any later version.                                     #
+#                                                                            #
+#    This program is distributed in the hope that it will be useful,         #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#    GNU General Public License for more details.                            #
+#                                                                            #
+#    You should have received a copy of the GNU General Public License       #
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
+#                                                                            #
+*****************************************************************************/
+
+
+:root {
+	--cs-presence-fg: #fff;
+	--cs-presence-controlling-fg: #4caf50;
+	--cs-presence-idle-opacity: 0.5;
+	--cs-presence-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.8), 1px -1px 2px rgba(0,0,0,0.8), -1px 1px 2px rgba(0,0,0,0.8);
+	--cs-presence-font-size: 12px;
+	--cs-presence-top: 6px;
+	--cs-presence-left: 6px;
+}
+
+.presence-overlay {
+	position: absolute;
+	top: var(--cs-presence-top);
+	left: var(--cs-presence-left);
+	z-index: 99999;
+	background: none;
+	color: var(--cs-presence-fg);
+	padding: 0;
+	margin: 0;
+	font-size: var(--cs-presence-font-size);
+	line-height: 1.5;
+	font-family: sans-serif;
+	pointer-events: none;
+	text-shadow: var(--cs-presence-shadow);
+}
+
+.presence-user-controlling {
+	font-weight: bold;
+	color: var(--cs-presence-controlling-fg);
+}
+
+.presence-user-idle {
+	opacity: var(--cs-presence-idle-opacity);
+}
