@@ -563,6 +563,45 @@
                           </td>
                     </tr>
                   </table>
+                  <hr class="feature-disabled" id="drawing-tablet-mode-hr">
+                  <table class="kv feature-disabled" id="drawing-tablet-mode-table">
+                    <tr>
+                          <td>Drawing tablet mode:
+                          </td>
+                          <td align="right">
+                            <div class="switch-box">
+                              <input disabled type="checkbox" id="drawing-tablet-switch">
+                              <label for="drawing-tablet-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                          </td>
+                    </tr>
+                    <tr>
+                          <td>Drawing tablet right-click emulation:
+                          </td>
+                          <td align="right">
+                            <div class="switch-box">
+                              <input checked disabled type="checkbox" id="drawing-tablet-right-emulation-switch">
+                              <label for="drawing-tablet-right-emulation-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                          </td>
+                    </tr>
+                    <tr>
+                          <td>Drawing tablet right-click delay:
+                          </td>
+                          <td class="value-slider">
+                            <input type="range" id="drawing-tablet-right-delay-slider" disabled>
+                          </td>
+                          <td class="value-number" id="drawing-tablet-right-delay-value"></td>
+                    </tr>
+                    <tr>
+                          <td>Drawing tablet drag threshold:
+                          </td>
+                          <td class="value-slider">
+                            <input type="range" id="drawing-tablet-drag-threshold-slider" disabled>
+                          </td>
+                          <td class="value-number" id="drawing-tablet-drag-threshold-value"></td>
+                    </tr>
+                  </table>
                 </div>
               </details>
           <table class="kv">
@@ -1264,6 +1303,7 @@
       </div>
       <div class="stream-box-offline" id="stream-box">
         <div id="stream-keyboard-magic"></div><img id="stream-image" src="../share/pic/blank-stream.webp">
+        <div class="hidden" id="drawing-tablet-right-indicator"></div>
         <video class="hidden" id="stream-video" disablePictureInPicture="true" autoplay playsinline muted></video>
         <canvas class="hidden" id="stream-canvas"></canvas>
         <div id="stream-fullscreen-active"></div>
