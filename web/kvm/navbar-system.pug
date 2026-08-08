@@ -55,7 +55,7 @@ li.right#system-dropdown
 				td #[+menu_switch("hid-keyboard-bad-link-switch", true, false)]
 				td.tip Release keys on the host immediately
 			tr
-				td Mute HID:
+				td Mute KB/M:
 				td #[+menu_switch("hid-mute-switch", true, false)]
 				td.tip Don't send keyboard &amp mouse events
 			tr.feature-disabled#hid-jiggler
@@ -139,7 +139,7 @@ li.right#system-dropdown
 				td #[a(target="_blank" href="https://docs.pikvm.org/shortcuts") Shortcuts magic]:
 				td #[select.small#hid-keyboard-magic-selector]
 
-		+menu_spoiler("Keyboard &amp; mouse (HID) settings")
+		+menu_spoiler("Keyboard &amp; mouse settings")
 			table.kv
 				tr
 					td Sync Caps Lock state to the host:#[br]#[i (Requires working Caps led)]
@@ -191,7 +191,7 @@ li.right#system-dropdown
 
 		table.kv
 			tr.feature-disabled#hid-connect
-				td Connect HID:
+				td Connect KB/M:
 				td #[+menu_switch("hid-connect-switch", true, true)]
 				td.tip Control keyboard &amp; mouse emulator
 			tr.feature-disabled#v3-usb-breaker
@@ -215,4 +215,4 @@ li.right#system-dropdown
 			.buttons-row
 				button.row33(data-wm-menu-force-hide data-wm-window-show="keyboard-window") &bull; Keyboard
 				button.row33(data-wm-menu-force-hide data-wm-window-show="mouse-window") &bull; Mouse
-				button.row33#hid-reset-button(disabled) Reset HID
+				button.row33#hid-reset-button(disabled) Reset KB/M

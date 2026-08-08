@@ -145,7 +145,7 @@ export function Keyboard(__recordWsEvent) {
 		if (__ws) {
 			if (__online === null) {
 				led = "led-red";
-				title = (is_captured ? "Keyboard captured, HID offline" : "Keyboard free, HID offline");
+				title = (is_captured ? "Keyboard captured, emulator offline" : "Keyboard free, emulator offline");
 			} else if (__online) {
 				if (is_captured) {
 					led = "led-green";

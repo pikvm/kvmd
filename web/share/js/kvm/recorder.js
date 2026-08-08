@@ -304,7 +304,7 @@ export function Recorder() {
 						wm.error("Too many text for paste!");
 						__stopProcess();
 					} else if (http.status !== 200) {
-						wm.error("HID paste error", http.responseText);
+						wm.error("Keyboard paste error", http.responseText);
 						__stopProcess();
 					} else if (http.status === 200) {
 						__play_timer = setTimeout(() => __runEvents(index + 1, time), 0);
