@@ -149,9 +149,6 @@ export function Hid(__getGeometry, __recorder) {
 			tools.radio.setEnabled("hid-outputs-keyboard-radio", false);
 			tools.radio.setEnabled("hid-outputs-mouse-radio", false);
 			tools.el.setEnabled($("hid-connect-switch"), false);
-			tools.el.setEnabled($("hid-mouse-squash-switch"), false);
-			tools.el.setEnabled($("hid-mouse-sens-slider"), false);
-			tools.el.setEnabled($("hid-mouse-boost-slider"), false);
 		}
 		tools.el.setEnabled($("hid-reset-button"), __state);
 		tools.el.setEnabled($("hid-jiggler-switch"), __state);
@@ -183,13 +180,14 @@ export function Hid(__getGeometry, __recorder) {
 	};
 
 	var __updateMouseOutputs = function(outputs, absolute) {
+		let has_absolute = null;
 		let has_relative = null;
-		let has_relative_squash = null;
 		let avail = outputs.available;
 		if (avail.length > 0) {
 			let el = $("hid-outputs-mouse-box");
 			let avail_json = JSON.stringify(avail);
 			if (el.__avail_json !== avail_json) {
+				has_absolute = false;
 				has_relative = false;
 				let html = "";
 				for (let kv of [
@@ -201,6 +199,7 @@ export function Hid(__getGeometry, __recorder) {
 				]) {
 					if (avail.includes(kv[1])) {
 						html += tools.radio.makeItem("hid-outputs-mouse-radio", kv[0], kv[1]);
+						has_absolute = (has_absolute || !kv[2]);
 						has_relative = (has_relative || kv[2]);
 					}
 				}
@@ -209,20 +208,18 @@ export function Hid(__getGeometry, __recorder) {
 				el.__avail_json = avail_json;
 			}
 			tools.radio.setValue("hid-outputs-mouse-radio", outputs.active);
-			has_relative_squash = (["usb_rel", "ps2"].includes(outputs.active));
 		} else {
+			has_absolute = absolute;
 			has_relative = !absolute;
-			has_relative_squash = has_relative;
+		}
+		if (has_absolute !== null) {
+			tools.feature.setEnabled($("hid-mouse-absolute"), has_absolute);
 		}
 		if (has_relative !== null) {
-			tools.feature.setEnabled($("hid-mouse-squash"), has_relative);
-			tools.feature.setEnabled($("hid-mouse-sens"), has_relative);
+			tools.feature.setEnabled($("hid-mouse-relative"), has_relative);
 			tools.feature.setEnabled($("hid-mouse-boost"), (has_relative && tools.browser.is_firefox && tools.browser.is_linux));
 		}
 		tools.feature.setEnabled($("hid-outputs-mouse"), (avail.length > 0));
-		tools.el.setEnabled($("hid-mouse-squash-switch"), has_relative_squash);
-		tools.el.setEnabled($("hid-mouse-sens-slider"), has_relative_squash);
-		tools.el.setEnabled($("hid-mouse-boost-slider"), has_relative_squash);
 	};
 
 	var __releaseAll = function() {

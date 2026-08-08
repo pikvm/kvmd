@@ -169,7 +169,7 @@
         <div class="hidden menu" id="system-menu">
           <table class="kv">
             <tr>
-              <td class="value">Runtime settings &amp; tools</td>
+              <td class="value">Runtime preferences &amp; tools</td>
               <td class="feature-disabled" id="system-tool-webterm">
                 <button class="small" data-wm-menu-force-hide data-wm-window-show="webterm-window">&bull; Term</button>
               </td>
@@ -184,25 +184,77 @@
               </td>
             </tr>
           </table>
+              <details>
+                <summary>Web interface settings</summary>
+                <div class="spoiler">
+                  <table class="kv">
+                    <tr>
+                      <td>Interface style:</td>
+                      <td>
+                            <div class="radio-box">
+                                  <input type="radio" id="page-ui-type-radio-auto" name="page-ui-type-radio" value="auto" checked>
+                                  <label for="page-ui-type-radio-auto">Auto</label>
+                                  <input type="radio" id="page-ui-type-radio-desktop" name="page-ui-type-radio" value="desktop">
+                                  <label for="page-ui-type-radio-desktop">Desktop</label>
+                                  <input type="radio" id="page-ui-type-radio-mobile" name="page-ui-type-radio" value="mobile">
+                                  <label for="page-ui-type-radio-mobile">Mobile</label>
+                            </div>
+                      </td>
+                    </tr>
+                  </table>
+                  <hr>
+                  <table class="kv">
+                    <tr>
+                      <td>Ask page close confirmation:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input checked type="checkbox" id="page-close-ask-switch">
+                              <label for="page-close-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Expand for the entire tab by default:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input type="checkbox" id="page-full-tab-stream-switch">
+                              <label for="page-full-tab-stream-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Suspend stream when tab is not active:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input type="checkbox" id="stream-suspend-switch">
+                              <label for="stream-suspend-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </details>
           <hr>
           <table class="kv">
             <tr>
-              <td>Bad link mode (release keys immediately):</td>
+              <td>Bad link mode:</td>
               <td>
                     <div class="switch-box">
                       <input type="checkbox" id="hid-keyboard-bad-link-switch">
                       <label for="hid-keyboard-bad-link-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
               </td>
+              <td class="tip">Release keys on the host immediately</td>
             </tr>
             <tr>
-              <td>Mute keyboard &amp; mouse (HID):</td>
+              <td>Mute HID:</td>
               <td>
                     <div class="switch-box">
                       <input type="checkbox" id="hid-mute-switch">
                       <label for="hid-mute-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
               </td>
+              <td class="tip">Don't send keyboard &amp mouse events</td>
             </tr>
             <tr class="feature-disabled" id="hid-jiggler">
               <td><a target="_blank" href="https://docs.pikvm.org/mouse_jiggler">Mouse jiggler</a>:</td>
@@ -212,6 +264,7 @@
                       <label for="hid-jiggler-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
               </td>
+              <td class="tip">Prevent the host from sleeping</td>
             </tr>
           </table>
           <hr>
@@ -375,11 +428,7 @@
               </td>
             </tr>
           </table>
-          <div class="buttons buttons-row">
-            <button class="row33" data-wm-menu-force-hide data-wm-window-show="stream-window">&bull; Show stream</button>
-            <button class="row33" id="stream-screenshot-button" data-wm-menu-force-hide>&bull; Screenshot</button>
-            <button class="row33" id="stream-reset-button">Reset stream</button>
-          </div>
+          <hr>
           <table class="kv">
             <tr class="feature-disabled" id="hid-outputs-keyboard">
               <td>Keyboard mode:</td>
@@ -426,7 +475,7 @@
                   <hr>
                   <table class="kv">
                     <tr>
-                      <td>Mouse polling</td>
+                      <td>Mouse polling:</td>
                       <td class="slider">
                             <table>
                               <td class="slider-inner">
@@ -436,34 +485,76 @@
                             </table>
                       </td>
                     </tr>
-                    <tr class="feature-disabled" id="hid-mouse-sens">
-                      <td>Relative sensitivity:</td>
+                  </table>
+                  <div class="feature-disabled" id="hid-mouse-absolute">
+                    <hr>
+                    <table class="kv">
+                      <tr>
+                        <td>Show the blue dot in the absolute mode:</td>
+                        <td>
+                              <div class="switch-box">
+                                <input checked type="checkbox" id="hid-mouse-dot-switch">
+                                <label for="hid-mouse-dot-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                              </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  <div class="feature-disabled" id="hid-mouse-relative">
+                    <hr>
+                    <table class="kv">
+                      <tr>
+                        <td>Relative sensitivity:</td>
+                        <td class="slider">
+                              <table>
+                                <td class="slider-inner">
+                                  <input type="range" id="hid-mouse-sens-slider">
+                                </td>
+                                <td class="slider-value" id="hid-mouse-sens-value"></td>
+                              </table>
+                        </td>
+                      </tr>
+                      <tr class="feature-disabled" id="hid-mouse-boost">
+                        <td>Relative boost factor:<br><i>(Firefox on Wayland)</i></td>
+                        <td class="slider">
+                              <table>
+                                <td class="slider-inner">
+                                  <input type="range" id="hid-mouse-boost-slider">
+                                </td>
+                                <td class="slider-value" id="hid-mouse-boost-value"></td>
+                              </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Squash relative moves:</td>
+                        <td>
+                              <div class="switch-box">
+                                <input checked type="checkbox" id="hid-mouse-squash-switch">
+                                <label for="hid-mouse-squash-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                              </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  <hr>
+                  <table class="kv">
+                    <tr>
+                      <td>Scroll rate:</td>
                       <td class="slider">
                             <table>
                               <td class="slider-inner">
-                                <input type="range" id="hid-mouse-sens-slider" disabled>
+                                <input type="range" id="hid-mouse-scroll-slider">
                               </td>
-                              <td class="slider-value" id="hid-mouse-sens-value"></td>
+                              <td class="slider-value" id="hid-mouse-scroll-value"></td>
                             </table>
                       </td>
                     </tr>
-                    <tr class="feature-disabled" id="hid-mouse-boost">
-                      <td>Relative boost factor:<br><i>(Firefox on Wayland)</i></td>
-                      <td class="slider">
-                            <table>
-                              <td class="slider-inner">
-                                <input type="range" id="hid-mouse-boost-slider" disabled>
-                              </td>
-                              <td class="slider-value" id="hid-mouse-boost-value"></td>
-                            </table>
-                      </td>
-                    </tr>
-                    <tr class="feature-disabled" id="hid-mouse-squash">
-                      <td>Squash relative moves:</td>
+                    <tr>
+                      <td>Cumulative scrolling:</td>
                       <td>
                             <div class="switch-box">
-                              <input checked type="checkbox" id="hid-mouse-squash-switch">
-                              <label for="hid-mouse-squash-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                              <input type="checkbox" id="hid-mouse-cumulative-scrolling-switch">
+                              <label for="hid-mouse-cumulative-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
                       </td>
                     </tr>
@@ -491,106 +582,29 @@
                         </table>
                       </td>
                     </tr>
-                    <tr>
-                      <td>Cumulative scrolling:</td>
-                      <td>
-                            <div class="switch-box">
-                              <input type="checkbox" id="hid-mouse-cumulative-scrolling-switch">
-                              <label for="hid-mouse-cumulative-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Scroll rate:</td>
-                      <td class="slider">
-                            <table>
-                              <td class="slider-inner">
-                                <input type="range" id="hid-mouse-scroll-slider">
-                              </td>
-                              <td class="slider-value" id="hid-mouse-scroll-value"></td>
-                            </table>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Show the blue dot:</td>
-                      <td>
-                            <div class="switch-box">
-                              <input checked type="checkbox" id="hid-mouse-dot-switch">
-                              <label for="hid-mouse-dot-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                      </td>
-                    </tr>
-                  </table>
-                </div>
-              </details>
-              <details>
-                <summary>Interface settings</summary>
-                <div class="spoiler">
-                  <table class="kv">
-                    <tr>
-                      <td>Interface style:</td>
-                      <td>
-                            <div class="radio-box">
-                                  <input type="radio" id="page-ui-type-radio-auto" name="page-ui-type-radio" value="auto" checked>
-                                  <label for="page-ui-type-radio-auto">Auto</label>
-                                  <input type="radio" id="page-ui-type-radio-desktop" name="page-ui-type-radio" value="desktop">
-                                  <label for="page-ui-type-radio-desktop">Desktop</label>
-                                  <input type="radio" id="page-ui-type-radio-mobile" name="page-ui-type-radio" value="mobile">
-                                  <label for="page-ui-type-radio-mobile">Mobile</label>
-                            </div>
-                      </td>
-                    </tr>
-                  </table>
-                  <hr>
-                  <table class="kv">
-                    <tr>
-                      <td>Ask page close confirmation:</td>
-                      <td>
-                            <div class="switch-box">
-                              <input checked type="checkbox" id="page-close-ask-switch">
-                              <label for="page-close-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Expand for the entire tab by default:</td>
-                      <td>
-                            <div class="switch-box">
-                              <input type="checkbox" id="page-full-tab-stream-switch">
-                              <label for="page-full-tab-stream-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Suspend stream when tab is not active:</td>
-                      <td>
-                            <div class="switch-box">
-                              <input type="checkbox" id="stream-suspend-switch">
-                              <label for="stream-suspend-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                      </td>
-                    </tr>
                   </table>
                 </div>
               </details>
           <table class="kv">
             <tr class="feature-disabled" id="hid-connect">
-              <td>Connect HID to Server:</td>
+              <td>Connect HID:</td>
               <td>
                     <div class="switch-box">
                       <input checked type="checkbox" id="hid-connect-switch">
                       <label for="hid-connect-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
               </td>
+              <td class="tip">Control keyboard &amp; mouse emulator</td>
             </tr>
             <tr class="feature-disabled" id="v3-usb-breaker">
-              <td>Connect main USB to Server:</td>
+              <td>Connect main USB:</td>
               <td>
                     <div class="switch-box">
-                      <input class="__gpio-switch-__v3_usb_breaker__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v3_usb_breaker__" data-gpio-channel="__v3_usb_breaker__" data-gpio-confirm-off="Turning off this switch will disconnect the main USB from the server.  Are you sure you want to continue?">
+                      <input class="__gpio-switch-__v3_usb_breaker__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v3_usb_breaker__" data-gpio-channel="__v3_usb_breaker__" data-gpio-confirm-off="Turning off this switch will disconnect the main USB from the host.  Are you sure you want to continue?">
                       <label for="__gpio-switch-__v3_usb_breaker__"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
               </td>
+              <td class="tip">Simulate plug/unplug a USB cable</td>
             </tr>
             <tr class="feature-disabled" id="v4-locator">
               <td>Enable locator LED:</td>
@@ -602,10 +616,18 @@
               </td>
             </tr>
           </table>
-          <div class="buttons buttons-row">
-            <button class="row33" data-wm-menu-force-hide data-wm-window-show="keyboard-window">&bull; Keyboard</button>
-            <button class="row33" data-wm-menu-force-hide data-wm-window-show="mouse-window">&bull; Mouse</button>
-            <button class="row33" id="hid-reset-button" disabled>Reset HID</button>
+          <div class="buttons">
+            <div class="buttons-row">
+              <button class="row33" data-wm-menu-force-hide data-wm-window-show="stream-window">&bull; Show stream</button>
+              <button class="row33" id="stream-screenshot-button" data-wm-menu-force-hide>&bull; Screenshot</button>
+              <button class="row33" id="stream-reset-button">Reset stream</button>
+            </div>
+            <hr>
+            <div class="buttons-row">
+              <button class="row33" data-wm-menu-force-hide data-wm-window-show="keyboard-window">&bull; Keyboard</button>
+              <button class="row33" data-wm-menu-force-hide data-wm-window-show="mouse-window">&bull; Mouse</button>
+              <button class="row33" id="hid-reset-button" disabled>Reset HID</button>
+            </div>
           </div>
         </div>
       </li>

@@ -272,6 +272,10 @@ table.kv {
 table.kv td {
 	text-align: left;
 }
+table.kv td.tip {
+	color: var(--cs-page-obscure-fg);
+	font-style: italic;
+}
 table.kv td.value {
 	font-weight: bold;
 	overflow: hidden;

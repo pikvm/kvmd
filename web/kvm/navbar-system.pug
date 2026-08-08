@@ -10,7 +10,7 @@ li.right#system-dropdown
 		table.kv
 			tr
 				td.value
-					| Runtime settings &amp; tools
+					| Runtime preferences &amp; tools
 				td.feature-disabled#system-tool-webterm
 					button.small(data-wm-menu-force-hide data-wm-window-show="webterm-window") &bull; Term
 				td#system-tool-about
@@ -25,18 +25,43 @@ li.right#system-dropdown
 						data-gpio-confirm="Are you sure to send Wake-on-LAN packet to the server?"
 					) &bull; WoL
 
+		+menu_spoiler("Web interface settings")
+			table.kv
+				tr
+					td Interface style:
+					td
+						+menu_radio("page-ui-type-radio", [
+							{title: "Auto", value: "auto", checked: true},
+							{title: "Desktop", value: "desktop"},
+							{title: "Mobile", value: "mobile"},
+						])
+			hr
+			table.kv
+				tr
+					td Ask page close confirmation:
+					td #[+menu_switch("page-close-ask-switch", true, true)]
+				tr
+					td Expand for the entire tab by default:
+					td #[+menu_switch("page-full-tab-stream-switch", true, false)]
+				tr
+					td Suspend stream when tab is not active:
+					td #[+menu_switch("stream-suspend-switch", true, false)]
+
 		hr
 
 		table.kv
 			tr
-				td Bad link mode (release keys immediately):
+				td Bad link mode:
 				td #[+menu_switch("hid-keyboard-bad-link-switch", true, false)]
+				td.tip Release keys on the host immediately
 			tr
-				td Mute keyboard &amp; mouse (HID):
+				td Mute HID:
 				td #[+menu_switch("hid-mute-switch", true, false)]
+				td.tip Don't send keyboard &amp mouse events
 			tr.feature-disabled#hid-jiggler
 				td #[a(target="_blank" href="https://docs.pikvm.org/mouse_jiggler") Mouse jiggler]:
 				td #[+menu_switch("hid-jiggler-switch", false, false)]
+				td.tip Prevent the host from sleeping
 
 		hr
 
@@ -101,10 +126,7 @@ li.right#system-dropdown
 				td Camera:
 				td #[+menu_switch("stream-camera-switch", false, false)]
 
-		.buttons.buttons-row
-			button.row33(data-wm-menu-force-hide data-wm-window-show="stream-window") &bull; Show stream
-			button.row33#stream-screenshot-button(data-wm-menu-force-hide) &bull; Screenshot
-			button.row33#stream-reset-button Reset stream
+		hr
 
 		table.kv
 			tr.feature-disabled#hid-outputs-keyboard
@@ -118,7 +140,7 @@ li.right#system-dropdown
 				td #[select.small#hid-keyboard-magic-selector]
 
 		+menu_spoiler("Keyboard &amp; mouse (HID) settings")
-			table(class="kv")
+			table.kv
 				tr
 					td Sync Caps Lock state to the host:#[br]#[i (Requires working Caps led)]
 					td #[+menu_switch("hid-keyboard-sync-caps-switch", true, false)]
@@ -126,19 +148,36 @@ li.right#system-dropdown
 					td Swap Left Ctrl and Caps keys:
 					td #[+menu_switch("hid-keyboard-swap-cc-switch", true, false)]
 			hr
-			table(class="kv")
+			table.kv
 				tr
-					td Mouse polling
+					td Mouse polling:
 					td.slider #[+menu_slider("hid-mouse-rate-slider", "hid-mouse-rate-value")]
-				tr.feature-disabled#hid-mouse-sens
-					td Relative sensitivity:
-					td.slider #[+menu_slider("hid-mouse-sens-slider", "hid-mouse-sens-value", false)]
-				tr.feature-disabled#hid-mouse-boost
-					td Relative boost factor:#[br]#[i (Firefox on Wayland)]
-					td.slider #[+menu_slider("hid-mouse-boost-slider", "hid-mouse-boost-value", false)]
-				tr(id="hid-mouse-squash" class="feature-disabled")
-					td Squash relative moves:
-					td #[+menu_switch("hid-mouse-squash-switch", true, true)]
+			.feature-disabled#hid-mouse-absolute
+				hr
+				table.kv
+					tr
+						td Show the blue dot in the absolute mode:
+						td #[+menu_switch("hid-mouse-dot-switch", true, true)]
+			.feature-disabled#hid-mouse-relative
+				hr
+				table.kv
+					tr
+						td Relative sensitivity:
+						td.slider #[+menu_slider("hid-mouse-sens-slider", "hid-mouse-sens-value")]
+					tr.feature-disabled#hid-mouse-boost
+						td Relative boost factor:#[br]#[i (Firefox on Wayland)]
+						td.slider #[+menu_slider("hid-mouse-boost-slider", "hid-mouse-boost-value")]
+					tr
+						td Squash relative moves:
+						td #[+menu_switch("hid-mouse-squash-switch", true, true)]
+			hr
+			table.kv
+				tr
+					td Scroll rate:
+					td.slider #[+menu_slider("hid-mouse-scroll-slider", "hid-mouse-scroll-value")]
+				tr
+					td Cumulative scrolling:
+					td #[+menu_switch("hid-mouse-cumulative-scrolling-switch", true, false)]
 				tr
 					td Reverse scrolling:
 					td
@@ -149,54 +188,31 @@ li.right#system-dropdown
 								td &nbsp;&nbsp;
 								td Horiz:
 								td #[+menu_switch("hid-mouse-reverse-scrolling-x-switch", true, false)]
-				tr
-					td Cumulative scrolling:
-					td #[+menu_switch("hid-mouse-cumulative-scrolling-switch", true, false)]
-				tr
-					td Scroll rate:
-					td.slider #[+menu_slider("hid-mouse-scroll-slider", "hid-mouse-scroll-value")]
-				tr
-					td Show the blue dot:
-					td #[+menu_switch("hid-mouse-dot-switch", true, true)]
-
-		+menu_spoiler("Interface settings")
-			table.kv
-				tr
-					td Interface style:
-					td
-						+menu_radio("page-ui-type-radio", [
-							{title: "Auto", value: "auto", checked: true},
-							{title: "Desktop", value: "desktop"},
-							{title: "Mobile", value: "mobile"},
-						])
-			hr
-			table.kv
-				tr
-					td Ask page close confirmation:
-					td #[+menu_switch("page-close-ask-switch", true, true)]
-				tr
-					td Expand for the entire tab by default:
-					td #[+menu_switch("page-full-tab-stream-switch", true, false)]
-				tr
-					td Suspend stream when tab is not active:
-					td #[+menu_switch("stream-suspend-switch", true, false)]
 
 		table.kv
 			tr.feature-disabled#hid-connect
-				td Connect HID to Server:
+				td Connect HID:
 				td #[+menu_switch("hid-connect-switch", true, true)]
+				td.tip Control keyboard &amp; mouse emulator
 			tr.feature-disabled#v3-usb-breaker
-				td Connect main USB to Server:
+				td Connect main USB:
 				td
 					+menu_switch_gpio(
 						"__v3_usb_breaker__",
-						"Turning off this switch will disconnect the main USB from the server.  Are you sure you want to continue?"
+						"Turning off this switch will disconnect the main USB from the host.  Are you sure you want to continue?"
 					)
+				td.tip Simulate plug/unplug a USB cable
 			tr.feature-disabled#v4-locator
 				td Enable locator LED:
 				td #[+menu_switch_gpio("__v4_locator__")]
 
-		.buttons.buttons-row
-			button.row33(data-wm-menu-force-hide data-wm-window-show="keyboard-window") &bull; Keyboard
-			button.row33(data-wm-menu-force-hide data-wm-window-show="mouse-window") &bull; Mouse
-			button.row33#hid-reset-button(disabled) Reset HID
+		.buttons
+			.buttons-row
+				button.row33(data-wm-menu-force-hide data-wm-window-show="stream-window") &bull; Show stream
+				button.row33#stream-screenshot-button(data-wm-menu-force-hide) &bull; Screenshot
+				button.row33#stream-reset-button Reset stream
+			hr
+			.buttons-row
+				button.row33(data-wm-menu-force-hide data-wm-window-show="keyboard-window") &bull; Keyboard
+				button.row33(data-wm-menu-force-hide data-wm-window-show="mouse-window") &bull; Mouse
+				button.row33#hid-reset-button(disabled) Reset HID
