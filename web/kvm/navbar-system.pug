@@ -112,19 +112,24 @@ li.right#system-dropdown
 					td #[a(target="_blank" href="https://docs.pikvm.org/video#settings") H.264 gop]:
 					td.slider #[+menu_slider("stream-h264-gop-slider", "stream-h264-gop-value", false)]
 
-		table.kv.feature-disabled#stream-multimedia
-			tr
-				td Enable multimedia:
-				td #[+menu_switch("stream-multimedia-switch", true, false)]
-			tr.feature-disabled#stream-audio
-				td Audio volume:
-				td.slider #[+menu_slider("stream-audio-volume-slider", "stream-audio-volume-value", false)]
-			tr.feature-disabled#stream-mic
-				td Microphone:
-				td #[+menu_switch("stream-mic-switch", false, false)]
-			tr.feature-disabled#stream-camera
-				td Camera:
-				td #[+menu_switch("stream-camera-switch", false, false)]
+		.feature-disabled#stream-multimedia
+			hr
+			table.kv
+				tr
+					td Multimedia:
+					td #[+menu_switch("stream-multimedia-switch", true, false)]
+					td.tip Turns everything on or off at once
+				tr.feature-disabled#stream-audio
+					td Audio volume:
+					td.slider(colspan="2") #[+menu_slider("stream-audio-volume-slider", "stream-audio-volume-value", false)]
+				tr.feature-disabled#stream-mic
+					td Microphone:
+					td #[+menu_switch("stream-mic-switch", false, false)]
+					td #[select.small#stream-mic-selector(style="width: 90%;" disabled)]
+				tr.feature-disabled#stream-camera
+					td Camera:
+					td #[+menu_switch("stream-camera-switch", false, false)]
+					td #[select.small#stream-camera-selector(style="width: 90%;" disabled)]
 
 		hr
 

@@ -388,46 +388,56 @@
                   </table>
                 </div>
               </details>
-          <table class="kv feature-disabled" id="stream-multimedia">
-            <tr>
-              <td>Enable multimedia:</td>
-              <td>
-                    <div class="switch-box">
-                      <input type="checkbox" id="stream-multimedia-switch">
-                      <label for="stream-multimedia-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-              </td>
-            </tr>
-            <tr class="feature-disabled" id="stream-audio">
-              <td>Audio volume:</td>
-              <td class="slider">
-                    <table>
-                      <td class="slider-inner">
-                        <input type="range" id="stream-audio-volume-slider" disabled>
-                      </td>
-                      <td class="slider-value" id="stream-audio-volume-value"></td>
-                    </table>
-              </td>
-            </tr>
-            <tr class="feature-disabled" id="stream-mic">
-              <td>Microphone:</td>
-              <td>
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="stream-mic-switch">
-                      <label for="stream-mic-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-              </td>
-            </tr>
-            <tr class="feature-disabled" id="stream-camera">
-              <td>Camera:</td>
-              <td>
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="stream-camera-switch">
-                      <label for="stream-camera-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-              </td>
-            </tr>
-          </table>
+          <div class="feature-disabled" id="stream-multimedia">
+            <hr>
+            <table class="kv">
+              <tr>
+                <td>Multimedia:</td>
+                <td>
+                      <div class="switch-box">
+                        <input type="checkbox" id="stream-multimedia-switch">
+                        <label for="stream-multimedia-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      </div>
+                </td>
+                <td class="tip">Turns everything on or off at once</td>
+              </tr>
+              <tr class="feature-disabled" id="stream-audio">
+                <td>Audio volume:</td>
+                <td class="slider" colspan="2">
+                      <table>
+                        <td class="slider-inner">
+                          <input type="range" id="stream-audio-volume-slider" disabled>
+                        </td>
+                        <td class="slider-value" id="stream-audio-volume-value"></td>
+                      </table>
+                </td>
+              </tr>
+              <tr class="feature-disabled" id="stream-mic">
+                <td>Microphone:</td>
+                <td>
+                      <div class="switch-box">
+                        <input disabled type="checkbox" id="stream-mic-switch">
+                        <label for="stream-mic-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      </div>
+                </td>
+                <td>
+                  <select class="small" id="stream-mic-selector" style="width: 90%;" disabled></select>
+                </td>
+              </tr>
+              <tr class="feature-disabled" id="stream-camera">
+                <td>Camera:</td>
+                <td>
+                      <div class="switch-box">
+                        <input disabled type="checkbox" id="stream-camera-switch">
+                        <label for="stream-camera-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      </div>
+                </td>
+                <td>
+                  <select class="small" id="stream-camera-selector" style="width: 90%;" disabled></select>
+                </td>
+              </tr>
+            </table>
+          </div>
           <hr>
           <table class="kv">
             <tr class="feature-disabled" id="hid-outputs-keyboard">

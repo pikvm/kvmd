@@ -52,10 +52,10 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __use_audio = 0; // Volume
 
 	var __has_mic = false;
-	var __use_mic = false;
+	var __use_mic = null;
 
 	var __has_camera = false;
-	var __use_camera = false;
+	var __use_camera = null;
 	var __camera_req = null;
 
 	var __orient = 0;
@@ -94,18 +94,79 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		}
 	};
 
-	self.setMicEnabled = function(enabled) {
-		let prev = __use_mic;
-		__use_mic = enabled;
-		if (__has_mic && (prev !== __use_mic)) {
+	var __setDevice = function(el, input, id) {
+		el.value = id;
+		tools.storage.set(`stream.${input}.device.id`, id);
+		let name = "\u2500 Unknown yet \u2500";
+		try {
+			name = el.options[el.selectedIndex].innerText;
+		} catch {}
+		tools.storage.set(`stream.${input}.device.name`, name);
+	};
+
+	var __refillDevices = function(input, id, apply_cb) {
+		let el = $(`stream-${input}-selector`);
+		if (id === ".__default__") {
+			__setDevice(el, input, id);
+			apply_cb(id);
+		}
+		let av = (input === "mic" ? "audio" : "video");
+		let turn = (el.__janus_turn || 0) + 1; // Drop previous parallel results
+		el.__janus_turn = turn;
+		_Janus.listDevices(function(devices) {
+			if (turn >= el.__janus_turn) {
+				el.options.length = 1;
+				let found = false;
+				for (let dev of devices) {
+					if (dev.kind === av + "input") {
+						tools.selector.addOption(el, dev.label, dev.deviceId);
+						if (dev.deviceId === id) {
+							found = true;
+						}
+					}
+				}
+				if (!found && id !== ".__default__") {
+					id = ".__default__";
+					found = true;
+				}
+				if (found) {
+					__setDevice(el, input, id);
+					apply_cb(id);
+				}
+			}
+		}, {[av]: true});
+	};
+
+	self.setMicDevice = function(mic, reload=false) {
+		if (__has_mic && (__use_mic !== mic)) {
+			if (mic) {
+				__refillDevices("mic", mic, function(id) {
+					__use_mic = id;
+					__destroyJanus();
+				});
+			} else {
+				__use_mic = null;
+			}
+			reload = true;
+		}
+		if (reload) {
 			__destroyJanus();
 		}
 	};
 
-	self.setCameraEnabled = function(enabled) {
-		let prev = __use_camera;
-		__use_camera = enabled;
-		if (__has_camera && (prev !== __use_camera)) {
+	self.setCameraDevice = function(camera, reload=false) {
+		if (__has_camera && (__use_camera !== camera)) {
+			if (camera) {
+				__refillDevices("camera", camera, function(id) {
+					__use_camera = id;
+					__destroyJanus();
+				});
+			} else {
+				__use_camera = null;
+			}
+			reload = true;
+		}
+		if (reload) {
 			__destroyJanus();
 		}
 	};
@@ -380,7 +441,11 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 					__logInfo("Handling SDP:", jsep);
 
 					let audio = (__has_audio && !!__use_audio);
-					let mic = (__has_mic && __use_mic);
+
+					let mic = null;
+					if (__has_mic && __use_mic) {
+						mic = (__use_mic === ".__default__" ? true : {"deviceId": {"exact": __use_mic}});
+					}
 
 					let camera = null;
 					if (__camera_req !== null) {
@@ -393,6 +458,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 							"height": {"min": h, "ideal": h, "max": h},
 							"frameRate": {"ideal": __camera_req.fps, "max": 30},
 						};
+						if (__use_camera !== ".__default__") {
+							camera["deviceId"] = {"exact": __use_camera};
+						}
 					}
 
 					let tracks = [{"type": "video", "capture": camera, "recv": true, "add": true}];
@@ -419,6 +487,20 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						},
 
 						"error": function(error) {
+							let restart = function() {
+								try {
+									if (error?.name === "OverconstrainedError") {
+										if (__has_mic && __use_mic) {
+											self.setMicDevice(".__default__", true);
+										}
+										if (__has_camera && __use_camera) {
+											self.setCameraDevice(".__default__", true);
+										}
+									}
+								} finally {
+									__destroyJanus();
+								}
+							};
 							__logInfo("Error on SDP handling:", error);
 							__setInfo(false, false, error);
 							if (["NotAllowedError", "SecurityError"].includes(error?.name)) {
@@ -435,9 +517,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 									html += " Please unlock it (check the top left corner in the address bar)";
 									html += " and press <b>OK</b> to try again.";
 								}
-								wm.error(html, error).then(__destroyJanus);
+								wm.error(html, error).then(restart);
 							} else {
-								__destroyJanus();
+								restart();
 							}
 						},
 					});
@@ -572,7 +654,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __sendWatch = function() {
 		if (__handle) {
 			let audio = (__has_audio && !!__use_audio);
-			let mic = (__has_mic && __use_mic);
+			let mic = (__has_mic && __use_mic ? __use_mic : null);
 			__logInfo(`Sending WATCH(orient=${__orient}, audio=${audio}, mic=${mic}, camera=${__camera_req}) ...`);
 			__handle.send({"message": {"request": "watch", "params": {
 				"orientation": __orient,

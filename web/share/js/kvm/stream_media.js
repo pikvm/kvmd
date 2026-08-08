@@ -61,8 +61,8 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	self.setOrientation = function(orient) { __orient = orient; };
 	self.setAudioVolume = function(volume) {}; // eslint-disable-line no-unused-vars
-	self.setMicEnabled = function(enabled) {}; // eslint-disable-line no-unused-vars
-	self.setCameraEnabled = function(enabled) {}; // eslint-disable-line no-unused-vars
+	self.setMicDevice = function(mic) {}; // eslint-disable-line no-unused-vars
+	self.setCameraDevice = function(camera) {}; // eslint-disable-line no-unused-vars
 
 	self.getName = () => "Direct H.264";
 	self.getMode = () => "media";

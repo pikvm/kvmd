@@ -92,8 +92,21 @@ export function Streamer() {
 		}, false);
 
 		tools.storage.bindSimpleSlider($("stream-audio-volume-slider"), "stream.audio", 0, 100, 1, 100, __applyAudioVolume);
-		tools.storage.bindSimpleSwitch($("stream-mic-switch"), "stream.mic", false, __applyMicEnabled);
-		tools.storage.bindSimpleSwitch($("stream-camera-switch"), "stream.camera", false, __applyCameraEnabled);
+
+		for (let [input, apply_cb] of [["mic", __applyMicEnabled], ["camera", __applyCameraEnabled]]) {
+			tools.storage.bindSimpleSwitch($(`stream-${input}-switch`), `stream.${input}`, false, apply_cb);
+
+			let el = $(`stream-${input}-selector`);
+			tools.selector.addOption(el, `\u2500 Default ${input} \u2500`, ".__default__");
+
+			let id = tools.storage.get(`stream.${input}.device.id`, ".__default__");
+			if (id !== ".__default__") {
+				let name = tools.storage.get(`stream.${input}.device.name`, "???");
+				tools.selector.addOption(el, name, id, true);
+			}
+
+			el.onchange = apply_cb;
+		}
 
 		tools.el.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.el.setOnClick($("stream-reset-button"), __clickResetButton);
@@ -117,13 +130,17 @@ export function Streamer() {
 	};
 
 	var __applyMicEnabled = function() {
-		let mm = $("stream-multimedia-switch").checked;
-		__streamer.setMicEnabled(mm && $("stream-mic-switch").checked);
+		let enabled = ($("stream-multimedia-switch").checked && $("stream-mic-switch").checked);
+		let el = $("stream-mic-selector");
+		tools.el.setEnabled(el, enabled);
+		__streamer.setMicDevice(enabled ? el.value : null);
 	};
 
 	var __applyCameraEnabled = function() {
-		let mm = $("stream-multimedia-switch").checked;
-		__streamer.setCameraEnabled(mm && $("stream-camera-switch").checked);
+		let enabled = ($("stream-multimedia-switch").checked && $("stream-camera-switch").checked);
+		let el = $("stream-camera-selector");
+		tools.el.setEnabled(el, enabled);
+		__streamer.setCameraDevice(enabled ? el.value : null);
 	};
 
 	var __isStreamRequired = function() {

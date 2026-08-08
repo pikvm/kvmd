@@ -52,8 +52,8 @@ export function MjpegStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	self.setOrientation = function(orient) {}; // eslint-disable-line no-unused-vars
 	self.setAudioVolume = function(volume) {}; // eslint-disable-line no-unused-vars
-	self.setMicEnabled = function(enabled) {}; // eslint-disable-line no-unused-vars
-	self.setCameraEnabled = function(enabled) {}; // eslint-disable-line no-unused-vars
+	self.setMicDevice = function(mic) {}; // eslint-disable-line no-unused-vars
+	self.setCameraDevice = function(camera) {}; // eslint-disable-line no-unused-vars
 
 	self.getName = () => "HTTP MJPEG";
 	self.getMode = () => "mjpeg";
