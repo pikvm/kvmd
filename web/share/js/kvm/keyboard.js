@@ -77,7 +77,7 @@ export function Keyboard(__recordWsEvent) {
 			null,
 			["Menu Key", "ContextMenu"],
 			null,
-			["<None>", ""],
+			["\u2500 None \u2500", ""],
 		]) {
 			if (kv === null) {
 				tools.selector.addSeparator(__el_magic, 8);
