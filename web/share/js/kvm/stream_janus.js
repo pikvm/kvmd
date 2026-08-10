@@ -659,7 +659,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			__handle.send({"message": {"request": "watch", "params": {
 				"orientation": __orient,
 				"audio": audio,
-				"mic": mic,
+				"mic": !!mic,
 				"camera": !!__camera_req,
 			}}});
 			__watchHook();
