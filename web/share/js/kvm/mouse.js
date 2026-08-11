@@ -203,7 +203,13 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 				case 4: __keypad.emit("down", state); break;
 			}
 		} else if (!__abs && !__isRelativeCaptured() && !state) {
-			$("stream-box").requestPointerLock();
+			let el = $("stream-box");
+			el.requestPointerLock({"unadjustedMovement": true}).catch(function(error) {
+				tools.info("Relative mouse: unadjustedMovement is unsupported, running without it");
+				if (error.name == "NotSupportedError") {
+					el.requestPointerLock();
+				}
+			});
 		}
 	};
 
