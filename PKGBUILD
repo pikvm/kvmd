@@ -101,13 +101,6 @@ depends=(
 	raspberrypi-utils
 	"ustreamer>=6.47"
 
-	# Systemd UDEV bug
-	"systemd>=248.3-2"
-
-	# https://bugzilla.redhat.com/show_bug.cgi?id=2035802
-	# https://archlinuxarm.org/forum/viewtopic.php?f=15&t=15725&start=40
-	"zstd>=1.5.1-2.1"
-
 	# Bootconfig
 	dos2unix
 	parted
