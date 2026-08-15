@@ -65,10 +65,10 @@ function __showKvmdInfo(info) {
 		`;
 	};
 	$("ipmi-text").innerHTML = [
-		make_item("Power on the server if it's off",		"power on",		"/power?action=on"),
-		make_item("Soft power off the server if it's on",	"power soft",	"/power?action=off"),
-		make_item("Hard power off the server if it's on",	"power off",	"/power?action=off_hard"),
-		make_item("Hard reset the server if it's on",		"power reset",	"/power?action=reset_hard"),
-		make_item("Check the power status",					"power status",	""),
+		make_item("Power on the host if it's off",		"power on",		"/power?action=on"),
+		make_item("Soft power off the host if it's on",	"power soft",	"/power?action=off"),
+		make_item("Hard power off the host if it's on",	"power off",	"/power?action=off_hard"),
+		make_item("Hard reset the host if it's on",		"power reset",	"/power?action=reset_hard"),
+		make_item("Check the power status",				"power status",	""),
 	].join("<br><br>");
 }
