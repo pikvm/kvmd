@@ -248,10 +248,10 @@ fi
 
 # Set the regulatory domain for wifi, if defined.
 if [ -n "$WIFI_REGDOM" ]; then
-	sed -i \
-			-e 's/^\(WIRELESS_REGDOM=.*\)$/#\1/' \
-			-e 's/^#\(WIRELESS_REGDOM="'"$WIFI_REGDOM"'"\)/\1/' \
-		/etc/conf.d/wireless-regdom
+	sed -r \
+		-e 's/^(WIRELESS_REGDOM=.*)$/#\1/' \
+		-e 's/^#(WIRELESS_REGDOM="'"$WIFI_REGDOM"'")/\1/' \
+		-i /etc/conf.d/wireless-regdom
 fi
 
 # If the WIFI_ESSID is defined, configure wlan0
@@ -275,10 +275,14 @@ end_of_file
 	fi
 	chmod 640 "$_wpa"
 	if [ -n "$WIFI_HIDDEN" ]; then
-		sed -i -e 's/^}/\tscan_ssid=1\n}/g' "$_wpa"
+		sed -r \
+			-e '/^}/i\\tscan_ssid=1' \
+			-i "$_wpa"
 	fi
 	if [ -n "$WIFI_WPA23" ]; then
-		sed -i -e 's/^}/\tkey_mgmt=WPA-PSK-SHA256 WPA-PSK\n\tieee80211w=1\n}/g' "$_wpa"
+		sed -r \
+			-e '/^}/i\\tkey_mgmt=WPA-PSK-SHA256 WPA-PSK\n\tieee80211w=1' \
+			-i "$_wpa"
 	fi
 	systemctl enable "wpa_supplicant@$WIFI_IFACE.service" || true
 	need_reboot
