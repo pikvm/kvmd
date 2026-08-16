@@ -257,6 +257,7 @@ fi
 # If the WIFI_ESSID is defined, configure wlan0
 if [ -n "$WIFI_ESSID" ]; then
 	WIFI_IFACE="${WIFI_IFACE:-wlan0}"
+	_WIFI_PASSWD_SET=
 	if [ -n "$WIFI_ADDR" ]; then
 		make_static_iface "$WIFI_IFACE" "$WIFI_ADDR" "$WIFI_GW" "$WIFI_DNS" 50
 	else
@@ -264,6 +265,7 @@ if [ -n "$WIFI_ESSID" ]; then
 	fi
 	_wpa="/etc/wpa_supplicant/wpa_supplicant-$WIFI_IFACE.conf"
 	if [ "${#WIFI_PASSWD}" -ge 8 ];then
+		_WIFI_PASSWD_SET=1
 		wpa_passphrase "$WIFI_ESSID" "$WIFI_PASSWD" > "$_wpa"
 	else
 		cat <<end_of_file > "$_wpa"
@@ -279,7 +281,7 @@ end_of_file
 			-e '/^}/i\\tscan_ssid=1' \
 			-i "$_wpa"
 	fi
-	if [ -n "$WIFI_WPA23" ]; then
+	if [ -n "$_WIFI_PASSWD_SET" ] && [ -n "$WIFI_WPA23" ]; then
 		sed -r \
 			-e '/^}/i\\tkey_mgmt=WPA-PSK-SHA256 WPA-PSK\n\tieee80211w=1' \
 			-i "$_wpa"
