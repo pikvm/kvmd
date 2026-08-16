@@ -28,9 +28,6 @@ import grp
 import shutil
 import subprocess
 
-from os.path import join  # pylint: disable=ungrouped-imports
-from os.path import exists  # pylint: disable=ungrouped-imports
-
 from ...fstab import Partition
 from ...fstab import find_msd
 from ...fstab import find_pst
@@ -51,38 +48,12 @@ def _remount(path: str, rw: bool) -> None:
 
 
 def _mkdir(path: str) -> None:
-    if not exists(path):
+    if not os.path.exists(path):
         _log(f"MKDIR --- {path}")
         try:
             os.mkdir(path)
         except Exception as ex:
             raise SystemExit(f"Can't create directory: {ex}")
-
-
-def _rmtree(path: str) -> None:
-    if exists(path):
-        _log(f"RMALL --- {path}")
-        try:
-            shutil.rmtree(path)
-        except Exception as ex:
-            raise SystemExit(f"Can't remove directory: {ex}")
-
-
-def _rm(path: str) -> None:
-    if exists(path):
-        _log(f"RM    --- {path}")
-        try:
-            os.remove(path)
-        except Exception as ex:
-            raise SystemExit(f"Can't remove file: {ex}")
-
-
-def _move(src: str, dest: str) -> None:
-    _log(f"MOVE  --- {src} --> {dest}")
-    try:
-        os.rename(src, dest)
-    except Exception as ex:
-        raise SystemExit(f"Can't move file: {ex}")
 
 
 def _chown(path: str, user: str) -> None:
@@ -114,22 +85,6 @@ def _chmod(path: str, mode: int) -> None:
 
 # =====
 def _fix_msd(part: Partition) -> None:
-    # First images migration
-    images_path = join(part.root_path, "images")
-    meta_path = join(part.root_path, "meta")
-    if exists(images_path) and exists(meta_path):
-        for name in os.listdir(images_path):
-            _move(join(images_path, name), os.path.join(part.root_path, name))
-            if not exists(join(meta_path, f"{name}.complete")):
-                open(os.path.join(part.root_path, f".__{name}.incomplete")).close()  # pylint: disable=consider-using-with
-        _rmtree(images_path)
-        _rmtree(meta_path)
-
-    # Second images migration
-    for name in os.listdir(part.root_path):
-        if name.startswith(".__") and name.endswith(".complete"):
-            _rm(join(part.root_path, name))
-
     if part.user:
         _chown(part.root_path, part.user)
     if part.group:
