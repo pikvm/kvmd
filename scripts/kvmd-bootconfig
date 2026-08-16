@@ -281,7 +281,24 @@ end_of_file
 			-e '/^}/i\\tscan_ssid=1' \
 			-i "$_wpa"
 	fi
-	if [ -n "$_WIFI_PASSWD_SET" ] && [ -n "$WIFI_WPA23" ]; then
+	if [ -n "$_WIFI_PASSWD_SET" ] && [ -n "$WIFI_WPA3" ]; then
+		# Patch wpa_supplicant config to enable WPA3 (SAE)
+		# 1. wpa_passphrase generates an uncommented hashed psk= line and a
+		#    commented clear-text psk="..." line; for WPA3 clear-text psk= must be used
+		# 2. add key_mgmt=SAE, ieee80211w=2 network options before the end of the network={ block
+		# 3. add sae_pwe=2 global option before the network={ block
+		sed -r \
+			-e '1i\sae_pwe=2\n' \
+			-e 's/\tpsk=/\t#psk=/g' \
+			-e 's/\t#psk="/\tpsk="/g' \
+			-e '/^}/i\\tkey_mgmt=SAE\n\tieee80211w=2' \
+			-i "$_wpa"
+	elif [ -n "$_WIFI_PASSWD_SET" ] && [ -n "$WIFI_WPA23" ]; then
+		# Patch wpa_supplicant config for interoperability with WPA2/3 mixed mode networks,
+		# which means enabling support for WPA2 PMF (protected management frames)
+		# and a -SHA256 AKM that is commonly used together.
+		# Both changes are additive/optional, to not disallow connecting to a
+		# pure WPA2 (non-PMF) network.
 		sed -r \
 			-e '/^}/i\\tkey_mgmt=WPA-PSK-SHA256 WPA-PSK\n\tieee80211w=1' \
 			-i "$_wpa"
