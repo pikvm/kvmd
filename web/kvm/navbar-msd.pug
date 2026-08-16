@@ -49,11 +49,14 @@ li.right.feature-disabled#msd-dropdown
 				td(width="100%" colspan="4") #[select#msd-image-selector(disabled)]
 				td #[button#msd-remove-button(disabled title="Remove image") #[b &nbsp;&nbsp;&#10005;&nbsp;&nbsp;]]
 			tr
-				+menu_radio_td2("msd-mode-radio", [
-					{title: "CD/DVD", value: "1", checked: true},
-					{title: "Flash", value: "0"},
-				]) #[a(target="_blank" href="https://docs.pikvm.org/msd") Mode]:
-				+menu_switch_td2("msd-rw-switch", false, false) Writable:
+				td #[a(target="_blank" href="https://docs.pikvm.org/msd") Mode]:
+				td
+					+menu_radio("msd-mode-radio", [
+						{title: "CD/DVD", value: "1", checked: true},
+						{title: "Flash", value: "0"},
+					])
+				td Writable:
+				td #[+menu_switch("msd-rw-switch", false, false)]
 				td(style="width: 100%;")
 				td #[button#msd-download-button(disabled title="Download image") #[b &nbsp;&nbsp;&#x21E9;&nbsp;&nbsp;]]
 		hr

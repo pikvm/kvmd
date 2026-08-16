@@ -24,6 +24,7 @@ _variants=(
 	v2-hdmi:rpi4
 
 	v2-hdmiusb:rpi4
+	v2-hdmiusb:rpi5
 
 	v3-hdmi:rpi4
 
@@ -39,7 +40,7 @@ for _variant in "${_variants[@]}"; do
 	pkgname+=(kvmd-platform-$_platform-$_board)
 done
 pkgbase=kvmd
-pkgver=4.186
+pkgver=4.205
 pkgrel=1
 pkgdesc="The main PiKVM daemon"
 url="https://github.com/pikvm/kvmd"
@@ -97,28 +98,16 @@ depends=(
 	ipmitool
 	"janus-gateway-pikvm>=1.3.0"
 	certbot
-	"raspberrypi-io-access>=0.7"
+	"raspberrypi-io-access>=0.9"
 	raspberrypi-utils
 	"ustreamer>=6.47"
-
-	# Systemd UDEV bug
-	"systemd>=248.3-2"
-
-	# https://bugzilla.redhat.com/show_bug.cgi?id=2035802
-	# https://archlinuxarm.org/forum/viewtopic.php?f=15&t=15725&start=40
-	"zstd>=1.5.1-2.1"
 
 	# Bootconfig
 	dos2unix
 	parted
 	e2fsprogs
 	openssh
-	# FIXME:
-	#   - https://archlinuxarm.org/forum/viewtopic.php?f=15&t=17007&p=72789
-	#   - https://github.com/pikvm/pikvm/issues/1375
-	# Update at 2025.11.10: Still not fixed.
-	#   - https://github.com/pikvm/pikvm/issues/1604
-	wpa_supplicant-pikvm
+	wpa_supplicant
 	run-parts
 
 	# fsck for /boot
@@ -142,6 +131,7 @@ conflicts=(
 	platformio
 	avrdude-pikvm
 	kvmd-oled
+	wpa_supplicant-pikvm
 )
 makedepends=(
 	python-build
@@ -173,7 +163,7 @@ package_kvmd() {
 	python -m installer --destdir="$pkgdir" dist/*.whl
 
 	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot,update-switch}
-	install -Dm755 -t "$pkgdir/usr/lib/kvmd" scripts/kvmd-udev-flash-pico
+	install -Dm755 -t "$pkgdir/usr/lib/kvmd" scripts/kvmd-{udev-flash-pico,ucamera-prepare}
 
 	install -dm755 "$pkgdir/usr/lib/systemd/system"
 	cp -rd configs/os/services -T "$pkgdir/usr/lib/systemd/system"
@@ -229,7 +219,7 @@ for _variant in "${_variants[@]}"; do
 		backup=()
 
 		pkgdesc=\"PiKVM platform configs - $_platform for $_board\"
-		depends=(kvmd=\"${epoch:+$epoch:}$pkgver-$pkgrel\" \"linux-rpi-pikvm>=6.12.92-2\" \"raspberrypi-bootloader-pikvm>=20251031-1\")
+		depends=(kvmd=\"${epoch:+$epoch:}$pkgver-$pkgrel\" \"linux-rpi-pikvm>=6.12.92-2\" \"pikvm-os-raspberrypi>=0.10\")
 
 		if [[ $_base == v0 ]]; then
 			depends=(\"\${depends[@]}\" platformio-core avrdude make patch)
@@ -244,7 +234,6 @@ for _variant in "${_variants[@]}"; do
 			install -Dm755 -t \"\$pkgdir/usr/lib/kvmd\" scripts/kvmd-udev-restart-pass
 		fi
 
-		install -DTm644 configs/os/modprobe.conf \"\$pkgdir/usr/lib/modprobe.d/99-kvmd.conf\"
 		install -DTm644 configs/os/sysctl.conf \"\$pkgdir/usr/lib/sysctl.d/99-kvmd.conf\"
 		install -DTm644 configs/os/udev/common.rules \"\$pkgdir/usr/lib/udev/rules.d/99-kvmd-common.rules\"
 		install -DTm644 configs/os/udev/$_platform-$_board.rules \"\$pkgdir/usr/lib/udev/rules.d/99-kvmd.rules\"

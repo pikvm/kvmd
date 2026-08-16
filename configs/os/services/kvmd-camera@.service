@@ -1,9 +1,10 @@
 [Unit]
-BindTo=%i.device
+BindsTo=%i.device
 After=%i.device
 
 [Service]
 Type=simple
 Restart=always
 RestartSec=3
-ExecStart=/usr/bin/ucamera --device=/%I
+ExecStartPre=-/usr/lib/kvmd/kvmd-ucamera-prepare --device=%f
+ExecStart=/usr/bin/ucamera --device=%f

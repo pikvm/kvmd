@@ -92,7 +92,7 @@ export function Paste(__recorder) {
 					if (http.status === 413) {
 						wm.error("Too many text for paste!");
 					} else if (http.status !== 200) {
-						wm.error("HID paste error", http.responseText);
+						wm.error("Keyboard paste error", http.responseText);
 					} else if (http.status === 200) {
 						__recorder.recordPrintEvent(text, keymap, delay);
 					}

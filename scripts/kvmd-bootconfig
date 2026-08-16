@@ -136,6 +136,8 @@ if [ -n "$FIRSTBOOT$FIRST_BOOT" ]; then
 		umount "$part"
 		parted "$disk" -a optimal -s resizepart "$npart" 100%
 		yes | mkfs.ext4 -L "$label" -F -m 0 "$part"
+		# ensure udev database is up-to-date after mkfs, otherwise mount won't find the fstab entry
+		udevadm trigger --settle --action=change "$part"
 		mount "$part"
 		unset disk part npart label
 	fi
@@ -246,15 +248,16 @@ fi
 
 # Set the regulatory domain for wifi, if defined.
 if [ -n "$WIFI_REGDOM" ]; then
-	sed -i \
-			-e 's/^\(WIRELESS_REGDOM=.*\)$/#\1/' \
-			-e 's/^#\(WIRELESS_REGDOM="'"$WIFI_REGDOM"'"\)/\1/' \
-		/etc/conf.d/wireless-regdom
+	sed -r \
+		-e 's/^(WIRELESS_REGDOM=.*)$/#\1/' \
+		-e 's/^#(WIRELESS_REGDOM="'"$WIFI_REGDOM"'")/\1/' \
+		-i /etc/conf.d/wireless-regdom
 fi
 
 # If the WIFI_ESSID is defined, configure wlan0
 if [ -n "$WIFI_ESSID" ]; then
 	WIFI_IFACE="${WIFI_IFACE:-wlan0}"
+	_WIFI_PASSWD_SET=
 	if [ -n "$WIFI_ADDR" ]; then
 		make_static_iface "$WIFI_IFACE" "$WIFI_ADDR" "$WIFI_GW" "$WIFI_DNS" 50
 	else
@@ -262,6 +265,7 @@ if [ -n "$WIFI_ESSID" ]; then
 	fi
 	_wpa="/etc/wpa_supplicant/wpa_supplicant-$WIFI_IFACE.conf"
 	if [ "${#WIFI_PASSWD}" -ge 8 ];then
+		_WIFI_PASSWD_SET=1
 		wpa_passphrase "$WIFI_ESSID" "$WIFI_PASSWD" > "$_wpa"
 	else
 		cat <<end_of_file > "$_wpa"
@@ -273,10 +277,31 @@ end_of_file
 	fi
 	chmod 640 "$_wpa"
 	if [ -n "$WIFI_HIDDEN" ]; then
-		sed -i -e 's/^}/\tscan_ssid=1\n}/g' "$_wpa"
+		sed -r \
+			-e '/^}/i\\tscan_ssid=1' \
+			-i "$_wpa"
 	fi
-	if [ -n "$WIFI_WPA23" ]; then
-		sed -i -e 's/^}/\tkey_mgmt=WPA-PSK-SHA256 WPA-PSK\n\tieee80211w=1\n}/g' "$_wpa"
+	if [ -n "$_WIFI_PASSWD_SET" ] && [ -n "$WIFI_WPA3" ]; then
+		# Patch wpa_supplicant config to enable WPA3 (SAE)
+		# 1. wpa_passphrase generates an uncommented hashed psk= line and a
+		#    commented clear-text psk="..." line; for WPA3 clear-text psk= must be used
+		# 2. add key_mgmt=SAE, ieee80211w=2 network options before the end of the network={ block
+		# 3. add sae_pwe=2 global option before the network={ block
+		sed -r \
+			-e '1i\sae_pwe=2\n' \
+			-e 's/\tpsk=/\t#psk=/g' \
+			-e 's/\t#psk="/\tpsk="/g' \
+			-e '/^}/i\\tkey_mgmt=SAE\n\tieee80211w=2' \
+			-i "$_wpa"
+	elif [ -n "$_WIFI_PASSWD_SET" ] && [ -n "$WIFI_WPA23" ]; then
+		# Patch wpa_supplicant config for interoperability with WPA2/3 mixed mode networks,
+		# which means enabling support for WPA2 PMF (protected management frames)
+		# and a -SHA256 AKM that is commonly used together.
+		# Both changes are additive/optional, to not disallow connecting to a
+		# pure WPA2 (non-PMF) network.
+		sed -r \
+			-e '/^}/i\\tkey_mgmt=WPA-PSK-SHA256 WPA-PSK\n\tieee80211w=1' \
+			-i "$_wpa"
 	fi
 	systemctl enable "wpa_supplicant@$WIFI_IFACE.service" || true
 	need_reboot

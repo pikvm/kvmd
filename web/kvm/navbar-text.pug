@@ -17,11 +17,14 @@ li.right#text-dropdown
 				td #[select#hid-pak-keymap-selector]
 		table.kv
 			tr
-				+menu_slider_td3("hid-pak-delay-slider", "hid-pak-delay-value", true) Delay between keys:
+				td Delay between keys:
+				td.slider #[+menu_slider("hid-pak-delay-slider", "hid-pak-delay-value", true)]
 			tr
-				+menu_switch_td2("hid-pak-secure-switch", true, false) Hide input text:
+				td Hide input text:
+				td #[+menu_switch("hid-pak-secure-switch", true, false)]
 			tr
-				+menu_switch_td2("hid-pak-ask-switch", true, true) Ask paste confirmation:
+				td Ask paste confirmation:
+				td #[+menu_switch("hid-pak-ask-switch", true, true)]
 
 		.feature-disabled#stream-ocr
 			hr

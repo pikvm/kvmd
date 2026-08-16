@@ -218,6 +218,7 @@ def main() -> None:
                         help="Display temperature in Fahrenheit instead of Celsius")
 
     parser.set_defaults(
+        display="ssd1306",
         # Device-specific from the config
         width=ia.config.oled.width,
         height=ia.config.oled.height,

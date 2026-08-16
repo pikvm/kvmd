@@ -106,7 +106,7 @@ class SystemInfoSubmanager(BaseInfoSubmanager):
             parsed: dict[str, str] = {}
             for row in text.split("\n"):
                 row = row.strip()
-                if row:
+                if "=" in row:
                     (key, value) = row.split("=", 1)
                     parsed[key.strip()] = value.strip()
             return {

@@ -27,7 +27,7 @@ import {ROOT_PREFIX} from "../vars.js";
 import {tools, $} from "../tools.js";
 
 
-export function MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeHook) {
+export function MjpegStreamer(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook) {
 	var self = this;
 
 	/************************************************************************/
@@ -40,7 +40,20 @@ export function MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	var __timer = null;
 	var __timer_retries = 0;
 
+	var __init__ = function() {
+		tools.feature.setEnabled($("stream-orient"), false);
+		tools.feature.setEnabled($("stream-multimedia"), false);
+		tools.feature.setEnabled($("stream-audio"), false);
+		tools.feature.setEnabled($("stream-mic"), false);
+		tools.feature.setEnabled($("stream-camera"), false);
+	};
+
 	/************************************************************************/
+
+	self.setOrientation = function(orient) {}; // eslint-disable-line no-unused-vars
+	self.setAudioVolume = function(volume) {}; // eslint-disable-line no-unused-vars
+	self.setMicDevice = function(mic) {}; // eslint-disable-line no-unused-vars
+	self.setCameraDevice = function(camera) {}; // eslint-disable-line no-unused-vars
 
 	self.getName = () => "HTTP MJPEG";
 	self.getMode = () => "mjpeg";
@@ -157,4 +170,6 @@ export function MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	var __logInfo = (...args) => tools.info("Stream [MJPEG]:", ...args);
+
+	__init__();
 }

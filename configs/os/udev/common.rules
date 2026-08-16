@@ -20,6 +20,7 @@ ACTION!="remove", KERNEL=="nbd15", SUBSYSTEM=="block", \
 
 SUBSYSTEM=="video4linux", ACTION=="add", KERNEL=="video[0-9*]", \
 	SUBSYSTEMS=="gadget", DRIVERS=="configfs-gadget.kvmd", ATTR{function_name}=="uvc.usb0", \
+	SYMLINK+="kvmd-camera", \
 	PROGRAM="/usr/bin/systemd-escape -p --template=kvmd-camera@.service $env{DEVNAME}", \
 	ENV{SYSTEMD_WANTS}+="%c", TAG+="systemd"
 

@@ -183,7 +183,7 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		if (__ws) {
 			if (__online === null) {
 				led = "led-red";
-				title = (is_captured ? "Mouse captured, HID offline" : "Mouse free, HID offline");
+				title = (is_captured ? "Mouse captured, emulator offline" : "Mouse free, emulator offline");
 			} else if (__online) {
 				if (is_captured) {
 					led = "led-green";
@@ -223,7 +223,13 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 				case 4: __keypad.emit("down", state); break;
 			}
 		} else if (!__abs && !__isRelativeCaptured() && !state) {
-			$("stream-box").requestPointerLock();
+			let el = $("stream-box");
+			el.requestPointerLock({"unadjustedMovement": true}).catch(function(error) {
+				tools.info("Relative mouse: unadjustedMovement is unsupported, running without it");
+				if (error.name == "NotSupportedError") {
+					el.requestPointerLock();
+				}
+			});
 		}
 	};
 
