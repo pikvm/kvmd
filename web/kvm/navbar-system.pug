@@ -196,13 +196,17 @@ li.right#system-dropdown
 			hr.feature-disabled(id="drawing-tablet-mode-hr")
 			table(id="drawing-tablet-mode-table", class="kv feature-disabled")
 				tr
-					td #[+menu_switch("drawing-tablet-switch", false, false)] Drawing tablet mode:
+					td Drawing tablet mode:
+					td #[+menu_switch("drawing-tablet-switch", false, false)]
 				tr
-					td #[+menu_switch("drawing-tablet-right-emulation-switch", false, true)] Drawing tablet right-click emulation:
+					td Drawing tablet right-click emulation:
+					td #[+menu_switch("drawing-tablet-right-emulation-switch", false, true)]
 				tr
-					td.slider #[+menu_slider("drawing-tablet-right-delay-slider", "drawing-tablet-right-delay-value", false)] Drawing tablet right-click delay:
+					td Drawing tablet right-click delay:
+					td.slider #[+menu_slider("drawing-tablet-right-delay-slider", "drawing-tablet-right-delay-value", false)]
 				tr
-					td.slider #[+menu_slider("drawing-tablet-drag-threshold-slider", "drawing-tablet-drag-threshold-value", false)] Drawing tablet drag threshold:
+					td Drawing tablet drag threshold:
+					td.slider #[+menu_slider("drawing-tablet-drag-threshold-slider", "drawing-tablet-drag-threshold-value", false)]
 
 		table.kv
 			tr.feature-disabled#hid-connect
