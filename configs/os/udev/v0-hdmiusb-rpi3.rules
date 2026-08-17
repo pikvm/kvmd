@@ -2,3 +2,4 @@
 # https://wiki.archlinux.org/index.php/Udev#Setting_static_device_names
 KERNEL=="video[0-9]*", SUBSYSTEM=="video4linux", ATTRS{bInterfaceNumber}=="?*", PROGRAM="/usr/lib/kvmd/kvmd-udev-hdmiusb-check rpi3 %b", ATTR{index}=="0", GROUP="kvmd", SYMLINK+="kvmd-video"
 KERNEL=="ttyAMA0", SYMLINK+="kvmd-hid"
+KERNEL=="gpiochip0", SYMLINK+="kvmd-gpio"

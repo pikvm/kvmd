@@ -2,3 +2,4 @@
 # https://wiki.archlinux.org/index.php/Udev#Setting_static_device_names
 KERNEL=="video[0-9]*", SUBSYSTEM=="video4linux", KERNELS=="3f801000.csi|3f801000.csi1", ATTR{name}=="unicam-image", GROUP="kvmd", SYMLINK+="kvmd-video", TAG+="systemd"
 KERNEL=="ttyAMA0", SYMLINK+="kvmd-hid"
+KERNEL=="gpiochip0", SYMLINK+="kvmd-gpio"

@@ -147,7 +147,7 @@ class BaseMcuHid(BaseHid):  # pylint: disable=too-many-instance-attributes
     def get_plugin_options(cls) -> dict:
         return {
             # <gpio_kwargs>
-            "gpio_device":            Option("/dev/gpiochip0", type=valid_abs_path),
+            "gpio_device":            Option("/dev/kvmd-gpio", type=valid_abs_path),
             "power_detect_pin":       Option(-1,    type=valid_gpio_pin_optional),
             "power_detect_pull_down": Option(False, type=valid_bool),
             "reset_pin":              Option(4,     type=valid_gpio_pin_optional),

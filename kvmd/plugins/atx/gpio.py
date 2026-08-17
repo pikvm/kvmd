@@ -80,7 +80,7 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "device": Option("/dev/gpiochip0", type=valid_abs_path),
+            "device": Option("/dev/kvmd-gpio", type=valid_abs_path),
 
             "power_led_pin":      Option(24,    type=valid_gpio_pin),
             "power_led_inverted": Option(False, type=valid_bool),

@@ -58,7 +58,7 @@ class Plugin(BaseUserGpioDriver):
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "device": Option("/dev/gpiochip0", type=valid_abs_path),
+            "device": Option("/dev/kvmd-gpio", type=valid_abs_path),
         }
 
     @classmethod
