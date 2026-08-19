@@ -140,8 +140,8 @@ case "$1" in
 			"
 			restart_if_running_nginx
 			restart_if_running_vnc
-			exit "$retval"
 		fi
+		exit "$retval"
 	;;
 
 	install_nginx|install_vnc|install_cloud)
