@@ -1,8 +1,8 @@
-# ========================================================================== #
+/*****************************************************************************
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2020  Maxim Devaev <mdevaev@gmail.com>                    #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -17,37 +17,38 @@
 #    You should have received a copy of the GNU General Public License       #
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
-# ========================================================================== #
+*****************************************************************************/
 
 
-from ...clients.streamer import StreamerFormats
-from ...clients.streamer import MemsinkStreamerClient
-
-from .. import init
-
-from .audio import AudioSource
-
-from .mic import MicSink
-
-from .server import MediaServer
+"use strict";
 
 
-# =====
-def main() -> None:
-    config = init(
-        prog="kvmd-media",
-        description="The media proxy",
-        check_run=True,
-    ).config.media
+// The mono capturer for the direct stream mode. It collects the audio
+// samples to the frames of the required size and sends them to the main
+// thread as Float32Array.
+class MicProcessor extends AudioWorkletProcessor {
+	constructor(options) {
+		super();
+		this.__size = options.processorOptions.size;
+		this.__buf = new Float32Array(this.__size);
+		this.__used = 0;
+	}
 
-    def make_streamer(name: str, fmt: int) -> (MemsinkStreamerClient | None):
-        if getattr(config.memsink, name).sink:
-            return MemsinkStreamerClient(fmt, **getattr(config.memsink, name)._unpack())
-        return None
+	process(inputs) {
+		let chunk = ((inputs.length > 0 && inputs[0].length > 0) ? inputs[0][0] : null);
+		if (chunk) {
+			for (let index = 0; index < chunk.length; ++index) {
+				this.__buf[this.__used] = chunk[index];
+				this.__used += 1;
+				if (this.__used >= this.__size) {
+					let frame = this.__buf.slice(0);
+					this.port.postMessage(frame, [frame.buffer]);
+					this.__used = 0;
+				}
+			}
+		}
+		return true;
+	}
+}
 
-    MediaServer(
-        h264_streamer=make_streamer("h264", StreamerFormats.H264),
-        jpeg_streamer=make_streamer("jpeg", StreamerFormats.JPEG),
-        audio=AudioSource(**config.audio._unpack()),
-        mic=MicSink(**config.mic._unpack()),
-    ).run(**config.server._unpack())
+registerProcessor("kvmd-mic", MicProcessor);

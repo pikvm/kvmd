@@ -34,6 +34,9 @@ RUN \
 		libevent \
 		libutil-linux \
 		libbsd \
+		alsa-lib \
+		opus \
+		speexdsp \
 		python \
 		python-pip \
 		python-build \

@@ -484,6 +484,16 @@ def make_config_scheme() -> dict:
                     "drop_same_frames": Option(0.0, type=valid_float_f0),
                 },
             },
+
+            "audio": {
+                "device":   Option("plughw:tc358743,0", type=valid_stripped_string, if_empty=""),
+                "tc358743": Option("/dev/kvmd-video",   type=valid_abs_path, if_empty=""),
+            },
+
+            "mic": {
+                "device":  Option("plughw:UAC2Gadget,0", type=valid_stripped_string, if_empty=""),
+                "latency": Option(0.1, type=valid_float_f01),
+            },
         },
 
         "pst": {

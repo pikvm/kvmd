@@ -2,7 +2,7 @@
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2020  Maxim Devaev <mdevaev@gmail.com>                    #
+#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -18,36 +18,3 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
 # ========================================================================== #
-
-
-from ...clients.streamer import StreamerFormats
-from ...clients.streamer import MemsinkStreamerClient
-
-from .. import init
-
-from .audio import AudioSource
-
-from .mic import MicSink
-
-from .server import MediaServer
-
-
-# =====
-def main() -> None:
-    config = init(
-        prog="kvmd-media",
-        description="The media proxy",
-        check_run=True,
-    ).config.media
-
-    def make_streamer(name: str, fmt: int) -> (MemsinkStreamerClient | None):
-        if getattr(config.memsink, name).sink:
-            return MemsinkStreamerClient(fmt, **getattr(config.memsink, name)._unpack())
-        return None
-
-    MediaServer(
-        h264_streamer=make_streamer("h264", StreamerFormats.H264),
-        jpeg_streamer=make_streamer("jpeg", StreamerFormats.JPEG),
-        audio=AudioSource(**config.audio._unpack()),
-        mic=MicSink(**config.mic._unpack()),
-    ).run(**config.server._unpack())

@@ -27,8 +27,9 @@
 import {tools, $} from "../tools.js";
 
 
-// The microphone level meter. The mic itself belongs to Janus, so the meter
-// just listens to the track that is being sent to the host.
+// The microphone level meter. It can either be fed with the captured samples
+// (the direct mode encodes them itself) or attached to a track that somebody
+// else is sending (the WebRTC mode gives the microphone to Janus).
 export function MicLevel() {
 	var self = this;
 
@@ -38,7 +39,7 @@ export function MicLevel() {
 	var __RELEASE = 2; // The meter falls this many dB per frame, 100dB/s
 	var __CLIP = 0.99; // Everything above is a clipped sample
 	var __CLIP_HOLD = 40; // ... and the warning stays for 0.8s
-	var __PERIOD = 20; // The meter is updated 50 times per second
+	var __PERIOD = 20; // Every audio frame, so nothing is skipped by the rounding
 
 	var __sum = 0;
 	var __count = 0;
@@ -56,7 +57,15 @@ export function MicLevel() {
 
 	/************************************************************************/
 
+	self.feed = function(samples) {
+		// The direct mode has the samples in hand, no extra graph is needed:
+		// it calls us once per 20ms frame, which is exactly the meter's period
+		__accumulate(samples);
+		__update();
+	};
+
 	self.attach = function(track) {
+		// The WebRTC mode doesn't touch the samples, so we listen to the track
 		self.detach();
 		try {
 			__ctx = new AudioContext();

@@ -21,6 +21,7 @@
 
 
 import asyncio
+import contextlib
 import dataclasses
 
 from aiohttp.web import Request
@@ -43,8 +44,16 @@ from ...clients.streamer import StreamerPermError
 from ...clients.streamer import StreamerFormats
 from ...clients.streamer import BaseStreamerClient
 
+from ...audio import AudioError
+
 from ...validators import ValidatorError
 from ...validators.basic import valid_stripped_string
+
+from .audio import AudioSourceError
+from .audio import AudioSource
+
+from .mic import MicError
+from .mic import MicSink
 
 
 # =====
@@ -88,8 +97,12 @@ class _Client:
 
 class MediaServer(HttpServer):
     __EV_MEDIA = "media"
+    __EV_AUDIO_STATE = "audio_state"
+    __EV_MIC_STATE = "mic_state"
 
     __T_VIDEO = "video"
+    __T_AUDIO = "audio"
+    __T_MIC = "mic"
 
     __F_H264 = "h264"
     __F_JPEG = "jpeg"
@@ -98,9 +111,14 @@ class MediaServer(HttpServer):
         self,
         h264_streamer: (BaseStreamerClient | None),
         jpeg_streamer: (BaseStreamerClient | None),
+        audio: AudioSource,
+        mic: MicSink,
     ) -> None:
 
         super().__init__()
+
+        self.__audio = audio
+        self.__mic = mic
 
         self.__media: dict[str, dict[str, _Source]] = {self.__T_VIDEO: {}}
         if h264_streamer:
@@ -113,7 +131,7 @@ class MediaServer(HttpServer):
     @exposed_http("GET", "/")
     async def __root_handler(self, _: Request) -> Response:
         return make_json_response({
-            self.__EV_MEDIA: self.__get_media_info(),
+            self.__EV_MEDIA: (await self.__get_media_info()),
         })
 
     # ===== WEBSOCKET
@@ -129,7 +147,7 @@ class MediaServer(HttpServer):
                 if not self.__start_stream(ws, self.__T_VIDEO, v_fmt):
                     raise RuntimeError("We shouldn't be here")
             else:
-                await ws.send_event(self.__EV_MEDIA, self.__get_media_info())
+                await ws.send_event(self.__EV_MEDIA, (await self.__get_media_info()))
             return (await self._ws_loop(ws))
 
     @exposed_ws(0)
@@ -146,6 +164,10 @@ class MediaServer(HttpServer):
                         src.key_required = True
                     break
 
+    @exposed_ws(2)
+    async def __ws_bin_mic_handler(self, ws: WsSession, data: bytes) -> None:
+        self.__mic.feed(ws, data)
+
     @exposed_ws("start")
     async def __ws_start_handler(self, ws: WsSession, event: dict) -> None:
         try:
@@ -155,12 +177,84 @@ class MediaServer(HttpServer):
             return
         self.__start_stream(ws, m_type, m_fmt)  # TODO: Handle discard
 
-    def __get_media_info(self) -> dict:
+    @exposed_ws("audio_start")
+    async def __ws_audio_start_handler(self, ws: WsSession, event: dict) -> None:
+        if ws.kwargs["pure"]:  # Don't spoil pure data
+            return
+        error = ""
+        try:
+            fmt = valid_stripped_string(event.get("format"))
+            await self.__audio.start(
+                ws, fmt,
+                (lambda data: ws.send_bin(3, data)),
+                (lambda err: self.__send_audio_state(ws, False, err)),
+            )
+            if not ws.is_alive():
+                # The client has disconnected while we were starting the capture,
+                # so _on_ws_removed() has already passed by
+                self.__audio.stop(ws)
+                return
+        except (AudioSourceError, ValidatorError, AudioError) as ex:
+            error = tools.efmt(ex)
+        except Exception as ex:
+            error = tools.efmt(ex)
+            get_logger(0).exception("Can't start the audio for %s", ws)
+        await self.__send_audio_state(ws, (not error), error)
+
+    @exposed_ws("audio_stop")
+    async def __ws_audio_stop_handler(self, ws: WsSession, _: dict) -> None:
+        if ws.kwargs["pure"]:  # Don't spoil pure data
+            return
+        self.__audio.stop(ws)
+        await self.__send_audio_state(ws, False, "")
+
+    async def __send_audio_state(self, ws: WsSession, started: bool, error: str) -> None:
+        with contextlib.suppress(Exception):
+            await ws.send_event(self.__EV_AUDIO_STATE, {"started": started, "error": error})
+
+    @exposed_ws("mic_start")
+    async def __ws_mic_start_handler(self, ws: WsSession, event: dict) -> None:
+        if ws.kwargs["pure"]:  # Don't spoil pure data
+            return
+        error = ""
+        try:
+            fmt = valid_stripped_string(event.get("format"))
+            await self.__mic.start(ws, fmt, (lambda err: self.__send_mic_state(ws, False, err)))
+            if not ws.is_alive():
+                # The client has disconnected while we were opening the device,
+                # so _on_ws_removed() has already passed by
+                self.__mic.stop(ws)
+                return
+        except (MicError, ValidatorError, AudioError) as ex:
+            error = tools.efmt(ex)
+        except Exception as ex:
+            error = tools.efmt(ex)
+            get_logger(0).exception("Can't start the microphone for %s", ws)
+        await self.__send_mic_state(ws, (not error), error)
+
+    @exposed_ws("mic_stop")
+    async def __ws_mic_stop_handler(self, ws: WsSession, _: dict) -> None:
+        if ws.kwargs["pure"]:  # Don't spoil pure data
+            return
+        self.__mic.stop(ws)
+        await self.__send_mic_state(ws, False, "")
+
+    async def __send_mic_state(self, ws: WsSession, started: bool, error: str) -> None:
+        with contextlib.suppress(Exception):
+            await ws.send_event(self.__EV_MIC_STATE, {"started": started, "error": error})
+
+    async def __get_media_info(self) -> dict:
         info: dict = {}
         for (m_type, srcs) in self.__media.items():
             info[m_type] = {}
             for (m_fmt, src) in srcs.items():
                 info[m_type][m_fmt] = src.meta
+        audio = (await self.__audio.get_info())
+        if audio is not None:
+            info[self.__T_AUDIO] = audio
+        mic = (await self.__mic.get_info())
+        if mic is not None:
+            info[self.__T_MIC] = mic
         return info
 
     def __start_stream(self, ws: WsSession, m_type: str, m_fmt: str) -> bool:
@@ -192,6 +286,8 @@ class MediaServer(HttpServer):
         logger.info("On-Shutdown complete")
 
     def _on_ws_removed(self, ws: WsSession) -> None:
+        self.__audio.stop(ws)
+        self.__mic.stop(ws)
         for srcs in self.__media.values():
             for src in srcs.values():
                 client = src.clients.pop(ws, None)

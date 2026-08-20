@@ -97,6 +97,9 @@ depends=(
 	dnsmasq
 	ipmitool
 	"janus-gateway-pikvm>=1.3.0"
+	alsa-lib
+	opus
+	speexdsp
 	certbot
 	"raspberrypi-io-access>=0.9"
 	raspberrypi-utils
