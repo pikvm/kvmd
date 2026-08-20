@@ -24,6 +24,7 @@
 
 
 import {tools, $} from "../tools.js";
+import {MicLevel} from "./mic_level.js";
 import {wm} from "../wm.js";
 
 
@@ -53,6 +54,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	var __has_mic = false;
 	var __use_mic = null;
+	var __use_mic_raw = false;
+	var __mic_level = new MicLevel();
 
 	var __has_camera = false;
 	var __use_camera = null;
@@ -70,6 +73,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		tools.feature.setEnabled($("stream-multimedia"), false);
 		tools.feature.setEnabled($("stream-audio"), false);
 		tools.feature.setEnabled($("stream-mic"), false);
+		tools.feature.setEnabled($("stream-mic-raw"), false);
+		tools.feature.setEnabled($("stream-mic-level"), false);
 		tools.feature.setEnabled($("stream-camera"), false);
 	};
 
@@ -135,6 +140,15 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 				}
 			}
 		}, {[av]: true});
+	};
+
+	self.setMicRaw = function(raw) {
+		if (__use_mic_raw !== !!raw) {
+			__use_mic_raw = !!raw;
+			if (__has_mic && __use_mic) {
+				__destroyJanus(); // The constraints are negotiated with the offer
+			}
+		}
 	};
 
 	self.setMicDevice = function(mic, reload=false) {
@@ -308,6 +322,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	};
 
 	var __destroyJanus = function() {
+		__mic_level.detach();
 		if (__janus !== null) {
 			__janus.destroy();
 		}
@@ -403,6 +418,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						let f = msg.result.features;
 						tools.feature.setEnabled($("stream-audio"), (__has_audio = f.audio));
 						tools.feature.setEnabled($("stream-mic"), (__has_mic = f.mic));
+						tools.feature.setEnabled($("stream-mic-raw"), __has_mic);
+						tools.feature.setEnabled($("stream-mic-level"), __has_mic);
 						tools.feature.setEnabled($("stream-camera"), (__has_camera = (f.camera && f.camera.enabled)));
 						tools.feature.setEnabled($("stream-multimedia"), (__has_audio || __has_mic || __has_camera));
 						__ice = f.ice;
@@ -444,7 +461,15 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 					let mic = null;
 					if (__has_mic && __use_mic) {
-						mic = (__use_mic === ".__default__" ? true : {"deviceId": {"exact": __use_mic}});
+						mic = (__use_mic === ".__default__" ? {} : {"deviceId": {"exact": __use_mic}});
+						if (__use_mic_raw) {
+							// The echo cancellation stays on: without it the host would hear
+							// its own sound back through the microphone
+							mic["noiseSuppression"] = false;
+							mic["autoGainControl"] = false;
+						} else if (Object.keys(mic).length === 0) {
+							mic = true; // The plain default capture
+						}
 					}
 
 					let camera = null;
@@ -527,6 +552,14 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			},
 
 			"onlocaltrack": function(track, added) {
+				if (track.kind === "audio") {
+					// The microphone is captured by Janus, so the meter just listens to it
+					if (added) {
+						__mic_level.attach(track);
+					} else {
+						__mic_level.detach();
+					}
+				}
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
 				if (added && track.kind === "video") {
 					if ("contentHint" in track) { // WebKit

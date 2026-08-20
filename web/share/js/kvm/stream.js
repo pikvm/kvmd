@@ -84,6 +84,7 @@ export function Streamer() {
 			let enabled = $("stream-multimedia-switch").checked;
 			tools.el.setEnabled($("stream-audio-volume-slider"), enabled);
 			tools.el.setEnabled($("stream-mic-switch"), enabled);
+			tools.el.setEnabled($("stream-mic-raw-switch"), enabled);
 			tools.el.setEnabled($("stream-camera-switch"), enabled);
 			__applyAudioVolume();
 			__applyMicEnabled();
@@ -92,6 +93,8 @@ export function Streamer() {
 		}, false);
 
 		tools.storage.bindSimpleSlider($("stream-audio-volume-slider"), "stream.audio", 0, 100, 1, 100, __applyAudioVolume);
+
+		tools.storage.bindSimpleSwitch($("stream-mic-raw-switch"), "stream.mic.raw", false, __applyMicEnabled);
 
 		for (let [input, apply_cb] of [["mic", __applyMicEnabled], ["camera", __applyCameraEnabled]]) {
 			tools.storage.bindSimpleSwitch($(`stream-${input}-switch`), `stream.${input}`, false, apply_cb);
@@ -133,6 +136,7 @@ export function Streamer() {
 		let enabled = ($("stream-multimedia-switch").checked && $("stream-mic-switch").checked);
 		let el = $("stream-mic-selector");
 		tools.el.setEnabled(el, enabled);
+		__streamer.setMicRaw($("stream-mic-raw-switch").checked);
 		__streamer.setMicDevice(enabled ? el.value : null);
 	};
 

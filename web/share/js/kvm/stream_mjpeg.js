@@ -45,6 +45,8 @@ export function MjpegStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		tools.feature.setEnabled($("stream-multimedia"), false);
 		tools.feature.setEnabled($("stream-audio"), false);
 		tools.feature.setEnabled($("stream-mic"), false);
+		tools.feature.setEnabled($("stream-mic-raw"), false);
+		tools.feature.setEnabled($("stream-mic-level"), false);
 		tools.feature.setEnabled($("stream-camera"), false);
 	};
 
@@ -53,6 +55,7 @@ export function MjpegStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	self.setOrientation = function(orient) {}; // eslint-disable-line no-unused-vars
 	self.setAudioVolume = function(volume) {}; // eslint-disable-line no-unused-vars
 	self.setMicDevice = function(mic) {}; // eslint-disable-line no-unused-vars
+	self.setMicRaw = function(raw) {}; // eslint-disable-line no-unused-vars
 	self.setCameraDevice = function(camera) {}; // eslint-disable-line no-unused-vars
 
 	self.getName = () => "HTTP MJPEG";
