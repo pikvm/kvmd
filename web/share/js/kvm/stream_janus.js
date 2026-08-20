@@ -55,6 +55,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __has_mic = false;
 	var __use_mic = null;
 	var __use_mic_raw = false;
+	var __mic_pending = null;
 	var __mic_level = new MicLevel();
 
 	var __has_camera = false;
@@ -152,7 +153,14 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	};
 
 	self.setMicDevice = function(mic, reload=false) {
-		if (__has_mic && (__use_mic !== mic)) {
+		if (!__has_mic) {
+			// The features are not known yet: this happens right after switching the video
+			// mode, when the UI applies its state to the fresh streamer. Remember the latest
+			// choice, including a withdrawal, and replay it when the features arrive.
+			__mic_pending = mic;
+			return;
+		}
+		if (__use_mic !== mic) {
 			if (mic) {
 				__refillDevices("mic", mic, function(id) {
 					__use_mic = id;
@@ -420,6 +428,13 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						tools.feature.setEnabled($("stream-mic"), (__has_mic = f.mic));
 						tools.feature.setEnabled($("stream-mic-raw"), __has_mic);
 						tools.feature.setEnabled($("stream-mic-level"), __has_mic);
+						if (__mic_pending !== null) { // The UI asked before we knew the features
+							let mic = __mic_pending;
+							__mic_pending = null;
+							if (__has_mic) {
+								self.setMicDevice(mic);
+							}
+						}
 						tools.feature.setEnabled($("stream-camera"), (__has_camera = (f.camera && f.camera.enabled)));
 						tools.feature.setEnabled($("stream-multimedia"), (__has_audio || __has_mic || __has_camera));
 						__ice = f.ice;
