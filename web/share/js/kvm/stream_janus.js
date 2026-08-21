@@ -138,18 +138,23 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	};
 
 	self.setMicDevice = function(mic, reload=false) {
-		if (__has_mic && (__use_mic !== mic)) {
+		// The choice is remembered even before the features are known: this happens
+		// right after switching the video mode, when the UI applies its state to the
+		// fresh streamer. Only the restart needs the working session
+		if (__use_mic !== mic) {
 			if (mic) {
 				__refillDevices("mic", mic, function(id) {
 					__use_mic = id;
-					__destroyJanus();
+					if (__has_mic) {
+						__destroyJanus();
+					}
 				});
 			} else {
 				__use_mic = null;
 			}
 			reload = true;
 		}
-		if (reload) {
+		if (reload && __has_mic) {
 			__destroyJanus();
 		}
 	};
