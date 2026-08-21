@@ -130,6 +130,11 @@ li.right#system-dropdown
 					td Raw microphone:
 					td #[+menu_switch("stream-mic-raw-switch", false, false)]
 					td.tip No noise suppression and no auto gain
+				tr.feature-disabled#stream-mic-level
+					td Mic level:
+					td.slider(colspan="2")
+						.progress#stream-mic-level-progress
+							span.progress-value#stream-mic-level-value
 				tr.feature-disabled#stream-camera
 					td Camera:
 					td #[+menu_switch("stream-camera-switch", false, false)]
