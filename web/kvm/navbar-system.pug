@@ -126,6 +126,10 @@ li.right#system-dropdown
 					td Microphone:
 					td #[+menu_switch("stream-mic-switch", false, false)]
 					td #[select.small#stream-mic-selector(style="width: 90%;" disabled)]
+				tr.feature-disabled#stream-mic-raw
+					td Raw microphone:
+					td #[+menu_switch("stream-mic-raw-switch", false, false)]
+					td.tip No noise suppression and no auto gain
 				tr.feature-disabled#stream-camera
 					td Camera:
 					td #[+menu_switch("stream-camera-switch", false, false)]

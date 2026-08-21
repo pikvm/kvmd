@@ -53,6 +53,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	var __has_mic = false;
 	var __use_mic = null;
+	var __use_mic_raw = false;
 
 	var __has_camera = false;
 	var __use_camera = null;
@@ -70,6 +71,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		tools.feature.setEnabled($("stream-multimedia"), false);
 		tools.feature.setEnabled($("stream-audio"), false);
 		tools.feature.setEnabled($("stream-mic"), false);
+		tools.feature.setEnabled($("stream-mic-raw"), false);
 		tools.feature.setEnabled($("stream-camera"), false);
 	};
 
@@ -135,6 +137,15 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 				}
 			}
 		}, {[av]: true});
+	};
+
+	self.setMicRaw = function(raw) {
+		if (__use_mic_raw !== !!raw) {
+			__use_mic_raw = !!raw;
+			if (__has_mic && __use_mic) {
+				__destroyJanus(); // The constraints are negotiated with the offer
+			}
+		}
 	};
 
 	self.setMicDevice = function(mic, reload=false) {
@@ -403,6 +414,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						let f = msg.result.features;
 						tools.feature.setEnabled($("stream-audio"), (__has_audio = f.audio));
 						tools.feature.setEnabled($("stream-mic"), (__has_mic = f.mic));
+						tools.feature.setEnabled($("stream-mic-raw"), __has_mic);
 						tools.feature.setEnabled($("stream-camera"), (__has_camera = (f.camera && f.camera.enabled)));
 						tools.feature.setEnabled($("stream-multimedia"), (__has_audio || __has_mic || __has_camera));
 						__ice = f.ice;
@@ -445,6 +457,16 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 					let mic = null;
 					if (__has_mic && __use_mic) {
 						mic = (__use_mic === ".__default__" ? true : {"deviceId": {"exact": __use_mic}});
+						if (__use_mic_raw) {
+							// The raw capture needs an object, `true` means the browser defaults.
+							// The echo cancellation stays on: without it the host would hear
+							// its own sound back through the microphone
+							if (mic === true) {
+								mic = {};
+							}
+							mic["noiseSuppression"] = false;
+							mic["autoGainControl"] = false;
+						}
 					}
 
 					let camera = null;
