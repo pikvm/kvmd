@@ -54,6 +54,7 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		tools.feature.setEnabled($("stream-multimedia"), false);
 		tools.feature.setEnabled($("stream-audio"), false);
 		tools.feature.setEnabled($("stream-mic"), false);
+		tools.feature.setEnabled($("stream-mic-raw"), false);
 		tools.feature.setEnabled($("stream-camera"), false);
 	};
 
@@ -62,6 +63,7 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	self.setOrientation = function(orient) { __orient = orient; };
 	self.setAudioVolume = function(volume) {}; // eslint-disable-line no-unused-vars
 	self.setMicDevice = function(mic) {}; // eslint-disable-line no-unused-vars
+	self.setMicRaw = function(raw) {}; // eslint-disable-line no-unused-vars
 	self.setCameraDevice = function(camera) {}; // eslint-disable-line no-unused-vars
 
 	self.getName = () => "Direct H.264";
