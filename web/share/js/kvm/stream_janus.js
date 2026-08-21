@@ -171,18 +171,20 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	};
 
 	self.setCameraDevice = function(camera, reload=false) {
-		if (__has_camera && (__use_camera !== camera)) {
+		if (__use_camera !== camera) {
 			if (camera) {
 				__refillDevices("camera", camera, function(id) {
 					__use_camera = id;
-					__destroyJanus();
+					if (__has_camera) {
+						__destroyJanus();
+					}
 				});
 			} else {
 				__use_camera = null;
 			}
 			reload = true;
 		}
-		if (reload) {
+		if (reload && __has_camera) {
 			__destroyJanus();
 		}
 	};
