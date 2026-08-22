@@ -20,32 +20,22 @@
 *****************************************************************************/
 
 
-
 "use strict";
 
 
-import {tools, $} from "../tools.js";
+import {tools} from "../tools.js";
 
 
-// The microphone level meter. The mic itself belongs to Janus, so the meter
-// just listens to the track that is being sent to the host.
-export function MicLevel() {
+export function VuMeter(el_progress) {
 	var self = this;
 
 	/************************************************************************/
 
 	var __FLOOR = -60; // The bottom of the scale, dBFS
-	var __RELEASE = 2; // The meter falls this many dB per frame, 100dB/s
+	var __RELEASE = 10; // The meter falls this many dB per frame, 500dB/s
 	var __CLIP = 0.99; // Everything above is a clipped sample
 	var __CLIP_HOLD = 40; // ... and the warning stays for 0.8s
-	var __PERIOD = 20; // The meter is updated 50 times per second
-
-	var __sum = 0;
-	var __count = 0;
-	var __peak = 0;
-
-	var __level_db = __FLOOR;
-	var __clipped = 0;
+	var __PERIOD = 100; // The meter is updated 100 times per second
 
 	var __ctx = null;
 	var __resuming = false;
@@ -54,28 +44,38 @@ export function MicLevel() {
 	var __buf = null;
 	var __timer = null;
 
+	var __sum = 0;
+	var __count = 0;
+	var __peak = 0;
+	var __level_db = __FLOOR;
+	var __clipped = 0;
+
 	/************************************************************************/
 
 	self.attach = function(track) {
-		self.detach();
+		self.detach(); // Also draws some initial value on the progress bar
 		try {
 			// The bar jumps between the updates by default, this blends the steps
 			// without making the meter lag behind the sound
-			$("stream-mic-level-progress").querySelector(".progress-value")
-				.style.transition = `width ${__PERIOD}ms linear`;
+			el_progress.querySelector(".progress-value").style.transition = `width ${__PERIOD}ms linear`;
+
 			__ctx = new AudioContext();
+
 			// The source must be kept referenced, otherwise it can be garbage collected
 			__src = __ctx.createMediaStreamSource(new MediaStream([track]));
-			__analyser = __ctx.createAnalyser();
+
 			// 1024 samples is about 21ms at 48kHz: the same window the direct mode
 			// measures, so both modes react to the sound in the same way
+			__analyser = __ctx.createAnalyser();
 			__analyser.fftSize = 1024;
+
 			__buf = new Float32Array(__analyser.fftSize);
 			__src.connect(__analyser); // Not connected to the destination: nothing is played
+
 			__timer = setInterval(__poll, __PERIOD);
 			__poll();
 		} catch (err) {
-			tools.error("MicLevel: Can't attach to the track:", err);
+			tools.error("VuMeter: Can't attach to the track:", err);
 			self.detach();
 		}
 	};
@@ -85,6 +85,7 @@ export function MicLevel() {
 			clearInterval(__timer);
 			__timer = null;
 		}
+
 		for (let close of [
 			() => { if (__src !== null) { __src.disconnect(); } },
 			() => { if (__analyser !== null) { __analyser.disconnect(); } },
@@ -93,7 +94,7 @@ export function MicLevel() {
 			try {
 				close();
 			} catch (err) {
-				tools.error("MicLevel: Can't detach from the track:", err);
+				tools.error("VuMeter: Can't detach from the track:", err);
 			}
 		}
 		__resuming = false;
@@ -101,10 +102,7 @@ export function MicLevel() {
 		__analyser = null;
 		__buf = null;
 		__ctx = null;
-		self.reset();
-	};
 
-	self.reset = function() {
 		__sum = 0;
 		__count = 0;
 		__peak = 0;
@@ -123,7 +121,7 @@ export function MicLevel() {
 			if (!__resuming) { // One pending resume is enough
 				__resuming = true;
 				__ctx.resume().catch(function(err) {
-					tools.error("MicLevel: Can't resume the context:", err);
+					tools.error("VuMeter: Can't resume the context:", err);
 				}).finally(function() {
 					__resuming = false;
 				});
@@ -136,8 +134,8 @@ export function MicLevel() {
 	};
 
 	var __accumulate = function(samples) {
-		for (let index = 0; index < samples.length; ++index) {
-			let value = Math.abs(samples[index]);
+		for (let i = 0; i < samples.length; ++i) {
+			let value = Math.abs(samples[i]);
 			__sum += value * value;
 			if (value > __peak) {
 				__peak = value;
@@ -165,18 +163,18 @@ export function MicLevel() {
 		__draw();
 	};
 
-	var __percent = function(db) {
-		return Math.max(0, Math.min(100, (db - __FLOOR) / -__FLOOR * 100));
-	};
-
 	var __draw = function() {
-		let percent = __percent(__level_db);
-		let label = "";
-		if (__clipped > 0) {
-			label = "Clipping!";
-		} else if (percent > 0) {
-			label = `${Math.round(__level_db)} dB`;
+		let label = "Clip!";
+		let percent = 100;
+		if (__clipped <= 0) { // Not clipped
+			if (__level_db <= __FLOOR) { // Don't calculate
+				label = `${__FLOOR} dB`;
+				percent = 0;
+			} else {
+				label = `${Math.round(__level_db)} dB`;
+				percent = Math.max(0, Math.min(100, (__level_db - __FLOOR) / -__FLOOR * 100));
+			}
 		}
-		tools.progress.setValue($("stream-mic-level-progress"), label, percent);
+		tools.progress.setValue(el_progress, label, percent);
 	};
 }

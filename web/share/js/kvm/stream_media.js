@@ -55,7 +55,6 @@ export function MediaStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		tools.feature.setEnabled($("stream-audio"), false);
 		tools.feature.setEnabled($("stream-mic"), false);
 		tools.feature.setEnabled($("stream-mic-raw"), false);
-		tools.feature.setEnabled($("stream-mic-level"), false);
 		tools.feature.setEnabled($("stream-camera"), false);
 	};
 

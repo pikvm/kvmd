@@ -24,7 +24,7 @@
 
 
 import {tools, $} from "../tools.js";
-import {MicLevel} from "./mic_level.js";
+import {VuMeter} from "./vu.js";
 import {wm} from "../wm.js";
 
 
@@ -51,11 +51,12 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	var __has_audio = false;
 	var __use_audio = 0; // Volume
+	var __audio_vu = null;
 
 	var __has_mic = false;
 	var __use_mic = null;
 	var __use_mic_raw = false;
-	var __mic_level = new MicLevel();
+	var __mic_vu = null;
 
 	var __has_camera = false;
 	var __use_camera = null;
@@ -74,8 +75,10 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		tools.feature.setEnabled($("stream-audio"), false);
 		tools.feature.setEnabled($("stream-mic"), false);
 		tools.feature.setEnabled($("stream-mic-raw"), false);
-		tools.feature.setEnabled($("stream-mic-level"), false);
 		tools.feature.setEnabled($("stream-camera"), false);
+
+		__audio_vu = new VuMeter($("stream-audio-vu-progress"));
+		__mic_vu = new VuMeter($("stream-mic-vu-progress"));
 	};
 
 	/************************************************************************/
@@ -329,7 +332,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	};
 
 	var __destroyJanus = function() {
-		__mic_level.detach();
+		__audio_vu.detach();
+		__mic_vu.detach();
 		if (__janus !== null) {
 			__janus.destroy();
 		}
@@ -426,7 +430,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						tools.feature.setEnabled($("stream-audio"), (__has_audio = f.audio));
 						tools.feature.setEnabled($("stream-mic"), (__has_mic = f.mic));
 						tools.feature.setEnabled($("stream-mic-raw"), (__has_mic && !tools.browser.is_safari));
-						tools.feature.setEnabled($("stream-mic-level"), __has_mic);
 						tools.feature.setEnabled($("stream-camera"), (__has_camera = (f.camera && f.camera.enabled)));
 						tools.feature.setEnabled($("stream-multimedia"), (__has_audio || __has_mic || __has_camera));
 						__ice = f.ice;
@@ -558,14 +561,6 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			},
 
 			"onlocaltrack": function(track, added) {
-				if (track.kind === "audio") {
-					// The microphone is captured by Janus, so the meter just listens to it
-					if (added) {
-						__mic_level.attach(track);
-					} else {
-						__mic_level.detach();
-					}
-				}
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
 				if (added && track.kind === "video") {
 					if ("contentHint" in track) { // WebKit
@@ -582,6 +577,13 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 								break;
 							}
 						}
+					}
+				}
+				if (track.kind === "audio") {
+					if (added) {
+						__mic_vu.attach(track);
+					} else {
+						__mic_vu.detach();
 					}
 				}
 			},
@@ -601,6 +603,13 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 					}
 				} else if (!added && reason === "ended") {
 					__removeTrack(track);
+				}
+				if (reason === "created" && track.kind === "audio") {
+					if (added) {
+						__audio_vu.attach(track);
+					} else {
+						__audio_vu.detach();
+					}
 				}
 			},
 

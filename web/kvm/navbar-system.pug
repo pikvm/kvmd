@@ -118,27 +118,28 @@ li.right#system-dropdown
 				tr
 					td Multimedia:
 					td #[+menu_switch("stream-multimedia-switch", true, false)]
-					td.tip Turns everything on or off at once
+					td.tip(colspan="2") Turns everything on or off at once
 				tr.feature-disabled#stream-audio
 					td Audio volume:
 					td.slider(colspan="2") #[+menu_slider("stream-audio-volume-slider", "stream-audio-volume-value", false)]
+					td
+						.progress#stream-audio-vu-progress(title="Volume level on the remote host")
+							span.progress-value#stream-audio-vu-value
 				tr.feature-disabled#stream-mic
 					td Microphone:
 					td #[+menu_switch("stream-mic-switch", false, false)]
-					td #[select.small#stream-mic-selector(style="width: 90%;" disabled)]
+					td(style="width: 150px;") #[select.small#stream-mic-selector(style="width: 100%;" disabled)]
+					td
+						.progress#stream-mic-vu-progress(title="How well PiKVM can hear you")
+							span.progress-value#stream-mic-vu-value
 				tr.feature-disabled#stream-mic-raw
-					td Raw microphone:
+					td
 					td #[+menu_switch("stream-mic-raw-switch", false, false)]
-					td.tip No noise suppression and no auto gain
-				tr.feature-disabled#stream-mic-level
-					td Mic level:
-					td.slider(colspan="2")
-						.progress#stream-mic-level-progress
-							span.progress-value#stream-mic-level-value
+					td.tip(colspan="2") Disable noise suppression and auto gain
 				tr.feature-disabled#stream-camera
 					td Camera:
 					td #[+menu_switch("stream-camera-switch", false, false)]
-					td #[select.small#stream-camera-selector(style="width: 90%;" disabled)]
+					td(style="width: 150px;") #[select.small#stream-camera-selector(style="width: 100%;" disabled)]
 
 		hr
 

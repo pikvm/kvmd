@@ -399,7 +399,7 @@
                         <label for="stream-multimedia-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                       </div>
                 </td>
-                <td class="tip">Turns everything on or off at once</td>
+                <td class="tip" colspan="2">Turns everything on or off at once</td>
               </tr>
               <tr class="feature-disabled" id="stream-audio">
                 <td>Audio volume:</td>
@@ -411,6 +411,9 @@
                         <td class="slider-value" id="stream-audio-volume-value"></td>
                       </table>
                 </td>
+                <td>
+                  <div class="progress" id="stream-audio-vu-progress" title="Volume level on the remote host"><span class="progress-value" id="stream-audio-vu-value"></span></div>
+                </td>
               </tr>
               <tr class="feature-disabled" id="stream-mic">
                 <td>Microphone:</td>
@@ -420,25 +423,22 @@
                         <label for="stream-mic-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                       </div>
                 </td>
+                <td style="width: 150px;">
+                  <select class="small" id="stream-mic-selector" style="width: 100%;" disabled></select>
+                </td>
                 <td>
-                  <select class="small" id="stream-mic-selector" style="width: 90%;" disabled></select>
+                  <div class="progress" id="stream-mic-vu-progress" title="How well PiKVM can hear you"><span class="progress-value" id="stream-mic-vu-value"></span></div>
                 </td>
               </tr>
               <tr class="feature-disabled" id="stream-mic-raw">
-                <td>Raw microphone:</td>
+                <td></td>
                 <td>
                       <div class="switch-box">
                         <input disabled type="checkbox" id="stream-mic-raw-switch">
                         <label for="stream-mic-raw-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                       </div>
                 </td>
-                <td class="tip">No noise suppression and no auto gain</td>
-              </tr>
-              <tr class="feature-disabled" id="stream-mic-level">
-                <td>Mic level:</td>
-                <td class="slider" colspan="2">
-                  <div class="progress" id="stream-mic-level-progress"><span class="progress-value" id="stream-mic-level-value"></span></div>
-                </td>
+                <td class="tip" colspan="2">Disable noise suppression and auto gain</td>
               </tr>
               <tr class="feature-disabled" id="stream-camera">
                 <td>Camera:</td>
@@ -448,8 +448,8 @@
                         <label for="stream-camera-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                       </div>
                 </td>
-                <td>
-                  <select class="small" id="stream-camera-selector" style="width: 90%;" disabled></select>
+                <td style="width: 150px;">
+                  <select class="small" id="stream-camera-selector" style="width: 100%;" disabled></select>
                 </td>
               </tr>
             </table>
