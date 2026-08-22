@@ -28,7 +28,7 @@ from setuptools import setup
 def main() -> None:
     setup(
         name="kvmd",
-        version="4.207",
+        version="4.208",
         url="https://github.com/pikvm/kvmd",
         license="GPLv3",
         author="Maxim Devaev",
