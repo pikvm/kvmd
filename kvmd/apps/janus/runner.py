@@ -43,6 +43,7 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
         cmd_append: list[str],
     ) -> None:
 
+        self.__stun_bootstrap = Stun(stun_host, stun_port, stun_timeout, 1, 0)
         self.__stun = Stun(stun_host, stun_port, stun_timeout, stun_retries, stun_retries_delay)
 
         self.__check_interval = check_interval
@@ -61,14 +62,18 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
 
     async def __run(self) -> None:
         logger = get_logger(0)
+
         logger.info("Probbing the network first time ...")
+        netcfg = await self.__get_netcfg(self.__stun_bootstrap)
+        await self.__start_janus(netcfg)
+        await asyncio.sleep(self.__check_retries_delay)
 
         prev_netcfg: (_Netcfg | None) = None
         while True:
             retry = 0
             netcfg = _Netcfg()
             for retry in range(1 if prev_netcfg is None else self.__check_retries):
-                netcfg = await self.__get_netcfg()
+                netcfg = await self.__get_netcfg(self.__stun)
                 if netcfg.ext_ip:
                     break
                 await asyncio.sleep(self.__check_retries_delay)
@@ -87,13 +92,13 @@ class JanusRunner:  # pylint: disable=too-many-instance-attributes
 
             await asyncio.sleep(self.__check_interval)
 
-    async def __get_netcfg(self) -> _Netcfg:
+    async def __get_netcfg(self, stun: Stun) -> _Netcfg:
         try:
             src_ip = network.get_first_iface().ip
         except Exception as ex:
             get_logger().error("Can't get default IP: %s", tools.efmt(ex))
             src_ip = "0.0.0.0"
-        info = await self.__stun.get_info(src_ip, 0)
+        info = await stun.get_info(src_ip, 0)
         # В текущей реализации _Netcfg() это копия StunInfo()
         return _Netcfg(**dataclasses.asdict(info))
 
