@@ -573,9 +573,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 								// Firefox doesn't support contentHint but there is another hack
 								//   - https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
-								let params = sender.getParameters();
-								params.degradationPreference = "maintain-resolution";
-								sender.setParameters(params);
+								__tuneVideoSender(sender, 10);
 								break;
 							}
 						}
@@ -699,6 +697,29 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	var __isOnline = function() {
 		return !!(__state && __state.source.online);
+	};
+
+	var __tuneVideoSender = function(sender, attempts) {
+		// Until the negotiation is complete getParameters() returns no encodings,
+		// and setParameters() rejects any change of their number, so retry a bit
+		let params = sender.getParameters();
+		if (!params.encodings || params.encodings.length === 0) {
+			if (attempts > 0 && sender.track) {
+				setTimeout(() => __tuneVideoSender(sender, attempts - 1), 500);
+			} else if (sender.track) {
+				__logError("Can't tune the video sender: no encodings after the negotiation");
+			}
+			return;
+		}
+		params.degradationPreference = "maintain-resolution";
+		// The default cap (2.5 Mbps on Chrome, ~1 Mbps on Firefox) starves 1080p30
+		// and the webcam looks like upscaled SD no matter the resolution
+		params.encodings[0].maxBitrate = 8 * 1000 * 1000;
+		sender.setParameters(params).then(function() {
+			__logInfo("Installed degradationPreference=maintain-resolution, maxBitrate:", sender.track);
+		}).catch(function(ex) {
+			__logError("Can't tune the video sender:", ex);
+		});
 	};
 
 	var __sendWatch = function() {
