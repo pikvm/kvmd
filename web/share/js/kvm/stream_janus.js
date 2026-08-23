@@ -61,6 +61,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __has_camera = false;
 	var __use_camera = null;
 	var __camera_req = null;
+	var __camera_track = null;
+	var __camera_frames = null;
 
 	var __orient = 0;
 
@@ -248,6 +250,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	self.stopStream = function() {
 		__fix_zero_h264_gop = null;
 		__stop = true;
+		__setCameraTrack(null);
 		__destroyJanus();
 		if (__resize_listener_installed) {
 			$("stream-video").removeEventListener("resize", __videoResizeHandler);
@@ -328,6 +331,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __destroyJanus = function() {
 		__audio_vu.detach();
 		__mic_vu.detach();
+		__setCameraTrack(null);
 		if (__janus !== null) {
 			__janus.destroy();
 		}
@@ -579,6 +583,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						}
 					}
 				}
+				if (track.kind === "video") {
+					__setCameraTrack(added ? track : null);
+				}
 				if (track.kind === "audio") {
 					if (added) {
 						__mic_vu.attach(track);
@@ -692,11 +699,76 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 				}
 			}
 			__setInfo(true, __isOnline(), info);
+			__updateCameraInfo();
 		}
 	};
 
 	var __isOnline = function() {
 		return !!(__state && __state.source.online);
+	};
+
+	var __setCameraTrack = function(track) {
+		__camera_track = track;
+		__camera_frames = null;
+		if (track === null) {
+			$("stream-camera-resolution").textContent = "";
+		} else {
+			__updateCameraInfo();
+		}
+	};
+
+	var __updateCameraInfo = function() {
+		let track = __camera_track;
+		if (track === null) {
+			return;
+		}
+		let sender = (__handle?.webrtcStuff?.pc?.getSenders() || []).find(item => (item.track === track));
+		if (sender === undefined) {
+			return;
+		}
+		sender.getStats().then(function(stats) {
+			if (__camera_track !== track) {
+				return; // The camera was switched off while we were waiting for the stats
+			}
+			let rtp = null;
+			stats.forEach(function(report) {
+				if (report.type === "outbound-rtp" && report.kind === "video") {
+					rtp = report;
+				}
+			});
+			// Prefer what is actually being encoded and sent: WebRTC can downscale
+			// the capture, and Firefox reports incomplete settings for some devices
+			let st = track.getSettings();
+			let width = (rtp?.frameWidth || st.width || __camera_req?.resolution.width || 0);
+			let height = (rtp?.frameHeight || st.height || __camera_req?.resolution.height || 0);
+			let fps = __getCameraFps(rtp);
+			$("stream-camera-resolution").textContent = (
+				width > 0 && height > 0
+					? `${width}x${height}` + (fps === null ? "" : `@${fps}`)
+					: ""
+			);
+		}).catch(function(ex) {
+			__logError("Can't get the camera stats:", ex);
+		});
+	};
+
+	var __getCameraFps = function(rtp) {
+		if (rtp === null) {
+			return null;
+		}
+		if (rtp.framesPerSecond !== undefined) {
+			return Math.round(rtp.framesPerSecond);
+		}
+		// Firefox doesn't count the frame rate for us, so measure it between the polls
+		if (rtp.framesSent === undefined) {
+			return null;
+		}
+		let prev = __camera_frames;
+		__camera_frames = {"frames": rtp.framesSent, "ts": rtp.timestamp};
+		if (prev === null || rtp.timestamp <= prev.ts) {
+			return null;
+		}
+		return Math.round((rtp.framesSent - prev.frames) * 1000 / (rtp.timestamp - prev.ts));
 	};
 
 	var __tuneVideoSender = function(sender, attempts) {
