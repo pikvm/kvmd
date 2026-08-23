@@ -87,6 +87,7 @@ from ..validators.ugpio import valid_ugpio_mode
 from ..validators.hw import valid_tty_speed
 from ..validators.hw import valid_otg_id
 from ..validators.hw import valid_otg_ethernet
+from ..validators.hw import valid_otg_camera_resolution
 
 
 # =====
@@ -589,6 +590,7 @@ def make_config_scheme() -> dict:
                     "enabled": Option(False, type=valid_bool),
                     "start":   Option(True,  type=valid_bool),
                     "safe":    Option(False, type=valid_bool),
+                    "resolution": Option("1280x720", type=valid_otg_camera_resolution),
                     "controls": {
                         "ct_mask": Option(0x00000E, type=valid_number.mk(min=0, max=0xFFFFFF)),
                         "pu_mask": Option(0x175B,   type=valid_number.mk(min=0, max=0xFFFF)),

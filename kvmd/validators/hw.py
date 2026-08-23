@@ -55,3 +55,12 @@ def valid_otg_id(arg: Any) -> int:
 @add_validator_magic(16)
 def valid_otg_ethernet(arg: Any) -> str:
     return check_string_in_list(arg, "OTG Ethernet driver", ["ecm", "eem", "ncm", "rndis", "rndis5"])
+
+
+@add_validator_magic(16)
+def valid_otg_camera_resolution(arg: Any) -> str:
+    # Must match the frames table in kvmd-otg
+    return check_string_in_list(arg, "OTG camera resolution", [
+        "1920x1080", "1280x720", "1024x768", "1024x576", "960x720",
+        "800x600", "640x480", "640x360", "320x240", "320x180",
+    ])
