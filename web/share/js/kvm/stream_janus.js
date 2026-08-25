@@ -560,17 +560,25 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 				}
 			},
 
-			"onlocaltrack": function(track, added) {
-				// https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
+			"onlocaltrack": async function(track, added) {
 				if (added && track.kind === "video") {
-					if ("contentHint" in track) { // WebKit
-						__logInfo("Installing contentHint=detail:", track);
-						track.contentHint = "detail";
-					}
-					if (__handle?.webrtcStuff?.pc) { // Firefox
+					track.contentHint = "detail"; // Webkit
+					if (__handle?.webrtcStuff?.pc) {
 						for (let sender of __handle.webrtcStuff.pc.getSenders()) {
 							if (sender.track === track) {
-								__logInfo("Installing degradationPreference=maintain-resolution:", track);
+								if (tools.browser.is_mobile) {
+									try {
+										__logInfo("Patching camera track for auto-rotate ...");
+										let s_track = _makeSmartCameraTrack(track, __camera_req.resolution);
+										s_track.contentHint = "detail";
+										sender.replaceTrack(s_track);
+									} catch (ex) {
+										__logError("Can't patch camera track:", ex);
+									}
+								}
+
+								// Firefox doesn't support contentHint but there is another hack
+								//   - https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
 								let params = sender.getParameters();
 								params.degradationPreference = "maintain-resolution";
 								sender.setParameters(params);
@@ -764,4 +772,61 @@ JanusStreamer.ensure_janus = function(cb) {
 
 JanusStreamer.is_webrtc_available = function() {
 	return !!window.RTCPeerConnection;
+};
+
+function _makeSmartCameraTrack(track, res) {
+	const canvas = document.createElement("canvas");
+	canvas.width = res.width;
+	canvas.height = res.height;
+
+	const readable = new ReadableStream({
+		async start(controller) {
+			this.__ctx = canvas.getContext("2d", {"desynchronized": true});
+			track.addEventListener("ended", () => controller.close(), {"once": true});
+			this.__el_video = document.createElement("video");
+			this.__el_video.srcObject = new MediaStream([track]);
+			await Promise.all([this.__el_video.play(), new Promise(r => this.__el_video.onloadedmetadata = r)]);
+			this.__ts = performance.now();
+		},
+		async pull(controller) {
+			if (track.readyState == "ended") {
+				return controller.close();
+			}
+			const fps = (track.getSettings().frameRate || 30);
+			while (performance.now() - this.__ts < (1000 / fps)) {
+				await new Promise(r => requestAnimationFrame(r));
+				if (track.readyState == "ended") {
+					return controller.close();
+				}
+			}
+			this.__ts = performance.now();
+			if (this.__el_video.videoWidth == res.width) {
+				this.__ctx.drawImage(this.__el_video, 0, 0);
+			} else if (this.__el_video.videoWidth == res.height) {
+				const sw = this.__el_video.videoWidth; // Source
+				const sh = this.__el_video.videoHeight;
+				const dw = res.width; // Dest
+				const dh = res.height;
+
+				const th = sw * (dh / dw); // Cropped height
+				const ph = (sh - th) / 2; // Y padding
+
+				this.__ctx.drawImage(
+					this.__el_video,
+					0, ph, // Source (x,y)
+					sw, th, // Source size
+					0, 0, // Dest (x,y)
+					dw, dh); // Dest size
+			}
+			controller.enqueue(new VideoFrame(canvas, {"timestamp": this.__ts}));
+		},
+	});
+
+	const writable = new WritableStream({
+		write(frame) { frame.close(); },
+	});
+
+	readable.pipeTo(writable);
+
+	return canvas.captureStream().getVideoTracks()[0];
 };
