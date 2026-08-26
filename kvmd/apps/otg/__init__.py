@@ -119,10 +119,11 @@ class _GadgetConfig:
 
         _mkdir(meta_path)
 
-    def add_camera(
+    def add_camera(  # pylint: disable=too-many-locals
         self,
         starter: list[str],
         start: bool,
+        safe: bool,
         ct_mask: int,
         pu_mask: int,
     ) -> None:
@@ -175,16 +176,17 @@ class _GadgetConfig:
             # (160,  120,  [30, 24, 20, 15, 10, 5]),
             # (160,  90,   [30, 24, 20, 15, 10, 5]),
         ]:
-            if framerates:
-                fmt_path = join(func_path, f"streaming/mjpeg/m/{width}x{height}")
-                _mkdir(fmt_path)
-                _write(join(fmt_path, "wWidth"), width)
-                _write(join(fmt_path, "wHeight"), height)
-                _write(join(fmt_path, "dwMaxVideoFrameBufferSize"), width * height)  # Should be fine
-                _write(join(fmt_path, "dwFrameInterval"), "\n".join(
-                    str(math.floor(1 / fps * 10_000_000))  # 30 -> 333333, 100ns units
-                    for fps in framerates
-                ))
+            if not framerates or (safe and width > 640):
+                continue
+            fmt_path = join(func_path, f"streaming/mjpeg/m/{width}x{height}")
+            _mkdir(fmt_path)
+            _write(join(fmt_path, "wWidth"), width)
+            _write(join(fmt_path, "wHeight"), height)
+            _write(join(fmt_path, "dwMaxVideoFrameBufferSize"), width * height)  # Should be fine
+            _write(join(fmt_path, "dwFrameInterval"), "\n".join(
+                str(math.floor(1 / fps * 10_000_000))  # 30 -> 333333, 100ns units
+                for fps in framerates
+            ))
 
         path = join(func_path, "streaming/header/h")
         _mkdir(path)
@@ -468,7 +470,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     if cod.camera.enabled:
         logger.info("===== Camera =====")
-        gc.add_camera(["camera"], cod.camera.start, cod.camera.controls.ct_mask, cod.camera.controls.pu_mask)
+        gc.add_camera(["camera"], cod.camera.start, cod.camera.safe, cod.camera.controls.ct_mask, cod.camera.controls.pu_mask)
 
     logger.info("===== Preparing complete =====")
 

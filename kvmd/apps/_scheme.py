@@ -588,6 +588,7 @@ def make_config_scheme() -> dict:
                 "camera": {
                     "enabled": Option(False, type=valid_bool),
                     "start":   Option(True,  type=valid_bool),
+                    "safe":    Option(False, type=valid_bool),
                     "controls": {
                         "ct_mask": Option(0x00000E, type=valid_number.mk(min=0, max=0xFFFFFF)),
                         "pu_mask": Option(0x175B,   type=valid_number.mk(min=0, max=0xFFFF)),
