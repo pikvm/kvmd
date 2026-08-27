@@ -203,6 +203,20 @@ li.right#system-dropdown
 								td &nbsp;&nbsp;
 								td Horiz:
 								td #[+menu_switch("hid-mouse-reverse-scrolling-x-switch", true, false)]
+			hr.feature-disabled(id="drawing-tablet-mode-hr")
+			table(id="drawing-tablet-mode-table", class="kv feature-disabled")
+				tr
+					td Drawing tablet mode:
+					td #[+menu_switch("drawing-tablet-switch", false, false)]
+				tr
+					td Drawing tablet right-click emulation:
+					td #[+menu_switch("drawing-tablet-right-emulation-switch", false, true)]
+				tr
+					td Drawing tablet right-click delay:
+					td.slider #[+menu_slider("drawing-tablet-right-delay-slider", "drawing-tablet-right-delay-value", false)]
+				tr
+					td Drawing tablet drag threshold:
+					td.slider #[+menu_slider("drawing-tablet-drag-threshold-slider", "drawing-tablet-drag-threshold-value", false)]
 
 		table.kv
 			tr.feature-disabled#hid-connect
