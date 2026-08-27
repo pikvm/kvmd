@@ -205,7 +205,8 @@ class _GadgetConfig:
         ]:
             _write(join(func_path, path), "\n".join(map(str, mask.to_bytes(mask_len, "little"))))
 
-        _write(join(func_path, "streaming_maxpacket"), 2048)  # Maximum for USB 2.0
+        _write(join(func_path, "streaming_maxpacket"), 1024)
+        _write(join(func_path, "streaming_interval"), 4)
 
         self.__setup_function(func, "Camera", 2, starter, start)  # TODO: Check eps number
 
