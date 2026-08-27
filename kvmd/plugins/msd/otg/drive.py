@@ -34,6 +34,11 @@ class MsdPermissionsError(MsdOperationError):
         super().__init__("MSD can't insert the image due to file permissions")
 
 
+class MsdImageTooSmallError(MsdOperationError):
+    def __init__(self) -> None:
+        super().__init__("This image is to small to be a valid")
+
+
 class MsdLockedError(MsdOperationError):
     def __init__(self) -> None:
         super().__init__("MSD is locked on IO operation")
@@ -66,8 +71,12 @@ class Drive:
         if path:
             try:
                 self.__set_param("file", path)
-            except PermissionError:
-                raise MsdPermissionsError()
+            except OSError as ex:
+                if ex.errno in [errno.EPERM, errno.EACCES]:
+                    raise MsdPermissionsError()
+                elif ex.errno == 525:  # ETOOSMALL
+                    raise MsdImageTooSmallError()
+                raise
         else:
             self.__set_param("forced_eject", "")
 
