@@ -83,9 +83,10 @@ class NbdServer(HttpServer):
         })
 
     async def __get_params(self, req: Request) -> dict[str, Any]:
-        q_params = dict(req.query)
-        p_params = await req.post()
-        return {**q_params, **p_params}
+        params: dict[str, Any] = {"url": ""}  # Positional param for all functions
+        params.update(dict(req.query))
+        params.update(dict(await req.post()))
+        return params
 
     @exposed_http("POST", "/unbind")
     async def __unbind_handler(self, _: Request) -> Response:
