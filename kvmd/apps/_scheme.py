@@ -592,6 +592,10 @@ def make_config_scheme() -> dict:
                     "start":   Option(True,  type=valid_bool),
                     "safe":    Option(False, type=valid_bool),
                     "resolution": Option("1280x720", type=valid_stream_resolution),
+                    "streaming": {
+                        "maxpacket": Option(1024, type=valid_number.mk(min=1, max=1024)),
+                        "interval":  Option(4,    type=valid_number.mk(min=1, max=16)),
+                    },
                     "controls": {
                         "ct_mask": Option(0x00000E, type=valid_number.mk(min=0, max=0xFFFFFF)),
                         "pu_mask": Option(0x175B,   type=valid_number.mk(min=0, max=0xFFFF)),
