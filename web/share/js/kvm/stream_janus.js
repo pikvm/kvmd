@@ -61,6 +61,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __has_camera = false;
 	var __use_camera = null;
 	var __camera_req = null;
+	var __camera_relaxed = null; // The resolution the selected webcam refused to capture exactly
 	var __camera_track = null;
 	var __camera_frames = null;
 
@@ -177,6 +178,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			if (camera) {
 				__refillDevices("camera", camera, function(id) {
 					__use_camera = id;
+					__camera_relaxed = null;
 					if (__has_camera) {
 						__destroyJanus();
 					}
@@ -485,11 +487,20 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						// Помогают пляски в onlocaltrack.
 						let w = __camera_req.resolution.width;
 						let h = __camera_req.resolution.height;
-						camera = {
-							"width": {"min": w, "ideal": w, "max": w},
-							"height": {"min": h, "ideal": h, "max": h},
-							"frameRate": {"ideal": __camera_req.fps, "max": 30},
-						};
+						if (__camera_relaxed === `${w}x${h}`) {
+							// The webcam can't do exactly what the guest asked for, take the closest mode it has
+							camera = {
+								"width": {"ideal": w},
+								"height": {"ideal": h},
+								"frameRate": {"ideal": __camera_req.fps, "max": 30},
+							};
+						} else {
+							camera = {
+								"width": {"min": w, "ideal": w, "max": w},
+								"height": {"min": h, "ideal": h, "max": h},
+								"frameRate": {"ideal": __camera_req.fps, "max": 30},
+							};
+						}
 						if (__use_camera !== ".__default__") {
 							camera["deviceId"] = {"exact": __use_camera};
 						}
@@ -522,11 +533,19 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 							let restart = function() {
 								try {
 									if (error?.name === "OverconstrainedError") {
-										if (__has_mic && __use_mic) {
-											self.setMicDevice(".__default__", true);
-										}
-										if (__has_camera && __use_camera) {
-											self.setCameraDevice(".__default__", true);
+										let res = (__camera_req ? `${__camera_req.resolution.width}x${__camera_req.resolution.height}` : null);
+										if (res !== null && __camera_relaxed !== res && !["deviceId", "groupId"].includes(error.constraint)) {
+											// Retry with the resolution as a wish instead of a demand before giving up on the device,
+											// otherwise a webcam without this mode keeps failing and restarting forever
+											__logInfo(`The webcam refused ${res} (${error.constraint || "unknown constraint"}), relaxing ...`);
+											__camera_relaxed = res;
+										} else {
+											if (__has_mic && __use_mic) {
+												self.setMicDevice(".__default__", true);
+											}
+											if (__has_camera && __use_camera) {
+												self.setCameraDevice(".__default__", true);
+											}
 										}
 									}
 								} finally {
@@ -564,12 +583,18 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 					if (__handle?.webrtcStuff?.pc) {
 						for (let sender of __handle.webrtcStuff.pc.getSenders()) {
 							if (sender.track === track) {
-								if (tools.browser.is_mobile) {
+								let res = (__camera_req ? __camera_req.resolution : null);
+								let st = track.getSettings();
+								let fits = (res !== null && st.width === res.width && st.height === res.height);
+								if (res !== null && (tools.browser.is_mobile || (__camera_relaxed === `${res.width}x${res.height}` && !fits))) {
+									// The guest has been promised exactly this resolution and the pipeline
+									// drops anything else, so rotate or scale whatever the webcam gave us
 									try {
-										__logInfo("Patching camera track for auto-rotate ...");
-										let s_track = _makeSmartCameraTrack(track, __camera_req.resolution);
+										__logInfo(`Patching camera track for auto-rotate/scale (${st.width}x${st.height} -> ${res.width}x${res.height}) ...`);
+										let s_track = _makeSmartCameraTrack(track, res);
 										s_track.contentHint = "detail";
 										sender.replaceTrack(s_track);
+										track = s_track;
 									} catch (ex) {
 										__logError("Can't patch camera track:", ex);
 									}
@@ -887,7 +912,7 @@ function _makeSmartCameraTrack(track, res) {
 				}
 			}
 			this.__ts = performance.now();
-			if (this.__el_video.videoWidth == res.width) {
+			if (this.__el_video.videoWidth == res.width && this.__el_video.videoHeight == res.height) {
 				this.__ctx.drawImage(this.__el_video, 0, 0);
 			} else if (this.__el_video.videoWidth == res.height) {
 				const sw = this.__el_video.videoWidth; // Source
@@ -904,6 +929,19 @@ function _makeSmartCameraTrack(track, res) {
 					sw, th, // Source size
 					0, 0, // Dest (x,y)
 					dw, dh); // Dest size
+			} else {
+				// Some other mode of the webcam: scale it to fill the frame, cropping the excess
+				const sw = this.__el_video.videoWidth;
+				const sh = this.__el_video.videoHeight;
+				const scale = Math.max(res.width / sw, res.height / sh);
+				const cw = res.width / scale; // Cropped source size
+				const ch = res.height / scale;
+				this.__ctx.drawImage(
+					this.__el_video,
+					(sw - cw) / 2, (sh - ch) / 2, // Source (x,y)
+					cw, ch, // Source size
+					0, 0, // Dest (x,y)
+					res.width, res.height); // Dest size
 			}
 			controller.enqueue(new VideoFrame(canvas, {"timestamp": this.__ts}));
 		},
