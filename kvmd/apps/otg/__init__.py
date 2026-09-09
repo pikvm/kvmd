@@ -125,6 +125,8 @@ class _GadgetConfig:
         start: bool,
         safe: bool,
         resolution: str,
+        streaming_maxpacket: int,
+        streaming_interval: int,
         ct_mask: int,
         pu_mask: int,
     ) -> None:
@@ -224,8 +226,14 @@ class _GadgetConfig:
         ]:
             _write(join(func_path, path), "\n".join(map(str, mask.to_bytes(mask_len, "little"))))
 
-        _write(join(func_path, "streaming_maxpacket"), 1024)
-        _write(join(func_path, "streaming_interval"), 4)
+        # The isochronous budget is maxpacket bytes every 2^(interval-1) microframes (125us),
+        # so the defaults give ~1 MB/s, enough for 720p with a moderate picture. 1080p needs
+        # interval 1 (8 MB/s with 1024), at the price of the kernel having to serve
+        # the endpoint every single microframe. Packets above 1024 bytes are not offered:
+        # they need several transactions per microframe, the kernel forces interval 1 for them,
+        # and 3072 does not even fit the TX FIFO of the Pi.
+        _write(join(func_path, "streaming_maxpacket"), streaming_maxpacket)
+        _write(join(func_path, "streaming_interval"), streaming_interval)
 
         self.__setup_function(func, "Camera", 2, starter, start)  # TODO: Check eps number
 
@@ -492,6 +500,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         logger.info("===== Camera =====")
         gc.add_camera(
             ["camera"], cod.camera.start, cod.camera.safe, cod.camera.resolution,
+            cod.camera.streaming.maxpacket, cod.camera.streaming.interval,
             cod.camera.controls.ct_mask, cod.camera.controls.pu_mask,
         )
 
