@@ -21,42 +21,14 @@
 # ========================================================================== #
 
 
-import textwrap
-
-import setuptools.command.easy_install
 from setuptools import setup
 
 
 # =====
-class _Template(str):
-    def __init__(self, text: str) -> None:
-        self.__text = textwrap.dedent(text).strip()
-
-    def __mod__(self, kv: dict) -> str:
-        kv = {"module_name": kv["ep"].module_name, **kv}
-        return (self.__text % (kv))
-
-
-class _ScriptWriter(setuptools.command.easy_install.ScriptWriter):
-    template = _Template("""
-        # EASY-INSTALL-ENTRY-SCRIPT: %(spec)r,%(group)r,%(name)r
-
-        __requires__ = %(spec)r
-
-        from %(module_name)s import main
-
-        if __name__ == '__main__':
-            main()
-    """)
-
-
-# =====
 def main() -> None:
-    setuptools.command.easy_install.ScriptWriter = _ScriptWriter
-
     setup(
         name="kvmd",
-        version="4.145",
+        version="4.215",
         url="https://github.com/pikvm/kvmd",
         license="GPLv3",
         author="Maxim Devaev",
@@ -69,8 +41,6 @@ def main() -> None:
             "kvmd.validators",
             "kvmd.yamlconf",
             "kvmd.keyboard",
-            "kvmd.nbd",
-            "kvmd.nbd.remotes",
             "kvmd.plugins",
             "kvmd.plugins.auth",
             "kvmd.plugins.hid",
@@ -83,6 +53,8 @@ def main() -> None:
             "kvmd.plugins.msd.otg",
             "kvmd.plugins.ugpio",
             "kvmd.clients",
+            "kvmd.nbd",
+            "kvmd.nbd.remotes",
             "kvmd.apps",
             "kvmd.apps.kvmd",
             "kvmd.apps.kvmd.streamer",
@@ -126,6 +98,7 @@ def main() -> None:
             "console_scripts": [
                 "kvmd = kvmd.apps.kvmd:main",
                 "kvmd-media = kvmd.apps.media:main",
+                "kvmd-nbd = kvmd.apps.nbd:main",
                 "kvmd-pst = kvmd.apps.pst:main",
                 "kvmd-pstrun = kvmd.apps.pstrun:main",
                 "kvmd-otg = kvmd.apps.otg:main",

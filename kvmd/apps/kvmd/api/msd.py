@@ -20,6 +20,7 @@
 # ========================================================================== #
 
 
+import re
 import asyncio
 import lzma
 import time
@@ -35,8 +36,6 @@ from aiohttp.web import StreamResponse
 
 from ....logging import get_logger
 
-from .... import htclient
-
 from ....htserver import exposed_http
 from ....htserver import make_json_response
 from ....htserver import make_json_exception
@@ -47,11 +46,14 @@ from ....htserver import stream_json_exception
 from ....plugins.msd import BaseMsd
 
 from ....validators import check_string_in_list
+from ....validators.basic import valid_stripped_string
 from ....validators.basic import valid_bool
 from ....validators.basic import valid_int_f0
 from ....validators.basic import valid_float_f01
 from ....validators.net import valid_url
 from ....validators.kvm import valid_msd_image_name
+
+from .. import downloader
 
 
 # ======
@@ -67,16 +69,28 @@ class MsdApi:
 
     @exposed_http("POST", "/msd/set_params")
     async def __set_params_handler(self, req: Request) -> Response:
+        query = dict(req.query)
+
         params = {
-            key: validator(req.query.get(param))  # type: ignore
+            key: validator(query.pop(param))  # type: ignore
             for (param, key, validator) in [
-                ("image", "name",  valid_msd_image_name.mk(allow_eject=True)),
-                ("cdrom", "cdrom", valid_bool),
-                ("rw",    "rw",    valid_bool),
+                ("image", "__image__", valid_stripped_string.mk(name="MSD image name or URL")),
+                ("cdrom", "cdrom",     valid_bool),
+                ("rw",    "rw",        valid_bool),
             ]
-            if req.query.get(param) is not None
+            if query.get(param) is not None
         }
-        await self.__msd.set_params(**params)  # type: ignore
+
+        if "__image__" in params:
+            image = params.pop("__image__")
+            if re.match(r"^[a-zA-Z][a-zA-Z0-9._+-]+[a-zA-Z]://[a-zA-Z0-9\[]", image) is None:
+                params["name"] = valid_msd_image_name(image, allow_eject=True)
+            else:
+                # XXX: We don't validate a URL, it should be passed as-is to the lower level.
+                # remote_params are not validated too.
+                params["remote_url"] = image
+
+        await self.__msd.set_params(remote_params=query, **params)  # type: ignore
         return make_json_response()
 
     @exposed_http("POST", "/msd/set_connected")
@@ -107,7 +121,7 @@ class MsdApi:
                 size = reader.get_total_size()
 
             else:
-                async def compressed() -> AsyncGenerator[bytes, None]:
+                async def compressed() -> AsyncGenerator[bytes]:
                     assert make_compressor is not None
                     compressor = make_compressor()  # pylint: disable=not-callable
                     limit = reader.get_chunk_size()
@@ -138,8 +152,10 @@ class MsdApi:
     async def __write_handler(self, req: Request) -> Response:
         unsafe_prefix = req.query.get("prefix", "") + "/"
         name = valid_msd_image_name(unsafe_prefix + req.query.get("image", ""))
+
         size = valid_int_f0(req.content_length)
-        remove_incomplete = self.__get_remove_incomplete(req)
+        remove_incomplete = valid_bool(req.query.get("remove_incomplete", False))
+
         written = 0
         async with self.__msd.write_image(name, size, remove_incomplete) as writer:
             chunk_size = writer.get_chunk_size()
@@ -152,42 +168,39 @@ class MsdApi:
 
     @exposed_http("POST", "/msd/write_remote")
     async def __write_remote_handler(self, req: Request) -> (Response | StreamResponse):  # pylint: disable=too-many-locals
-        unsafe_prefix = req.query.get("prefix", "") + "/"
         url = valid_url(req.query.get("url"))
         insecure = valid_bool(req.query.get("insecure", False))
         timeout = valid_float_f01(req.query.get("timeout", 10.0))
-        remove_incomplete = self.__get_remove_incomplete(req)
+        remove_incomplete = valid_bool(req.query.get("remove_incomplete", False))
 
+        resp: (StreamResponse | None) = None
         name = ""
         size = written = 0
-        resp: (StreamResponse | None) = None
 
         async def stream_write_info() -> None:
             assert resp is not None
             await stream_json(resp, self.__make_write_info(name, size, written))
 
         try:
-            async with htclient.download(
+            async with downloader.download(
                 url=url,
                 verify=(not insecure),
                 timeout=timeout,
                 read_timeout=(7 * 24 * 3600),
-            ) as remote:
+            ) as file:
 
-                name = str(req.query.get("image", "")).strip()
-                if len(name) == 0:
-                    name = htclient.get_filename(remote)
-                name = valid_msd_image_name(unsafe_prefix + name)
-
-                size = valid_int_f0(remote.content_length)
+                unsafe_prefix = req.query.get("prefix", "") + "/"
+                name = valid_msd_image_name(unsafe_prefix + req.query.get("image", file.name))
 
                 get_logger(0).info("Downloading image %r as %r to MSD ...", url, name)
-                async with self.__msd.write_image(name, size, remove_incomplete) as writer:
-                    chunk_size = writer.get_chunk_size()
+
+                async with self.__msd.write_image(name, file.size, remove_incomplete) as writer:
+                    size = file.size
                     resp = await start_streaming(req, "application/x-ndjson")
                     await stream_write_info()
+
                     last_report_ts = 0
-                    async for chunk in remote.content.iter_chunked(chunk_size):
+                    async for chunk in file.read(writer.get_chunk_size()):
                         written = await writer.write_chunk(chunk)
                         now = int(time.monotonic())
                         if last_report_ts + 1 < now:
@@ -204,10 +217,6 @@ class MsdApi:
             elif isinstance(ex, aiohttp.ClientError):
                 return make_json_exception(ex, 400)
             raise
-
-    def __get_remove_incomplete(self, req: Request) -> (bool | None):
-        flag: (str | None) = req.query.get("remove_incomplete")
-        return (valid_bool(flag) if flag is not None else None)
 
     def __make_write_info(self, name: str, size: int, written: int) -> dict:
         return {"image": {"name": name, "size": size, "written": written}}

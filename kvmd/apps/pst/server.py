@@ -59,13 +59,7 @@ class PstServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
 
         self.__notifier = aiotools.AioNotifier()
 
-    # ===== WEBSOCKET
-
-    @exposed_http("GET", "/ws")
-    async def __ws_handler(self, req: Request) -> WebSocketResponse:
-        async with self._ws_session(req) as ws:
-            await ws.send_event("loop", {})
-            return (await self._ws_loop(ws))
+    # ===== HTTP
 
     @exposed_http("GET", "/state")
     async def __state_handler(self, _: Request) -> Response:
@@ -76,6 +70,14 @@ class PstServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-inst
                 "write_allowed": self.__is_write_available(),
             },
         })
+
+    # ===== WEBSOCKET
+
+    @exposed_http("GET", "/ws")
+    async def __ws_handler(self, req: Request) -> WebSocketResponse:
+        async with self._ws_session(req) as ws:
+            await ws.send_event("loop", {})
+            return (await self._ws_loop(ws))
 
     @exposed_ws("ping")
     async def __ws_ping_handler(self, ws: WsSession, _: dict) -> None:

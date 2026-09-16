@@ -29,6 +29,9 @@ class BaseAuthService(BasePlugin):
     async def authorize(self, user: str, passwd: str) -> bool:
         raise NotImplementedError  # pragma: nocover
 
+    async def sysprep(self) -> None:
+        pass
+
     async def cleanup(self) -> None:
         pass
 

@@ -3,6 +3,7 @@ kvmd:
         cmd:
             - "/usr/bin/ustreamer"
             - "--device=/dev/kvmd-video"
+            - "--device-timeout=5"
             - "--persistent"
             - "--format=mjpeg"
             - "--resolution={resolution}"
@@ -16,3 +17,6 @@ kvmd:
             - "--process-name-prefix={process_name_prefix}"
             - "--notify-parent"
             - "--no-log-colors"
+
+nbd:
+    use_blkroset: true

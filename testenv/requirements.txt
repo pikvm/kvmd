@@ -4,6 +4,7 @@ spidev
 pyrad
 types-PyYAML
 types-aiofiles
+types-paramiko
 luma.core>=2.5.2
 luma.oled
 gpiod>=2.3

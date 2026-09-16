@@ -42,7 +42,7 @@ from ...yamlconf.dumper import YamlInlinedItemsList
 from ...yamlconf.dumper import dump_yaml
 from ...yamlconf.merger import yaml_merge
 
-from ...validators.basic import valid_stripped_string_not_empty
+from ...validators.os import valid_printable_filename
 
 from ... import usb
 from ... import env
@@ -60,27 +60,28 @@ class _Function:
     enabled: bool
     starter: list[str]
 
+    def __post_init__(self) -> None:
+        tools.check_name(self.name)
+
 
 class _GadgetControl:
     def __init__(
         self,
         meta_path: str,
-        gadget: str,
         udc: str,
         eps: int,
         init_delay: float,
     ) -> None:
 
         self.__meta_path = meta_path
-        self.__gadget = gadget
         self.__udc = udc
         self.__eps = eps
         self.__init_delay = init_delay
 
     @contextlib.contextmanager
-    def __udc_stopped(self) -> Generator[None, None, None]:
+    def __udc_stopped(self) -> Generator[None]:
         udc = usb.find_udc(self.__udc)
-        udc_path = usb.get_gadget_path(self.__gadget, usb.G_UDC)
+        udc_path = usb.get_gadget_path(usb.G_UDC)
         with open(udc_path) as file:
             enabled = bool(file.read().strip())
         if enabled:
@@ -109,7 +110,7 @@ class _GadgetControl:
                 except (FileNotFoundError, FileExistsError):
                     pass
 
-    def __read_metas(self) -> Generator[_Function, None, None]:
+    def __read_metas(self) -> Generator[_Function]:
         for name in sorted(os.listdir(self.__meta_path)):
             with open(os.path.join(self.__meta_path, name)) as file:
                 meta = json.loads(file.read())
@@ -123,14 +124,18 @@ class _GadgetControl:
                 )
 
     def __get_fsrc_path(self, func: str) -> str:
-        return usb.get_gadget_path(self.__gadget, usb.G_FUNCTIONS, func)
+        tools.check_name(func)
+        return usb.get_gadget_path(usb.G_FUNCTIONS, func)
 
     def __get_fdest_path(self, func: (str | None)=None) -> str:
         if func is None:
-            return usb.get_gadget_path(self.__gadget, usb.G_PROFILE)
-        return usb.get_gadget_path(self.__gadget, usb.G_PROFILE, func)
+            return usb.get_gadget_path(usb.G_PROFILE)
+        tools.check_name(func)
+        return usb.get_gadget_path(usb.G_PROFILE, func)
 
     def change_functions(self, enable: set[str], disable: set[str]) -> None:
+        for func in (enable | disable):
+            tools.check_name(func)
         funcs = list(self.__read_metas())
         new: set[str] = set(func.name for func in funcs if func.enabled)
         new = (new - disable) | enable
@@ -196,7 +201,7 @@ def _find_inputs() -> set[str]:
     ctx = pyudev.Context()
     for device in ctx.list_devices(subsystem="input"):
         props = device.properties
-        if props.get("ID_INPUT") == "1" and props.get("ID_BUS") == "usb":
+        if props.get("ID_INPUT") == "1":
             parent = device.find_parent("usb", "usb_device")
             if parent is not None:
                 path = parent.properties.get("DEVPATH")
@@ -315,7 +320,6 @@ def main() -> None:
 
     gc = _GadgetControl(
         meta_path=ia.config.otg.meta,
-        gadget=ia.config.otg.gadget,
         udc=ia.config.otg.udc,
         eps=ia.config.otg.endpoints,
         init_delay=ia.config.otg.init_delay,
@@ -325,8 +329,8 @@ def main() -> None:
         gc.list_functions()
 
     elif options.enable_function or options.disable_function:
-        enable = set(map(valid_stripped_string_not_empty, options.enable_function))
-        disable = set(map(valid_stripped_string_not_empty, options.disable_function))
+        enable = set(map(valid_printable_filename, options.enable_function))
+        disable = set(map(valid_printable_filename, options.disable_function))
         gc.change_functions(enable, disable)
         gc.list_functions()
 

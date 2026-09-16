@@ -31,11 +31,11 @@ input[type=color]:enabled:hover {
 	background-color: var(--cs-control-hovered-bg);
 }
 
-button:active,
-select:not([size]):active,
-input[type=file]:active::-webkit-file-selector-button,
-input[type=file]:active::file-selector-button,
-input[type=color]:active {
+button:enabled:active,
+select:enabled:not([size]):active,
+input[type=file]:enabled:active::-webkit-file-selector-button,
+input[type=file]:enabled:active::file-selector-button,
+input[type=color]:enabled:active {
 	color: var(--cs-control-pressed-fg) !important;
 	background-color: var(--cs-control-pressed-bg) !important;
 }

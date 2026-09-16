@@ -42,7 +42,7 @@ def _make_passwd(user: str) -> str:
 
 
 @pytest.fixture(name="htpasswd", params=[[], ["admin"], ["admin", "user"]])
-def _htpasswd_fixture(request) -> Generator[KvmdHtpasswdFile, None, None]:  # type: ignore
+def _htpasswd_fixture(request) -> Generator[KvmdHtpasswdFile]:  # type: ignore
     (fd, path) = tempfile.mkstemp()
     os.close(fd)
     htpasswd = KvmdHtpasswdFile(path)
@@ -98,14 +98,18 @@ def test_ok__add_stdin(htpasswd: KvmdHtpasswdFile, mocker) -> None:  # type: ign
     if old_users:
         mocker.patch.object(builtins, "input", (lambda: " test "))
 
-        _run_htpasswd(["add", "new", "--read-stdin"], htpasswd.path)
+        _run_htpasswd(["add", "admin@example.com", "--read-stdin"], htpasswd.path)
 
-        with pytest.raises(SystemExit, match="The user 'new' is already exists"):
-            _run_htpasswd(["add", "new", "--read-stdin"], htpasswd.path)
+        with pytest.raises(SystemExit, match="The user 'admin@example.com' is already exists"):
+            _run_htpasswd(["add", "admin@example.com", "--read-stdin"], htpasswd.path)
 
         htpasswd.load(force=True)
-        assert htpasswd.check_password("new", " test ")
-        assert old_users.union(["new"]) == set(htpasswd.users())
+        assert not htpasswd.check_password("admin@example.", " test ")
+        assert not htpasswd.check_password("admin@", " test ")
+        assert not htpasswd.check_password("admin.", " test ")
+        assert htpasswd.check_password("admin@example.com", " test ")
+        assert htpasswd.check_password("admin", _make_passwd("admin"))
+        assert old_users.union(["admin@example.com"]) == set(htpasswd.users())
 
 
 # =====

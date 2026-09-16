@@ -20,10 +20,13 @@
 # ========================================================================== #
 
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
 from ...errors import OperationError
+
+from ...yamlconf import Section
 
 from ... import aiotools
 
@@ -58,11 +61,13 @@ class BaseUserGpioDriver(BasePlugin):
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-        **_: Any,
+        c: Section,
     ) -> None:
 
-        self._instance_name = instance_name
-        self._notifier = notifier
+        super().__init__(c)
+
+        self._instance_name: Final[str] = instance_name
+        self._notifier:      Final[aiotools.AioNotifier] = notifier
 
     def get_instance_id(self) -> str:
         return self._instance_name

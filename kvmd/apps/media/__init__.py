@@ -38,7 +38,7 @@ def main() -> None:
 
     def make_streamer(name: str, fmt: int) -> (MemsinkStreamerClient | None):
         if getattr(config.memsink, name).sink:
-            return MemsinkStreamerClient(name.upper(), fmt, **getattr(config.memsink, name)._unpack())
+            return MemsinkStreamerClient(fmt, **getattr(config.memsink, name)._unpack())
         return None
 
     MediaServer(

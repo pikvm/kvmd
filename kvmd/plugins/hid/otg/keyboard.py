@@ -84,7 +84,7 @@ class KeyboardProcess(BaseDeviceProcess):
 
     # =====
 
-    def _process_event(self, event: BaseEvent) -> Generator[bytes, None, None]:
+    def _process_event(self, event: BaseEvent) -> Generator[bytes]:
         if isinstance(event, (ClearEvent, ResetEvent)):
             yield self.__process_clear_event()
         elif isinstance(event, ModifierEvent):
@@ -99,7 +99,7 @@ class KeyboardProcess(BaseDeviceProcess):
         self.__clear_keys()
         return self.__make_report()
 
-    def __process_modifier_event(self, event: ModifierEvent) -> Generator[bytes, None, None]:
+    def __process_modifier_event(self, event: ModifierEvent) -> Generator[bytes]:
         if event.mod in self.__pressed_mods:
             # Ранее нажатый модификатор отжимаем
             self.__pressed_mods.remove(event.mod)
@@ -109,7 +109,7 @@ class KeyboardProcess(BaseDeviceProcess):
             self.__pressed_mods.add(event.mod)
             yield self.__make_report()
 
-    def __process_key_event(self, event: KeyEvent) -> Generator[bytes, None, None]:
+    def __process_key_event(self, event: KeyEvent) -> Generator[bytes]:
         if event.key in self.__pressed_keys:
             # Ранее нажатую клавишу отжимаем
             self.__pressed_keys[self.__pressed_keys.index(event.key)] = None

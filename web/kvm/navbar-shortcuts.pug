@@ -5,7 +5,6 @@ li.right#shortcuts-dropdown
 		.text
 			b Quick keyboard shortcuts#[br]
 			sub Also see #[i System &rarr; Show keyboard]
-		hr
 
 		.buttons
 			.buttons-row
@@ -37,12 +36,10 @@ li.right#shortcuts-dropdown
 			.buttons-row
 				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="ControlLeft AltLeft Delete") &bull; Ctrl+Alt+Del
 				button.row50(data-wm-menu-force-hide data-keyboard-shortcut="Power") &bull; Power
-		hr
 
 		.text
 			| &darr; &bull; Alt+SysRq+... <sup><i>linux magic
 			| #[a(target="_blank" href="https://www.kernel.org/doc/html/latest/admin-guide/sysrq.html") help]</i></sup>
-		hr
 
 		.buttons
 			.buttons-row
@@ -78,6 +75,5 @@ li.right#shortcuts-dropdown
 						style="text-align: center"
 						title=`${title}`
 					) #{key}
-		hr
 
 		+menu_switch_table("hid-sysrq-ask-switch", true, true) Ask the magic confirmation:

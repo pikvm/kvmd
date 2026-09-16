@@ -73,7 +73,7 @@ class BaseStreamerClient:
         raise NotImplementedError()
 
     @contextlib.asynccontextmanager
-    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]], None]:
+    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]]]:
         if self is not None:  # XXX: Vulture and pylint hack
             raise NotImplementedError()
         yield
@@ -149,7 +149,7 @@ class HttpStreamerClientSession(BaseHttpClientSession):
 
 
 @contextlib.contextmanager
-def _http_reading_handle_errors() -> Generator[None, None, None]:
+def _http_reading_handle_errors() -> Generator[None]:
     try:
         yield
     except Exception as ex:  # Тут бывают и ассерты, и KeyError, и прочая херня
@@ -159,17 +159,6 @@ def _http_reading_handle_errors() -> Generator[None, None, None]:
 
 
 class HttpStreamerClient(BaseHttpClient, BaseStreamerClient):
-    def __init__(
-        self,
-        name: str,
-        unix_path: str,
-        timeout: float,
-        user_agent: str,
-    ) -> None:
-
-        super().__init__(unix_path, timeout, user_agent)
-        self.__name = name
-
     def make_session(self) -> HttpStreamerClientSession:
         return HttpStreamerClientSession(self._make_http_session)
 
@@ -177,7 +166,7 @@ class HttpStreamerClient(BaseHttpClient, BaseStreamerClient):
         return StreamerFormats.JPEG
 
     @contextlib.asynccontextmanager
-    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]], None]:
+    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]]]:
         with _http_reading_handle_errors():
             async with self._make_http_session() as session:
                 async with session.get(
@@ -228,12 +217,12 @@ class HttpStreamerClient(BaseHttpClient, BaseStreamerClient):
         reader.read = types.MethodType(read, reader)  # type: ignore
 
     def __str__(self) -> str:
-        return f"HttpStreamerClient({self.__name})"
+        return "HttpStreamerClient()"
 
 
 # =====
 @contextlib.contextmanager
-def _memsink_reading_handle_errors() -> Generator[None, None, None]:
+def _memsink_reading_handle_errors() -> Generator[None]:
     try:
         yield
     except StreamerPermError:
@@ -247,7 +236,6 @@ def _memsink_reading_handle_errors() -> Generator[None, None, None]:
 class MemsinkStreamerClient(BaseStreamerClient):
     def __init__(
         self,
-        name: str,
         fmt: int,
         obj: str,
         lock_timeout: float,
@@ -255,7 +243,6 @@ class MemsinkStreamerClient(BaseStreamerClient):
         drop_same_frames: float,
     ) -> None:
 
-        self.__name = name
         self.__fmt = fmt
         self.__kwargs: dict = {
             "obj": obj,
@@ -268,7 +255,7 @@ class MemsinkStreamerClient(BaseStreamerClient):
         return self.__fmt
 
     @contextlib.asynccontextmanager
-    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]], None]:
+    async def reading(self) -> AsyncGenerator[Callable[[bool], Awaitable[dict]]]:
         with _memsink_reading_handle_errors():
             with ustreamer.Memsink(**self.__kwargs) as sink:
                 async def read_frame(key_required: bool) -> dict:
@@ -288,4 +275,4 @@ class MemsinkStreamerClient(BaseStreamerClient):
             raise StreamerPermError("Invalid sink format")
 
     def __str__(self) -> str:
-        return f"MemsinkStreamerClient({self.__name})"
+        return f"MemsinkStreamerClient({self.__kwargs['obj']})"

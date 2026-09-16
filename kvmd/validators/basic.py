@@ -34,14 +34,14 @@ from . import check_in_list
 
 
 # =====
-@add_validator_magic
+@add_validator_magic()
 def valid_stripped_string(arg: Any, name: str="") -> str:
     if not name:
         name = "stripped string"
     return check_not_none_string(arg, name)
 
 
-@add_validator_magic
+@add_validator_magic()
 def valid_stripped_string_not_empty(arg: Any, name: str="") -> str:
     if not name:
         name = "not empty stripped string"
@@ -50,7 +50,7 @@ def valid_stripped_string_not_empty(arg: Any, name: str="") -> str:
     return valid_stripped_string(arg, name)
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_bool(arg: Any) -> bool:
     true_args = ["1", "true", "yes"]
     false_args = ["0", "false", "no"]
@@ -62,7 +62,7 @@ def valid_bool(arg: Any) -> bool:
     return (arg in true_args)
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_number(
     arg: Any,
     min: (int | float | None)=None,  # pylint: disable=redefined-builtin
@@ -92,27 +92,27 @@ def valid_number(
     return arg
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_int_f0(arg: Any) -> int:
     return int(valid_number(arg, min=0))
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_int_f1(arg: Any) -> int:
     return int(valid_number(arg, min=1))
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_float_f0(arg: Any) -> float:
     return float(valid_number(arg, min=0, type=float))
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_float_f01(arg: Any) -> float:
     return float(valid_number(arg, min=0.1, type=float))
 
 
-@add_validator_magic
+@add_validator_magic(4096)
 def valid_string_list(
     arg: Any,
     delim: str=r"[,\t ]+",

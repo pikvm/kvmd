@@ -5,6 +5,7 @@ kvmd:
         cmd:
             - "/usr/bin/ustreamer"
             - "--device=/dev/kvmd-video"
+            - "--device-timeout=5"
             - "--quality={quality}"
             - "--desired-fps={desired_fps}"
             - "--resolution=800x600"
@@ -18,3 +19,6 @@ kvmd:
             - "--no-log-colors"
             - "--jpeg-sink=kvmd::ustreamer::jpeg"
             - "--jpeg-sink-mode=0660"
+
+nbd:
+    use_blkroset: true

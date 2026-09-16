@@ -22,6 +22,7 @@
 
 import asyncio
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -33,6 +34,7 @@ from ... import tools
 from ... import aiotools
 from ... import htclient
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_stripped_string_not_empty
@@ -50,30 +52,24 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        url: str,
-        verify: bool,
-        user: str,
-        passwd: str,
-        state_poll: float,
-        timeout: float,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__url = url
-        self.__verify = verify
-        self.__user = user
-        self.__passwd = passwd
-        self.__state_poll = state_poll
-        self.__timeout = timeout
+        self.__url:        Final[str]   = c.url
+        self.__verify:     Final[bool]  = c.verify
+        self.__user:       Final[str]   = c.user
+        self.__passwd:     Final[str]   = c.passwd
+        self.__state_poll: Final[float] = c.state_poll
+        self.__timeout:    Final[float] = c.timeout
 
         self.__initial: dict[str, (bool | None)] = {}
 
         self.__state: dict[str, (bool | None)] = {}
-        self.__update_notifier = aiotools.AioNotifier()
+        self.__update_nr = aiotools.AioNotifier()
 
-        self.__http_session: (aiohttp.ClientSession | None) = None
+        self.__session: (aiohttp.ClientSession | None) = None
 
     @classmethod
     def get_plugin_options(cls) -> dict[str, Option]:
@@ -108,7 +104,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     async def run(self) -> None:
         prev_state: (dict | None) = None
         while True:
-            session = self.__ensure_http_session()
+            session = self.__ensure_session()
             try:
                 async with session.get(f"{self.__url}/strg.cfg") as resp:
                     htclient.raise_not_200(resp)
@@ -121,12 +117,14 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             if self.__state != prev_state:
                 self._notifier.notify()
                 prev_state = self.__state
-            await self.__update_notifier.wait(self.__state_poll)
+            await self.__update_nr.wait(self.__state_poll)
 
     async def cleanup(self) -> None:
-        if self.__http_session:
-            await self.__http_session.close()
-            self.__http_session = None
+        if self.__session:
+            try:
+                await self.__session.close()
+            finally:
+                self.__session = None
 
     async def read(self, pin: str) -> bool:
         if self.__state[pin] is None:
@@ -134,30 +132,28 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return self.__state[pin]  # type: ignore
 
     async def write(self, pin: str, state: bool) -> None:
-        session = self.__ensure_http_session()
+        session = self.__ensure_session()
         try:
             async with session.post(
                 url=f"{self.__url}/ctrl.htm",
                 data=f"F{pin}={int(state)}",
-                headers={"Content-Type": "text/plain"},
+                headers={aiohttp.hdrs.CONTENT_TYPE: "text/plain"},
             ) as resp:
                 htclient.raise_not_200(resp)
         except Exception as ex:
             get_logger().error("Failed ANELPWR POST request to pin %s: %s", pin, tools.efmt(ex))
             raise GpioDriverOfflineError(self)
-        self.__update_notifier.notify()
+        self.__update_nr.notify()
 
-    def __ensure_http_session(self) -> aiohttp.ClientSession:
-        if not self.__http_session:
-            kwargs: dict = {}
-            if self.__user:
-                kwargs["auth"] = aiohttp.BasicAuth(self.__user, self.__passwd)
-            self.__http_session = aiohttp.ClientSession(
-                headers={"User-Agent": htclient.make_user_agent("KVMD")},
+    def __ensure_session(self) -> aiohttp.ClientSession:
+        if not self.__session:
+            self.__session = aiohttp.ClientSession(
+                headers={aiohttp.hdrs.USER_AGENT: htclient.make_user_agent("KVMD")},
                 connector=aiohttp.TCPConnector(ssl=self.__verify),
+                auth=(aiohttp.BasicAuth(self.__user, self.__passwd) if self.__user else None),
                 timeout=aiohttp.ClientTimeout(total=self.__timeout),
             )
-        return self.__http_session
+        return self.__session
 
     def __str__(self) -> str:
         return f"ANELPWR({self._instance_name})"

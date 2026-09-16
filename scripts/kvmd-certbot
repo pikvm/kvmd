@@ -24,7 +24,7 @@
 set -e
 export LC_ALL=C
 
-if [ "$(whoami)" != root ]; then
+if [[ "$(whoami)" != root ]]; then
 	echo "Only root can do that"
 	exit 1
 fi
@@ -90,7 +90,7 @@ case "$1" in
 
 	certonly|certonly_webroot)
 		webroot_opts=()
-		if [ "$1" == certonly_webroot ]; then
+		if [[ "$1" == certonly_webroot ]]; then
 			webroot_opts=(--webroot "--webroot-path=$web")
 		fi
 		shift
@@ -111,40 +111,56 @@ case "$1" in
 		cp -a "$cur"/. "$tmp"
 		chown -R "$user:" "$tmp"
 		sed -s -i -e "s| = $cur/| = $tmp/|g" "$tmp/config/renewal/"*
+		retval=0
 		sudo --preserve-env -u "$user" certbot renew "$@" \
 			--config-dir="$tmp/config" \
 			--work-dir="$tmp/work" \
 			--logs-dir="$tmp/logs" \
-			--deploy-hook="/usr/bin/touch '$tmp/updated'" || true
-		if [ -f "$tmp/updated" ]; then
-			sudo --preserve-env -u "$user" kvmd-pstrun -- bash -c "
+			--deploy-hook="/usr/bin/touch '$tmp/updated'" || retval="$?"
+		if [[ -f "$tmp/updated" ]]; then
+			chmod 755 "$tmp/config/"{archive,live}
+			chmod 640 "$tmp"/config/archive/*/privkey*.pem
+			kvmd-pstrun -- bash -c "
 				set -ex
 				rm -rf '$new'
-				cp -a '$tmp'/. '$new'
+				cp -aT '$tmp' '$new'
 				rm '$new/updated'
-				chmod 755 '$new/config/'{archive,live}
-				chmod 640 '$new'/config/archive/*/privkey*.pem
 				sed -s -i -e 's| = $tmp/| = $cur/|g' '$new/config/renewal/'*
 				rm -rf '$new/logs/'*.log.* '$new/config/'{csr,keys}
 				sync
+				unshare --mount bash -c '
+					set -ex
+					mount --bind '$new' '$cur'
+					kvmd-nginx-mkconf /etc/kvmd/nginx/nginx.conf.mako /run/kvmd/nginx-certbot-test.conf
+					nginx -t -c /run/kvmd/nginx-certbot-test.conf
+				'
+				rm /run/kvmd/nginx-certbot-test.conf
 				kvmd-helper-swapfiles '$new' '$cur'
 				rm -rf '$new'
 			"
 			restart_if_running_nginx
 			restart_if_running_vnc
 		fi
+		exit "$retval"
 	;;
 
 	install_nginx|install_vnc|install_cloud)
 		target="${1/install_/}"
-		if [ -z "$2" ]; then
+		if [[ -z "$2" ]]; then
 			echo "Usage: kvmd-certbot $1 <domain>"
 			exit 1
 		fi
+		fullchain="$cur/config/live/$2/fullchain.pem"
+		privkey="$cur/config/live/$2/privkey.pem"
+		for path in "$fullchain" "$privkey"; do
+			if ! [[ -f "$path" && -s "$path" ]]; then
+				echo "$path is not a file or is empty"
+				exit 1
+			fi
+		done
 		set -x
-		rm -f "/etc/kvmd/$target/ssl/server."{crt,key}
-		ln -s "$cur/config/live/$2/fullchain.pem" "/etc/kvmd/$target/ssl/server.crt"
-		ln -s "$cur/config/live/$2/privkey.pem" "/etc/kvmd/$target/ssl/server.key"
+		ln -sfT "$fullchain" "/etc/kvmd/$target/ssl/server.crt"
+		ln -sfT "$privkey" "/etc/kvmd/$target/ssl/server.key"
 		"restart_if_running_$target"
 	;;
 

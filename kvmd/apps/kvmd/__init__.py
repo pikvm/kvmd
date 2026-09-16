@@ -20,8 +20,6 @@
 # ========================================================================== #
 
 
-from ...logging import get_logger
-
 from ...plugins.hid import get_hid_class
 from ...plugins.atx import get_atx_class
 from ...plugins.msd import get_msd_class
@@ -41,7 +39,7 @@ from .server import KvmdServer
 
 # =====
 def main() -> None:
-    config = init(
+    ia = init(
         prog="kvmd",
         description="The main PiKVM daemon",
         check_run=True,
@@ -50,20 +48,13 @@ def main() -> None:
         load_atx=True,
         load_msd=True,
         load_gpio=True,
-    ).config
+    )
 
-    msd_kwargs = config.kvmd.msd._unpack(ignore=["type"])
-    if config.kvmd.msd.type == "otg":
-        msd_kwargs["gadget"] = config.otg.gadget  # XXX: Small crutch to pass gadget name to the plugin
+    global_config = ia.config
+    config = ia.config.kvmd
 
-    hid_kwargs = config.kvmd.hid._unpack(ignore=["type", "keymap"])
-    if config.kvmd.hid.type == "otg":
-        hid_kwargs["udc"] = config.otg.udc  # XXX: Small crutch to pass UDC to the plugin
+    hid = get_hid_class(config.hid.type)(config.hid)
 
-    global_config = config
-    config = config.kvmd
-
-    hid = get_hid_class(config.hid.type)(**hid_kwargs)
     streamer = Streamer(
         **config.streamer._unpack(ignore=["forever", "desired_fps", "resolution", "h264_bitrate", "h264_gop"]),
         **config.streamer.resolution._unpack(),
@@ -81,27 +72,28 @@ def main() -> None:
             usc_groups=(config.auth.usc.kvmd_groups + config.auth.usc.groups),
             unauth_paths=([] if config.prometheus.auth.enabled else ["/export/prometheus/metrics"]),
 
-            int_type=config.auth.internal.type,
-            int_kwargs=config.auth.internal._unpack(ignore=["type", "force_users"]),
-            force_int_users=config.auth.internal.force_users,
+            int_c=config.auth.internal,
+            ext_c=config.auth.external,
 
-            ext_type=config.auth.external.type,
-            ext_kwargs=(config.auth.external._unpack(ignore=["type"]) if config.auth.external.type else {}),
+            force_int_users=config.auth.internal.force_users,
 
             totp_secret_path=config.auth.totp.secret.file,
         ),
         im=InfoManager(global_config),
         log_reader=(LogReader() if config.log_reader.enabled else None),
-        ugpio=UserGpio(config.gpio, global_config.otg),
+        ugpio=UserGpio(config.gpio),
         ocr=Ocr(**config.ocr._unpack()),
+
         switch=Switch(
-            pst_unix_path=global_config.pst.server.unix,
-            **config.switch._unpack(),
+            device_path=config.switch.device,
+            default_edid_path=config.switch.default_edid,
+            ignore_hpd_on_top=config.switch.ignore_hpd_on_top,
+            pst=ia.make_pst_client("__switch__", "KVMD"),
         ),
 
         hid=hid,
-        atx=get_atx_class(config.atx.type)(**config.atx._unpack(ignore=["type"])),
-        msd=get_msd_class(config.msd.type)(**msd_kwargs),
+        atx=get_atx_class(config.atx.type)(config.atx),
+        msd=get_msd_class(config.msd.type)(config.msd, ia.make_nbd_client("KVMD")),
         streamer=streamer,
 
         snapshoter=Snapshoter(
@@ -110,9 +102,9 @@ def main() -> None:
             **config.snapshot._unpack(),
         ),
 
+        allow_redirects=config.auth.allow_redirects,
+
         keymap_path=config.hid.keymap,
 
         stream_forever=config.streamer.forever,
     ).run(**config.server._unpack())
-
-    get_logger(0).info("Bye-bye")

@@ -27,6 +27,8 @@ from typing import Self
 
 import aiohttp
 
+from .. import htclient
+
 
 # =====
 class BaseHttpClientSession:
@@ -67,18 +69,18 @@ class BaseHttpClient:
 
         self.__unix_path = unix_path
         self.__timeout = timeout
+
+        if user_agent.startswith("-"):
+            user_agent = htclient.make_user_agent("KVMD" + user_agent)
         self.__user_agent = user_agent
 
     def make_session(self) -> BaseHttpClientSession:
         raise NotImplementedError
 
-    def _make_http_session(self, headers: (dict[str, str] | None)=None) -> aiohttp.ClientSession:
+    def _make_http_session(self) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(
             base_url="http://localhost:0",
-            headers={
-                "User-Agent": self.__user_agent,
-                **(headers or {}),
-            },
+            headers={aiohttp.hdrs.USER_AGENT: self.__user_agent},
             connector=aiohttp.UnixConnector(path=self.__unix_path),
             timeout=aiohttp.ClientTimeout(total=self.__timeout),
         )

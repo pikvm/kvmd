@@ -129,7 +129,7 @@ class Pwm:
 
     # =====
 
-    def get_period_ns(self) -> int:
+    def get_period_ns(self) -> int:  # noqa vulture-ignore
         period_ns_str = self.__read_channel_attr("period")
         try:
             period_ns = int(period_ns_str)
@@ -154,10 +154,10 @@ class Pwm:
 
     # =====
 
-    def get_polarity(self) -> str:
+    def get_polarity(self) -> str:  # noqa vulture-ignore
         return self.__read_channel_attr("polarity")
 
-    def set_polarity(self, polarity: str) -> None:
+    def set_polarity(self, polarity: str) -> None:  # noqa vulture-ignore
         polarity = polarity.lower()
         if polarity not in ["normal", "inversed"]:
             raise ValueError("Invalid polarity, can be: 'normal' or 'inversed'")

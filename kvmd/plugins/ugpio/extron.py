@@ -25,6 +25,7 @@ import multiprocessing
 import errno
 import time
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -35,6 +36,7 @@ from ...logging import get_logger
 from ... import aiotools
 from ... import aiomulti
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_number
@@ -52,19 +54,15 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        device_path: str,
-        speed: int,
-        read_timeout: float,
-        protocol: int,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__device_path = device_path
-        self.__speed = speed
-        self.__read_timeout = read_timeout
-        self.__protocol = protocol
+        self.__device_path:  Final[str]   = c.device
+        self.__speed:        Final[int]   = c.speed
+        self.__read_timeout: Final[float] = c.read_timeout
+        self.__protocol:     Final[int]   = c.protocol
 
         self.__ctl_q: aiomulti.AioMpQueue[int] = aiomulti.AioMpQueue()
         self.__channel_q: aiomulti.AioMpQueue[int | None] = aiomulti.AioMpQueue()
@@ -76,7 +74,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "device":       Option("",   type=valid_abs_path, unpack_as="device_path"),
+            "device":       Option("",   type=valid_abs_path),
             "speed":        Option(9600, type=valid_tty_speed),
             "read_timeout": Option(2.0,  type=valid_float_f01),
             "protocol":     Option(1,    type=valid_number.mk(min=1, max=2)),

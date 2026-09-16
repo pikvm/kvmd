@@ -87,7 +87,7 @@ def test_fail__valid_abs_path__dir(arg: Any) -> None:
     ("systemrescuecd-x86-5.3.1.iso",    "systemrescuecd-x86-5.3.1.iso"),
     ("ubuntu-16.04.5-desktop-i386.iso", "ubuntu-16.04.5-desktop-i386.iso"),
     (" тест(){}[ \t].iso\t",            "тест(){}[ _].iso"),
-    ("\n" + "x" * 1000,                 "x" * 255),
+    ("\n" + "x" * 300,                  "x" * 255),
     ("test",                            "test"),
     ("test test [test] #test$",         "test test [test] #test$"),
 ])

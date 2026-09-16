@@ -39,7 +39,7 @@ class AuthInfoSubmanager(BaseInfoSubmanager):
     async def trigger_state(self) -> None:
         self.__notifier.notify()
 
-    async def poll_state(self) -> AsyncGenerator[(dict | None), None]:
+    async def poll_state(self) -> AsyncGenerator[(dict | None)]:
         while True:
             await self.__notifier.wait()
             yield (await self.get_state())

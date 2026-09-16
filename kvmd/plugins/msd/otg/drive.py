@@ -29,21 +29,38 @@ from .. import MsdOperationError
 
 
 # =====
-class MsdDriveLockedError(MsdOperationError):
+class MsdPermissionsError(MsdOperationError):
     def __init__(self) -> None:
-        super().__init__("MSD drive is locked on IO operation")
+        super().__init__("MSD can't insert the image due to file permissions")
+
+
+class MsdImageTooSmallError(MsdOperationError):
+    def __init__(self) -> None:
+        super().__init__("This image is to small to be a valid")
+
+
+class MsdLockedError(MsdOperationError):
+    def __init__(self) -> None:
+        super().__init__("MSD is locked on IO operation")
 
 
 # =====
 class Drive:
-    def __init__(self, gadget: str, instance: int, lun: int) -> None:
+    def __init__(self, instance: int, lun: int) -> None:
         func = f"mass_storage.usb{instance}"
-        self.__profile_func_path = usb.get_gadget_path(gadget, usb.G_PROFILE, func)
-        self.__profile_path = usb.get_gadget_path(gadget, usb.G_PROFILE)
-        self.__lun_path = usb.get_gadget_path(gadget, usb.G_FUNCTIONS, func, f"lun.{lun}")
+        self.__profile_func_path = usb.get_gadget_path(usb.G_PROFILE, func)
+        self.__profile_path = usb.get_gadget_path(usb.G_PROFILE)
+        self.__lun_path = usb.get_gadget_path(usb.G_FUNCTIONS, func, f"lun.{lun}")
+        self.__name = os.path.join(func, f"lun.{lun}")
+
+    def get_name(self) -> str:
+        return self.__name
 
     def is_enabled(self) -> bool:
-        return os.path.exists(self.__profile_func_path)
+        return (
+            os.path.exists(self.__profile_func_path)
+            and os.path.exists(self.__lun_path)
+        )
 
     def get_watchable_paths(self) -> list[str]:
         return [self.__lun_path, self.__profile_path]
@@ -52,7 +69,14 @@ class Drive:
 
     def set_image_path(self, path: str) -> None:
         if path:
-            self.__set_param("file", path)
+            try:
+                self.__set_param("file", path)
+            except OSError as ex:
+                if ex.errno in [errno.EPERM, errno.EACCES]:
+                    raise MsdPermissionsError()
+                elif ex.errno == 525:  # ETOOSMALL
+                    raise MsdImageTooSmallError()
+                raise
         else:
             self.__set_param("forced_eject", "")
 
@@ -84,5 +108,5 @@ class Drive:
                 file.write(value + "\n")
         except OSError as ex:
             if ex.errno == errno.EBUSY:
-                raise MsdDriveLockedError()
+                raise MsdLockedError()
             raise

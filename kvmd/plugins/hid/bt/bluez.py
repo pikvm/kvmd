@@ -22,6 +22,7 @@
 
 import types
 
+from typing import Self
 from typing import Any
 
 import dbus
@@ -91,7 +92,7 @@ class BluezIface:
         assert self.__bus is not None
         return self.__bus.get_object("org.bluez", path)
 
-    def __enter__(self) -> "BluezIface":
+    def __enter__(self) -> Self:
         assert self.__bus is None
         self.__bus = dbus.SystemBus()
         return self

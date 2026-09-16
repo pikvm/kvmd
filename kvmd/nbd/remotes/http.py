@@ -20,22 +20,20 @@
 # ========================================================================== #
 
 
-import asyncio
-
 import aiohttp
 
-from ... import tools
+from typing import Final
+
 from ... import htclient
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_bool
 from ...validators.basic import valid_number
 from ...validators.net import valid_url
 
-from ..errors import NbdError
 from ..errors import NbdRemoteError
-
 from ..types import NbdImage
 
 from . import BaseNbdRemote
@@ -43,24 +41,14 @@ from . import BaseNbdRemote
 
 # =====
 class NbdHttpRemote(BaseNbdRemote):
-    def __init__(
-        self,
-        url: str,
-        verify: bool,
-        user: str,
-        passwd: str,
-        timeout: float,
-        retries_delay: float,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        super().__init__()
-
-        self.__url = url
-        self.__verify = verify
-        self.__user = user
-        self.__passwd = passwd
-        self.__timeout = timeout
-        self.__retries_delay = retries_delay
+        self.__url:           Final[str]   = c.url
+        self.__verify:        Final[bool]  = c.verify
+        self.__user:          Final[str]   = c.user
+        self.__passwd:        Final[str]   = c.passwd
+        self.__timeout:       Final[float] = c.timeout
 
         self.__session: (aiohttp.ClientSession | None) = None
 
@@ -73,87 +61,34 @@ class NbdHttpRemote(BaseNbdRemote):
     @classmethod
     def get_options(cls) -> dict[str, Option]:
         return {
-            "url":           Option("", type=valid_url),
-            "verify":        Option(True, type=valid_bool),
-            "user":          Option(""),
-            "passwd":        Option(""),
-            "timeout":       Option(3.0, type=valid_number.mk(min=1.0, max=30.0, type=float)),
-            "retries_delay": Option(5.0, type=valid_number.mk(min=1.0, max=30.0, type=float)),
+            "url":     Option("", type=valid_url.mk(protos=cls.get_schemes())),
+            "verify":  Option(True, type=valid_bool),
+            "user":    Option(""),
+            "passwd":  Option(""),
+            "timeout": Option(3.0, type=valid_number.mk(min=1.0, max=30.0, type=float)),
+            **BaseNbdRemote.get_options(),
         }
 
     # =====
+
+    def get_timeout(self) -> float:
+        return self.__timeout
 
     async def _do_probe(self) -> NbdImage:
         async with self.__make_session() as session:
             return (await self.__probe(session))
 
-    async def _do_again(self) -> NbdImage:
-        session = self.__ensure_session()
-        return (await self.__probe(session))
+    async def _do_ensure(self) -> NbdImage:
+        if self.__session is None:
+            self.__session = self.__make_session()
+        return (await self.__probe(self.__session))
 
-    async def __probe(self, session: aiohttp.ClientSession) -> NbdImage:
-        async with session.head(self.__url) as resp:
-            htclient.raise_not_200(resp)
-            cl = resp.content_length
-            if not isinstance(cl, int) or cl < 0:
-                raise NbdRemoteError(f"Invalid Content-Length: {cl}")
-            return NbdImage(
-                size=cl,
-                rw=False,
-                timeout=self.__timeout,
-            )
-
-    # =====
-
-    async def _on_read(self, offset: int, size: int) -> bytes:
-        errors = 0
-        while True:
-            try:
-                if errors > 0:
-                    await self._probe_again()
-                data = (await self.__read(offset, size))
-                if errors > 0:
-                    await self._send_status_ok()
-                    errors = 0
-                return data
-            except NbdError:
-                raise
-            except Exception as ex:
-                errors += 1
-                msg = f"READ: {tools.efmt(ex)}; Retrying ({errors}) ..."
-                await self._send_status_error(msg)
-                await asyncio.sleep(self.__retries_delay)
-
-    async def __read(self, offset: int, size: int) -> bytes:
-        session = self.__ensure_session()
-        async with session.get(
-            url=self.__url,
-            headers={aiohttp.hdrs.RANGE: f"bytes={offset}-{offset + size}"},
-        ) as resp:
-
-            resp.raise_for_status()  # 206 partial is OK here
-            return (await resp.read())[:size]
-
-    async def _on_write(self, offset: int, data: bytes) -> None:
-        _ = offset
-        _ = data
-        raise RuntimeError("WRITE should not be called for HTTP")
-
-    # =====
-
-    async def _do_cleanup(self) -> None:
-        if self.__session:
+    async def _do_close(self) -> None:
+        if self.__session is not None:
             try:
                 await self.__session.close()
             finally:
                 self.__session = None
-
-    # =====
-
-    def __ensure_session(self) -> aiohttp.ClientSession:
-        if self.__session is None:
-            self.__session = self.__make_session()
-        return self.__session
 
     def __make_session(self) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(
@@ -165,3 +100,48 @@ class NbdHttpRemote(BaseNbdRemote):
             # Don't ask for compression: https://github.com/aio-libs/aiohttp/issues/5513
             skip_auto_headers=frozenset([aiohttp.hdrs.ACCEPT_ENCODING]),
         )
+
+    async def __probe(self, session: aiohttp.ClientSession) -> NbdImage:
+        async with session.head(self.__url) as resp:
+            htclient.raise_not_200(resp)
+
+            proto = resp.request_info.url.scheme.upper()
+            name = htclient.get_filename(resp)
+
+            cl = resp.content_length
+            if not isinstance(cl, int) or cl < 0:
+                raise NbdRemoteError(f"Invalid Content-Length: {cl}")
+
+            try:
+                mod_ts = htclient.get_mtime(resp)
+            except Exception:
+                mod_ts = 0
+
+            return NbdImage(
+                url=self.__url,
+                proto=proto,
+                name=name,
+                size=cl,
+                mod_ts=mod_ts,
+                rw=False,
+            )
+
+    async def _on_read(self, offset: int, size: int) -> bytes:
+        assert offset >= 0
+        assert size > 0
+        assert self.__session is not None
+
+        async with self.__session.get(
+            url=self.__url,
+            # HTTP Range включает края: bytes=0-499 запрашивает 500 байт.
+            #  - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Range
+            headers={aiohttp.hdrs.RANGE: f"bytes={offset}-{offset + size - 1}"},
+        ) as resp:
+
+            resp.raise_for_status()  # 206 partial is OK here
+            return (await resp.read())[:size]
+
+    async def _on_write(self, offset: int, data: bytes) -> None:
+        _ = offset
+        _ = data
+        raise RuntimeError("WRITE should not be called for HTTP")

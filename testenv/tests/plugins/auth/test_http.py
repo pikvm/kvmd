@@ -41,8 +41,8 @@ async def _handle_auth(req: aiohttp.web.BaseRequest) -> aiohttp.web.Response:
     return aiohttp.web.Response(text=str(status), status=status)
 
 
-@pytest_asyncio.fixture(name="auth_server_port")
-async def _auth_server_port_fixture(aiohttp_server) -> AsyncGenerator[int, None]:  # type: ignore
+@pytest_asyncio.fixture(name="auth_server_port")  # noqa vulture-ignore
+async def _auth_server_port_fixture(aiohttp_server) -> AsyncGenerator[int]:  # type: ignore
     auth = aiohttp_basicauth.BasicAuthMiddleware(
         username="server-admin",
         password="server-pass",
@@ -76,4 +76,11 @@ async def test_ok(auth_server_port: int, kwargs: dict) -> None:
         assert not (await service.authorize("user", "foobar"))
         assert not (await service.authorize("admin", "foobar"))
         assert not (await service.authorize("user", "pass"))
+        assert not (await service.authorize("admin ", "pass"))
+        assert not (await service.authorize("admin ", "pass "))
+        assert not (await service.authorize("admin", "pass "))
+        assert not (await service.authorize("", "pass"))
+        assert not (await service.authorize(" ", "pass"))
+        assert not (await service.authorize(" ", " "))
+        assert not (await service.authorize("", ""))
         assert (await service.authorize("admin", "pass"))

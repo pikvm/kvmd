@@ -57,18 +57,18 @@ def _reset_alarm(rtc: int, timeout: int) -> None:
     try:
         now = _read_int(rtc, "since_epoch")
     except OSError as ex:
-        if ex.errno != errno.EINVAL:
-            raise
-        raise RtcIsNotAvailableError("Can't read since_epoch right now")
+        if ex.errno == errno.EINVAL:
+            raise RtcIsNotAvailableError("Can't read since_epoch right now")
+        raise
     if now == 0:
         raise RtcIsNotAvailableError("Current UNIX time == 0")
     try:
         for wake in [0, now + timeout]:
             _write_int(rtc, "wakealarm", wake)
     except OSError as ex:
-        if ex.errno != errno.EIO:
-            raise
-        raise RtcIsNotAvailableError("IO error, probably the supercapacitor is not charged")
+        if ex.errno == errno.EIO:
+            raise RtcIsNotAvailableError("IO error, probably the supercapacitor is not charged")
+        raise
 
 
 # =====
@@ -89,11 +89,12 @@ def _cmd_run(config: Section) -> None:
                     logger.info("RTC%d is available, working ...", config.rtc)
                     fail = False
             time.sleep(config.interval)
-    except (SystemExit, KeyboardInterrupt):
+    except KeyboardInterrupt:
+        raise SystemExit("Interrupted by Ctrl+C")
+    finally:
         if not fail:
             _reset_alarm(config.rtc, config.timeout)
             logger.info("The watchdog remains alarmed. Use 'kvmd-watchdog cancel' to disarm it")
-    logger.info("Bye-bye")
 
 
 def _cmd_cancel(config: Section) -> None:

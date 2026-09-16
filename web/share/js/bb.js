@@ -26,13 +26,19 @@
 import {ROOT_PREFIX} from "./vars.js";
 
 
+export function getUrlParam(name) {
+	const params = new URLSearchParams(window.location.search);
+	return params.get(name);
+}
+
+
 export var browser = new function() {
 	// https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769
 	// https://github.com/fingerprintjs/fingerprintjs/discussions/641
 
 	// Opera 8.0+
 	let is_opera = (
-		(!!window.opr && !!opr.addons) // eslint-disable-line no-undef
+		(!!window.opr && !!opr.addons)
 		|| !!window.opera
 		|| (navigator.userAgent.indexOf(" OPR/") >= 0)
 	);
@@ -85,8 +91,7 @@ export var browser = new function() {
 
 	let is_android = /android/i.test(navigator.userAgent);
 
-	let force_desktop = (new URL(window.location.href)).searchParams.get("force_desktop");
-	let force_mobile = (new URL(window.location.href)).searchParams.get("force_mobile");
+	let ui = window.localStorage.getItem("page.ui.type");
 
 	let flags = {
 		"is_opera": is_opera,
@@ -94,12 +99,19 @@ export var browser = new function() {
 		"is_safari": is_safari,
 		"is_chrome": is_chrome,
 		"is_blink": is_blink,
+		"is_linux": !(is_win || is_mac || is_ios || is_android),
 		"is_mac": is_mac,
 		"is_win": is_win,
 		"is_ios": is_ios,
 		"is_android": is_android,
 		"is_apple": (is_mac || is_ios),
-		"is_mobile": ((is_ios || is_android || force_mobile) && !force_desktop),
+		"is_mobile": (
+			ui === "desktop"
+				? false
+				: ui === "mobile"
+					? true
+					: (is_ios || is_android)
+		),
 	};
 
 	console.log("===== BB flags:", flags);

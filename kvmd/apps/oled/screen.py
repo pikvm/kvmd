@@ -40,24 +40,32 @@ class Screen:  # pylint: disable=too-many-instance-attributes
         font: ImageFont.FreeTypeFont,
         font_spacing: int,
         offset: tuple[int, int],
+        contrast_normal: int,
+        contrast_low: int,
     ) -> None:
 
         self.__device = device
         self.__font = font
         self.__font_spacing = font_spacing
         self.__offset = offset
+        self.__contrast_normal = contrast_normal
+        self.__contrast_low = contrast_low
 
         self.__swim_interval = 0.0
         self.__swim_offset_x = 0
         self.__swim_after_ts = time.monotonic() + self.__swim_interval
         self.__swim_state = True
 
+    def get_height(self) -> int:
+        return self.__device.height
+
     async def set_swimming(self, interval: float, offset_x: int) -> None:
         self.__swim_interval = interval
         self.__swim_offset_x = offset_x
 
     @async_lru.alru_cache(maxsize=1)
-    async def set_contrast(self, contrast: int) -> None:
+    async def set_contrast(self, normal: bool) -> None:
+        contrast = (self.__contrast_normal if normal else self.__contrast_low)
         await asyncio.to_thread(self.__device.contrast, contrast)
 
     async def draw_text(self, text: str) -> None:

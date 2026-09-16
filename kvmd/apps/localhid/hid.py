@@ -129,7 +129,7 @@ class Hid:  # pylint: disable=too-many-instance-attributes
                 elif event.code in ecodes.BTN:
                     put(self.MOUSE_BUTTON, (event.code, bool(event.value)))
 
-    def __splitted_deltas(self, delta_x: int, delta_y: int) -> Generator[tuple[int, int], None, None]:
+    def __splitted_deltas(self, delta_x: int, delta_y: int) -> Generator[tuple[int, int]]:
         sign_x = (-1 if delta_x < 0 else 1)
         sign_y = (-1 if delta_y < 0 else 1)
         delta_x = abs(delta_x)

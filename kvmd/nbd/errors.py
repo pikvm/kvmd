@@ -22,13 +22,28 @@
 
 from .. import tools
 
+from ..errors import OperationError
+
 
 # =====
-class NbdError(Exception):
+class NbdError(OperationError):
     def __init__(self, msg: str, ex: (Exception | None)=None) -> None:
         if ex:
             msg += ": " + tools.efmt(ex)
         super().__init__(msg)
+
+
+# =====
+class NbdControllerError(NbdError):
+    pass
+
+
+class NbdBoundError(NbdControllerError):
+    pass
+
+
+class NbdProbeError(NbdControllerError):
+    pass
 
 
 # =====

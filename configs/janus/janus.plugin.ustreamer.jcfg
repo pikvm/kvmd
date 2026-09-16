@@ -1,6 +1,10 @@
 video: {
 	sink = "kvmd::ustreamer::h264"
 }
+vplay: {
+	sink = "kvmd::ucamera::h264"
+	device = "/dev/kvmd-camera"
+}
 acap: {
 	device = "hw:tc358743,0"
 	tc358743 = "/dev/kvmd-video"

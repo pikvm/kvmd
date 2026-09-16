@@ -24,7 +24,7 @@
 
 
 import {ROOT_PREFIX} from "./vars.js";
-import {browser} from "./bb.js";
+import {getUrlParam, browser} from "./bb.js";
 
 
 export var tools = new function() {
@@ -39,6 +39,8 @@ export var tools = new function() {
 	};
 
 	/************************************************************************/
+
+	self.getUrlParam = getUrlParam;
 
 	self.currentOpen = function(url) {
 		window.location.href = ROOT_PREFIX + url;
@@ -91,8 +93,7 @@ export var tools = new function() {
 		}
 		return text.replace(
 			/[^-_0-9A-Za-z ]/g,
-			ch => "&#" + ch.charCodeAt(0) + ";"
-		);
+			ch => "&#" + ch.charCodeAt(0) + ";");
 	};
 
 	self.partial = function(func, ...args) {
@@ -369,7 +370,7 @@ export var tools = new function() {
 
 	/************************************************************************/
 
-	let __debug = (new URL(window.location.href)).searchParams.get("debug");
+	const __debug = getUrlParam("debug");
 
 	self.debug = function(...args) {
 		if (__debug) {
@@ -391,9 +392,8 @@ export var tools = new function() {
 	self.cookies = new function() {
 		return {
 			"get": function(name) {
-				let matches = document.cookie.match(new RegExp(
-					"(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, "\\$1") + "=([^;]*)" // eslint-disable-line no-useless-escape
-				));
+				let regexp = new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, "\\$1") + "=([^;]*)");
+				let matches = document.cookie.match(regexp);
 				return (matches ? decodeURIComponent(matches[1]) : "");
 			},
 		};

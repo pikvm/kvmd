@@ -26,9 +26,12 @@ import dataclasses
 # =====
 @dataclasses.dataclass(frozen=True)
 class NbdImage:
-    size:    int
-    rw:      bool
-    timeout: float
+    url:    str
+    proto:  str
+    name:   str
+    size:   int
+    mod_ts: float
+    rw:     bool
 
 
 # =====
@@ -37,19 +40,34 @@ class BaseNbdEvent:
 
 
 @dataclasses.dataclass(frozen=True)
-class NbdRemoteEvent(BaseNbdEvent):
+class NbdStartingEvent(BaseNbdEvent):
+    binding_id: str
+    image:      NbdImage
+
+
+@dataclasses.dataclass(frozen=True)
+class NbdRunningEvent(BaseNbdEvent):
     online: bool
     msg:    str
 
 
 @dataclasses.dataclass(frozen=True)
-class NbdStartEvent(BaseNbdEvent):
-    image: NbdImage
-    path:  str
-
-
-@dataclasses.dataclass(frozen=True)
-class NbdStopEvent(BaseNbdEvent):
+class NbdStoppedEvent(BaseNbdEvent):
     src: str
     msg: str
     ok:  bool
+
+
+# =====
+@dataclasses.dataclass(frozen=True)
+class NbdStateBinding:
+    id:     str
+    image:  NbdImage
+    status: str
+    info:   (NbdRunningEvent | NbdStoppedEvent | None)
+
+
+@dataclasses.dataclass(frozen=True)
+class NbdState:
+    device:  str
+    binding: (NbdStateBinding | None)

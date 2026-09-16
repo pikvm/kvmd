@@ -24,18 +24,18 @@
 
 
 import {tools, $} from "../tools.js";
+import {VuMeter} from "./vu.js";
+import {wm} from "../wm.js";
 
 
 var _Janus = null;
 
 
-export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, __orient, __allow_audio, __allow_mic, __allow_cam) {
+export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook) {
+
 	var self = this;
 
 	/************************************************************************/
-
-	__allow_mic = (__allow_audio && __allow_mic); // XXX: Mic only with audio
-	__allow_cam = (__allow_audio && __allow_cam); // XXX: Camera only with audio
 
 	var __stop = false;
 
@@ -49,23 +49,163 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	var __state = null;
 	var __ice = null;
 
+	var __has_audio = false;
+	var __use_audio = 0; // Volume
+	var __audio_vu = null;
+
+	var __has_mic = false;
+	var __use_mic = null;
+	var __use_mic_raw = false;
+	var __mic_vu = null;
+
+	var __has_camera = false;
+	var __use_camera = null;
+	var __camera_req = null;
+
+	var __orient = 0;
+
+	var __init__ = function() {
+		$("stream-video").muted = true;
+
+		// Firefox doesn't support RTP orientation:
+		//   - https://bugzilla.mozilla.org/show_bug.cgi?id=1340372
+		tools.feature.setEnabled($("stream-orient"), !tools.browser.is_firefox);
+
+		tools.feature.setEnabled($("stream-multimedia"), false);
+		tools.feature.setEnabled($("stream-audio"), false);
+		tools.feature.setEnabled($("stream-mic"), false);
+		tools.feature.setEnabled($("stream-mic-raw"), false);
+		tools.feature.setEnabled($("stream-camera"), false);
+
+		__audio_vu = new VuMeter($("stream-audio-vu-progress"));
+		__mic_vu = new VuMeter($("stream-mic-vu-progress"));
+	};
+
 	/************************************************************************/
 
-	self.getOrientation = () => __orient;
-	self.isAudioAllowed = () => __allow_audio;
-	self.isMicAllowed = () => __allow_mic;
-	self.isCamAllowed = () => __allow_cam;
+	self.setOrientation = function(orient) {
+		if (tools.browser.is_firefox) {
+			orient = 0;
+		}
+		if (__orient !== orient) {
+			__orient = orient;
+			__destroyJanus();
+		}
+	};
+
+	self.setAudioVolume = function(volume) {
+		let prev = !!__use_audio;
+		__use_audio = volume;
+		$("stream-video").volume = volume / 100;
+		if (__has_audio && (prev !== !!__use_audio)) {
+			__destroyJanus();
+		}
+	};
+
+	var __setDevice = function(el, input, id) {
+		el.value = id;
+		tools.storage.set(`stream.${input}.device.id`, id);
+		let name = "\u2500 Unknown yet \u2500";
+		try {
+			name = el.options[el.selectedIndex].innerText;
+		} catch {}
+		tools.storage.set(`stream.${input}.device.name`, name);
+	};
+
+	var __refillDevices = function(input, id, apply_cb) {
+		let el = $(`stream-${input}-selector`);
+		if (id === ".__default__") {
+			__setDevice(el, input, id);
+			apply_cb(id);
+		}
+		let av = (input === "mic" ? "audio" : "video");
+		let turn = (el.__janus_turn || 0) + 1; // Drop previous parallel results
+		el.__janus_turn = turn;
+		_Janus.listDevices(function(devices) {
+			if (turn >= el.__janus_turn) {
+				el.options.length = 1;
+				let found = false;
+				for (let dev of devices) {
+					if (dev.kind === av + "input") {
+						tools.selector.addOption(el, dev.label, dev.deviceId);
+						if (dev.deviceId === id) {
+							found = true;
+						}
+					}
+				}
+				if (!found && id !== ".__default__") {
+					id = ".__default__";
+					found = true;
+				}
+				if (found) {
+					__setDevice(el, input, id);
+					apply_cb(id);
+				}
+			}
+		}, {[av]: true});
+	};
+
+	self.setMicRaw = function(raw) {
+		if (__use_mic_raw !== !!raw) {
+			__use_mic_raw = !!raw;
+			if (__has_mic && __use_mic) {
+				__destroyJanus(); // The constraints are negotiated with the offer
+			}
+		}
+	};
+
+	self.setMicDevice = function(mic, reload=false) {
+		// The choice is remembered even before the features are known: this happens
+		// right after switching the video mode, when the UI applies its state to the
+		// fresh streamer. Only the restart needs the working session
+		if (__use_mic !== mic) {
+			if (mic) {
+				__refillDevices("mic", mic, function(id) {
+					__use_mic = id;
+					if (__has_mic) {
+						__destroyJanus();
+					}
+				});
+			} else {
+				__use_mic = null;
+			}
+			reload = true;
+		}
+		if (reload && __has_mic) {
+			__destroyJanus();
+		}
+	};
+
+	self.setCameraDevice = function(camera, reload=false) {
+		if (__use_camera !== camera) {
+			if (camera) {
+				__refillDevices("camera", camera, function(id) {
+					__use_camera = id;
+					if (__has_camera) {
+						__destroyJanus();
+					}
+				});
+			} else {
+				__use_camera = null;
+			}
+			reload = true;
+		}
+		if (reload && __has_camera) {
+			__destroyJanus();
+		}
+	};
 
 	self.getName = function() {
 		let name = "WebRTC H.264";
-		if (__allow_audio) {
+		if (__has_audio && !!__use_audio) {
 			name += " + Audio";
-			if (__allow_mic) {
-				name += " + Mic";
-			}
-			if (__allow_cam) {
-				name += " + Cam";
-			}
+		}
+		if (__has_mic && __use_mic) {
+			name += " + Mic";
+		}
+		if (__camera_req !== null) {
+			let res = __camera_req.resolution;
+			name += ` + Cam (${res.width}x${res.height})`;
 		}
 		return name;
 	};
@@ -82,24 +222,27 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		};
 	};
 
-	var __ff_hack_h264_gop = null;
+	var __fix_zero_h264_gop = null;
 	var __resize_listener_installed = false;
 
 	self.ensureStream = function(state) {
 		__state = state;
 		__stop = false;
-		if (tools.browser.is_firefox && __state && __ff_hack_h264_gop !== __state.h264.gop) {
-			// uStreamer делает RTP playout-delay=0,0 при gop=0, и 0,10s для gop>0
-			// При смене playout-delay с 0,>0 на 0,0 у фокса сносит крышу и поток фризится.
+		if (__state && __fix_zero_h264_gop !== __state.h264.gop) {
+			// Проблема воспроизводится на фоксе и сафари, и не воспроизводится на хроме.
+			// Из параноидельных соображений фикс включен для всех браузеров.
+			//
+			// В общем, uStreamer делает RTP playout-delay=0,0 при gop=0, и 0,10s для gop>0
+			// При смене playout-delay с 0,>0 на 0,0 у браузера сносит крышу и поток фризится.
 			// Перезапускаем стрим для этого случая.
 			// Потенциально тут может быть гонка между тем, что RTP-пакеты с 0,0
 			// еще не дошли, а стрим уже перезапустился, но ничего не поделаешь.
 			// Альтернативно можно детектить состояние, когда трафик потребляется,
 			// но при этом отображается 0fps (собственно, так и выглядит фриз).
-			if (__ff_hack_h264_gop !== null && __state.h264.gop === 0) {
+			if (__fix_zero_h264_gop !== null && __state.h264.gop === 0) {
 				self.stopStream();
 			}
-			__ff_hack_h264_gop = __state.h264.gop;
+			__fix_zero_h264_gop = __state.h264.gop;
 		}
 		__ensureJanus(false);
 		if (!__resize_listener_installed) {
@@ -109,7 +252,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	self.stopStream = function() {
-		__ff_hack_h264_gop = null;
+		__fix_zero_h264_gop = null;
 		__stop = true;
 		__destroyJanus();
 		if (__resize_listener_installed) {
@@ -171,7 +314,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				__retry_ensure_timeout = setTimeout(function() {
 					__retry_ensure_timeout = null;
 					__ensureJanus(true);
-				}, 5000);
+				}, 1000);
 			}
 		}
 		__stopRetryEmsgInterval();
@@ -189,6 +332,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	var __destroyJanus = function() {
+		__audio_vu.detach();
+		__mic_vu.detach();
 		if (__janus !== null) {
 			__janus.destroy();
 		}
@@ -264,9 +409,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 			"webrtcState": function(up) {
 				__logInfo("Janus says our WebRTC PeerConnection is", (up ? "up" : "down"), "now");
-				if (up) {
+				/*if (up) {
 					__sendKeyRequired();
-				}
+				}*/
 			},
 
 			"onmessage": function(msg, jsep) {
@@ -281,11 +426,26 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 						__setInactive();
 						__setInfo(false, false, "");
 					} else if (msg.result.status === "features") {
-						tools.feature.setEnabled($("stream-audio"), msg.result.features.audio);
-						tools.feature.setEnabled($("stream-mic"), msg.result.features.mic);
-						tools.feature.setEnabled($("stream-cam"), msg.result.features.cam);
-						__ice = msg.result.features.ice;
+						let f = msg.result.features;
+						tools.feature.setEnabled($("stream-audio"), (__has_audio = f.audio));
+						tools.feature.setEnabled($("stream-mic"), (__has_mic = f.mic));
+						tools.feature.setEnabled($("stream-mic-raw"), (__has_mic && !tools.browser.is_safari));
+						tools.feature.setEnabled($("stream-camera"), (__has_camera = (f.camera && f.camera.enabled)));
+						tools.feature.setEnabled($("stream-multimedia"), (__has_audio || __has_mic || __has_camera));
+						__ice = f.ice;
+						__camera_req = ((__has_camera && __use_camera && f.camera.request) ? f.camera.request : null);
 						__sendWatch();
+					} else if (msg.result.status === "camera") {
+						if (__has_camera && __use_camera) {
+							let action = msg.result.camera.action;
+							if (action === "online" && __camera_req === null) {
+								__destroyJanus();
+							} else if (action == "offline" && __camera_req !== null) {
+								__destroyJanus();
+							} else if (action === "lost") {
+								__destroyJanus();
+							}
+						}
 					}
 				} else if (msg.error_code || msg.error) {
 					__logError("Got uStreamer error message:", msg.error_code, "-", msg.error);
@@ -306,10 +466,43 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 				if (jsep) {
 					__logInfo("Handling SDP:", jsep);
-					let tracks = [{"type": "video", "capture": (__allow_audio && __allow_cam), "recv": true, "add": true}];
-					if (__allow_audio) {
-						tracks.push({"type": "audio", "capture": __allow_mic, "recv": true, "add": true});
+
+					let audio = (__has_audio && !!__use_audio);
+
+					let mic = null;
+					if (__has_mic && __use_mic) {
+						mic = {};
+						if (__use_mic !== ".__default__") {
+							mic["deviceId"] = {"exact": __use_mic};
+						}
+						if (tools.browser.is_safari && __use_mic_raw) {
+							mic["noiseSuppression"] = false;
+							mic["autoGainControl"] = false;
+						}
 					}
+
+					let camera = null;
+					if (__camera_req !== null) {
+						// Min не помогает от перебора фоксом разрешений, но пусть будет.
+						// Помогают пляски в onlocaltrack.
+						let w = __camera_req.resolution.width;
+						let h = __camera_req.resolution.height;
+						camera = {
+							"width": {"min": w, "ideal": w, "max": w},
+							"height": {"min": h, "ideal": h, "max": h},
+							"frameRate": {"ideal": __camera_req.fps, "max": 30},
+						};
+						if (__use_camera !== ".__default__") {
+							camera["deviceId"] = {"exact": __use_camera};
+						}
+					}
+
+					let tracks = [{"type": "video", "capture": camera, "recv": true, "add": true}];
+					if (audio || mic) {
+						tracks.push({"type": "audio", "capture": mic, "recv": audio, "add": true});
+					}
+					$("stream-video").muted = !audio;
+
 					__handle.createAnswer({
 						"jsep": jsep,
 
@@ -328,11 +521,78 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 						},
 
 						"error": function(error) {
+							let restart = function() {
+								try {
+									if (error?.name === "OverconstrainedError") {
+										if (__has_mic && __use_mic) {
+											self.setMicDevice(".__default__", true);
+										}
+										if (__has_camera && __use_camera) {
+											self.setCameraDevice(".__default__", true);
+										}
+									}
+								} finally {
+									__destroyJanus();
+								}
+							};
 							__logInfo("Error on SDP handling:", error);
 							__setInfo(false, false, error);
-							//__destroyJanus();
+							if (["NotAllowedError", "SecurityError"].includes(error?.name)) {
+								let html = "Can't connect with WebRTC (error on SDP handling).<br>";
+								if (mic || !!__camera_req) {
+									let what = [];
+									if (mic) {
+										what.push("microphone");
+									}
+									if (!!__camera_req) {
+										what.push("webcam");
+									}
+									html += `<br>Most likely, your browser blocked <b>a ${what.join(" or ")}</b> usage.`;
+									html += " Please unlock it (check the top left corner in the address bar)";
+									html += " and press <b>OK</b> to try again.";
+								}
+								wm.error(html, error).then(restart);
+							} else {
+								restart();
+							}
 						},
 					});
+				}
+			},
+
+			"onlocaltrack": async function(track, added) {
+				if (added && track.kind === "video") {
+					track.contentHint = "detail"; // Webkit
+					if (__handle?.webrtcStuff?.pc) {
+						for (let sender of __handle.webrtcStuff.pc.getSenders()) {
+							if (sender.track === track) {
+								if (tools.browser.is_mobile) {
+									try {
+										__logInfo("Patching camera track for auto-rotate ...");
+										let s_track = _makeSmartCameraTrack(track, __camera_req.resolution);
+										s_track.contentHint = "detail";
+										sender.replaceTrack(s_track);
+									} catch (ex) {
+										__logError("Can't patch camera track:", ex);
+									}
+								}
+
+								// Firefox doesn't support contentHint but there is another hack
+								//   - https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
+								let params = sender.getParameters();
+								params.degradationPreference = "maintain-resolution";
+								sender.setParameters(params);
+								break;
+							}
+						}
+					}
+				}
+				if (track.kind === "audio") {
+					if (added) {
+						__mic_vu.attach(track);
+					} else {
+						__mic_vu.detach();
+					}
 				}
 			},
 
@@ -346,11 +606,18 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 				if (added && reason === "created") {
 					__addTrack(track);
 					if (track.kind === "video") {
-						__sendKeyRequired();
+						//__sendKeyRequired();
 						__startInfoInterval();
 					}
 				} else if (!added && reason === "ended") {
 					__removeTrack(track);
+				}
+				if (reason === "created" && track.kind === "audio") {
+					if (added) {
+						__audio_vu.attach(track);
+					} else {
+						__audio_vu.detach();
+					}
 				}
 			},
 
@@ -382,16 +649,19 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 		}
 	};
 
-	const show_latency = (new URL(window.location.href)).searchParams.get("show_webrtc_latency");
+	const show_latency = tools.getUrlParam("show_webrtc_latency");
 	var __frames = 0;
 
 	var __updateInfo = function() {
 		if (__handle !== null) {
 			let info = "";
 			if (__handle !== null) {
-				info = `${__handle.getBitrate()}`.replace("kbits/sec", "kbps");
+				let kbps = `${__handle.getBitrate()}`.replace("kbits/sec", "kbps");
+				info = kbps;
 
 				if (show_latency) {
+					// Firefox: https://bugzilla.mozilla.org/show_bug.cgi?id=1733653
+
 					const receiver = __handle.webrtcStuff.pc.getReceivers()[0];
 					const contributing_src = receiver.getSynchronizationSources()[0];
 					const capture_ts = contributing_src?.captureTimestamp;
@@ -412,8 +682,21 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 					frames = el.mozPaintedFrames;
 				}
 				if (frames !== null) {
-					info += ` / ${Math.max(0, frames - __frames)} dyn.fps`;
+					let fps = Math.max(0, frames - __frames);
+					info += ` / ${fps} dyn.fps`;
 					__frames = frames;
+
+					// В Chromium 147 сломались PLI при включенном микрофоне, особенно с gop=0.
+					// Запрашиваем кейфреймы руками.
+					//   * https://github.com/pikvm/pikvm/issues/1656:
+					try {
+						let kbps_int = parseInt(kbps.replace("kbps", "").trim());
+						if (kbps_int > 0 && fps === 0) {
+							__sendKeyRequired();
+						}
+					} catch (ex) {
+						tools.error("Stream [Janus]: Can't verify kbps for PLI:", ex);
+					}
 				}
 			}
 			__setInfo(true, __isOnline(), info);
@@ -426,13 +709,16 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 	var __sendWatch = function() {
 		if (__handle) {
-			__logInfo(`Sending WATCH(orient=${__orient}, audio=${__allow_audio}, mic=${__allow_mic}, cam=${__allow_cam}) ...`);
+			let audio = (__has_audio && !!__use_audio);
+			let mic = (__has_mic && __use_mic ? __use_mic : null);
+			__logInfo(`Sending WATCH(orient=${__orient}, audio=${audio}, mic=${mic}, camera=${__camera_req}) ...`);
 			__handle.send({"message": {"request": "watch", "params": {
 				"orientation": __orient,
-				"audio": __allow_audio,
-				"mic": __allow_mic,
-				"cam": __allow_cam,
+				"audio": audio,
+				"mic": !!mic,
+				"camera": !!__camera_req,
 			}}});
+			__watchHook();
 		}
 	};
 
@@ -444,11 +730,10 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 	};
 
 	var __sendKeyRequired = function() {
-		/*if (__handle) {
-			// На этом шаге мы говорим что стрим пошел и надо запросить кейфрейм
+		if (__handle) {
 			__logInfo("Sending KEY_REQUIRED ...");
-			__handle.send({message: {request: "key_required"}});
-		}*/
+			__handle.send({"message": {"request": "key_required"}});
+		}
 	};
 
 	var __sendStop = function() {
@@ -462,6 +747,8 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __organizeH
 
 	var __logInfo = (...args) => tools.info("Stream [Janus]:", ...args);
 	var __logError = (...args) => tools.error("Stream [Janus]:", ...args);
+
+	__init__();
 }
 
 JanusStreamer.ensure_janus = function(cb) {
@@ -485,4 +772,61 @@ JanusStreamer.ensure_janus = function(cb) {
 
 JanusStreamer.is_webrtc_available = function() {
 	return !!window.RTCPeerConnection;
+};
+
+function _makeSmartCameraTrack(track, res) {
+	const canvas = document.createElement("canvas");
+	canvas.width = res.width;
+	canvas.height = res.height;
+
+	const readable = new ReadableStream({
+		async start(controller) {
+			this.__ctx = canvas.getContext("2d", {"desynchronized": true});
+			track.addEventListener("ended", () => controller.close(), {"once": true});
+			this.__el_video = document.createElement("video");
+			this.__el_video.srcObject = new MediaStream([track]);
+			await Promise.all([this.__el_video.play(), new Promise(r => this.__el_video.onloadedmetadata = r)]);
+			this.__ts = performance.now();
+		},
+		async pull(controller) {
+			if (track.readyState == "ended") {
+				return controller.close();
+			}
+			const fps = (track.getSettings().frameRate || 30);
+			while (performance.now() - this.__ts < (1000 / fps)) {
+				await new Promise(r => requestAnimationFrame(r));
+				if (track.readyState == "ended") {
+					return controller.close();
+				}
+			}
+			this.__ts = performance.now();
+			if (this.__el_video.videoWidth == res.width) {
+				this.__ctx.drawImage(this.__el_video, 0, 0);
+			} else if (this.__el_video.videoWidth == res.height) {
+				const sw = this.__el_video.videoWidth; // Source
+				const sh = this.__el_video.videoHeight;
+				const dw = res.width; // Dest
+				const dh = res.height;
+
+				const th = sw * (dh / dw); // Cropped height
+				const ph = (sh - th) / 2; // Y padding
+
+				this.__ctx.drawImage(
+					this.__el_video,
+					0, ph, // Source (x,y)
+					sw, th, // Source size
+					0, 0, // Dest (x,y)
+					dw, dh); // Dest size
+			}
+			controller.enqueue(new VideoFrame(canvas, {"timestamp": this.__ts}));
+		},
+	});
+
+	const writable = new WritableStream({
+		write(frame) { frame.close(); },
+	});
+
+	readable.pipeTo(writable);
+
+	return canvas.captureStream().getVideoTracks()[0];
 };

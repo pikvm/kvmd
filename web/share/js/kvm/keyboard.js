@@ -32,6 +32,8 @@ export function Keyboard(__recordWsEvent) {
 	var __ws = null;
 	var __online = true;
 
+	var __caps_led = false;
+
 	var __keypad = null;
 	var __el_magic = null;
 
@@ -50,8 +52,13 @@ export function Keyboard(__recordWsEvent) {
 		window.addEventListener("focusin", __updateOnlineLeds);
 		window.addEventListener("focusout", __updateOnlineLeds);
 
+		for (let what of ["mouseenter", "mouseleave", "mousemove"]) {
+			window.addEventListener(what, __syncCapsOnMouse);
+		}
+
 		tools.storage.bindSimpleSwitch($("hid-keyboard-bad-link-switch"), "hid.keyboard.bad_link", false);
 		tools.storage.bindSimpleSwitch($("hid-keyboard-swap-cc-switch"), "hid.keyboard.swap_cc", false);
+		tools.storage.bindSimpleSwitch($("hid-keyboard-sync-caps-switch"), "hid.keyboard.sync_caps", false);
 
 		__el_magic = $("hid-keyboard-magic-selector");
 		let alt = (tools.browser.is_apple ? "Option" : "Alt");
@@ -70,7 +77,7 @@ export function Keyboard(__recordWsEvent) {
 			null,
 			["Menu Key", "ContextMenu"],
 			null,
-			["<None>", ""],
+			["\u2500 None \u2500", ""],
 		]) {
 			if (kv === null) {
 				tools.selector.addSeparator(__el_magic, 8);
@@ -104,6 +111,7 @@ export function Keyboard(__recordWsEvent) {
 		}
 		__updateOnlineLeds();
 
+		__caps_led = leds["caps"];
 		for (let led of ["caps", "scroll", "num"]) {
 			for (let el of $$$(`.hid-keyboard-${led}-led`)) {
 				if (leds[led]) {
@@ -137,7 +145,7 @@ export function Keyboard(__recordWsEvent) {
 		if (__ws) {
 			if (__online === null) {
 				led = "led-red";
-				title = (is_captured ? "Keyboard captured, HID offline" : "Keyboard free, HID offline");
+				title = (is_captured ? "Keyboard captured, emulator offline" : "Keyboard free, emulator offline");
 			} else if (__online) {
 				if (is_captured) {
 					led = "led-green";
@@ -158,9 +166,52 @@ export function Keyboard(__recordWsEvent) {
 
 	/************************************************************************/
 
-	var __altgr_ctrl_timer = null;
+	var __sync_caps_armed = true;
+
+	var __syncCapsReload = function() {
+		__sync_caps_armed = false;
+		setTimeout(function() { __sync_caps_armed = true; }, 1500);
+	};
+
+	var __isSyncCapsActivated = function(ev) {
+		if (__online && __sync_caps_armed) {
+			let caps = ev.getModifierState("CapsLock");
+			if (caps !== __caps_led && $("hid-keyboard-sync-caps-switch").checked) {
+				tools.info("Synchronizing CapsLock:", __caps_led, "->", caps);
+				__syncCapsReload();
+				return true;
+			}
+		}
+		return false;
+	};
+
+	var __syncCapsOnMouse = function(ev) {
+		if (__isSyncCapsActivated(ev)) {
+			__innerSendKey("CapsLock", true);
+			setTimeout(function() {
+				__innerSendKey("CapsLock", false);
+			}, 100);
+		}
+	};
 
 	var __keyboardHandler = function(ev, state) {
+		if (ev.code === "CapsLock") {
+			__syncCapsReload();
+		}
+		if (__isSyncCapsActivated(ev)) {
+			__innerSendKey("CapsLock", true);
+			setTimeout(function() {
+				__innerSendKey("CapsLock", false);
+				setTimeout(() => __innerKeyboardHandler(ev, state), 100);
+			}, 100);
+		} else {
+			__innerKeyboardHandler(ev, state);
+		}
+	};
+
+	var __altgr_ctrl_timer = null;
+
+	var __innerKeyboardHandler = function(ev, state) {
 		ev.preventDefault();
 		if (ev.repeat) {
 			return;

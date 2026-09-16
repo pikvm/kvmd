@@ -20,17 +20,55 @@
 # ========================================================================== #
 
 
-# pylint: disable=unused-import
+import dataclasses
+import contextlib
 
-from ....logging import get_logger  # noqa: F401
+from typing import Callable
+from typing import AsyncGenerator
 
-from .... import tools  # noqa: F401
-from .... import aiotools  # noqa: F401
-from .... import aioproc  # noqa: F401
-from .... import aiomulti  # noqa: F401
-from .... import bitbang  # noqa: F401
-from .... import htclient  # noqa: F401
-from ....inotify import Inotify  # noqa: F401
-from ....errors import OperationError  # noqa: F401
-from ....edid import EdidNoBlockError as ParsedEdidNoBlockError  # noqa: F401
-from ....edid import Edid as ParsedEdid  # noqa: F401
+import aiohttp
+
+from ... import htclient
+
+
+# =====
+@dataclasses.dataclass(frozen=True)
+class DownloadingFile:
+    name: str
+    size: int
+    read: Callable[[int], AsyncGenerator[bytes]]
+
+
+@contextlib.asynccontextmanager
+async def download(
+    url: str,
+    verify: bool,
+    timeout: float,
+    read_timeout: float,
+    user_agent: str="",
+) -> AsyncGenerator[DownloadingFile]:
+
+    async with aiohttp.ClientSession(
+        headers={aiohttp.hdrs.USER_AGENT: htclient.make_user_agent(user_agent)},
+        timeout=aiohttp.ClientTimeout(
+            connect=timeout,
+            sock_connect=timeout,
+            sock_read=read_timeout,
+        ),
+    ) as session:
+
+        async with session.get(url, verify_ssl=verify) as resp:  # type: ignore
+            htclient.raise_not_200(resp)
+
+            name = htclient.get_filename(resp)
+
+            size = resp.content_length
+            if size is None or size < 0:
+                raise aiohttp.ClientError("No Content-Length found")
+
+            # Make it unified for the future API
+            async def read(chunk_size: int) -> AsyncGenerator[bytes]:
+                async for chunk in resp.content.iter_chunked(chunk_size):
+                    yield chunk
+
+            yield DownloadingFile(name, size, read)

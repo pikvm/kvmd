@@ -232,15 +232,14 @@ class _GpioOutput:  # pylint: disable=too-many-instance-attributes
 
 # =====
 class UserGpio:
-    def __init__(self, config: Section, otg_config: Section) -> None:
+    def __init__(self, config: Section) -> None:
         self.__notifier = aiotools.AioNotifier()
 
         self.__drivers = {
             driver: get_ugpio_driver_class(drv_config.type)(
                 instance_name=driver,
                 notifier=self.__notifier,
-                **drv_config._unpack(ignore=["instance_name", "notifier", "type"]),
-                **({"otg_config": otg_config} if drv_config.type == "otgconf" else {}),  # Hack
+                c=drv_config,
             )
             for (driver, drv_config) in tools.sorted_kvs(config.drivers)
         }
@@ -270,7 +269,7 @@ class UserGpio:
     async def trigger_state(self) -> None:
         self.__notifier.notify(1)
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         # ==== Granularity table ====
         #   - model -- Full
         #   - state.inputs  -- Partial

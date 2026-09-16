@@ -30,7 +30,7 @@ from . import check_len
 
 
 # =====
-@add_validator_magic
+@add_validator_magic(512)
 def valid_ugpio_driver(arg: Any, variants: (set[str] | None)=None) -> str:
     name = "GPIO driver"
     arg = check_len(check_re_match(arg, name, r"^[a-zA-Z_][a-zA-Z0-9_-]*$"), name, 255)
@@ -39,23 +39,23 @@ def valid_ugpio_driver(arg: Any, variants: (set[str] | None)=None) -> str:
     return arg
 
 
-@add_validator_magic
+@add_validator_magic(512)
 def valid_ugpio_channel(arg: Any) -> str:
     name = "GPIO channel"
     return check_len(check_re_match(arg, name, r"^[a-zA-Z_][a-zA-Z0-9_.-]*$"), name, 255)
 
 
-@add_validator_magic
+@add_validator_magic(32)
 def valid_ugpio_mode(arg: Any, variants: set[str]) -> str:
     return check_string_in_list(arg, "GPIO driver's pin mode", variants)
 
 
-@add_validator_magic
+@add_validator_magic()  # Some people use it for HTML, so no limits
 def valid_ugpio_view_title(arg: Any) -> (str | list[str]):
     return (list(map(str, arg)) if isinstance(arg, list) else str(arg))
 
 
-@add_validator_magic
+@add_validator_magic()
 def valid_ugpio_view_table(arg: Any) -> list[list[str]]:  # pylint: disable=inconsistent-return-statements
     try:
         return [list(map(str, row)) for row in list(arg)]

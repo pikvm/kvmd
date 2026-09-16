@@ -34,7 +34,8 @@ from . import get_configured_auth_service
 
 # =====
 _UID = 1500
-_USER = "foobar"
+_USER = "foobar@example.com"
+_SHORTS = ["foobar", "foobar@", "foobar.", "foobar@example"]
 _PASSWD = "query"
 
 
@@ -49,11 +50,11 @@ async def _run_process(cmd: str, input: (str | None)=None) -> None:  # pylint: d
     assert proc.returncode == 0
 
 
-@pytest_asyncio.fixture(name="test_user")
-async def _test_user() -> AsyncGenerator[None, None]:
+@pytest_asyncio.fixture(name="test_user")  # noqa vulture-ignore
+async def _test_user() -> AsyncGenerator[None]:
     with pytest.raises(KeyError):
         pwd.getpwnam(_USER)
-    await _run_process(f"useradd -u {_UID} -s /bin/bash {_USER}")
+    await _run_process(f"useradd --badname -u {_UID} -s /bin/bash {_USER}")
     await _run_process("chpasswd", input=f"{_USER}:{_PASSWD}\n")
 
     assert pwd.getpwnam(_USER).pw_uid == _UID
@@ -77,6 +78,15 @@ async def test_ok(test_user, kwargs: dict) -> None:  # type: ignore
     _ = test_user
     async with get_configured_auth_service("pam", **kwargs) as service:
         assert not (await service.authorize(_USER, "invalid_password"))
+        assert not (await service.authorize(_USER, _PASSWD + " "))
+        assert not (await service.authorize(_USER + " ", _PASSWD))
+        assert not (await service.authorize(_USER + " ", _PASSWD + " "))
+        for short in _SHORTS:
+            assert not (await service.authorize(short, _PASSWD))
+        assert not (await service.authorize("", _PASSWD))
+        assert not (await service.authorize(" ", _PASSWD))
+        assert not (await service.authorize(" ", " "))
+        assert not (await service.authorize("", ""))
         assert (await service.authorize(_USER, _PASSWD))
 
 
@@ -91,3 +101,12 @@ async def test_fail(test_user, kwargs: dict) -> None:  # type: ignore
     async with get_configured_auth_service("pam", **kwargs) as service:
         assert not (await service.authorize(_USER, "invalid_password"))
         assert not (await service.authorize(_USER, _PASSWD))
+        assert not (await service.authorize(_USER, _PASSWD + " "))
+        assert not (await service.authorize(_USER + " ", _PASSWD))
+        assert not (await service.authorize(_USER + " ", _PASSWD + " "))
+        for short in _SHORTS:
+            assert not (await service.authorize(short, _PASSWD))
+        assert not (await service.authorize("", _PASSWD))
+        assert not (await service.authorize(" ", _PASSWD))
+        assert not (await service.authorize(" ", " "))
+        assert not (await service.authorize("", ""))

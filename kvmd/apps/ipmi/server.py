@@ -91,14 +91,14 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
         try:
             while True:
                 IpmiSession.wait_for_rsp(self.__timeout)
-        except (SystemExit, KeyboardInterrupt):
-            pass
-        self.__stop_sol_worker()
-        logger.info("Bye-bye")
+        except KeyboardInterrupt:
+            raise SystemExit("Interrupted by Ctrl+C")
+        finally:
+            self.__stop_sol_worker()
 
     # =====
 
-    def handle_raw_request(self, request: dict, session: IpmiServerSession) -> None:
+    def handle_raw_request(self, request: dict, session: IpmiServerSession) -> None:  # noqa vulture-ignore
         # Parameter 'request' has been renamed to 'req' in overriding method
         handler = {
             (6, 1): (lambda _, session: self.send_device_id(session)),  # Get device ID

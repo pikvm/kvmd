@@ -28,9 +28,10 @@ import dataclasses
 from typing import TypeVar
 from typing import Generic
 
-from .lib import bitbang
-from .lib import ParsedEdidNoBlockError
-from .lib import ParsedEdid
+from ....edid import EdidNoBlockError as ParsedEdidNoBlockError
+from ....edid import Edid as ParsedEdid
+
+from .... import bitbang
 
 
 # =====
@@ -107,7 +108,7 @@ class Edid:
             return Edid(name, b"\x00" * 256)
 
         if isinstance(data, bytes):
-            if ParsedEdid.is_header_valid(cls.data):
+            if ParsedEdid.is_header_valid(data):
                 return Edid(name, data)  # Бинарный едид
             data_hex = data.decode()  # Текстовый едид, прочитанный как бинарный из файла
         else:  # isinstance(data, str)

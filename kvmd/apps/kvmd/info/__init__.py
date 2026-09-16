@@ -95,7 +95,7 @@ class InfoManager:
             for sub in self.__subs.values()
         ])
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         # ==== Granularity table ====
         #   - system -- Partial
         #   - auth   -- Partial

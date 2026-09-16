@@ -30,7 +30,6 @@ from kvmd.validators.auth import valid_users_list
 from kvmd.validators.auth import valid_passwd
 from kvmd.validators.auth import valid_expire
 from kvmd.validators.auth import valid_auth_token
-from kvmd.validators.auth import valid_login_redirect
 
 
 # =====
@@ -41,6 +40,7 @@ from kvmd.validators.auth import valid_login_redirect
     "_",
     "_foo_bar_",
     " aix",
+    "user@example.com",
 ])
 def test_ok__valid_user(arg: Any) -> None:
     assert valid_user(arg) == arg.strip()
@@ -53,6 +53,9 @@ def test_ok__valid_user(arg: Any) -> None:
     "-",
     "-foo_bar",
     "foo bar",
+    "user@example.",
+    "user@",
+    "user.",
     "  ",
     "",
     None,
@@ -64,20 +67,23 @@ def test_fail__valid_user(arg: Any) -> None:
 
 # =====
 @pytest.mark.parametrize("arg, retval", [
-    ("foo, bar, ",     ["foo", "bar"]),
+    ("foo, bar, ",   ["foo", "bar"]),
     ("foo bar",      ["foo", "bar"]),
     (["foo", "bar"], ["foo", "bar"]),
-    ("",             []),
-    (" ",            []),
-    (", ",           []),
-    (", foo, ",      ["foo"]),
-    ([],             []),
+    ("user@example.com, foo, bar, ",     ["user@example.com", "foo", "bar"]),
+    ("user@example.com foo bar",         ["user@example.com", "foo", "bar"]),
+    (["user@example.com", "foo", "bar"], ["user@example.com", "foo", "bar"]),
+    ("",        []),
+    (" ",       []),
+    (", ",      []),
+    (", foo, ", ["foo"]),
+    ([],        []),
 ])
 def test_ok__valid_users_list(arg: Any, retval: list) -> None:
     assert valid_users_list(arg) == retval
 
 
-@pytest.mark.parametrize("arg", [None, [None], [""], [" "], ["user,"]])
+@pytest.mark.parametrize("arg", [None, [None], [""], [" "], ["user,"], ["user@example."], ["user@"], ["user."]])
 def test_fail__valid_users_list(arg: Any) -> None:  # pylint: disable=invalid-name
     with pytest.raises(ValidatorError):
         print(valid_users_list(arg))
@@ -144,33 +150,3 @@ def test_ok__valid_auth_token(arg: Any) -> None:
 def test_fail__valid_auth_token(arg: Any) -> None:
     with pytest.raises(ValidatorError):
         print(valid_auth_token(arg))
-
-
-# =====
-@pytest.mark.parametrize("arg", [
-    "",
-    "/",
-    "/kvm",
-    "/kvm/",
-    "/ ",
-])
-def test_ok__valid_login_redirect(arg: Any) -> None:
-    assert valid_login_redirect(arg) == arg.strip()
-
-
-@pytest.mark.parametrize("arg", [
-    "/test",
-    "test",
-    "kvm/"
-    "kvm//"
-    "//kvm",
-    "//kvm//",
-    "kvm",
-    "//",
-    "..",
-    "http://google.com",
-    None,
-])
-def test_fail__valid_login_redirect(arg: Any) -> None:
-    with pytest.raises(ValidatorError):
-        print(valid_login_redirect(arg))

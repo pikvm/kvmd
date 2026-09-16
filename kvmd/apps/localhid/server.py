@@ -76,10 +76,7 @@ class LocalHidServer:  # pylint: disable=too-many-instance-attributes
         )
 
     def run(self) -> None:
-        try:
-            aiotools.run(self.__inner_run())
-        finally:
-            get_logger(0).info("Bye-bye")
+        aiotools.run(self.__inner_run())
 
     async def __inner_run(self) -> None:
         await aiotools.spawn_and_follow(
@@ -93,7 +90,7 @@ class LocalHidServer:  # pylint: disable=too-many-instance-attributes
             try:
                 await func()
             except Exception as ex:
-                if isinstance(ex, OSError) and ex.errno == errno.ENODEV:  # pylint: disable=no-member
+                if tools.is_oserror(ex, errno.ENODEV):
                     pass  # Device disconnected
                 elif isinstance(ex, aiohttp.ClientError):
                     get_logger(0).error("KVMD client error: %s", tools.efmt(ex))

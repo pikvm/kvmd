@@ -20,10 +20,6 @@
 # ========================================================================== #
 
 
-from ...clients.kvmd import KvmdClient
-
-from ... import htclient
-
 from .. import init
 
 from .server import LocalHidServer
@@ -31,14 +27,12 @@ from .server import LocalHidServer
 
 # =====
 def main() -> None:
-    config = init(
+    ia = init(
         prog="kvmd-localhid",
-        description=" Local HID to KVMD proxy",
+        description="Local HID to KVMD proxy",
         check_run=True,
-    ).config.localhid
-
-    user_agent = htclient.make_user_agent("KVMD-LocalHID")
+    )
 
     LocalHidServer(
-        kvmd=KvmdClient(user_agent=user_agent, **config.kvmd._unpack()),
+        kvmd=ia.make_kvmd_client("-LocalHID"),
     ).run()

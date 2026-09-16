@@ -33,6 +33,8 @@ import pytest
 
 from kvmd.validators import ValidatorError
 
+from kvmd.yamlconf import Section
+from kvmd.yamlconf import Option
 from kvmd.yamlconf import make_config
 
 from kvmd.apps.kvmd.auth import AuthManager
@@ -54,10 +56,17 @@ _E_UNAUTH = HttpExposed("GET", "/bar_unauth", auth_required=True, allow_usc=True
 _E_FREE = HttpExposed("GET", "/baz_free", auth_required=False, allow_usc=True, handler=(lambda: None))
 
 
-def _make_service_kwargs(path: str) -> dict:
+def _make_service_config(path: str) -> Section:
     cls = get_auth_service_class("htpasswd")
     scheme = cls.get_plugin_options()
-    return make_config({}, {"file": path}, scheme)._unpack()
+    scheme["type"] = Option("htpasswd")
+    return make_config({}, {"file": path}, scheme)
+
+
+def _make_stub_config(name: str) -> Section:
+    config = Section()
+    config["type"] = name
+    return config
 
 
 @contextlib.asynccontextmanager
@@ -66,7 +75,7 @@ async def _get_configured_manager(
     int_path: str,
     ext_path: str="",
     force_int_users: (list[str] | None)=None,
-) -> AsyncGenerator[AuthManager, None]:
+) -> AsyncGenerator[AuthManager]:
 
     manager = AuthManager(
         enabled=True,
@@ -76,16 +85,15 @@ async def _get_configured_manager(
         usc_groups=[],
         unauth_paths=unauth_paths,
 
-        int_type="htpasswd",
-        int_kwargs=_make_service_kwargs(int_path),
-        force_int_users=(force_int_users or []),
+        int_c=_make_service_config(int_path),
+        ext_c=(_make_service_config(ext_path) if ext_path else _make_stub_config("")),
 
-        ext_type=("htpasswd" if ext_path else ""),
-        ext_kwargs=(_make_service_kwargs(ext_path) if ext_path else {}),
+        force_int_users=(force_int_users or []),
 
         totp_secret_path="",
     )
 
+    await manager.sysprep()
     try:
         yield manager
     finally:
@@ -330,15 +338,14 @@ async def test_ok__disabled() -> None:
             usc_groups=[],
             unauth_paths=[],
 
-            int_type="foobar",
-            int_kwargs={},
-            force_int_users=[],
+            int_c=_make_stub_config("foobar"),
+            ext_c=_make_stub_config(""),
 
-            ext_type="",
-            ext_kwargs={},
+            force_int_users=[],
 
             totp_secret_path="",
         )
+        await manager.sysprep()
 
         assert not manager.is_auth_enabled()
         assert not manager.is_auth_required(_E_AUTH)

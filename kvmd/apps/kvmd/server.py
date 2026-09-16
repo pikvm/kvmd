@@ -110,7 +110,7 @@ class _Subsystem:
     systask:       (Callable[[], Coroutine[Any, Any, None]] | None)
     cleanup:       (Callable[[], Coroutine[Any, Any, dict]] | None)
     trigger_state: (Callable[[], Coroutine[Any, Any, None]] | None) = None
-    poll_state:    (Callable[[], AsyncGenerator[dict, None]] | None) = None
+    poll_state:    (Callable[[], AsyncGenerator[dict]] | None) = None
 
     def __post_init__(self) -> None:
         if self.event_type:
@@ -159,6 +159,8 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         streamer: Streamer,
         snapshoter: Snapshoter,
 
+        allow_redirects: list[str],
+
         keymap_path: str,
 
         stream_forever: bool,
@@ -176,7 +178,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         self.__hid_api = HidApi(hid, keymap_path)  # Ugly hack to get keymaps state
         self.__apis: list[object] = [
             self,
-            AuthApi(auth),
+            AuthApi(auth, allow_redirects),
             InfoApi(im),
             LogApi(log_reader),
             UserGpioApi(ugpio),
@@ -364,6 +366,6 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
             notifier=self.__streamer_notifier,
         )
 
-    async def __poll_state(self, event_type: str, poller: AsyncGenerator[dict, None]) -> None:
+    async def __poll_state(self, event_type: str, poller: AsyncGenerator[dict]) -> None:
         async for state in poller:
             await self._broadcast_ws_event(event_type, state)

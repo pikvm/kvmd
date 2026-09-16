@@ -30,25 +30,25 @@ RUN \
 		m4 \
 		vim \
 		git \
-		libjpeg \
+		libjpeg-turbo \
 		libevent \
 		libutil-linux \
 		libbsd \
 		python \
 		python-pip \
 		python-build \
+		python-installer \
 		python-wheel \
 		python-setuptools \
+		python-installer \
 		python-tox \
 		python-mako \
-		python-yaml \
 		python-ruamel-yaml \
 		python-aiohttp \
 		python-aiofiles \
 		python-async-lru \
+		python-bcrypt \
 		python-passlib \
-		# See kvmd/crypto.py
-		# python-bcrypt \
 		python-pyotp \
 		python-qrcode \
 		python-pyserial \
@@ -69,6 +69,8 @@ RUN \
 		libxkbcommon \
 		python-hidapi \
 		python-ldap \
+		python-pysmbc \
+		python-paramiko \
 		python-zstandard \
 		libgpiod \
 		freetype2 \
@@ -98,7 +100,8 @@ RUN \
 		htmlhint \
 		pug \
 		pug-cli \
-		@babel/eslint-parser
+		@babel/eslint-parser \
+		globals
 WORKDIR /
 
 ARG USTREAMER_MIN_VERSION

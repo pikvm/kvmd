@@ -35,33 +35,33 @@ from .basic import valid_number
 
 
 # =====
-@add_validator_magic
+@add_validator_magic(16)
 def valid_hid_keyboard_output(arg: Any) -> str:
     return check_string_in_list(arg, "Keyboard output", ["usb", "ps2", "disabled"])
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_hid_mouse_output(arg: Any) -> str:
     return check_string_in_list(arg, "Mouse output", ["usb", "usb_win98", "usb_rel", "ps2", "disabled"])
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_hid_key(arg: Any) -> str:
     return check_string_in_list(arg, "Keyboard key", WEB_TO_EVDEV, lower=False)
 
 
-@add_validator_magic
+@add_validator_magic(8)
 def valid_hid_mouse_move(arg: Any) -> int:
     arg = valid_number(arg, name="Mouse move")
     return MouseRange.normalize(arg)
 
 
-@add_validator_magic
+@add_validator_magic(16)
 def valid_hid_mouse_button(arg: Any) -> str:
     return check_string_in_list(arg, "Mouse button", MOUSE_TO_EVDEV)
 
 
-@add_validator_magic
+@add_validator_magic(8)
 def valid_hid_mouse_delta(arg: Any) -> int:
     arg = valid_number(arg, name="Mouse delta")
     return MouseDelta.normalize(arg)

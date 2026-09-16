@@ -143,7 +143,7 @@ export function Msd() {
 		tools.radio.setEnabled("msd-mode-radio", (o && !d.connected && !busy));
 		tools.radio.setValue("msd-mode-radio", `${Number(o && d.cdrom)}`);
 
-		tools.el.setEnabled($("msd-rw-switch"), (o && !d.connected && !busy));
+		tools.el.setEnabled($("msd-rw-switch"), (o && !d.connected && !busy && !d.cdrom && (!d.image || d.image.writable)));
 		$("msd-rw-switch").checked = (o && d.rw);
 
 		tools.el.setEnabled($("msd-connect-button"), (o && d.image && !d.connected && !busy));
@@ -270,6 +270,9 @@ export function Msd() {
 
 	var __makeImageSelectorInfo = function(image) {
 		let text = `\xA0\xA0\xA0\xA0\xA0\u2570 ${tools.formatSize(image.size)}`;
+		if (!image.writable) {
+			text += ", read-only";
+		}
 		if (!image.complete) {
 			text += ", broken";
 		}

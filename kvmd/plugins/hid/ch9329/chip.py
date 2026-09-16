@@ -77,6 +77,6 @@ class Chip:
         self.__read_timeout = read_timeout
 
     @contextlib.contextmanager
-    def connected(self) -> Generator[ChipConnection, None, None]:  # type: ignore
+    def connected(self) -> Generator[ChipConnection]:  # type: ignore
         with serial.Serial(self.__device_path, self.__speed, timeout=self.__read_timeout) as tty:
             yield ChipConnection(tty)

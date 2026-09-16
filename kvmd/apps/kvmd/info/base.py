@@ -31,6 +31,6 @@ class BaseInfoSubmanager:
     async def trigger_state(self) -> None:
         raise NotImplementedError
 
-    async def poll_state(self) -> AsyncGenerator[(dict | None), None]:
+    async def poll_state(self) -> AsyncGenerator[(dict | None)]:
         yield None
         raise NotImplementedError

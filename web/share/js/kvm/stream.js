@@ -43,7 +43,7 @@ export function Streamer() {
 	var __res = {"width": 640, "height": 480};
 
 	var __init__ = function() {
-		__streamer = new MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeHook);
+		__streamer = new MjpegStreamer(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook);
 
 		$("stream-led").title = "No stream from PiKVM";
 
@@ -75,44 +75,41 @@ export function Streamer() {
 		// Also don't reset Streamer at class init.
 		tools.radio.clickValue("stream-orient-radio", tools.storage.get("stream.orient", 0));
 		tools.radio.setOnClick("stream-orient-radio", function() {
-			if (["janus", "media"].includes(__streamer.getMode())) {
-				let orient = parseInt(tools.radio.getValue("stream-orient-radio"));
-				tools.storage.setInt("stream.orient", orient);
-				if (__streamer.getOrientation() !== orient) {
-					__resetStream();
-				}
-			}
+			let orient = parseInt(tools.radio.getValue("stream-orient-radio"));
+			tools.storage.setInt("stream.orient", orient);
+			__streamer.setOrientation(orient);
 		}, false);
 
-		tools.slider.setParams($("stream-audio-volume-slider"), 0, 100, 1, 0, function(value) {
-			$("stream-video").muted = !value;
-			$("stream-video").volume = value / 100;
-			$("stream-audio-volume-value").innerText = value + "%";
-			if (__streamer.getMode() === "janus") {
-				let allow_audio = !$("stream-video").muted;
-				if (__streamer.isAudioAllowed() !== allow_audio) {
-					__resetStream();
-				}
-			}
-			tools.el.setEnabled($("stream-mic-switch"), !!value);
-			tools.el.setEnabled($("stream-cam-switch"), !!value);
-		});
+		tools.el.setOnClick($("stream-multimedia-switch"), function() {
+			let enabled = $("stream-multimedia-switch").checked;
+			tools.el.setEnabled($("stream-audio-volume-slider"), enabled);
+			tools.el.setEnabled($("stream-mic-switch"), enabled);
+			tools.el.setEnabled($("stream-mic-raw-switch"), enabled);
+			tools.el.setEnabled($("stream-camera-switch"), enabled);
+			__applyAudioVolume();
+			__applyMicEnabled();
+			__applyCameraEnabled();
+			tools.storage.setBool("stream.multimedia", enabled);
+		}, false);
 
-		tools.storage.bindSimpleSwitch($("stream-mic-switch"), "stream.mic", false, function(allow_mic) {
-			if (__streamer.getMode() === "janus") {
-				if (__streamer.isMicAllowed() !== allow_mic) {
-					__resetStream();
-				}
-			}
-		});
+		tools.storage.bindSimpleSlider($("stream-audio-volume-slider"), "stream.audio", 0, 100, 1, 100, __applyAudioVolume);
 
-		tools.storage.bindSimpleSwitch($("stream-cam-switch"), "stream.cam", false, function(allow_cam) {
-			if (__streamer.getMode() === "janus") {
-				if (__streamer.isCamAllowed() !== allow_cam) {
-					__resetStream();
-				}
+		tools.storage.bindSimpleSwitch($("stream-mic-raw-switch"), "stream.mic.raw", false, __applyMicEnabled);
+
+		for (let [input, apply_cb] of [["mic", __applyMicEnabled], ["camera", __applyCameraEnabled]]) {
+			tools.storage.bindSimpleSwitch($(`stream-${input}-switch`), `stream.${input}`, false, apply_cb);
+
+			let el = $(`stream-${input}-selector`);
+			tools.selector.addOption(el, `\u2500 Default ${input} \u2500`, ".__default__");
+
+			let id = tools.storage.get(`stream.${input}.device.id`, ".__default__");
+			if (id !== ".__default__") {
+				let name = tools.storage.get(`stream.${input}.device.name`, "???");
+				tools.selector.addOption(el, name, id, true);
 			}
-		});
+
+			el.onchange = apply_cb;
+		}
 
 		tools.el.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.el.setOnClick($("stream-reset-button"), __clickResetButton);
@@ -127,6 +124,28 @@ export function Streamer() {
 	};
 
 	/************************************************************************/
+
+	var __applyAudioVolume = function() {
+		let volume = $("stream-audio-volume-slider").valueAsNumber;
+		$("stream-audio-volume-value").innerText = volume + "%";
+		let mm = $("stream-multimedia-switch").checked;
+		__streamer.setAudioVolume(mm ? volume : 0);
+	};
+
+	var __applyMicEnabled = function() {
+		let enabled = ($("stream-multimedia-switch").checked && $("stream-mic-switch").checked);
+		let el = $("stream-mic-selector");
+		tools.el.setEnabled(el, enabled);
+		__streamer.setMicRaw($("stream-mic-raw-switch").checked);
+		__streamer.setMicDevice(enabled ? el.value : null);
+	};
+
+	var __applyCameraEnabled = function() {
+		let enabled = ($("stream-multimedia-switch").checked && $("stream-camera-switch").checked);
+		let el = $("stream-camera-selector");
+		tools.el.setEnabled(el, enabled);
+		__streamer.setCameraDevice(enabled ? el.value : null);
+	};
 
 	var __isStreamRequired = function() {
 		return (
@@ -146,6 +165,37 @@ export function Streamer() {
 	var __organizeHook = function() {
 		let geo = self.getGeometry();
 		wm.setAspectRatio($("stream-window"), geo.width, geo.height);
+	};
+
+	var __first_watch = true;
+	var __watchHook = function() {
+		if (__first_watch) {
+			__first_watch = false;
+			let el = $("stream-multimedia-switch");
+			if (!el.checked && tools.storage.getBool("stream.multimedia")) {
+				let text = (
+					"In the previous session, you used the multimedia features of PiKVM.<br>"
+					+ "Do you want to continue with the same settings?<br>"
+					+ "<br>"
+					+ "Due to browser limitations, this requires explicit confirmation."
+					+ "<ul><li><b>OK</b> - continue with multimedia.</li><li><b>Cancel</b> - forget about it.</li></ul>"
+				);
+				wm.confirm(text).then(function(ok) {
+					if (ok) {
+						if (!el.checked) {
+							el.click();
+						}
+						setTimeout(function() {
+							__applyAudioVolume();
+							__applyMicEnabled();
+							__applyCameraEnabled();
+						}, 100);
+					} else {
+						tools.storage.setBool("stream.multimedia", false);
+					}
+				});
+			}
+		}
 	};
 
 	self.ensureDeps = function(cb) {
@@ -220,8 +270,7 @@ export function Streamer() {
 
 			tools.info(
 				`Stream: Janus WebRTC state: features.h264=${f.h264},`
-				+ ` webrtc=${sup_webrtc}, h264=${sup_h264}, janus_imported=${__janus_imported}`
-			);
+				+ ` webrtc=${sup_webrtc}, h264=${sup_h264}, janus_imported=${__janus_imported}`);
 
 			tools.hidden.setVisible($("stream-message-no-webrtc"), __janus_imported && f.h264 && !sup_webrtc);
 			tools.hidden.setVisible($("stream-message-no-vd"), f.h264 && !sup_vd);
@@ -247,11 +296,6 @@ export function Streamer() {
 			tools.feature.setEnabled($("stream-h264-bitrate"), f.h264);
 			tools.feature.setEnabled($("stream-h264-gop"), f.h264);
 			tools.feature.setEnabled($("stream-mode"), f.h264);
-			if (!f.h264) {
-				tools.feature.setEnabled($("stream-audio"), false);
-				tools.feature.setEnabled($("stream-mic"), false);
-				tools.feature.setEnabled($("stream-cam"), false);
-			}
 
 			let mode = tools.storage.get("stream.mode", "janus");
 			if (mode === "janus" && !has_janus) {
@@ -288,6 +332,9 @@ export function Streamer() {
 			let s = state.streamer;
 			__res = s.source.resolution;
 			__streamer.ensureStream(s);
+			//__applyAudioVolume();
+			//__applyMicEnabled();
+			//__applyCameraEnabled();
 		}
 	};
 
@@ -331,7 +378,7 @@ export function Streamer() {
 		}
 		el_grab.innerText = title;
 		// Заменяем только первое вхождение, всё ок
-		el_info.innerText = title.replace(" / ", "\n");
+		el_info.innerText = title.replace(" - ", "\n");
 	};
 
 	var __resetStream = function(mode=null) {
@@ -339,29 +386,17 @@ export function Streamer() {
 			mode = __streamer.getMode();
 		}
 		__streamer.stopStream();
-		let orient = tools.storage.getInt("stream.orient", 0);
-		if (mode === "janus") {
-			let allow_audio = (tools.feature.isEnabled($("stream-audio")) && !$("stream-video").muted);
-			let allow_mic = (tools.feature.isEnabled($("stream-mic")) && $("stream-mic-switch").checked);
-			let allow_cam = (tools.feature.isEnabled($("stream-cam")) && $("stream-cam-switch").checked);
-			__streamer = new JanusStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient, allow_audio, allow_mic, allow_cam);
-			// Firefox doesn't support RTP orientation:
-			//  - https://bugzilla.mozilla.org/show_bug.cgi?id=1316448
-			tools.feature.setEnabled($("stream-orient"), !tools.browser.is_firefox);
-		} else {
-			if (mode === "media") {
-				__streamer = new MediaStreamer(__setActive, __setInactive, __setInfo, __organizeHook, orient);
-				tools.feature.setEnabled($("stream-orient"), true);
-			} else { // mjpeg
-				__streamer = new MjpegStreamer(__setActive, __setInactive, __setInfo, __organizeHook);
-				tools.feature.setEnabled($("stream-orient"), false);
-			}
-			tools.feature.setEnabled($("stream-audio"), false); // Enabling in stream_janus.js
-			tools.feature.setEnabled($("stream-mic"), false); // Ditto
-			tools.feature.setEnabled($("stream-cam"), false); // Ditto
+		let cls = MjpegStreamer;
+		switch (mode) {
+			case "janus": cls = JanusStreamer; break;
+			case "media": cls = MediaStreamer; break;
 		}
+		__streamer = new cls(__setActive, __setInactive, __setInfo, __watchHook, __organizeHook);
 		if (__isStreamRequired()) {
 			__streamer.ensureStream((__state && __state.streamer !== undefined) ? __state.streamer : null);
+			__applyAudioVolume();
+			__applyMicEnabled();
+			__applyCameraEnabled();
 		}
 	};
 

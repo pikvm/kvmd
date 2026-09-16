@@ -20,13 +20,9 @@
 # ========================================================================== #
 
 
-from ...clients.kvmd import KvmdClient
 from ...clients.streamer import StreamerFormats
 from ...clients.streamer import BaseStreamerClient
-from ...clients.streamer import HttpStreamerClient
 from ...clients.streamer import MemsinkStreamerClient
-
-from ... import htclient
 
 from .. import init
 
@@ -35,23 +31,22 @@ from .server import VncServer
 
 # =====
 def main() -> None:
-    config = init(
+    ia = init(
         prog="kvmd-vnc",
         description="VNC to KVMD proxy",
         check_run=True,
-    ).config.vnc
-
-    user_agent = htclient.make_user_agent("KVMD-VNC")
+    )
+    config = ia.config.vnc
 
     def make_memsink_streamer(name: str, fmt: int) -> (MemsinkStreamerClient | None):
         if getattr(config.memsink, name).sink:
-            return MemsinkStreamerClient(name.upper(), fmt, **getattr(config.memsink, name)._unpack())
+            return MemsinkStreamerClient(fmt, **getattr(config.memsink, name)._unpack())
         return None
 
     streamers: list[BaseStreamerClient] = list(filter(None, [
         make_memsink_streamer("h264", StreamerFormats.H264),
         make_memsink_streamer("jpeg", StreamerFormats.JPEG),
-        HttpStreamerClient(name="JPEG", user_agent=user_agent, **config.streamer._unpack()),
+        ia.make_streamer_client("-VNC"),
     ]))
 
     VncServer(
@@ -71,7 +66,7 @@ def main() -> None:
         keymap_path=config.keymap,
         scroll_rate=config.scroll_rate,
 
-        kvmd=KvmdClient(user_agent=user_agent, **config.kvmd._unpack()),
+        kvmd=ia.make_kvmd_client("-VNC"),
         streamers=streamers,
 
         **config.server.keepalive._unpack(),

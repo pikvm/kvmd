@@ -24,6 +24,7 @@ _variants=(
 	v2-hdmi:rpi4
 
 	v2-hdmiusb:rpi4
+	v2-hdmiusb:rpi5
 
 	v3-hdmi:rpi4
 
@@ -39,7 +40,7 @@ for _variant in "${_variants[@]}"; do
 	pkgname+=(kvmd-platform-$_platform-$_board)
 done
 pkgbase=kvmd
-pkgver=4.145
+pkgver=4.215
 pkgrel=1
 pkgdesc="The main PiKVM daemon"
 url="https://github.com/pikvm/kvmd"
@@ -48,13 +49,12 @@ arch=(any)
 depends=(
 	"python>=3.14"
 	"python<3.15"
-	python-yaml
 	python-ruamel-yaml
 	python-aiohttp
 	python-aiofiles
 	python-async-lru
 	python-passlib
-	# python-bcrypt
+	python-bcrypt
 	python-pyotp
 	python-qrcode
 	python-pyserial
@@ -76,6 +76,8 @@ depends=(
 	python-six
 	python-pyrad
 	python-ldap
+	python-pysmbc
+	python-paramiko
 	python-zstandard
 	python-mako
 	"python-luma-core>=2.5.2"
@@ -95,28 +97,16 @@ depends=(
 	ipmitool
 	"janus-gateway-pikvm>=1.3.0"
 	certbot
-	"raspberrypi-io-access>=0.7"
+	"raspberrypi-io-access>=0.9"
 	raspberrypi-utils
 	"ustreamer>=6.47"
-
-	# Systemd UDEV bug
-	"systemd>=248.3-2"
-
-	# https://bugzilla.redhat.com/show_bug.cgi?id=2035802
-	# https://archlinuxarm.org/forum/viewtopic.php?f=15&t=15725&start=40
-	"zstd>=1.5.1-2.1"
 
 	# Bootconfig
 	dos2unix
 	parted
 	e2fsprogs
 	openssh
-	# FIXME:
-	#   - https://archlinuxarm.org/forum/viewtopic.php?f=15&t=17007&p=72789
-	#   - https://github.com/pikvm/pikvm/issues/1375
-	# Update at 2025.11.10: Still not fixed.
-	#   - https://github.com/pikvm/pikvm/issues/1604
-	wpa_supplicant-pikvm
+	wpa_supplicant
 	run-parts
 
 	# fsck for /boot
@@ -124,6 +114,9 @@ depends=(
 
 	# pgrep for kvmd-udev-restart-pass, sysctl for kvmd-otgnet
 	procps-ng
+
+	# For kvmd-udev-flash-pico
+	picotool
 
 	# Misc
 	hostapd
@@ -137,36 +130,39 @@ conflicts=(
 	platformio
 	avrdude-pikvm
 	kvmd-oled
-
-	# See kvmd/crypto.py
-	python-bcrypt
+	wpa_supplicant-pikvm
 )
 makedepends=(
+	python-build
+	python-installer
+	python-wheel
 	python-setuptools
-	python-pip
 )
-source=("$url/archive/v$pkgver.tar.gz")
+source=("kvmd-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
 md5sums=(SKIP)
 backup=(
 	etc/kvmd/{override,meta}.yaml
 	etc/kvmd/{ht,ipmi,vnc}passwd
 	etc/kvmd/totp.secret
-	etc/kvmd/nginx/{kvmd.ctx-{http,server},certbot.ctx-server}.conf
-	etc/kvmd/nginx/loc-{login,nocache,proxy,websocket,nobuffering,bigpost}.conf
-	etc/kvmd/nginx/{mime-types,ssl}.conf
+	etc/kvmd/nginx/ssl.conf
 	etc/kvmd/nginx/nginx.conf.mako
 	etc/kvmd/janus/janus{,.plugin.ustreamer,.transport.websockets}.jcfg
 	etc/kvmd/web.css
 )
 
+build() {
+	cd "$srcdir/kvmd-$pkgver"
+	python -m build --wheel --no-isolation
+}
 
 package_kvmd() {
 	install=kvmd.install
 
 	cd "$srcdir/kvmd-$pkgver"
-	pip install --root="$pkgdir" --no-deps .
+	python -m installer --destdir="$pkgdir" dist/*.whl
 
-	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot}
+	install -Dm755 -t "$pkgdir/usr/bin" scripts/kvmd-{bootconfig,gencert,certbot,update-switch}
+	install -Dm755 -t "$pkgdir/usr/lib/kvmd" scripts/kvmd-{udev-flash-pico,ucamera-prepare}
 
 	install -dm755 "$pkgdir/usr/lib/systemd/system"
 	cp -rd configs/os/services -T "$pkgdir/usr/lib/systemd/system"
@@ -175,7 +171,7 @@ package_kvmd() {
 	install -DTm644 configs/os/tmpfiles.conf "$pkgdir/usr/lib/tmpfiles.d/kvmd.conf"
 
 	mkdir -p "$pkgdir/usr/share/kvmd"
-	cp -r {switch,hid,web,extras,contrib/keymaps} "$pkgdir/usr/share/kvmd"
+	cp -r {firmware,hid,web,extras,contrib/keymaps} "$pkgdir/usr/share/kvmd"
 	find "$pkgdir/usr/share/kvmd/web" -name '*.pug' -exec rm -f '{}' \;
 
 	local _cfg_default="$pkgdir/usr/share/kvmd/configs.default"
@@ -215,14 +211,14 @@ for _variant in "${_variants[@]}"; do
 	_base=${_platform%-*}
 	_video=${_platform#*-}
 	eval "package_kvmd-platform-$_platform-$_board() {
-		cd \"kvmd-\$pkgver\"
+		cd \"kvmd-$pkgver\"
 
 		install=platform.install
 
 		backup=()
 
 		pkgdesc=\"PiKVM platform configs - $_platform for $_board\"
-		depends=(kvmd=$pkgver-$pkgrel \"linux-rpi-pikvm>=6.12.56-5\" \"raspberrypi-bootloader-pikvm>=20251031-1\")
+		depends=(kvmd=\"${epoch:+$epoch:}$pkgver-$pkgrel\" \"pikvm-os-raspberrypi>=0.10\")
 
 		if [[ $_base == v0 ]]; then
 			depends=(\"\${depends[@]}\" platformio-core avrdude make patch)
@@ -231,10 +227,10 @@ for _variant in "${_variants[@]}"; do
 		fi
 
 		if [[ $_platform =~ ^.*-hdmiusb$ ]]; then
-			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-hdmiusb-check
+			install -Dm755 -t \"\$pkgdir/usr/lib/kvmd\" scripts/kvmd-udev-hdmiusb-check
 		fi
 		if [[ $_base == v4plus ]]; then
-			install -Dm755 -t \"\$pkgdir/usr/bin\" scripts/kvmd-udev-restart-pass
+			install -Dm755 -t \"\$pkgdir/usr/lib/kvmd\" scripts/kvmd-udev-restart-pass
 		fi
 
 		install -DTm644 configs/os/sysctl.conf \"\$pkgdir/usr/lib/sysctl.d/99-kvmd.conf\"
@@ -267,7 +263,6 @@ for _variant in "${_variants[@]}"; do
 			install -DTm444 configs/kvmd/edid/_no-1920x1200.hex \"\$pkgdir/etc/kvmd/switch-edid.hex\"
 		fi
 
-		mkdir -p \"\$pkgdir/usr/lib/kvmd\"
 		local _platform=\"\$pkgdir/usr/lib/kvmd/platform\"
 		rm -f \"\$_platform\"
 		echo PIKVM_MODEL=$_base > \"\$_platform\"

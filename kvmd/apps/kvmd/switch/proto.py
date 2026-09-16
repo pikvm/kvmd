@@ -23,8 +23,6 @@
 import struct
 import dataclasses
 
-from typing import Optional
-
 from .types import Edid
 from .types import Colors
 
@@ -79,10 +77,10 @@ class Header(Packable, Unpackable):
 class Nak(Unpackable):
     reason: int
 
-    INVALID_COMMAND   = 0
-    BUSY              = 1
-    NO_DOWNLINK       = 2
-    DOWNLINK_OVERFLOW = 3
+    INVALID_COMMAND   = 0  # noqa vulture-ignore
+    BUSY              = 1  # noqa vulture-ignore
+    NO_DOWNLINK       = 2  # noqa vulture-ignore
+    DOWNLINK_OVERFLOW = 3  # noqa vulture-ignore
 
     __struct = struct.Struct("<B")
 
@@ -104,9 +102,9 @@ class UnitVersion:
 @dataclasses.dataclass(frozen=True)
 class UnitFlags:
     changing_busy: bool
-    flashing_busy: bool
+    flashing_busy: bool  # noqa vulture-ignore
     has_downlink:  bool
-    has_hpd:       bool
+    has_hpd:       bool  # noqa vulture-ignore
 
 
 @dataclasses.dataclass(frozen=True)
@@ -132,7 +130,7 @@ class UnitState(Unpackable):  # pylint: disable=too-many-instance-attributes
 
     __struct = struct.Struct("<HHHBBHHHHHHBBBHHHHBxBBB28x")
 
-    def compare_edid(self, ch: int, edid: Optional["Edid"]) -> bool:
+    def compare_edid(self, ch: int, edid: ("Edid" | None)) -> bool:
         if edid is None:
             # Сойдет любой невалидный EDID
             return (not self.video_edid[ch])
@@ -327,7 +325,7 @@ class Response:
     body:   Unpackable
 
     @classmethod
-    def unpack(cls, msg: bytes) -> Optional["Response"]:
+    def unpack(cls, msg: bytes) -> ("Response" | None):
         header = Header.unpack(msg)
         match header.op:
             case Header.NAK:

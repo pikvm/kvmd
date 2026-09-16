@@ -1,5 +1,0 @@
-name: Media
-description: KVMD Media Proxy
-path: media
-daemon: kvmd-media
-place: -1

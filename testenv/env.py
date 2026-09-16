@@ -20,7 +20,10 @@
 # ========================================================================== #
 
 
+from typing import Final
+
+
 # =====
-ETC_PREFIX = "/fake_etc"
-SYSFS_PREFIX = "/fake_sysfs"
-PROCFS_PREFIX = "/fake_procfs"
+ETC_PREFIX:    Final[str] = "/fake_etc"
+SYSFS_PREFIX:  Final[str] = "/fake_sysfs"
+PROCFS_PREFIX: Final[str] = "/fake_procfs"

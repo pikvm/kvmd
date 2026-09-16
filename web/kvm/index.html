@@ -169,7 +169,7 @@
         <div class="hidden menu" id="system-menu">
           <table class="kv">
             <tr>
-              <td class="value">Runtime settings &amp; tools</td>
+              <td class="value">Runtime preferences &amp; tools</td>
               <td class="feature-disabled" id="system-tool-webterm">
                 <button class="small" data-wm-menu-force-hide data-wm-window-show="webterm-window">&bull; Term</button>
               </td>
@@ -180,8 +180,91 @@
                 <button class="small" id="open-log-button" data-wm-menu-force-hide>&bull; Log</button>
               </td>
               <td class="feature-disabled" id="system-tool-wol">
-                <button class="__gpio-button-__wol__ __gpio-button small" data-wm-menu-force-hide data-gpio-channel="__wol__" data-gpio-confirm="Are you sure to send Wake-on-LAN packet to the server?">&bull; WoL</button>
+                <button class="__gpio-button-__wol__ __gpio-button small" data-wm-menu-force-hide data-gpio-channel="__wol__" data-gpio-confirm="Are you sure to send Wake-on-LAN packet to the host?">&bull; WoL</button>
               </td>
+            </tr>
+          </table>
+              <details>
+                <summary>Web interface settings</summary>
+                <div class="spoiler">
+                  <table class="kv">
+                    <tr>
+                      <td>Interface style:</td>
+                      <td>
+                            <div class="radio-box">
+                                  <input type="radio" id="page-ui-type-radio-auto" name="page-ui-type-radio" value="auto" checked>
+                                  <label for="page-ui-type-radio-auto">Auto</label>
+                                  <input type="radio" id="page-ui-type-radio-desktop" name="page-ui-type-radio" value="desktop">
+                                  <label for="page-ui-type-radio-desktop">Desktop</label>
+                                  <input type="radio" id="page-ui-type-radio-mobile" name="page-ui-type-radio" value="mobile">
+                                  <label for="page-ui-type-radio-mobile">Mobile</label>
+                            </div>
+                      </td>
+                    </tr>
+                  </table>
+                  <hr>
+                  <table class="kv">
+                    <tr>
+                      <td>Ask page close confirmation:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input checked type="checkbox" id="page-close-ask-switch">
+                              <label for="page-close-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Expand for the entire tab by default:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input type="checkbox" id="page-full-tab-stream-switch">
+                              <label for="page-full-tab-stream-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Suspend stream when tab is not active:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input type="checkbox" id="stream-suspend-switch">
+                              <label for="stream-suspend-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </details>
+          <hr>
+          <table class="kv">
+            <tr>
+              <td>Bad link mode:</td>
+              <td>
+                    <div class="switch-box">
+                      <input type="checkbox" id="hid-keyboard-bad-link-switch">
+                      <label for="hid-keyboard-bad-link-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+              </td>
+              <td class="tip">Release keys on the host immediately</td>
+            </tr>
+            <tr>
+              <td>Mute KB/M:</td>
+              <td>
+                    <div class="switch-box">
+                      <input type="checkbox" id="hid-mute-switch">
+                      <label for="hid-mute-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+              </td>
+              <td class="tip">Don't send keyboard &amp mouse events</td>
+            </tr>
+            <tr class="feature-disabled" id="hid-jiggler">
+              <td><a target="_blank" href="https://docs.pikvm.org/mouse_jiggler">Mouse jiggler</a>:</td>
+              <td>
+                    <div class="switch-box">
+                      <input disabled type="checkbox" id="hid-jiggler-switch">
+                      <label for="hid-jiggler-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+              </td>
+              <td class="tip">Prevent the host from sleeping</td>
             </tr>
           </table>
           <hr>
@@ -222,45 +305,12 @@
             <tr class="feature-disabled" id="stream-resolution">
               <td>Resolution:</td>
               <td>
-                <select id="stream-resolution-selector" disabled></select>
+                <select class="small" id="stream-resolution-selector" disabled></select>
               </td>
             </tr>
-            <tr>
-                  <td>FPS limit:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-desired-fps-slider">
-                  </td>
-                  <td class="value-number" id="stream-desired-fps-value"></td>
-            </tr>
-            <tr class="feature-disabled" id="stream-quality">
-                  <td>JPEG quality:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-quality-slider">
-                  </td>
-                  <td class="value-number" id="stream-quality-value"></td>
-            </tr>
-            <tr class="feature-disabled" id="stream-h264-bitrate">
-                  <td>H.264 kbps:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-h264-bitrate-slider">
-                  </td>
-                  <td class="value-number" id="stream-h264-bitrate-value"></td>
-            </tr>
-            <tr class="feature-disabled" id="stream-h264-gop">
-                  <td>H.264 gop:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-h264-gop-slider">
-                  </td>
-                  <td class="value-number" id="stream-h264-gop-value"></td>
-            </tr>
             <tr class="feature-disabled" id="stream-mode">
-                  <td><a target="_blank" href="https://docs.pikvm.org/webrtc">Video mode</a>:
-                  </td>
-                  <td>
+              <td><a target="_blank" href="https://docs.pikvm.org/webrtc">Video mode</a>:</td>
+              <td>
                     <div class="radio-box">
                           <input type="radio" id="stream-mode-radio-janus" name="stream-mode-radio" value="janus">
                           <label for="stream-mode-radio-janus">WebRTC<br>H.264</label>
@@ -269,12 +319,11 @@
                           <input type="radio" id="stream-mode-radio-mjpeg" name="stream-mode-radio" value="mjpeg" checked>
                           <label for="stream-mode-radio-mjpeg">Legacy<br>MJPEG</label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr class="feature-disabled" id="stream-orient">
-                  <td>Orientation:
-                  </td>
-                  <td>
+              <td>Orientation:</td>
+              <td>
                     <div class="radio-box">
                           <input type="radio" id="stream-orient-radio-0" name="stream-orient-radio" value="0" checked>
                           <label for="stream-orient-radio-0">Default</label>
@@ -285,42 +334,125 @@
                           <input type="radio" id="stream-orient-radio-270" name="stream-orient-radio" value="270">
                           <label for="stream-orient-radio-270">270&deg;</label>
                     </div>
-                  </td>
-            </tr>
-            <tr class="feature-disabled" id="stream-audio">
-                  <td>Audio volume:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="stream-audio-volume-slider">
-                  </td>
-                  <td class="value-number" id="stream-audio-volume-value"></td>
-            </tr>
-            <tr class="feature-disabled" id="stream-mic">
-                  <td>Microphone:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="stream-mic-switch">
-                      <label for="stream-mic-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-            <tr class="feature-disabled" id="stream-cam">
-                  <td>Camera:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="stream-cam-switch">
-                      <label for="stream-cam-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
+              </td>
             </tr>
           </table>
-          <hr>
-          <div class="buttons buttons-row">
-            <button class="row33" data-wm-menu-force-hide data-wm-window-show="stream-window">&bull; Show stream</button>
-            <button class="row33" id="stream-screenshot-button" data-wm-menu-force-hide>&bull; Screenshot</button>
-            <button class="row33" id="stream-reset-button">Reset stream</button>
+              <details>
+                <summary>Video quality settings</summary>
+                <div class="spoiler">
+                  <table class="kv">
+                    <tr>
+                      <td>FPS limit:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="stream-desired-fps-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="stream-desired-fps-value"></td>
+                            </table>
+                      </td>
+                    </tr>
+                    <tr class="feature-disabled" id="stream-quality">
+                      <td>JPEG quality:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="stream-quality-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="stream-quality-value"></td>
+                            </table>
+                      </td>
+                    </tr>
+                    <tr class="feature-disabled" id="stream-h264-bitrate">
+                      <td>H.264 kbps:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="stream-h264-bitrate-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="stream-h264-bitrate-value"></td>
+                            </table>
+                      </td>
+                    </tr>
+                    <tr class="feature-disabled" id="stream-h264-gop">
+                      <td><a target="_blank" href="https://docs.pikvm.org/video#settings">H.264 gop</a>:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="stream-h264-gop-slider" disabled>
+                              </td>
+                              <td class="slider-value" id="stream-h264-gop-value"></td>
+                            </table>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </details>
+          <div class="feature-disabled" id="stream-multimedia">
+            <hr>
+            <table class="kv">
+              <tr>
+                <td>Multimedia:</td>
+                <td>
+                      <div class="switch-box">
+                        <input type="checkbox" id="stream-multimedia-switch">
+                        <label for="stream-multimedia-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      </div>
+                </td>
+                <td class="tip" colspan="2">Turns everything on or off at once</td>
+              </tr>
+              <tr class="feature-disabled" id="stream-audio">
+                <td>Audio volume:</td>
+                <td class="slider" colspan="2">
+                      <table>
+                        <td class="slider-inner">
+                          <input type="range" id="stream-audio-volume-slider" disabled>
+                        </td>
+                        <td class="slider-value" id="stream-audio-volume-value"></td>
+                      </table>
+                </td>
+                <td style="width: 60px;">
+                  <div class="progress" id="stream-audio-vu-progress" title="Volume level on the remote host"><span class="progress-value" id="stream-audio-vu-value"></span></div>
+                </td>
+              </tr>
+              <tr class="feature-disabled" id="stream-mic">
+                <td>Microphone:</td>
+                <td>
+                      <div class="switch-box">
+                        <input disabled type="checkbox" id="stream-mic-switch">
+                        <label for="stream-mic-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      </div>
+                </td>
+                <td style="width: 150px;">
+                  <select class="small" id="stream-mic-selector" style="width: 100%;" disabled></select>
+                </td>
+                <td style="width: 60px;">
+                  <div class="progress" id="stream-mic-vu-progress" title="How well PiKVM can hear you"><span class="progress-value" id="stream-mic-vu-value"></span></div>
+                </td>
+              </tr>
+              <tr class="feature-disabled" id="stream-mic-raw">
+                <td></td>
+                <td>
+                      <div class="switch-box">
+                        <input disabled type="checkbox" id="stream-mic-raw-switch">
+                        <label for="stream-mic-raw-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      </div>
+                </td>
+                <td class="tip" colspan="2">Disable noise suppression and auto gain</td>
+              </tr>
+              <tr class="feature-disabled" id="stream-camera">
+                <td>Camera:</td>
+                <td>
+                      <div class="switch-box">
+                        <input disabled type="checkbox" id="stream-camera-switch">
+                        <label for="stream-camera-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      </div>
+                </td>
+                <td style="width: 150px;">
+                  <select class="small" id="stream-camera-selector" style="width: 100%;" disabled></select>
+                </td>
+              </tr>
+            </table>
           </div>
           <hr>
           <table class="kv">
@@ -339,214 +471,189 @@
             <tr>
               <td><a target="_blank" href="https://docs.pikvm.org/shortcuts">Shortcuts magic</a>:</td>
               <td>
-                <select id="hid-keyboard-magic-selector"></select>
+                <select class="small" id="hid-keyboard-magic-selector"></select>
               </td>
             </tr>
           </table>
               <details>
-                <summary>Keyboard &amp; mouse (HID) settings</summary>
+                <summary>Keyboard &amp; mouse settings</summary>
                 <div class="spoiler">
-                      <table class="kv">
-                        <tr>
-                              <td>Swap Left Ctrl and Caps keys:
-                              </td>
-                              <td align="right">
-                                <div class="switch-box">
-                                  <input type="checkbox" id="hid-keyboard-swap-cc-switch">
-                                  <label for="hid-keyboard-swap-cc-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                                </div>
-                              </td>
-                        </tr>
-                      </table>
+                  <table class="kv">
+                    <tr>
+                      <td>Sync Caps Lock state to the host:<br><i>(Requires working Caps led)</i></td>
+                      <td>
+                            <div class="switch-box">
+                              <input type="checkbox" id="hid-keyboard-sync-caps-switch">
+                              <label for="hid-keyboard-sync-caps-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Swap Left Ctrl and Caps keys:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input type="checkbox" id="hid-keyboard-swap-cc-switch">
+                              <label for="hid-keyboard-swap-cc-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                  </table>
                   <hr>
                   <table class="kv">
                     <tr>
-                          <td>Mouse polling:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="hid-mouse-rate-slider">
-                          </td>
-                          <td class="value-number" id="hid-mouse-rate-value"></td>
+                      <td>Mouse polling:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="hid-mouse-rate-slider">
+                              </td>
+                              <td class="slider-value" id="hid-mouse-rate-value"></td>
+                            </table>
+                      </td>
                     </tr>
-                    <tr class="feature-disabled" id="hid-mouse-sens">
-                          <td>Relative sensitivity:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="hid-mouse-sens-slider">
-                          </td>
-                          <td class="value-number" id="hid-mouse-sens-value"></td>
+                  </table>
+                  <div class="feature-disabled" id="hid-mouse-absolute">
+                    <hr>
+                    <table class="kv">
+                      <tr>
+                        <td>Show the blue dot in the absolute mode:</td>
+                        <td>
+                              <div class="switch-box">
+                                <input checked type="checkbox" id="hid-mouse-dot-switch">
+                                <label for="hid-mouse-dot-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                              </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  <div class="feature-disabled" id="hid-mouse-relative">
+                    <hr>
+                    <table class="kv">
+                      <tr>
+                        <td>Relative sensitivity:</td>
+                        <td class="slider">
+                              <table>
+                                <td class="slider-inner">
+                                  <input type="range" id="hid-mouse-sens-slider">
+                                </td>
+                                <td class="slider-value" id="hid-mouse-sens-value"></td>
+                              </table>
+                        </td>
+                      </tr>
+                      <tr class="feature-disabled" id="hid-mouse-boost">
+                        <td>Relative boost factor:<br><i>(Firefox on Wayland)</i></td>
+                        <td class="slider">
+                              <table>
+                                <td class="slider-inner">
+                                  <input type="range" id="hid-mouse-boost-slider">
+                                </td>
+                                <td class="slider-value" id="hid-mouse-boost-value"></td>
+                              </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Squash relative moves:</td>
+                        <td>
+                              <div class="switch-box">
+                                <input checked type="checkbox" id="hid-mouse-squash-switch">
+                                <label for="hid-mouse-squash-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                              </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  <hr>
+                  <table class="kv">
+                    <tr>
+                      <td>Scroll rate:</td>
+                      <td class="slider">
+                            <table>
+                              <td class="slider-inner">
+                                <input type="range" id="hid-mouse-scroll-slider">
+                              </td>
+                              <td class="slider-value" id="hid-mouse-scroll-value"></td>
+                            </table>
+                      </td>
                     </tr>
-                    <tr class="feature-disabled" id="hid-mouse-squash">
-                          <td>Squash relative moves:
-                          </td>
-                          <td align="right">
+                    <tr>
+                      <td>Cumulative scrolling:</td>
+                      <td>
                             <div class="switch-box">
-                              <input checked type="checkbox" id="hid-mouse-squash-switch">
-                              <label for="hid-mouse-squash-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                              <input type="checkbox" id="hid-mouse-cumulative-scrolling-switch">
+                              <label for="hid-mouse-cumulative-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                             </div>
-                          </td>
+                      </td>
                     </tr>
                     <tr>
                       <td>Reverse scrolling:</td>
                       <td>
                         <table>
                           <tr>
-                                <td>Vert:
-                                </td>
-                                <td align="right">
+                            <td>Vert:</td>
+                            <td>
                                   <div class="switch-box">
                                     <input type="checkbox" id="hid-mouse-reverse-scrolling-y-switch">
                                     <label for="hid-mouse-reverse-scrolling-y-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                                   </div>
-                                </td>
+                            </td>
                             <td>&nbsp;&nbsp;</td>
-                                <td>Horiz:
-                                </td>
-                                <td align="right">
+                            <td>Horiz:</td>
+                            <td>
                                   <div class="switch-box">
                                     <input type="checkbox" id="hid-mouse-reverse-scrolling-x-switch">
                                     <label for="hid-mouse-reverse-scrolling-x-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                                   </div>
-                                </td>
+                            </td>
                           </tr>
                         </table>
                       </td>
-                    </tr>
-                    <tr>
-                          <td>Cumulative scrolling:
-                          </td>
-                          <td align="right">
-                            <div class="switch-box">
-                              <input type="checkbox" id="hid-mouse-cumulative-scrolling-switch">
-                              <label for="hid-mouse-cumulative-scrolling-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                          </td>
-                    </tr>
-                    <tr>
-                          <td>Scroll rate:
-                          </td>
-                          <td class="value-slider">
-                            <input type="range" id="hid-mouse-scroll-slider">
-                          </td>
-                          <td class="value-number" id="hid-mouse-scroll-value"></td>
-                    </tr>
-                    <tr>
-                          <td>Show the blue dot:
-                          </td>
-                          <td align="right">
-                            <div class="switch-box">
-                              <input checked type="checkbox" id="hid-mouse-dot-switch">
-                              <label for="hid-mouse-dot-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                          </td>
-                    </tr>
-                  </table>
-                </div>
-              </details>
-              <details>
-                <summary>Web UI settings</summary>
-                <div class="spoiler">
-                  <table class="kv">
-                    <tr>
-                          <td>Ask page close confirmation:
-                          </td>
-                          <td align="right">
-                            <div class="switch-box">
-                              <input checked type="checkbox" id="page-close-ask-switch">
-                              <label for="page-close-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                          </td>
-                    </tr>
-                    <tr>
-                          <td>Expand for the entire tab by default:
-                          </td>
-                          <td align="right">
-                            <div class="switch-box">
-                              <input type="checkbox" id="page-full-tab-stream-switch">
-                              <label for="page-full-tab-stream-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                          </td>
-                    </tr>
-                    <tr>
-                          <td>Suspend stream when tab is not active:
-                          </td>
-                          <td align="right">
-                            <div class="switch-box">
-                              <input type="checkbox" id="stream-suspend-switch">
-                              <label for="stream-suspend-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                            </div>
-                          </td>
                     </tr>
                   </table>
                 </div>
               </details>
           <table class="kv">
-            <tr>
-                  <td>Bad link mode (release keys immediately):
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input type="checkbox" id="hid-keyboard-bad-link-switch">
-                      <label for="hid-keyboard-bad-link-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
             <tr class="feature-disabled" id="hid-connect">
-                  <td>Connect HID to Server:
-                  </td>
-                  <td align="right">
+              <td>Connect KB/M:</td>
+              <td>
                     <div class="switch-box">
                       <input checked type="checkbox" id="hid-connect-switch">
                       <label for="hid-connect-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
-            </tr>
-            <tr class="feature-disabled" id="hid-jiggler">
-                  <td><a target="_blank" href="https://docs.pikvm.org/mouse_jiggler">Mouse jiggler</a>:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="hid-jiggler-switch">
-                      <label for="hid-jiggler-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-            <tr>
-                  <td>Mute all input HID events:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input type="checkbox" id="hid-mute-switch">
-                      <label for="hid-mute-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
+              </td>
+              <td class="tip">Control keyboard &amp; mouse emulator</td>
             </tr>
             <tr class="feature-disabled" id="v3-usb-breaker">
-                  <td>Connect main USB to Server:
-                  </td>
-                  <td align="right">
+              <td>Connect main USB:</td>
+              <td>
                     <div class="switch-box">
-                      <input class="__gpio-switch-__v3_usb_breaker__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v3_usb_breaker__" data-gpio-channel="__v3_usb_breaker__" data-gpio-confirm-off="Turning off this switch will disconnect the main USB from the server.  Are you sure you want to continue?">
+                      <input class="__gpio-switch-__v3_usb_breaker__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v3_usb_breaker__" data-gpio-channel="__v3_usb_breaker__" data-gpio-confirm-off="Turning off this switch will disconnect the main USB from the host.  Are you sure you want to continue?">
                       <label for="__gpio-switch-__v3_usb_breaker__"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
+              <td class="tip">Simulate plug/unplug a USB cable</td>
             </tr>
             <tr class="feature-disabled" id="v4-locator">
-                  <td>Enable locator LED:
-                  </td>
-                  <td align="right">
+              <td>Enable locator LED:</td>
+              <td>
                     <div class="switch-box">
                       <input class="__gpio-switch-__v4_locator__ gpio-switch" disabled type="checkbox" id="__gpio-switch-__v4_locator__" data-gpio-channel="__v4_locator__" data-gpio-confirm-off="">
                       <label for="__gpio-switch-__v4_locator__"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
           </table>
-          <hr>
-          <div class="buttons buttons-row">
-            <button class="row33" data-wm-menu-force-hide data-wm-window-show="keyboard-window">&bull; Keyboard</button>
-            <button class="row33" data-wm-menu-force-hide data-wm-window-show="mouse-window">&bull; Mouse</button>
-            <button class="row33" id="hid-reset-button" disabled>Reset HID</button>
+          <div class="buttons">
+            <div class="buttons-row">
+              <button class="row33" data-wm-menu-force-hide data-wm-window-show="stream-window">&bull; Show stream</button>
+              <button class="row33" id="stream-screenshot-button" data-wm-menu-force-hide>&bull; Screenshot</button>
+              <button class="row33" id="stream-reset-button">Reset stream</button>
+            </div>
+            <hr>
+            <div class="buttons-row">
+              <button class="row33" data-wm-menu-force-hide data-wm-window-show="keyboard-window">&bull; Keyboard</button>
+              <button class="row33" data-wm-menu-force-hide data-wm-window-show="mouse-window">&bull; Mouse</button>
+              <button class="row33" id="hid-reset-button" disabled>Reset KB/M</button>
+            </div>
           </div>
         </div>
       </li>
@@ -554,21 +661,20 @@
         <div class="menu-item menu-button" href="#"><img class="led-gray" id="atx-power-led" src="../share/svg/led-atx-power.svg"><img class="led-gray" id="atx-hdd-led" src="../share/svg/led-atx-hdd.svg"><span>ATX</span>
         </div>
         <div class="hidden menu">
-          <div class="text"><b>Control the server's power<br></b><sub>Use the short click for ACPI shutdown</sub></div>
+          <div class="text"><b>Control the host power<br></b><sub>Use the short click for ACPI shutdown</sub></div>
           <hr>
               <table class="kv">
                 <tr>
-                      <td>Ask click confirmation:
-                      </td>
-                      <td align="right">
+                  <td>Ask click confirmation:
+                  </td>
+                  <td>
                         <div class="switch-box">
                           <input checked type="checkbox" id="atx-ask-switch">
                           <label for="atx-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                         </div>
-                      </td>
+                  </td>
                 </tr>
               </table>
-          <hr>
           <div class="buttons">
             <button id="atx-power-button" disabled data-wm-menu-force-hide>&bull; Click Power <sup><i>short</i></sup></button>
             <button id="atx-power-button-long" disabled data-wm-menu-force-hide>&bull; Click Power <sup><i>long</i></sup></button>
@@ -687,24 +793,22 @@
               </td>
             </tr>
             <tr>
-                  <td><a target="_blank" href="https://docs.pikvm.org/msd">Mode</a>:
-                  </td>
-                  <td>
+              <td><a target="_blank" href="https://docs.pikvm.org/msd">Mode</a>:</td>
+              <td>
                     <div class="radio-box">
                           <input type="radio" id="msd-mode-radio-1" name="msd-mode-radio" value="1" checked>
                           <label for="msd-mode-radio-1">CD/DVD</label>
                           <input type="radio" id="msd-mode-radio-0" name="msd-mode-radio" value="0">
                           <label for="msd-mode-radio-0">Flash</label>
                     </div>
-                  </td>
-                  <td>Writable:
-                  </td>
-                  <td align="right">
+              </td>
+              <td>Writable:</td>
+              <td>
                     <div class="switch-box">
                       <input disabled type="checkbox" id="msd-rw-switch">
                       <label for="msd-rw-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
               <td style="width: 100%;"></td>
               <td>
                 <button id="msd-download-button" disabled title="Download image"><b>&nbsp;&nbsp;&#x21E9;&nbsp;&nbsp;</b></button>
@@ -713,14 +817,12 @@
           </table>
           <hr>
           <div id="msd-storages"></div>
-          <hr>
           <div class="buttons buttons-row">
             <button class="row50" id="msd-connect-button">Connect drive</button>
             <button class="row50 hidden" id="msd-disconnect-button">Disconnect drive</button>
             <button class="row25" id="msd-select-new-button" disabled>Upload</button>
             <button class="row25" id="msd-reset-button">Reset</button>
           </div>
-          <hr>
           <div class="hidden" id="msd-message-another-user-uploads">
                 <div class="text">
                   <table>
@@ -802,15 +904,13 @@
         <div class="menu-item menu-button" href="#"><img class="led-gray" id="hid-recorder-led" src="../share/svg/led-gear.svg"><span>Macro</span>
         </div>
         <div class="hidden menu">
-          <div class="text"><b>Record and play HID/ATX/GPIO actions<br></b><sub>For security reasons, the record will not be saved on the PiKVM</sub></div>
-          <hr>
+          <div class="text"><b>Record and play Keyboard/Mouse/ATX/GPIO actions<br></b><sub>For security reasons, the record will not be saved on the PiKVM</sub></div>
           <div class="buttons buttons-row">
             <button class="row25" id="hid-recorder-record" disabled data-wm-menu-force-hide>&bull; Rec</button>
             <button class="row25" id="hid-recorder-stop" disabled>Stop</button>
             <button class="row25" id="hid-recorder-play" disabled>Play</button>
             <button class="row25" id="hid-recorder-clear" disabled>Clear</button>
           </div>
-          <hr>
           <table class="kv">
             <tr>
               <td>Script time:</td>
@@ -825,17 +925,16 @@
           <hr>
               <table class="kv">
                 <tr>
-                      <td>Infinite loop playback:
-                      </td>
-                      <td align="right">
+                  <td>Infinite loop playback:
+                  </td>
+                  <td>
                         <div class="switch-box">
                           <input disabled type="checkbox" id="hid-recorder-loop-switch">
                           <label for="hid-recorder-loop-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                         </div>
-                      </td>
+                  </td>
                 </tr>
               </table>
-          <hr>
           <input id="hid-recorder-new-script-file" type="file" style="display: none">
           <div class="buttons buttons-row">
             <button class="row50" id="hid-recorder-upload" disabled>Upload script</button>
@@ -865,38 +964,39 @@
           </table>
           <table class="kv">
             <tr>
-                  <td>Delay between keys:
-                  </td>
-                  <td class="value-slider">
-                    <input type="range" id="hid-pak-delay-slider">
-                  </td>
-                  <td class="value-number" id="hid-pak-delay-value"></td>
+              <td>Delay between keys:</td>
+              <td class="slider">
+                    <table>
+                      <td class="slider-inner">
+                        <input type="range" id="hid-pak-delay-slider">
+                      </td>
+                      <td class="slider-value" id="hid-pak-delay-value"></td>
+                    </table>
+              </td>
             </tr>
             <tr>
-                  <td>Hide input text:
-                  </td>
-                  <td align="right">
+              <td>Hide input text:</td>
+              <td>
                     <div class="switch-box">
                       <input type="checkbox" id="hid-pak-secure-switch">
                       <label for="hid-pak-secure-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
             <tr>
-                  <td>Ask paste confirmation:
-                  </td>
-                  <td align="right">
+              <td>Ask paste confirmation:</td>
+              <td>
                     <div class="switch-box">
                       <input checked type="checkbox" id="hid-pak-ask-switch">
                       <label for="hid-pak-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                     </div>
-                  </td>
+              </td>
             </tr>
           </table>
           <div class="feature-disabled" id="stream-ocr">
             <hr><br>
             <hr>
-            <div class="text"><b>Text recognition <sup><i>&beta;</i></sup><br></b><sub><a target="_blank" href="https://docs.pikvm.org/ocr">OCR</a> works locally on PiKVM</sub></div>
+            <div class="text"><b>Text recognition<br></b><sub><a target="_blank" href="https://docs.pikvm.org/ocr">OCR</a> works locally on PiKVM</sub></div>
             <hr>
             <table class="kv">
               <tr>
@@ -928,7 +1028,6 @@
         <div class="menu-item menu-button" href="#">Shortcuts</div>
         <div class="hidden menu" id="shortcuts-menu">
           <div class="text"><b>Quick keyboard shortcuts<br></b><sub>Also see <i>System &rarr; Show keyboard</i></sub></div>
-          <hr>
           <div class="buttons">
             <div class="buttons-row">
               <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="CapsLock">&bull; Caps Lock &nbsp;<img class="inline-lamp-small hid-keyboard-caps-led led-gray" src="../share/svg/led-square.svg"></button>
@@ -966,12 +1065,10 @@
               <button class="row50" data-wm-menu-force-hide data-keyboard-shortcut="Power">&bull; Power</button>
             </div>
           </div>
-          <hr>
           <div class="text">
             &darr; &bull; Alt+SysRq+... <sup><i>linux magic
             <a target="_blank" href="https://www.kernel.org/doc/html/latest/admin-guide/sysrq.html">help</a></i></sup>
           </div>
-          <hr>
           <div class="buttons">
             <div class="buttons-row">
               <button class="row25" data-keyboard-shortcut="AltLeft PrintScreen KeyF" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Call the OOM killer to kill a memory hog process">F</button>
@@ -989,17 +1086,16 @@
               <button class="row16" data-keyboard-shortcut="AltLeft PrintScreen KeyB" data-keyboard-shortcut-confirm="hid-sysrq-ask-switch" style="text-align: center" title="Immediately reboot the system without syncing or unmounting disks">B</button>
             </div>
           </div>
-          <hr>
               <table class="kv">
                 <tr>
-                      <td>Ask the magic confirmation:
-                      </td>
-                      <td align="right">
+                  <td>Ask the magic confirmation:
+                  </td>
+                  <td>
                         <div class="switch-box">
                           <input checked type="checkbox" id="hid-sysrq-ask-switch">
                           <label for="hid-sysrq-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
                         </div>
-                      </td>
+                  </td>
                 </tr>
               </table>
         </div>
@@ -1013,16 +1109,7 @@
         </div>
         <div class="hidden menu" id="switch-menu">
           <table style="border-spacing: 0px">
-            <tr>
-              <td>
-                <div class="text"><b><a target="_blank" href="https://docs.pikvm.org/switch">PiKVM Switch</a> is attached<br></b><sub>Select a port or perform any available action like ATX click</sub></div>
-              </td>
-              <td>
-                <div class="text">
-                  <button class="small" data-wm-menu-force-hide data-wm-window-show="switch-window">&bull; Settings</button>
-                </div>
-              </td>
-            </tr>
+            <div class="text"><b><a target="_blank" href="https://docs.pikvm.org/switch">PiKVM Switch</a> is attached<br></b><sub>Select a port or perform any available action like ATX click</sub></div>
           </table>
           <hr>
           <div class="hidden" id="switch-message-update">
@@ -1040,28 +1127,172 @@
                 </div>
             <hr>
           </div>
-          <table class="kv">
-            <tr>
-                  <td>Ask ATX click confirmation:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input checked type="checkbox" id="switch-atx-ask-switch">
-                      <label for="switch-atx-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-            <tr>
-                  <td>Confirm switching when the Drive is connected:
-                  </td>
-                  <td align="right">
-                    <div class="switch-box">
-                      <input checked type="checkbox" id="switch-msd-ask-switch">
-                      <label for="switch-msd-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-                  </td>
-            </tr>
-          </table>
+              <details>
+                <summary>EDIDs collection</summary>
+                <div class="spoiler">
+                  <table class="kv" style="width: 100%;">
+                    <tr>
+                      <td colspan="2" style="width: 40%;">
+                        <select id="switch-edid-selector" size="8" style="width: -webkit-fill-available; width: -moz-available;"></select>
+                      </td>
+                      <td rowspan="2" style="vertical-align: top">
+                        <table class="kv">
+                          <tr>
+                            <td>Manufacturer:</td>
+                            <td class="value" id="switch-edid-info-mfc-id"></td>
+                          </tr>
+                          <tr>
+                            <td>Product ID:</td>
+                            <td class="value" id="switch-edid-info-product-id"></td>
+                          </tr>
+                          <tr>
+                            <td>Serial:</td>
+                            <td class="value" id="switch-edid-info-serial"></td>
+                          </tr>
+                          <tr>
+                            <td>Monitor name:</td>
+                            <td class="value" id="switch-edid-info-monitor-name"></td>
+                          </tr>
+                          <tr>
+                            <td>Extra serial:</td>
+                            <td class="value" id="switch-edid-info-monitor-serial"></td>
+                          </tr>
+                          <tr>
+                            <td>Audio enabled:</td>
+                            <td class="value" id="switch-edid-info-audio"></td>
+                          </tr>
+                          <tr>
+                            <td>Data:</td>
+                            <td>
+                              <button class="small" id="switch-edid-copy-data-button" disabled>Copy</button>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <button class="small" id="switch-edid-add-button">Add new</button>
+                      </td>
+                      <td style="float: right">
+                        <button class="small" id="switch-edid-remove-button" disabled>Remove</button>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </details>
+              <details>
+                <summary>Device color scheme</summary>
+                <div class="spoiler">
+                  <table class="kv">
+                          <tr>
+                            <td style="white-space: nowrap">Selected port:</td>
+                            <td>
+                              <input type="color" id="switch-color-active-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-active-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-active-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="white-space: nowrap">Inactive port:</td>
+                            <td>
+                              <input type="color" id="switch-color-inactive-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-inactive-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-inactive-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="white-space: nowrap">Blinking beacon:</td>
+                            <td>
+                              <input type="color" id="switch-color-beacon-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-beacon-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-beacon-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                    <tr>
+                      <td>
+                        <hr>
+                      </td>
+                      <td>
+                        <hr>
+                      </td>
+                      <td>
+                        <hr>
+                      </td>
+                      <td></td>
+                      <td>
+                        <hr>
+                      </td>
+                    </tr>
+                          <tr>
+                            <td style="white-space: nowrap">Flashing downlink:</td>
+                            <td>
+                              <input type="color" id="switch-color-flashing-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-flashing-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-flashing-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="white-space: nowrap">Bootloader mode:</td>
+                            <td>
+                              <input type="color" id="switch-color-bootloader-input">
+                            </td>
+                            <td>
+                              <input type="range" id="switch-color-bootloader-brightness-slider" style="min-width: 150px">
+                            </td>
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                            <td>
+                              <button class="small" id="switch-color-bootloader-default-button" title="Reset default">&#8635;</button>
+                            </td>
+                          </tr>
+                  </table>
+                </div>
+              </details>
+              <details>
+                <summary>Interface settings</summary>
+                <div class="spoiler">
+                  <table class="kv">
+                    <tr>
+                      <td>Ask ATX click confirmation:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input checked type="checkbox" id="switch-atx-ask-switch">
+                              <label for="switch-atx-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Confirm switching when the Drive is connected:</td>
+                      <td>
+                            <div class="switch-box">
+                              <input checked type="checkbox" id="switch-msd-ask-switch">
+                              <label for="switch-msd-ask-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                            </div>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </details>
           <hr>
           <table class="kv" id="switch-chain"></table>
         </div>
@@ -2201,156 +2432,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="hidden window" id="switch-window" data-wm-window-show-centered style="width: min-content">
-      <div class="window-header">
-        <div class="window-grab">Switch settings</div>
-        <div class="window-buttons">
-          <button data-wm-window-set-original></button>
-          <button data-wm-window-close></button>
-        </div>
-      </div>
-      <div class="tabs-box">
-            <input checked type="radio" name="switch-tab-button" id="switch-tab-edid-button">
-            <label for="switch-tab-edid-button">EDIDs collection</label>
-            <div class="tab">
-              <table>
-                <tr>
-                  <td colspan="2">
-                    <select id="switch-edid-selector" size="8" style="width: -webkit-fill-available; width: -moz-available;"></select>
-                  </td>
-                  <td rowspan="2" style="vertical-align: top">
-                    <table class="kv">
-                      <tr>
-                        <td>Manufacturer:</td>
-                        <td class="value" id="switch-edid-info-mfc-id"></td>
-                      </tr>
-                      <tr>
-                        <td>Product ID:</td>
-                        <td class="value" id="switch-edid-info-product-id"></td>
-                      </tr>
-                      <tr>
-                        <td>Serial:</td>
-                        <td class="value" id="switch-edid-info-serial"></td>
-                      </tr>
-                      <tr>
-                        <td>Monitor name:</td>
-                        <td class="value" id="switch-edid-info-monitor-name"></td>
-                      </tr>
-                      <tr>
-                        <td>Extra serial:</td>
-                        <td class="value" id="switch-edid-info-monitor-serial"></td>
-                      </tr>
-                      <tr>
-                        <td>Audio enabled:</td>
-                        <td class="value" id="switch-edid-info-audio"></td>
-                      </tr>
-                      <tr>
-                        <td>Data:</td>
-                        <td>
-                          <button class="small" id="switch-edid-copy-data-button" disabled>Copy</button>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <button id="switch-edid-add-button">Add new</button>
-                  </td>
-                  <td style="float: right">
-                    <button id="switch-edid-remove-button" disabled>Remove</button>
-                  </td>
-                </tr>
-              </table>
-            </div>
-            <input type="radio" name="switch-tab-button" id="switch-tab-colors-button">
-            <label for="switch-tab-colors-button">Color scheme</label>
-            <div class="tab">
-              <table>
-                    <tr>
-                      <td style="white-space: nowrap">Selected port:</td>
-                      <td>
-                        <input type="color" id="switch-color-active-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-active-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-active-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="white-space: nowrap">Inactive port:</td>
-                      <td>
-                        <input type="color" id="switch-color-inactive-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-inactive-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-inactive-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="white-space: nowrap">Blinking beacon:</td>
-                      <td>
-                        <input type="color" id="switch-color-beacon-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-beacon-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-beacon-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-                <tr>
-                  <td>
-                    <hr>
-                  </td>
-                  <td>
-                    <hr>
-                  </td>
-                  <td>
-                    <hr>
-                  </td>
-                  <td></td>
-                  <td>
-                    <hr>
-                  </td>
-                </tr>
-                    <tr>
-                      <td style="white-space: nowrap">Flashing downlink:</td>
-                      <td>
-                        <input type="color" id="switch-color-flashing-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-flashing-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-flashing-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="white-space: nowrap">Bootloader mode:</td>
-                      <td>
-                        <input type="color" id="switch-color-bootloader-input">
-                      </td>
-                      <td>
-                        <input type="range" id="switch-color-bootloader-brightness-slider" style="min-width: 150px">
-                      </td>
-                      <td>&nbsp;&nbsp;&nbsp;</td>
-                      <td>
-                        <button class="small" id="switch-color-bootloader-default-button" title="Reset default">&#8635;</button>
-                      </td>
-                    </tr>
-              </table>
-            </div>
       </div>
     </div>
     <div class="hidden window" id="about-window" data-wm-window-show-centered>

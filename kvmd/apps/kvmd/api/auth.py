@@ -34,11 +34,11 @@ from ....htserver import make_json_response
 from ....htserver import set_request_auth_info
 from ....htserver import get_request_unix_credentials
 
+from ....validators import check_string_in_list
 from ....validators.auth import valid_user
 from ....validators.auth import valid_passwd
 from ....validators.auth import valid_expire
 from ....validators.auth import valid_auth_token
-from ....validators.auth import valid_login_redirect
 
 from ..auth import AuthManager
 
@@ -108,8 +108,9 @@ async def check_request_auth(auth: AuthManager, exposed: HttpExposed, req: Reque
 
 
 class AuthApi:
-    def __init__(self, auth: AuthManager) -> None:
+    def __init__(self, auth: AuthManager, allow_redirects: list[str]) -> None:
         self.__auth = auth
+        self.__allow_redirects = set(["", *allow_redirects])
 
     # =====
 
@@ -117,7 +118,11 @@ class AuthApi:
     async def __login_handler(self, req: Request) -> Response:
         if self.__auth.is_auth_enabled():
             params = await req.post()
-            redirect = valid_login_redirect(params.get("redirect", ""))
+            redirect = check_string_in_list(
+                arg=params.get("redirect", ""),
+                name="login redirect",
+                variants=self.__allow_redirects,
+            )
             token = await self.__auth.login(
                 user=valid_user(params.get("user", "")),
                 passwd=valid_passwd(params.get("passwd", "")),

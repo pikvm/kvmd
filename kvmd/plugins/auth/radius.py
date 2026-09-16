@@ -23,10 +23,13 @@
 import asyncio
 import io
 
+from typing import Final
+
 import pyrad.client
 import pyrad.packet
 import pyrad.dictionary
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.net import valid_port
@@ -396,18 +399,13 @@ VALUE		Packet-Type	Status-Client			13
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(  # pylint: disable=super-init-not-called
-        self,
-        host: str,
-        port: int,
-        secret: str,
-        timeout: float,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        self.__host = host
-        self.__port = port
-        self.__secret = secret
-        self.__timeout = timeout
+        self.__host:    Final[str]   = c.host
+        self.__port:    Final[int]   = c.port
+        self.__secret:  Final[str]   = c.secret
+        self.__timeout: Final[float] = c.timeout
 
     @classmethod
     def get_plugin_options(cls) -> dict:
@@ -422,8 +420,6 @@ class Plugin(BaseAuthService):
         return (await asyncio.to_thread(self.__inner_authorize, user, passwd))
 
     def __inner_authorize(self, user: str, passwd: str) -> bool:
-        assert user == user.strip()
-        assert user
         try:
             with io.StringIO(_FREERADUIS_DICT) as file:
                 dct = pyrad.dictionary.Dictionary(file)

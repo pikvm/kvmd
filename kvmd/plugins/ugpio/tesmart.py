@@ -22,6 +22,7 @@
 
 import asyncio
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -32,6 +33,7 @@ from ...logging import get_logger
 from ... import tools
 from ... import aiotools
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_number
@@ -52,29 +54,20 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        host: str,
-        port: int,
-
-        device_path: str,
-        speed: int,
-
-        timeout: float,
-        switch_delay: float,
-        state_poll: float,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__host = host
-        self.__port = port
+        self.__host: Final[str] = c.host
+        self.__port: Final[int] = c.port
 
-        self.__device_path = device_path
-        self.__speed = speed
+        self.__device_path: Final[str] = c.device
+        self.__speed:       Final[int] = c.speed
 
-        self.__timeout = timeout
-        self.__switch_delay = switch_delay
-        self.__state_poll = state_poll
+        self.__timeout:      Final[float] = c.timeout
+        self.__switch_delay: Final[float] = c.switch_delay
+        self.__state_poll:   Final[float] = c.state_poll
 
         self.__reader: (asyncio.StreamReader | None) = None
         self.__writer: (asyncio.StreamWriter | None) = None
@@ -87,7 +80,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             "host":         Option("",   type=valid_ip_or_host, if_empty=""),
             "port":         Option(5000, type=valid_port),
 
-            "device":       Option("",   type=valid_abs_path, if_empty="", unpack_as="device_path"),
+            "device":       Option("",   type=valid_abs_path, if_empty=""),
             "speed":        Option(9600, type=valid_tty_speed),
 
             "timeout":      Option(5.0,  type=valid_float_f01),

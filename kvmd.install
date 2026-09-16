@@ -123,6 +123,12 @@ EOF
 		rm -f /etc/kvmd/logging.yaml*
 	fi
 
+	if [[ "$(vercmp "$2" 4.215)" -lt 0 ]]; then
+		if [[ "$(systemctl is-enabled kvmd-janus || true)" = enabled || "$(systemctl is-enabled kvmd-janus-static || true)" = enabled ]]; then
+			systemctl enable kvmd-pm || true
+		fi
+	fi
+
 	# Some update deletes /etc/motd, WTF
 	# shellcheck disable=SC2015,SC2166
 	[ ! -f /etc/motd -a -f /etc/motd.pacsave ] && mv /etc/motd.pacsave /etc/motd || true

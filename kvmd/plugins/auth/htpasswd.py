@@ -20,6 +20,9 @@
 # ========================================================================== #
 
 
+from typing import Final
+
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.os import valid_abs_path
@@ -31,17 +34,16 @@ from . import BaseAuthService
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(self, path: str) -> None:  # pylint: disable=super-init-not-called
-        self.__path = path
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
+        self.__path: Final[str] = c.file
 
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "file": Option("/etc/kvmd/htpasswd", type=valid_abs_path, unpack_as="path"),
+            "file": Option("/etc/kvmd/htpasswd", type=valid_abs_path),
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        assert user == user.strip()
-        assert user
         htpasswd = KvmdHtpasswdFile(self.__path)
         return htpasswd.check_password(user, passwd)

@@ -22,8 +22,12 @@
 
 import asyncio
 
-import ldap
+from typing import Final
 
+import ldap
+import ldap.filter
+
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_stripped_string_not_empty
@@ -39,22 +43,15 @@ from . import BaseAuthService
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(  # pylint: disable=super-init-not-called
-        self,
-        url: str,
-        verify: bool,
-        base: str,
-        group: str,
-        user_domain: str,
-        timeout: float,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        self.__url = url
-        self.__verify = verify
-        self.__base = base
-        self.__group = group
-        self.__user_domain = user_domain
-        self.__timeout = timeout
+        self.__url:         Final[str]   = c.url
+        self.__verify:      Final[bool]  = c.verify
+        self.__base:        Final[str]   = c.base
+        self.__group:       Final[str]   = c.group
+        self.__user_domain: Final[str]   = c.user_domain
+        self.__timeout:     Final[float] = c.timeout
 
     @classmethod
     def get_plugin_options(cls) -> dict:
@@ -73,6 +70,7 @@ class Plugin(BaseAuthService):
     def __inner_authorize(self, user: str, passwd: str) -> bool:
         if self.__user_domain:
             user = f"{user}@{self.__user_domain}"
+
         conn: (ldap.ldapobject.LDAPObject | None) = None
         try:
             conn = ldap.initialize(self.__url)
@@ -85,13 +83,19 @@ class Plugin(BaseAuthService):
                     conn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
                 conn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
             conn.simple_bind_s(user, passwd)
+
             for (dn, attrs) in (conn.search_st(
                 base=self.__base,
                 scope=ldap.SCOPE_SUBTREE,
-                filterstr=f"(&(objectClass=user)(userPrincipalName={user})(memberOf={self.__group}))",
+                filterstr=(
+                    "(&(objectClass=user)"
+                    + f"(userPrincipalName={ldap.filter.escape_filter_chars(user, 1)})"
+                    + f"(memberOf={ldap.filter.escape_filter_chars(self.__group, 1)}))"
+                ),
                 attrlist=["memberOf"],
                 timeout=self.__timeout,
             ) or []):
+
                 if (
                     dn is not None
                     and isinstance(attrs, dict)
@@ -99,6 +103,7 @@ class Plugin(BaseAuthService):
                     and self.__group.encode() in attrs["memberOf"]
                 ):
                     return True
+
         except ldap.INVALID_CREDENTIALS:
             pass
         except ldap.SERVER_DOWN as ex:

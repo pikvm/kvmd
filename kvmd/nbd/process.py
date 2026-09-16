@@ -22,6 +22,7 @@
 
 import asyncio
 import signal
+import uuid
 import contextlib
 import logging
 
@@ -40,8 +41,8 @@ from .errors import NbdIoConnectionError
 
 from .types import NbdImage
 from .types import BaseNbdEvent
-from .types import NbdStartEvent
-from .types import NbdStopEvent
+from .types import NbdRunningEvent
+from .types import NbdStoppedEvent
 
 from .device import NbdDevice
 from .remotes import BaseNbdRemote
@@ -63,10 +64,14 @@ class NbdProcess:
         self.__device = device
         self.__remote = remote
         self.__image = image
+        self.__binding_id = str(uuid.uuid4())
 
         self.__events_q: aiomulti.AioMpQueue[BaseNbdEvent] = aiomulti.AioMpQueue(self.__QUEUE_SIZE)
         self.__proc = aiomulti.AioMpProcess("nbd", self.__subprocess)
         self.__ready_nr = aiomulti.AioMpNotifier()
+
+    def get_binding(self) -> tuple[str, NbdImage]:
+        return (self.__binding_id, self.__image)
 
     def stop(self) -> None:
         self.__proc.send_sigterm()
@@ -78,14 +83,13 @@ class NbdProcess:
 
         self.__proc.start()
         try:
-            ready = await self.__ready_nr.wait(self.__image.timeout + self.__REACT_TIMEOUT)
+            ready = await self.__ready_nr.wait(self.__remote.get_timeout() + self.__REACT_TIMEOUT)
             if ready < 0:  # pylint: disable=no-else-raise
                 # No events - not started
                 raise NbdError("NBD process did not respond in time at start")
             elif ready == 0:
                 # Failed to start in time, but notified - wait for exiting
                 await self.__proc.async_join(self.__REACT_TIMEOUT)
-                return  # FIXME: defunc
 
             yield
 
@@ -128,7 +132,7 @@ class NbdProcess:
                 # Прибиваем через shutdown(), чтобы всё, что держится на сокетах, прервалось.
                 # Если не получилось - делаем cancel() и дожидаемся SIGKILL.
                 if link.shutdown():
-                    self.__queue_event_noex(NbdStopEvent("main", "Shutdown", True))
+                    self.__queue_event_noex(NbdStoppedEvent("main", "Shutdown", True))
                 else:
                     for task in tasks:
                         task.cancel()
@@ -166,21 +170,23 @@ class NbdProcess:
             await self.__remote.cleanup()
 
     async def __sub_checker(self, link: NbdLink, prepared: aiotools.AioStage) -> None:
+        logger = get_logger(0)
         with self.__catch_exceptions("checker"):
             with link.shutdown_at_end():
+                timeout = self.__remote.get_timeout()
                 try:
                     await prepared.wait_passed()
-                    await asyncio.wait_for(
-                        self.__device.open_close(),
-                        timeout=self.__image.timeout,
-                    )
+                    logger.info("Waiting for device PID ...")
+                    await asyncio.wait_for(self.__device.wait_pid(), timeout=timeout)
+                    logger.info("Doing open+close ...")
+                    await asyncio.wait_for(self.__device.open_close(), timeout=timeout)
                 except BaseException as ex:
                     self.__ready_nr.notify(0)
                     if isinstance(ex, TimeoutError):
                         raise NbdError("Can't open+close device in time")
                     raise
+                self.__events_q.put_nowait(NbdRunningEvent(True, "Online"))
                 self.__ready_nr.notify(1)
-                self.__events_q.put_nowait(NbdStartEvent(self.__image, self.__device.get_path()))
                 await aiotools.wait_infinite()
 
     @contextlib.contextmanager
@@ -201,7 +207,7 @@ class NbdProcess:
             logger.exception("Unhandled exception")
         finally:
             if msg:
-                self.__queue_event_noex(NbdStopEvent(src, msg, False))
+                self.__queue_event_noex(NbdStoppedEvent(src, msg, False))
             if subtask:
                 logger.info("Subtask %s finished", src)
 

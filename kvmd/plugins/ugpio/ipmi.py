@@ -23,6 +23,7 @@
 import asyncio
 import functools
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -32,10 +33,12 @@ from ... import tools
 from ... import aiotools
 from ... import aioproc
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators import check_string_in_list
 from ...validators.basic import valid_float_f01
+from ...validators.basic import valid_number
 from ...validators.net import valid_ip_or_host
 from ...validators.net import valid_port
 from ...validators.os import valid_command
@@ -61,29 +64,21 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        host: str,
-        port: int,
-        user: str,
-        passwd: str,
-
-        passwd_env: str,
-        cmd: list[str],
-
-        state_poll: float,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__host = host
-        self.__port = port
-        self.__user = user
-        self.__passwd = passwd
+        self.__host:   Final[str] = c.host
+        self.__port:   Final[int] = c.port
+        self.__cipher: Final[int] = c.cipher
+        self.__user:   Final[str] = c.user
+        self.__passwd: Final[str] = c.passwd
 
-        self.__passwd_env = passwd_env
-        self.__cmd = cmd
+        self.__passwd_env: Final[str]       = c.passwd_env
+        self.__cmd:        Final[list[str]] = c.cmd
 
-        self.__state_poll = state_poll
+        self.__state_poll: Final[float] = c.state_poll
 
         self.__online = False
         self.__power = False
@@ -93,6 +88,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return {
             "host":   Option("",  type=valid_ip_or_host),
             "port":   Option(623, type=valid_port),
+            "cipher": Option(17,  type=valid_number.mk(min=0, max=19)),
             "user":   Option(""),
             "passwd": Option(""),
 
@@ -100,6 +96,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             "cmd": Option([
                 "/usr/bin/ipmitool",
                 "-I", "lanplus",
+                "-C", "{cipher}",
                 "-U", "{user}", "-E",
                 "-H", "{host}", "-p", "{port}",
                 "power", "{action}",
@@ -184,6 +181,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
                 part.format(
                     host=self.__host,
                     port=self.__port,
+                    cipher=self.__cipher,
                     user=self.__user,
                     passwd=self.__passwd,
                     action=action,

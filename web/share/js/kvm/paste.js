@@ -35,7 +35,7 @@ export function Paste(__recorder) {
 	var __init__ = function() {
 		$("hid-pak-text").addEventListener("keyup", function(ev) {
 			if (ev.ctrlKey && ev.code == "Enter") {
-				$("hid-pak-button").click();
+				wm.click($("hid-pak-button"));
 			}
 		});
 
@@ -92,7 +92,7 @@ export function Paste(__recorder) {
 					if (http.status === 413) {
 						wm.error("Too many text for paste!");
 					} else if (http.status !== 200) {
-						wm.error("HID paste error", http.responseText);
+						wm.error("Keyboard paste error", http.responseText);
 					} else if (http.status === 200) {
 						__recorder.recordPrintEvent(text, keymap, delay);
 					}

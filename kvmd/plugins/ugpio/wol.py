@@ -22,6 +22,7 @@
 
 import socket
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -29,6 +30,7 @@ from ...logging import get_logger
 
 from ... import aiotools
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.net import valid_ip
@@ -45,17 +47,14 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        ip: str,
-        port: int,
-        mac: str,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__ip = ip
-        self.__port = port
-        self.__mac = mac
+        self.__ip:   Final[str] = c.ip
+        self.__port: Final[int] = c.port
+        self.__mac:  Final[str] = c.mac
 
     @classmethod
     def get_plugin_options(cls) -> dict:

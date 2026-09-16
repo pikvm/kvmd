@@ -103,7 +103,7 @@ class MouseProcess(BaseDeviceProcess):
 
     # =====
 
-    def _process_event(self, event: BaseEvent) -> Generator[bytes, None, None]:
+    def _process_event(self, event: BaseEvent) -> Generator[bytes]:
         if isinstance(event, (ClearEvent, ResetEvent)):
             yield self.__process_clear_event()
         elif isinstance(event, MouseButtonEvent):
@@ -121,7 +121,7 @@ class MouseProcess(BaseDeviceProcess):
         self.__clear_state()
         return self.__make_report()
 
-    def __process_button_event(self, event: MouseButtonEvent) -> Generator[bytes, None, None]:
+    def __process_button_event(self, event: MouseButtonEvent) -> Generator[bytes]:
         if event.code & self.__pressed_buttons:
             # Ранее нажатую кнопку отжимаем
             self.__pressed_buttons &= ~event.code

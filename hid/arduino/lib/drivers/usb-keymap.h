@@ -140,6 +140,17 @@ uint8_t keymapUsb(uint8_t code) {
 		case 113: return 128; // AudioVolumeUp
 		case 114: return 129; // AudioVolumeDown
 		case 115: return 111; // F20
+		case 116: return 112; // F21
+		case 117: return 113; // F22
+		case 118: return 114; // F23
+		case 119: return 115; // F24
+		case 120: return 104; // F13
+		case 121: return 105; // F14
+		case 122: return 106; // F15
+		case 123: return 107; // F16
+		case 124: return 108; // F17
+		case 125: return 109; // F18
+		case 126: return 110; // F19
 		default: return 0;
 	}
 }

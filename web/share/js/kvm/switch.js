@@ -349,7 +349,8 @@ export function Switch() {
 			let pa = model.ports[port]; // pa === port attrs
 			if (unit !== pa.unit) {
 				unit = pa.unit;
-				content += `${unit > 0 ? "<tr><td colspan=100><hr></td></tr>" : ""}
+				content += `
+					${unit > 0 ? "<tr><td colspan=4><hr></td><td></td><td colspan=100><hr></td></tr>" : ""}
 					<tr>
 						<td></td><td></td><td></td>
 						<td class="value">Unit: ${unit + 1}</td>
@@ -367,7 +368,6 @@ export function Switch() {
 							</div>
 						</td>
 					</tr>
-					<tr><td colspan=100><hr></td></tr>
 				`;
 			}
 			content += `
@@ -597,19 +597,19 @@ export function Switch() {
 
 	var __switchUplinkBeacon = function(unit) {
 		let state = false;
-		try { state = !__state.beacons.uplinks[unit]; } catch {}; // eslint-disable-line no-empty
+		try { state = !__state.beacons.uplinks[unit]; } catch {};
 		__sendPost("api/switch/set_beacon", {"uplink": unit, "state": state});
 	};
 
 	var __switchDownlinkBeacon = function(unit) {
 		let state = false;
-		try { state = !__state.beacons.downlinks[unit]; } catch {}; // eslint-disable-line no-empty
+		try { state = !__state.beacons.downlinks[unit]; } catch {};
 		__sendPost("api/switch/set_beacon", {"downlink": unit, "state": state});
 	};
 
 	var __switchPortBeacon = function(port) {
 		let state = false;
-		try { state = !__state.beacons.ports[port]; } catch {}; // eslint-disable-line no-empty
+		try { state = !__state.beacons.ports[port]; } catch {};
 		__sendPost("api/switch/set_beacon", {"port": port, "state": state});
 	};
 
@@ -618,7 +618,7 @@ export function Switch() {
 		if ($("switch-atx-ask-switch").checked) {
 			wm.confirm(`
 				Are you sure you want to press the <b>${tools.escape(button)}</b> button?<br>
-				Warning! This could cause data loss on the server.
+				Warning! This could cause data loss on the target host.
 			`).then(function(ok) {
 				if (ok) {
 					click_button();

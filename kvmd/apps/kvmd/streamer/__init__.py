@@ -58,6 +58,10 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
         shutdown_delay: float,
         state_poll: float,
 
+        h264_boost: bool,
+        slowdown: bool,
+        passthrough: bool,
+
         unix_path: str,
         timeout: float,
         snapshot_timeout: float,
@@ -87,6 +91,13 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
 
         self.__params = Params(**params_kwargs)
 
+        if h264_boost:
+            cmd_append = [*cmd_append, "--h264-boost"]
+        if slowdown:
+            cmd_append = [*cmd_append, "--slowdown"]
+        if passthrough:
+            cmd_append = [*cmd_append, "--v4p"]
+
         self.__runner = Runner(
             reset_delay=reset_delay,
             shutdown_delay=shutdown_delay,
@@ -96,7 +107,6 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
         )
 
         self.__client = HttpStreamerClient(
-            name="jpeg",
             unix_path=self.__unix_path,
             timeout=timeout,
             user_agent=htclient.make_user_agent("KVMD"),
@@ -153,7 +163,7 @@ class Streamer:  # pylint: disable=too-many-instance-attributes
     async def trigger_state(self) -> None:
         self.__notifier.notify(self.__ST_FULL)
 
-    async def poll_state(self) -> AsyncGenerator[dict, None]:
+    async def poll_state(self) -> AsyncGenerator[dict]:
         # ==== Granularity table ====
         #   - features -- Full
         #   - limits   -- Partial

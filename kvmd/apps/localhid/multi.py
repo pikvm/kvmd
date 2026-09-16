@@ -30,6 +30,7 @@ import pyudev
 
 from ...logging import get_logger
 
+from ... import tools
 from ... import aiotools
 
 from .hid import Hid
@@ -45,7 +46,7 @@ def _udev_check(device: pyudev.Device) -> str:
     return ""
 
 
-async def _follow_udev_hids() -> AsyncGenerator[tuple[bool, str], None]:
+async def _follow_udev_hids() -> AsyncGenerator[tuple[bool, str]]:
     ctx = pyudev.Context()
 
     monitor = pyudev.Monitor.from_netlink(pyudev.Context())
@@ -142,7 +143,7 @@ class MultiHid:
                 self.__workers[path].hid = hid
                 await hid.poll_to_queue(self.__queue)
             except Exception as ex:
-                if isinstance(ex, OSError) and ex.errno == errno.ENODEV:  # pylint: disable=no-member
+                if tools.is_oserror(ex, errno.ENODEV):
                     logger.info("Closed: %s", hid)
                     break
                 logger.exception("Unhandled exception while polling %s", hid)

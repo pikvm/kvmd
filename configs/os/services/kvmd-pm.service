@@ -1,0 +1,12 @@
+[Unit]
+Description=PiKVM - Power Management
+Before=kvmd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c 'echo performance > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor'
+ExecStop=/usr/bin/bash -c 'echo schedutil > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor'
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

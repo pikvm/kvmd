@@ -54,12 +54,12 @@ from .netctl import CustomCtl
 class _Netcfg:  # pylint: disable=too-many-instance-attributes
     iface: str
     iface_ip: str
-    net_ip: str
+    net_ip: str  # noqa vulture-ignore
     net_prefix: int
-    net_mask: str
+    net_mask: str  # noqa vulture-ignore
     dhcp_ip_begin: str
     dhcp_ip_end: str
-    dhcp_option_3: str
+    dhcp_option_3: str  # noqa vulture-ignore
 
 
 class _Service:  # pylint: disable=too-many-instance-attributes
@@ -87,7 +87,6 @@ class _Service:  # pylint: disable=too-many-instance-attributes
         self.__pre_stop_cmd: list[str] = build_cmd("pre_stop_cmd")
         self.__post_stop_cmd: list[str] = build_cmd("post_stop_cmd")
 
-        self.__gadget: str = config.otg.gadget
         self.__driver: str = config.otg.devices.ethernet.driver
 
     def start(self) -> None:
@@ -129,7 +128,7 @@ class _Service:  # pylint: disable=too-many-instance-attributes
         else:
             for ctl in reversed(ctls):
                 await self.__run_ctl(ctl, False)
-            get_logger(0).info("Bye-bye")
+            get_logger(0).info("Successfully stopped")
 
     async def __run_ctl(self, ctl: BaseCtl, direct: bool) -> bool:
         logger = get_logger()
@@ -180,8 +179,7 @@ class _Service:  # pylint: disable=too-many-instance-attributes
         real_driver = self.__driver
         if self.__driver == "rndis5":
             real_driver = "rndis"
-        path = usb.get_gadget_path(self.__gadget, usb.G_FUNCTIONS, f"{real_driver}.usb0/ifname")
-        logger.info("Using OTG gadget %r ...", self.__gadget)
+        path = usb.get_gadget_path(usb.G_FUNCTIONS, f"{real_driver}.usb0/ifname")
         with open(path) as file:
             iface = file.read().strip()
             logger.info("Using OTG Ethernet interface %r ...", iface)

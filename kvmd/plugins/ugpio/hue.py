@@ -22,6 +22,7 @@
 
 import asyncio
 
+from typing import Final
 from typing import Callable
 from typing import Any
 
@@ -33,6 +34,7 @@ from ... import tools
 from ... import aiotools
 from ... import htclient
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_stripped_string_not_empty
@@ -52,21 +54,16 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
-
-        url: str,
-        verify: bool,
-        token: str,
-        state_poll: float,
-        timeout: float,
+        c: Section,
     ) -> None:
 
-        super().__init__(instance_name, notifier)
+        super().__init__(instance_name, notifier, c)
 
-        self.__url = url
-        self.__verify = verify
-        self.__token = token
-        self.__state_poll = state_poll
-        self.__timeout = timeout
+        self.__url:        Final[str]   = c.url
+        self.__verify:     Final[bool]  = c.verify
+        self.__token:      Final[str]   = c.token
+        self.__state_poll: Final[float] = c.state_poll
+        self.__timeout:    Final[float] = c.timeout
 
         self.__initial: dict[str, (bool | None)] = {}
 

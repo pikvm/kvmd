@@ -23,8 +23,11 @@
 import asyncio
 import pwd
 
+from typing import Final
+
 import pam
 
+from ...yamlconf import Section
 from ...yamlconf import Option
 
 from ...validators.basic import valid_int_f0
@@ -37,18 +40,13 @@ from . import BaseAuthService
 
 # =====
 class Plugin(BaseAuthService):
-    def __init__(  # pylint: disable=super-init-not-called
-        self,
-        service: str,
-        allow_users: list[str],
-        deny_users: list[str],
-        allow_uids_at: int,
-    ) -> None:
+    def __init__(self, c: Section) -> None:
+        super().__init__(c)
 
-        self.__service = service
-        self.__allow_users = allow_users
-        self.__deny_users = deny_users
-        self.__allow_uids_at = allow_uids_at
+        self.__service:       Final[str]      = c.service
+        self.__allow_users:   Final[set[str]] = set(c.allow_users)
+        self.__deny_users:    Final[set[str]] = set(c.deny_users)
+        self.__allow_uids_at: Final[int]      = c.allow_uids_at
 
         self.__lock = asyncio.Lock()
 
@@ -62,8 +60,6 @@ class Plugin(BaseAuthService):
         }
 
     async def authorize(self, user: str, passwd: str) -> bool:
-        assert user == user.strip()
-        assert user
         async with self.__lock:
             return (await asyncio.to_thread(self.__inner_authorize, user, passwd))
 

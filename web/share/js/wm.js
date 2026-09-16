@@ -37,12 +37,18 @@ function __WindowManager() {
 
 	/************************************************************************/
 
-	var __catch_menu_esc = false;
-
 	var __init__ = function() {
 		for (let el of $$("menu-button")) {
-			el.parentElement.querySelector(".menu").tabIndex = -1;
+			let el_menu = el.parentElement;
+			el_menu.querySelector(".menu").tabIndex = -1;
 			tools.el.setOnDown(el, () => __toggleMenu(el));
+			el_menu.addEventListener("keyup", function(ev) {
+				if (ev.code === "Escape") {
+					ev.preventDefault();
+					__closeAllMenues();
+					__activateLastWindow();
+				}
+			});
 		}
 
 		for (let el_win of $$("window")) {
@@ -122,8 +128,8 @@ function __WindowManager() {
 			});
 		}
 
-		window.addEventListener("mouseup", __globalMouseButtonHandler);
-		window.addEventListener("touchend", __globalMouseButtonHandler);
+		window.addEventListener("mouseup", (ev) => __globalMouseButtonHandler(ev.target));
+		window.addEventListener("touchend", (ev) => __globalMouseButtonHandler(ev.target));
 
 		window.addEventListener("focusin", (ev) => __focusInOut(ev.target, true));
 		window.addEventListener("focusout", (ev) => __focusInOut(ev.target, false));
@@ -156,14 +162,6 @@ function __WindowManager() {
 					}
 				}
 			}, 100);
-		});
-
-		document.addEventListener("keyup", function(ev) {
-			if (__catch_menu_esc && ev.code === "Escape") {
-				ev.preventDefault();
-				__closeAllMenues();
-				__activateLastWindow();
-			}
 		});
 
 		document.addEventListener("fullscreenchange", function () {
@@ -395,19 +393,32 @@ function __WindowManager() {
 		__organizeWindow(el_win, true, false);
 	};
 
+	self.click = function(el) {
+		// FIXME: Find a better way to trigger the global handler after a random element click
+		el.click();
+		__globalMouseButtonHandler(el);
+	};
+
 	var __goFullScreenWindow = function(el_win) {
 		// Safari/Firefox:
 		//  - https://github.com/whatwg/fullscreen/pull/232
 		//  - https://github.com/mozilla/standards-positions/issues/196
 		//  - https://github.com/whatwg/fullscreen/issues/231
 		//  - https://bugzilla.mozilla.org/show_bug.cgi?id=700123
+		//
+		// Firefox doesn't catch Alt+Tab:
+		//  - https://bugzilla.mozilla.org/show_bug.cgi?id=2068831
 		if (document.documentElement.requestFullscreen && !$$("window-full-tab").length) {
-			document.documentElement.requestFullscreen().then(function() {
+			let fs_lock = false;
+			let options = {
+				get keyboardLock() { fs_lock = true; return "browser"; }, // eslint-disable-line quote-props
+			};
+			document.documentElement.requestFullscreen(options).then(function() {
 				self.setFullTabWindow(el_win, true);
 				__activateWindow(el_win); // Почему-то теряется фокус
-				if (navigator.keyboard && navigator.keyboard.lock) {
+				if (!fs_lock && navigator.keyboard && navigator.keyboard.lock) {
 					navigator.keyboard.lock();
-				} else {
+				} else if (!fs_lock) {
 					setTimeout(function() {
 						let html = (
 							"Shortcuts like Alt+Tab and Ctrl+W might not be captured.<br>"
@@ -473,7 +484,6 @@ function __WindowManager() {
 		if (all_hidden) {
 			__activateLastWindow();
 		}
-		__catch_menu_esc = !all_hidden;
 	};
 
 	var __closeAllMenues = function() {
@@ -483,7 +493,6 @@ function __WindowManager() {
 			tools.hidden.setVisible(el_menu, false);
 			el_menu.style.removeProperty("right");
 		}
-		__catch_menu_esc = false;
 	};
 
 	var __focusInOut = function(el, focus_in) {
@@ -499,21 +508,21 @@ function __WindowManager() {
 		return el_parent;
 	};
 
-	var __globalMouseButtonHandler = function(ev) {
-		if (ev.target.closest(".modal-window")) {
+	var __globalMouseButtonHandler = function(el) {
+		if (el.closest(".modal-window")) {
 			// Игнорировать клики внутри модального окна
 			return;
 		}
 
-		if (ev.target.closest(".modal")) {
+		if (el.closest(".modal")) {
 			// Клик по модальному полю возвращает фокус в окно
-			__activateWindow(ev.target.closest(".modal"));
+			__activateWindow(el.closest(".modal"));
 			return;
 		}
 
 		if (
-			ev.target.closest(".menu-button")
-			|| (ev.target.closest(".menu") && !ev.target.closest("[data-wm-menu-force-hide]"))
+			el.closest(".menu-button")
+			|| (el.closest(".menu") && !el.closest("[data-wm-menu-force-hide]"))
 		) {
 			// Клик по кнопке вызова меню обрабатывается явно.
 			// Клик по чему-то внутри меню игнорируется, если это что-то не имеет data-wm-menu-force-hide.
@@ -526,8 +535,8 @@ function __WindowManager() {
 			// судя по всему оно прерывается при закрытии меню.
 			// Откладываем обработку.
 			if (
-				!ev.target.hasAttribute("data-wm-navbar-show")
-				&& !ev.target.closest("#navbar") // Игнорируем клики по навбару
+				!el.hasAttribute("data-wm-navbar-show")
+				&& !el.closest("#navbar") // Игнорируем клики по навбару
 				&& $$("window-full-tab").length // Только если у нас вообще есть распахнутые окна
 			) {
 				__setNavbarVisible(false);

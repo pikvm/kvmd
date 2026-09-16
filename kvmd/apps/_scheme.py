@@ -55,6 +55,7 @@ from ..validators.auth import valid_users_list
 from ..validators.auth import valid_expire
 
 from ..validators.os import valid_abs_path
+from ..validators.os import valid_printable_filename
 from ..validators.os import valid_unix_mode
 from ..validators.os import valid_options
 from ..validators.os import valid_command
@@ -84,7 +85,6 @@ from ..validators.ugpio import valid_ugpio_channel
 from ..validators.ugpio import valid_ugpio_mode
 
 from ..validators.hw import valid_tty_speed
-from ..validators.hw import valid_otg_gadget
 from ..validators.hw import valid_otg_id
 from ..validators.hw import valid_otg_ethernet
 
@@ -263,6 +263,23 @@ def patch_dynamic(  # pylint: disable=too-many-locals
 
 def make_config_scheme() -> dict:
     return {
+        "clients": {
+            "kvmd": {
+                "timeout": Option(5.0, type=valid_float_f01),
+            },
+            "nbd": {
+                "timeout": Option(5.0, type=valid_float_f01),
+            },
+            "pst": {
+                "timeout": Option(5.0, type=valid_float_f01),
+            },
+            "streamer": {
+                "http": {
+                    "timeout": Option(5.0, type=valid_float_f01),
+                },
+            },
+        },
+
         "kvmd": {
             "server": {
                 "unix":              Option("/run/kvmd/kvmd.sock", type=valid_abs_path, unpack_as="unix_path"),
@@ -278,10 +295,12 @@ def make_config_scheme() -> dict:
                 "expire":  Option(0,    type=valid_expire),
                 "extend":  Option(False, type=valid_bool),
 
+                "allow_redirects": Option(["/", "/kvm", "/kvm/"], type=valid_string_list),
+
                 "usc": {
                     "users":       Option([], type=valid_users_list),  # PiKVM username has a same regex as a UNIX username
                     "groups":      Option([], type=valid_users_list),  # groupname has a same regex as a username
-                    "kvmd_users":  Option([], type=valid_users_list),  # Internal users
+                    "kvmd_users":  Option(["root"], type=valid_users_list),  # Internal users
                     "kvmd_groups": Option(["kvmd-selfauth"], type=valid_users_list),  # Internal groups
                 },
 
@@ -377,10 +396,14 @@ def make_config_scheme() -> dict:
                 },
 
                 "h264_gop": {
-                    "default": Option(30, type=valid_stream_h264_gop, unpack_as="h264_gop"),
+                    "default": Option(0,  type=valid_stream_h264_gop, unpack_as="h264_gop"),
                     "min":     Option(0,  type=valid_stream_h264_gop, unpack_as="h264_gop_min"),
                     "max":     Option(60, type=valid_stream_h264_gop, unpack_as="h264_gop_max"),
                 },
+
+                "h264_boost":  Option(False, type=valid_bool),
+                "slowdown":    Option(False, type=valid_bool),
+                "passthrough": Option(False, type=valid_bool),
 
                 "unix":    Option("/run/kvmd/ustreamer.sock", type=valid_abs_path, unpack_as="unix_path"),
                 "timeout": Option(2.0, type=valid_float_f01),
@@ -431,8 +454,8 @@ def make_config_scheme() -> dict:
             },
 
             "switch": {
-                "device":            Option("/dev/kvmd-switch", type=valid_abs_path, unpack_as="device_path"),
-                "default_edid":      Option("/etc/kvmd/switch-edid.hex", type=valid_abs_path, unpack_as="default_edid_path"),
+                "device":            Option("/dev/kvmd-switch", type=valid_abs_path),
+                "default_edid":      Option("/etc/kvmd/switch-edid.hex", type=valid_abs_path),
                 "ignore_hpd_on_top": Option(False, type=valid_bool),
             },
         },
@@ -494,8 +517,7 @@ def make_config_scheme() -> dict:
             "max_power":      Option(250,    type=valid_number.mk(min=50, max=500)),
             "remote_wakeup":  Option(True,   type=valid_bool),
 
-            "gadget":     Option("kvmd", type=valid_otg_gadget),
-            "udc":        Option("",     type=valid_stripped_string),
+            "udc":        Option("",     type=valid_printable_filename, if_empty=""),
             "endpoints":  Option(9,      type=valid_int_f0),
             "init_delay": Option(3.0,    type=valid_float_f01),
 
@@ -518,6 +540,7 @@ def make_config_scheme() -> dict:
                 "msd": {
                     "start": Option(True, type=valid_bool),
                     "default": {
+                        "file":      Option("",    type=valid_abs_path, if_empty="", unpack_as="image_path"),
                         "stall":     Option(False, type=valid_bool),
                         "cdrom":     Option(True,  type=valid_bool),
                         "rw":        Option(False, type=valid_bool),
@@ -554,6 +577,22 @@ def make_config_scheme() -> dict:
                 "audio": {
                     "enabled":  Option(False, type=valid_bool),
                     "start":    Option(True,  type=valid_bool),
+                    "speakers": {
+                        "enabled": Option(False, type=valid_bool),
+                    },
+                    "mic": {
+                        "enabled": Option(True, type=valid_bool),
+                    },
+                },
+
+                "camera": {
+                    "enabled": Option(False, type=valid_bool),
+                    "start":   Option(True,  type=valid_bool),
+                    "safe":    Option(False, type=valid_bool),
+                    "controls": {
+                        "ct_mask": Option(0x00000E, type=valid_number.mk(min=0, max=0xFFFFFF)),
+                        "pu_mask": Option(0x175B,   type=valid_number.mk(min=0, max=0xFFFF)),
+                    },
                 },
 
                 "drives": {
@@ -636,16 +675,25 @@ def make_config_scheme() -> dict:
             },
         },
 
+        "nbd": {
+            "server": {
+                "unix":              Option("/run/kvmd/nbd.sock", type=valid_abs_path, unpack_as="unix_path"),
+                "unix_rm":           Option(True,  type=valid_bool),
+                "unix_mode":         Option(0o660, type=valid_unix_mode, hint=Hint.OCT),
+                "heartbeat":         Option(15.0,  type=valid_float_f01),
+                "access_log_format": Option("[%P / %{X-Real-IP}i] '%r' => %s; size=%b ---"
+                                            " referer='%{Referer}i'; user_agent='%{User-Agent}i'"),
+            },
+
+            "device":       Option("/dev/kvmd-nbd", type=valid_abs_path),
+            "use_blkroset": Option(False, type=valid_bool),
+        },
+
         "ipmi": {
             "server": {
                 "host":    Option("",   type=valid_ip_or_host, if_empty=""),
                 "port":    Option(623,  type=valid_port),
                 "timeout": Option(10.0, type=valid_float_f01),
-            },
-
-            "kvmd": {
-                "unix":    Option("/run/kvmd/kvmd.sock", type=valid_abs_path, unpack_as="unix_path"),
-                "timeout": Option(5.0, type=valid_float_f01),
             },
 
             "auth": {
@@ -689,16 +737,6 @@ def make_config_scheme() -> dict:
                 },
             },
 
-            "kvmd": {
-                "unix":    Option("/run/kvmd/kvmd.sock", type=valid_abs_path, unpack_as="unix_path"),
-                "timeout": Option(5.0, type=valid_float_f01),
-            },
-
-            "streamer": {
-                "unix":    Option("/run/kvmd/ustreamer.sock", type=valid_abs_path, unpack_as="unix_path"),
-                "timeout": Option(5.0, type=valid_float_f01),
-            },
-
             "memsink": {
                 "jpeg": {
                     "sink":             Option("",  unpack_as="obj"),
@@ -722,13 +760,6 @@ def make_config_scheme() -> dict:
                 "vencrypt": {
                     "enabled": Option(True, type=valid_bool, unpack_as="vencrypt_enabled"),
                 },
-            },
-        },
-
-        "localhid": {
-            "kvmd": {
-                "unix":    Option("/run/kvmd/kvmd.sock", type=valid_abs_path, unpack_as="unix_path"),
-                "timeout": Option(5.0, type=valid_float_f01),
             },
         },
 
@@ -780,19 +811,16 @@ def make_config_scheme() -> dict:
         },
 
         "oled": {
-            "width":      Option(128,   type=valid_int_f1),
-            "height":     Option(32,    type=valid_int_f1),
-            "rotate":     Option(0,     type=valid_number.mk(min=0, max=3)),
-            "fahrenheit": Option(False, type=valid_bool),
+            "width":  Option(128, type=valid_int_f1),
+            "height": Option(32,  type=valid_int_f1),
+            "rotate": Option(0,   type=valid_number.mk(min=0, max=3)),
+
+            "fahrenheit":  Option(False, type=valid_bool),
+            "credentials": Option("/run/kvmd/creds.json", type=valid_abs_path),
 
             "contrast": {
                 "low":    Option(1,  type=valid_number.mk(min=0, max=255)),
                 "normal": Option(64, type=valid_number.mk(min=0, max=255)),
-            },
-
-            "kvmd": {
-                "unix":    Option("/run/kvmd/kvmd.sock", type=valid_abs_path, unpack_as="unix_path"),
-                "timeout": Option(5.0, type=valid_float_f01),
             },
         },
     }

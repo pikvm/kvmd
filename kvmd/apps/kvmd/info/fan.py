@@ -64,7 +64,7 @@ class FanInfoSubmanager(BaseInfoSubmanager):
     async def trigger_state(self) -> None:
         self.__notifier.notify(1)
 
-    async def poll_state(self) -> AsyncGenerator[(dict | None), None]:
+    async def poll_state(self) -> AsyncGenerator[(dict | None)]:
         prev: dict = {}
         while True:
             if self.__unix_path:

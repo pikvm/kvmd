@@ -82,7 +82,7 @@ class SystemInfoSubmanager(BaseInfoSubmanager):
     async def trigger_state(self) -> None:
         self.__notifier.notify()
 
-    async def poll_state(self) -> AsyncGenerator[(dict | None), None]:
+    async def poll_state(self) -> AsyncGenerator[(dict | None)]:
         while True:
             await self.__notifier.wait()
             yield (await self.get_state())
@@ -106,7 +106,7 @@ class SystemInfoSubmanager(BaseInfoSubmanager):
             parsed: dict[str, str] = {}
             for row in text.split("\n"):
                 row = row.strip()
-                if row:
+                if "=" in row:
                     (key, value) = row.split("=", 1)
                     parsed[key.strip()] = value.strip()
             return {

@@ -69,14 +69,12 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
         self.__state_flags = aiomulti.AioSharedFlags({"online": True, **initial_state}, notifier)
         self.__stop_event = multiprocessing.Event()
 
-        self.__udc_state_path = ""
         self.__fd = -1
         self.__no_device_reported = False
 
         self.__logger: (logging.Logger | None) = None
 
-    def start(self, udc: str) -> None:  # type: ignore  # pylint: disable=arguments-differ
-        self.__udc_state_path = usb.get_udc_path(udc, usb.U_STATE)
+    def start(self) -> None:
         self.__proc.start()
 
     def __subprocess(self) -> None:  # pylint: disable=too-many-branches
@@ -96,9 +94,10 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
                         # если оно было отключено физически. См:
                         #    - https://github.com/raspberrypi/linux/issues/3870
                         #    - https://github.com/raspberrypi/linux/pull/3151
+                        #    - https://github.com/raspberrypi/linux/commit/61b7f805dc2fd364e0df682de89227e94ce88e2
                         # Так что нам нужно проверять состояние контроллера, чтобы не спамить
                         # в устройство и отслеживать его состояние.
-                        if not self.__is_udc_configured():
+                        if not usb.is_udc_configured():
                             self.__state_flags.update(online=False)
                     else:
                         # Посылка свежих репортов важнее старого
@@ -127,7 +126,7 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
 
     # =====
 
-    def _process_event(self, event: BaseEvent) -> Generator[bytes, None, None]:
+    def _process_event(self, event: BaseEvent) -> Generator[bytes]:
         _ = event
         if self is not None:  # XXX: Vulture and pylint hack
             raise NotImplementedError()
@@ -168,10 +167,6 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
             return self.__logger
         return get_logger()
 
-    def __is_udc_configured(self) -> bool:
-        with open(self.__udc_state_path) as file:
-            return (file.read().strip().lower() == "configured")
-
     def __write_report(self, report: bytes) -> bool:
         assert report
 
@@ -183,21 +178,16 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
 
         try:
             written = os.write(self.__fd, report)
+        except Exception as ex:
+            if not tools.is_oserror(ex, errno.EAGAIN, errno.ESHUTDOWN):
+                logger.exception("Can't write report to HID-%s", self.__name)
+        else:
             if written == len(report):
                 self.__state_flags.update(online=True)
                 return True
             else:
                 logger.error("HID-%s write() error: written (%s) != report length (%d)",
                              self.__name, written, len(report))
-        except Exception as ex:
-            if isinstance(ex, OSError) and (
-                # https://github.com/raspberrypi/linux/commit/61b7f805dc2fd364e0df682de89227e94ce88e2
-                ex.errno == errno.EAGAIN  # pylint: disable=no-member
-                or ex.errno == errno.ESHUTDOWN  # pylint: disable=no-member
-            ):
-                logger.debug("HID-%s busy/unplugged (write): %s", self.__name, tools.efmt(ex))
-            else:
-                logger.exception("Can't write report to HID-%s", self.__name)
 
         self.__state_flags.update(online=False)
         return False
@@ -221,12 +211,7 @@ class BaseDeviceProcess:  # pylint: disable=too-many-instance-attributes
                 try:
                     report = os.read(self.__fd, self.__read_size)
                 except Exception as ex:
-                    if isinstance(ex, OSError) and (
-                        ex.errno == errno.EAGAIN  # pylint: disable=no-member
-                        or ex.errno == errno.ESHUTDOWN  # pylint: disable=no-member
-                    ):
-                        logger.debug("HID-%s busy/unplugged (read): %s", self.__name, tools.efmt(ex))
-                    else:
+                    if not tools.is_oserror(ex, errno.EAGAIN, errno.ESHUTDOWN):
                         logger.exception("Can't read report from HID-%s", self.__name)
                 else:
                     self._process_read_report(report)
