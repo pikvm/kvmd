@@ -4,9 +4,7 @@ Before=kvmd.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/bash -c 'echo performance > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor'
-ExecStop=/usr/bin/bash -c 'echo schedutil > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor'
-RemainAfterExit=true
+ExecStart=/usr/bin/bash -c 'f=/sys/devices/system/cpu/cpufreq/policy0/scaling_governor && chown root:kvmd $f && chmod 664 $f'
 
 [Install]
 WantedBy=multi-user.target

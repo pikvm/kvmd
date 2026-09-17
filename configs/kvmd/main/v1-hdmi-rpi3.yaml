@@ -42,6 +42,8 @@ kvmd:
             - "--process-name-prefix={process_name_prefix}"
             - "--notify-parent"
             - "--no-log-colors"
+            - "--cpu-scaling-governor-idle=schedutil"
+            - "--cpu-scaling-governor-active=performance"
             - "--jpeg-sink=kvmd::ustreamer::jpeg"
             - "--jpeg-sink-mode=0660"
             - "--h264-sink=kvmd::ustreamer::h264"

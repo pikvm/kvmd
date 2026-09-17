@@ -46,4 +46,12 @@ post_upgrade() {
 			fi
 		fi
 	fi
+
+	if [[ "$(vercmp "$2" 4.216)" -lt 0 ]]; then
+		# shellcheck source=/dev/null
+		source /usr/lib/kvmd/platform
+		if [[ "$PIKVM_VIDEO" = hdmi ]]; then
+			systemctl enable kvmd-pm || true
+		fi
+	fi
 }

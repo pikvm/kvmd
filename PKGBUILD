@@ -99,7 +99,7 @@ depends=(
 	certbot
 	"raspberrypi-io-access>=0.9"
 	raspberrypi-utils
-	"ustreamer>=6.47"
+	"ustreamer>=6.67"
 
 	# Bootconfig
 	dos2unix
