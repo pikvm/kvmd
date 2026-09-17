@@ -119,11 +119,14 @@ class _GadgetConfig:
 
         _mkdir(meta_path)
 
-    def add_camera(  # pylint: disable=too-many-locals
+    def add_camera(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
         starter: list[str],
         start: bool,
         safe: bool,
+        resolution: str,
+        streaming_maxpacket: int,
+        streaming_interval: int,
         ct_mask: int,
         pu_mask: int,
     ) -> None:
@@ -158,9 +161,14 @@ class _GadgetConfig:
         func = "uvc.usb0"
         func_path = self.__create_function(func)
 
+        def interval(fps: int) -> int:
+            return math.floor(1 / fps * 10_000_000)  # 30 -> 333333, 100ns units
+
         _mkdir(join(func_path, "streaming/mjpeg/m"))
-        for (width, height, framerates) in [  # TODO: Make it configurable
-            # (1920, 1080, [30, 24, 20, 15, 10, 5]),
+        index = 0
+        default_index = 0
+        for (width, height, framerates) in [
+            (1920, 1080, [30, 24, 20, 15, 10, 5]),
             (1280, 720,  [30, 24, 20, 15, 10, 5]),
             (1024, 768,  [30, 24, 20, 15, 10, 5]),
             (1024, 576,  [30, 24, 20, 15, 10, 5]),
@@ -178,15 +186,27 @@ class _GadgetConfig:
         ]:
             if not framerates or (safe and width > 640):
                 continue
+            index += 1
+            if f"{width}x{height}" == resolution:
+                default_index = index
             fmt_path = join(func_path, f"streaming/mjpeg/m/{width}x{height}")
             _mkdir(fmt_path)
             _write(join(fmt_path, "wWidth"), width)
             _write(join(fmt_path, "wHeight"), height)
             _write(join(fmt_path, "dwMaxVideoFrameBufferSize"), width * height)  # Should be fine
             _write(join(fmt_path, "dwFrameInterval"), "\n".join(
-                str(math.floor(1 / fps * 10_000_000))  # 30 -> 333333, 100ns units
+                str(interval(fps))
                 for fps in framerates
             ))
+            # Without these the kernel keeps its own defaults, which describe
+            # a 640x360 frame at 15 FPS no matter what we have configured
+            _write(join(fmt_path, "dwDefaultFrameInterval"), interval(max(framerates)))
+            _write(join(fmt_path, "dwMinBitRate"), width * height * min(framerates))  # ~1 bit per pixel
+            _write(join(fmt_path, "dwMaxBitRate"), width * height * max(framerates) * 2)
+        if default_index > 0:
+            _write(join(func_path, "streaming/mjpeg/m/bDefaultFrameIndex"), default_index)
+        elif not safe:  # The safe mode may drop the requested resolution, keep the kernel's default then
+            raise RuntimeError(f"No such OTG camera resolution: {resolution}")
 
         path = join(func_path, "streaming/header/h")
         _mkdir(path)
@@ -205,8 +225,12 @@ class _GadgetConfig:
         ]:
             _write(join(func_path, path), "\n".join(map(str, mask.to_bytes(mask_len, "little"))))
 
-        _write(join(func_path, "streaming_maxpacket"), 1024)
-        _write(join(func_path, "streaming_interval"), 4)
+        # The isochronous budget is maxpacket bytes every 2^(interval-1) microframes (125us),
+        # so the defaults give ~1 MB/s, enough for 720p with a moderate picture. 1080p needs
+        # interval 1 (8 MB/s with 1024), at the price of the kernel having to serve
+        # the endpoint every single microframe.
+        _write(join(func_path, "streaming_maxpacket"), streaming_maxpacket)
+        _write(join(func_path, "streaming_interval"), streaming_interval)
 
         self.__setup_function(func, "Camera", 2, starter, start)  # TODO: Check eps number
 
@@ -471,7 +495,11 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     if cod.camera.enabled:
         logger.info("===== Camera =====")
-        gc.add_camera(["camera"], cod.camera.start, cod.camera.safe, cod.camera.controls.ct_mask, cod.camera.controls.pu_mask)
+        gc.add_camera(
+            ["camera"], cod.camera.start, cod.camera.safe, cod.camera.resolution,
+            cod.camera.streaming.maxpacket, cod.camera.streaming.interval,
+            cod.camera.controls.ct_mask, cod.camera.controls.pu_mask,
+        )
 
     logger.info("===== Preparing complete =====")
 

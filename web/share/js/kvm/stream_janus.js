@@ -61,6 +61,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __has_camera = false;
 	var __use_camera = null;
 	var __camera_req = null;
+	var __camera_relaxed = null; // The resolution the selected webcam refused to capture exactly
+	var __camera_track = null;
+	var __camera_frames = null;
 
 	var __orient = 0;
 
@@ -181,6 +184,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			if (camera) {
 				__refillDevices("camera", camera, function(id) {
 					__use_camera = id;
+					__camera_relaxed = null;
 					if (__has_camera) {
 						__destroyJanus();
 					}
@@ -254,6 +258,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	self.stopStream = function() {
 		__fix_zero_h264_gop = null;
 		__stop = true;
+		__setCameraTrack(null);
 		__destroyJanus();
 		if (__resize_listener_installed) {
 			$("stream-video").removeEventListener("resize", __videoResizeHandler);
@@ -334,6 +339,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __destroyJanus = function() {
 		__audio_vu.detach();
 		__mic_vu.detach();
+		__setCameraTrack(null);
 		if (__janus !== null) {
 			__janus.destroy();
 		}
@@ -487,11 +493,20 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						// Помогают пляски в onlocaltrack.
 						let w = __camera_req.resolution.width;
 						let h = __camera_req.resolution.height;
-						camera = {
-							"width": {"min": w, "ideal": w, "max": w},
-							"height": {"min": h, "ideal": h, "max": h},
-							"frameRate": {"ideal": __camera_req.fps, "max": 30},
-						};
+						if (__camera_relaxed === `${w}x${h}`) {
+							// The webcam can't do exactly what the guest asked for, take the closest mode it has
+							camera = {
+								"width": {"ideal": w},
+								"height": {"ideal": h},
+								"frameRate": {"ideal": __camera_req.fps, "max": 30},
+							};
+						} else {
+							camera = {
+								"width": {"min": w, "ideal": w, "max": w},
+								"height": {"min": h, "ideal": h, "max": h},
+								"frameRate": {"ideal": __camera_req.fps, "max": 30},
+							};
+						}
 						if (__use_camera !== ".__default__") {
 							camera["deviceId"] = {"exact": __use_camera};
 						}
@@ -524,11 +539,19 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 							let restart = function() {
 								try {
 									if (error?.name === "OverconstrainedError") {
-										if (__has_mic && __use_mic) {
-											self.setMicDevice(".__default__", true);
-										}
-										if (__has_camera && __use_camera) {
-											self.setCameraDevice(".__default__", true);
+										let res = (__camera_req ? `${__camera_req.resolution.width}x${__camera_req.resolution.height}` : null);
+										if (res !== null && __camera_relaxed !== res && !["deviceId", "groupId"].includes(error.constraint)) {
+											// Retry with the resolution as a wish instead of a demand before giving up on the device,
+											// otherwise a webcam without this mode keeps failing and restarting forever
+											__logInfo(`The webcam refused ${res} (${error.constraint || "unknown constraint"}), relaxing ...`);
+											__camera_relaxed = res;
+										} else {
+											if (__has_mic && __use_mic) {
+												self.setMicDevice(".__default__", true);
+											}
+											if (__has_camera && __use_camera) {
+												self.setCameraDevice(".__default__", true);
+											}
 										}
 									}
 								} finally {
@@ -566,12 +589,18 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 					if (__handle?.webrtcStuff?.pc) {
 						for (let sender of __handle.webrtcStuff.pc.getSenders()) {
 							if (sender.track === track) {
-								if (tools.browser.is_mobile) {
+								let res = __camera_req.resolution;
+								let st = track.getSettings();
+								let fits = (st.width === res.width && st.height === res.height);
+								if (tools.browser.is_mobile || (__camera_relaxed === `${res.width}x${res.height}` && !fits)) {
+									// The guest has been promised exactly this resolution and the pipeline
+									// drops anything else, so rotate or scale whatever the webcam gave us
 									try {
-										__logInfo("Patching camera track for auto-rotate ...");
-										let s_track = _makeSmartCameraTrack(track, __camera_req.resolution);
+										__logInfo(`Patching camera track for auto-rotate/scale (${st.width}x${st.height} -> ${res.width}x${res.height}) ...`);
+										let s_track = _makeSmartCameraTrack(track, res);
 										s_track.contentHint = "detail";
 										sender.replaceTrack(s_track);
+										track = s_track;
 									} catch (ex) {
 										__logError("Can't patch camera track:", ex);
 									}
@@ -579,13 +608,14 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 								// Firefox doesn't support contentHint but there is another hack
 								//   - https://bugzilla.mozilla.org/show_bug.cgi?id=1831521
-								let params = sender.getParameters();
-								params.degradationPreference = "maintain-resolution";
-								sender.setParameters(params);
+								__tuneVideoSender(sender, 10);
 								break;
 							}
 						}
 					}
+				}
+				if (track.kind === "video") {
+					__setCameraTrack(added ? track : null);
 				}
 				if (track.kind === "audio") {
 					if (added) {
@@ -700,11 +730,97 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 				}
 			}
 			__setInfo(true, __isOnline(), info);
+			__updateCameraInfo();
 		}
 	};
 
 	var __isOnline = function() {
 		return !!(__state && __state.source.online);
+	};
+
+	var __setCameraTrack = function(track) {
+		__camera_track = track;
+		__camera_frames = null;
+		if (track === null) {
+			$("stream-camera-resolution").textContent = "";
+		} else {
+			__updateCameraInfo();
+		}
+	};
+
+	var __updateCameraInfo = function() {
+		let track = __camera_track;
+		if (track === null) {
+			return;
+		}
+		let sender = (__handle?.webrtcStuff?.pc?.getSenders() || []).find(item => (item.track === track));
+		if (sender === undefined) {
+			return;
+		}
+		sender.getStats().then(function(stats) {
+			if (__camera_track !== track) {
+				return; // The camera was switched off while we were waiting for the stats
+			}
+			let rtp = null;
+			stats.forEach(function(report) {
+				if (report.type === "outbound-rtp" && report.kind === "video") {
+					rtp = report;
+				}
+			});
+			// Prefer what is actually being encoded and sent: WebRTC can downscale
+			// the capture, and Firefox reports incomplete settings for some devices
+			let st = track.getSettings();
+			let width = (rtp?.frameWidth || st.width || __camera_req?.resolution.width || 0);
+			let height = (rtp?.frameHeight || st.height || __camera_req?.resolution.height || 0);
+			let fps = __getCameraFps(rtp);
+			$("stream-camera-resolution").textContent = (
+				width > 0 && height > 0
+					? `${width}x${height}` + (fps === null ? "" : `@${fps}`)
+					: ""
+			);
+		}).catch(function(ex) {
+			__logError("Can't get the camera stats:", ex);
+		});
+	};
+
+	var __getCameraFps = function(rtp) {
+		if (rtp === null) {
+			return null;
+		}
+		if (rtp.framesPerSecond !== undefined) {
+			return Math.round(rtp.framesPerSecond);
+		}
+		// Firefox doesn't count the frame rate for us, so measure it between the polls
+		if (rtp.framesSent === undefined) {
+			return null;
+		}
+		let prev = __camera_frames;
+		__camera_frames = {"frames": rtp.framesSent, "ts": rtp.timestamp};
+		if (prev === null || rtp.timestamp <= prev.ts) {
+			return null;
+		}
+		return Math.round((rtp.framesSent - prev.frames) * 1000 / (rtp.timestamp - prev.ts));
+	};
+
+	var __tuneVideoSender = function(sender, attempts) {
+		// Until the negotiation is complete getParameters() returns no encodings,
+		// and setParameters() rejects any change of their number, so retry a bit
+		let params = sender.getParameters();
+		if (!params.encodings || params.encodings.length === 0) {
+			if (attempts > 0 && sender.track) {
+				setTimeout(() => __tuneVideoSender(sender, attempts - 1), 500);
+			}
+			return;
+		}
+		params.degradationPreference = "maintain-resolution";
+		// The default cap (2.5 Mbps on Chrome, ~1 Mbps on Firefox) starves 1080p30
+		// and the webcam looks like upscaled SD no matter the resolution
+		params.encodings[0].maxBitrate = 8 * 1000 * 1000;
+		sender.setParameters(params).then(function() {
+			__logInfo("Installed degradationPreference=maintain-resolution, maxBitrate:", sender.track);
+		}).catch(function(ex) {
+			__logError("Can't tune the video sender:", ex);
+		});
 	};
 
 	var __sendWatch = function() {
@@ -800,7 +916,7 @@ function _makeSmartCameraTrack(track, res) {
 				}
 			}
 			this.__ts = performance.now();
-			if (this.__el_video.videoWidth == res.width) {
+			if (this.__el_video.videoWidth == res.width && this.__el_video.videoHeight == res.height) {
 				this.__ctx.drawImage(this.__el_video, 0, 0);
 			} else if (this.__el_video.videoWidth == res.height) {
 				const sw = this.__el_video.videoWidth; // Source
@@ -817,6 +933,19 @@ function _makeSmartCameraTrack(track, res) {
 					sw, th, // Source size
 					0, 0, // Dest (x,y)
 					dw, dh); // Dest size
+			} else {
+				// Some other mode of the webcam: scale it to fill the frame, cropping the excess
+				const sw = this.__el_video.videoWidth;
+				const sh = this.__el_video.videoHeight;
+				const scale = Math.max(res.width / sw, res.height / sh);
+				const cw = res.width / scale; // Cropped source size
+				const ch = res.height / scale;
+				this.__ctx.drawImage(
+					this.__el_video,
+					(sw - cw) / 2, (sh - ch) / 2, // Source (x,y)
+					cw, ch, // Source size
+					0, 0, // Dest (x,y)
+					res.width, res.height); // Dest size
 			}
 			controller.enqueue(new VideoFrame(canvas, {"timestamp": this.__ts}));
 		},
