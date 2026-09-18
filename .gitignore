@@ -19,4 +19,3 @@
 *.pyc
 *.swp
 /venv/
-*.code-workspace
