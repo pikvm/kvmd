@@ -36,93 +36,79 @@ Escape 0x01
 # evdev 2 (0x2), QKeyCode "1", number 0x2
 plus 0x02
 1 0x02 shift
-exclam 0x02 altgr
-dead_tilde 0x02 shift altgr
+asciitilde 0x02 altgr
 
 # evdev 3 (0x3), QKeyCode "2", number 0x3
 ecaron 0x03
 2 0x03 shift
-at 0x03 altgr
-dead_caron 0x03 shift altgr
+caron 0x03 altgr
 
 # evdev 4 (0x4), QKeyCode "3", number 0x4
 scaron 0x04
 3 0x04 shift
-numbersign 0x04 altgr
-dead_circumflex 0x04 shift altgr
+asciicircum 0x04 altgr
 
 # evdev 5 (0x5), QKeyCode "4", number 0x5
 ccaron 0x05
 4 0x05 shift
-dollar 0x05 altgr
-dead_breve 0x05 shift altgr
+breve 0x05 altgr
 
 # evdev 6 (0x6), QKeyCode "5", number 0x6
 rcaron 0x06
 5 0x06 shift
-percent 0x06 altgr
-dead_abovering 0x06 shift altgr
+degree 0x06 altgr
 
 # evdev 7 (0x7), QKeyCode "6", number 0x7
 zcaron 0x07
 6 0x07 shift
-asciicircum 0x07 altgr
-dead_ogonek 0x07 shift altgr
+ogonek 0x07 altgr
 
 # evdev 8 (0x8), QKeyCode "7", number 0x8
 yacute 0x08
 7 0x08 shift
-ampersand 0x08 altgr
-dead_grave 0x08 shift altgr
+grave 0x08 altgr
 
 # evdev 9 (0x9), QKeyCode "8", number 0x9
 aacute 0x09
 8 0x09 shift
-asterisk 0x09 altgr
-dead_abovedot 0x09 shift altgr
+periodcentered 0x09 altgr
+# abovedot 0x09 shift altgr
 
 # evdev 10 (0xa), QKeyCode "9", number 0xa
 iacute 0x0a
 9 0x0a shift
-braceleft 0x0a altgr
-dead_acute 0x0a shift altgr
+acute 0x0a altgr
 
 # evdev 11 (0xb), QKeyCode "0", number 0xb
 eacute 0x0b
 0 0x0b shift
-braceright 0x0b altgr
-dead_doubleacute 0x0b shift altgr
+doubleacute 0x0b altgr
 
-# evdev 12 (0xc), QKeyCode "minus", number 0xc
+# evdev 12 (0xc), QKeyCode "equal", number 0xc
 equal 0x0c
 percent 0x0c shift
-backslash 0x0c altgr
-dead_diaeresis 0x0c shift altgr
+dead_diaeresis 0x0c altgr
 
-# evdev 13 (0xd), QKeyCode "equal", number 0xd
-dead_acute 0x0d
+# evdev 13 (0xd), QKeyCode "apostrophe", number 0xd
+apostrophe 0x0d
 dead_caron 0x0d shift
-dead_macron 0x0d altgr
-dead_cedilla 0x0d shift altgr
+cedilla 0x0d altgr
 
 # evdev 14 (0xe), QKeyCode "backspace", number 0xe
 BackSpace 0x0e
 
 # evdev 15 (0xf), QKeyCode "tab", number 0xf
 Tab 0x0f
-ISO_Left_Tab 0x0f shift
 
 # evdev 16 (0x10), QKeyCode "q", number 0x10
 q 0x10
 Q 0x10 shift
 backslash 0x10 altgr
-Greek_OMEGA 0x10 shift altgr
 
 # evdev 17 (0x11), QKeyCode "w", number 0x11
 w 0x11
 W 0x11 shift
 bar 0x11 altgr
-Lstroke 0x11 shift altgr
 
 # evdev 18 (0x12), QKeyCode "e", number 0x12
 e 0x12
@@ -132,56 +118,40 @@ EuroSign 0x12 altgr
 # evdev 19 (0x13), QKeyCode "r", number 0x13
 r 0x13
 R 0x13 shift
-paragraph 0x13 altgr
-registered 0x13 shift altgr
 
 # evdev 20 (0x14), QKeyCode "t", number 0x14
 t 0x14
 T 0x14 shift
-tslash 0x14 altgr
-Tslash 0x14 shift altgr
 
 # evdev 21 (0x15), QKeyCode "y", number 0x15
 z 0x15
 Z 0x15 shift
-leftarrow 0x15 altgr
-yen 0x15 shift altgr
 
 # evdev 22 (0x16), QKeyCode "u", number 0x16
 u 0x16
 U 0x16 shift
-downarrow 0x16 altgr
-uparrow 0x16 shift altgr
 
 # evdev 23 (0x17), QKeyCode "i", number 0x17
 i 0x17
 I 0x17 shift
-rightarrow 0x17 altgr
-idotless 0x17 shift altgr
 
 # evdev 24 (0x18), QKeyCode "o", number 0x18
 o 0x18
 O 0x18 shift
-oslash 0x18 altgr
-Oslash 0x18 shift altgr
 
 # evdev 25 (0x19), QKeyCode "p", number 0x19
 p 0x19
 P 0x19 shift
-thorn 0x19 altgr
-THORN 0x19 shift altgr
 
 # evdev 26 (0x1a), QKeyCode "bracket_left", number 0x1a
 uacute 0x1a
 slash 0x1a shift
-bracketleft 0x1a altgr
-division 0x1a shift altgr
+division 0x1a altgr
 
 # evdev 27 (0x1b), QKeyCode "bracket_right", number 0x1b
 parenright 0x1b
 parenleft 0x1b shift
-bracketright 0x1b altgr
-multiply 0x1b shift altgr
+multiply 0x1b altgr
 
 # evdev 28 (0x1c), QKeyCode "ret", number 0x1c
 Return 0x1c
@@ -192,112 +162,90 @@ Control_L 0x1d
 # evdev 30 (0x1e), QKeyCode "a", number 0x1e
 a 0x1e
 A 0x1e shift
-asciitilde 0x1e altgr
-AE 0x1e shift altgr
 
 # evdev 31 (0x1f), QKeyCode "s", number 0x1f
 s 0x1f
 S 0x1f shift
 dstroke 0x1f altgr
-section 0x1f shift altgr
 
 # evdev 32 (0x20), QKeyCode "d", number 0x20
 d 0x20
 D 0x20 shift
 Dstroke 0x20 altgr
-ETH 0x20 shift altgr
 
 # evdev 33 (0x21), QKeyCode "f", number 0x21
 f 0x21
 F 0x21 shift
 bracketleft 0x21 altgr
-ordfeminine 0x21 shift altgr
 
 # evdev 34 (0x22), QKeyCode "g", number 0x22
 g 0x22
 G 0x22 shift
 bracketright 0x22 altgr
-ENG 0x22 shift altgr
 
 # evdev 35 (0x23), QKeyCode "h", number 0x23
 h 0x23
 H 0x23 shift
-grave 0x23 altgr
-Hstroke 0x23 shift altgr
 
 # evdev 36 (0x24), QKeyCode "j", number 0x24
 j 0x24
 J 0x24 shift
-apostrophe 0x24 altgr
-dead_horn 0x24 shift altgr
 
 # evdev 37 (0x25), QKeyCode "k", number 0x25
 k 0x25
 K 0x25 shift
 lstroke 0x25 altgr
-ampersand 0x25 shift altgr
 
 # evdev 38 (0x26), QKeyCode "l", number 0x26
 l 0x26
 L 0x26 shift
 Lstroke 0x26 altgr
 
-# evdev 39 (0x27), QKeyCode "semicolon", number 0x27
+# evdev 39 (0x27), QKeyCode "uring", number 0x27
 uring 0x27
 quotedbl 0x27 shift
 dollar 0x27 altgr
-dead_doubleacute 0x27 shift altgr
 
-# evdev 40 (0x28), QKeyCode "apostrophe", number 0x28
-section 0x28
+# evdev 40 (0x28), QKeyCode "section", number 0x28
+section 0x28 
 exclam 0x28 shift
-apostrophe 0x28 altgr
-ssharp 0x28 shift altgr
+ssharp 0x28 altgr
 
-# evdev 41 (0x29), QKeyCode "grave_accent", number 0x29
+# evdev 41 (0x29), QKeyCode "semicolon", number 0x29
 semicolon 0x29
 dead_abovering 0x29 shift
-grave 0x29 altgr
-asciitilde 0x29 shift altgr
 
 # evdev 42 (0x2a), QKeyCode "shift", number 0x2a
 Shift_L 0x2a
 
-# evdev 43 (0x2b), QKeyCode "backslash", number 0x2b
-dead_diaeresis 0x2b
+# evdev 43 (0x2b), QKeyCode "diaeresis", number 0x2b
+diaeresis 0x2b
 apostrophe 0x2b shift
-backslash 0x2b altgr
-bar 0x2b shift altgr
+currency 0x2b altgr
 
-# evdev 44 (0x2c), QKeyCode "z", number 0x2c
+# evdev 44 (0x2c), QKeyCode "y", number 0x2c
 y 0x2c
 Y 0x2c shift
-degree 0x2c altgr
-less 0x2c shift altgr
 
 # evdev 45 (0x2d), QKeyCode "x", number 0x2d
 x 0x2d
 X 0x2d shift
 numbersign 0x2d altgr
-greater 0x2d shift altgr
 
 # evdev 46 (0x2e), QKeyCode "c", number 0x2e
 c 0x2e
 C 0x2e shift
 ampersand 0x2e altgr
-copyright 0x2e shift altgr
 
 # evdev 47 (0x2f), QKeyCode "v", number 0x2f
 v 0x2f
 V 0x2f shift
 at 0x2f altgr
-leftsinglequotemark 0x2f shift altgr
 
 # evdev 48 (0x30), QKeyCode "b", number 0x30
 b 0x30
 B 0x30 shift
 braceleft 0x30 altgr
-rightsinglequotemark 0x30 shift altgr
 
 # evdev 49 (0x31), QKeyCode "n", number 0x31
 n 0x31
@@ -307,26 +255,21 @@ braceright 0x31 altgr
 # evdev 50 (0x32), QKeyCode "m", number 0x32
 m 0x32
 M 0x32 shift
-asciicircum 0x32 altgr
-masculine 0x32 shift altgr
 
 # evdev 51 (0x33), QKeyCode "comma", number 0x33
 comma 0x33
 question 0x33 shift
 less 0x33 altgr
-multiply 0x33 shift altgr
 
 # evdev 52 (0x34), QKeyCode "dot", number 0x34
 period 0x34
 colon 0x34 shift
 greater 0x34 altgr
-division 0x34 shift altgr
 
 # evdev 53 (0x35), QKeyCode "slash", number 0x35
 minus 0x35
 underscore 0x35 shift
 asterisk 0x35 altgr
-dead_abovedot 0x35 shift altgr
 
 # evdev 54 (0x36), QKeyCode "shift_r", number 0x36
 Shift_R 0x36
@@ -435,10 +378,8 @@ KP_Decimal 0x53 numlock
 # evdev 85 (0x55): no evdev -> QKeyCode mapping (xkb keysym NoSymbol)
 
 # evdev 86 (0x56), QKeyCode "less", number 0x56
-backslash 0x56
-bar 0x56 shift
-slash 0x56 altgr
-brokenbar 0x56 shift altgr
+less 0x56
+greater 0x56 shift
 
 # evdev 87 (0x57), QKeyCode "f11", number 0x57
 F11 0x57
