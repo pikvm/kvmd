@@ -78,6 +78,12 @@ def main() -> None:
             force_int_users=config.auth.internal.force_users,
 
             totp_secret_path=config.auth.totp.secret.file,
+
+            flows={
+                k: v._unpack(ignore=["enabled"]) if v.enabled else None
+                for k, v
+                in config.auth.flows.items()
+            },
         ),
         im=InfoManager(global_config),
         log_reader=(LogReader() if config.log_reader.enabled else None),
