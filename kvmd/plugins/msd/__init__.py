@@ -25,6 +25,7 @@ import asyncio
 import contextlib
 import time
 
+from typing import Final
 from typing import Self
 from typing import AsyncGenerator
 from typing import Any
@@ -208,18 +209,18 @@ class BaseMsd(BasePlugin):
 
 
 class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attributes
+    __CHUNK_SIZE: Final[int] = 65536
+
     def __init__(
         self,
         nr: aiotools.AioNotifier,
         name: str,
         path: str,
-        chunk_size: int,
     ) -> None:
 
         self.__nr = nr
         self.__name = name
         self.__path = path
-        self.__chunk_size = chunk_size
 
         self.__file: (aiofiles.base.AiofilesContextManager | None) = None
         self.__file_size = 0
@@ -238,12 +239,12 @@ class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attribu
         return self.__file_size
 
     def get_chunk_size(self) -> int:
-        return self.__chunk_size
+        return self.__CHUNK_SIZE
 
     async def read_chunked(self) -> AsyncGenerator[bytes]:
         assert self.__file is not None
         while True:
-            chunk = await self.__file.read(self.__chunk_size)  # type: ignore
+            chunk = await self.__file.read(self.__CHUNK_SIZE)  # type: ignore
             if not chunk:
                 break
 
@@ -274,22 +275,21 @@ class MsdFileReader(BaseMsdReader):  # pylint: disable=too-many-instance-attribu
 
 
 class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attributes
+    __CHUNK_SIZE: Final[int] = 65536
+    __SYNC_SIZE:  Final[int] = 4194304
+
     def __init__(
         self,
         nr: aiotools.AioNotifier,
         name: str,
         path: str,
         file_size: int,
-        sync_size: int,
-        chunk_size: int,
     ) -> None:
 
         self.__nr = nr
         self.__name = name
         self.__path = path
         self.__file_size = file_size
-        self.__sync_size = sync_size
-        self.__chunk_size = chunk_size
 
         self.__file: (aiofiles.base.AiofilesContextManager | None) = None
         self.__written = 0
@@ -304,7 +304,7 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
         }
 
     def get_chunk_size(self) -> int:
-        return self.__chunk_size
+        return self.__CHUNK_SIZE
 
     async def write_chunk(self, chunk: bytes) -> int:
         assert self.__file is not None
@@ -313,7 +313,7 @@ class MsdFileWriter(BaseMsdWriter):  # pylint: disable=too-many-instance-attribu
         self.__written += len(chunk)
 
         self.__unsynced += len(chunk)
-        if self.__unsynced >= self.__sync_size:
+        if self.__unsynced >= self.__SYNC_SIZE:
             await self.__sync()
             self.__unsynced = 0
 

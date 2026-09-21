@@ -218,7 +218,7 @@ class Storage:
             raise MsdOfflineError()
         return dict(self.__parts)
 
-    async def is_probably_enabled(self) -> bool:
+    async def is_enabled(self) -> bool:
         try:
             root_path = fstab.find_msd().root_path
         except Exception:
