@@ -22,7 +22,6 @@
 # ========================================================================== #
 
 
-import re
 import multiprocessing
 import errno
 import time
@@ -52,16 +51,14 @@ from . import BaseUserGpioDriver
 
 # =====
 class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attributes
-    
-    MIN_CHANNEL = 0
-    MAX_CHANNEL = 3
+    __CH_MIN: Final[int] = 0
+    __CH_MAX: Final[int] = 3
 
     def __init__(
         self,
         instance_name: str,
         notifier: aiotools.AioNotifier,
         c: Section,
-
     ) -> None:
 
         super().__init__(instance_name, notifier, c)
@@ -71,8 +68,8 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__read_timeout: Final[int] = c.read_timeout
 
         self.__ctl_q: aiomulti.AioMpQueue[int] = aiomulti.AioMpQueue()
-        self.__channel_q: aiomulti.AioMpQueue[int | None] = aiomulti.AioMpQueue()
-        self.__channel: (int | None) = -1
+        self.__ch_q: aiomulti.AioMpQueue[int | None] = aiomulti.AioMpQueue()
+        self.__ch: (int | None) = -1
 
         self.__proc = aiomulti.AioMpProcess(f"gpio-gz-hk401x-{self._instance_name}", self.__serial_worker)
         self.__stop_event = multiprocessing.Event()
@@ -80,23 +77,23 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     @classmethod
     def get_plugin_options(cls) -> dict:
         return {
-            "device":       Option("",    type=valid_abs_path, unpack_as="device_path"),
+            "device":       Option("",   type=valid_abs_path),
             "speed":        Option(9600, type=valid_tty_speed),
-            "read_timeout": Option(2.0,   type=valid_float_f01),
+            "read_timeout": Option(2.0,  type=valid_float_f01),
         }
 
     @classmethod
     def get_pin_validator(cls) -> Callable[[Any], Any]:
-        return valid_number.mk(min=0, max=3, name="GZ-HK401x channel")
+        return valid_number.mk(min=cls.__CH_MIN, max=cls.__CH_MAX, name="GZ-HK401x channel")
 
     async def prepare(self) -> None:
         self.__proc.start()
 
     async def run(self) -> None:
         while True:
-            (got, channel) = await self.__channel_q.async_fetch_last(1)
-            if got and self.__channel != channel:
-                self.__channel = channel
+            (got, ch) = await self.__ch_q.async_fetch_last(1)
+            if got and self.__ch != ch:
+                self.__ch = ch
                 self._notifier.notify()
 
     async def cleanup(self) -> None:
@@ -107,7 +104,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     async def read(self, pin: str) -> bool:
         if not self.__is_online():
             raise GpioDriverOfflineError(self)
-        return (self.__channel == int(pin))
+        return (self.__ch == int(pin))
 
     async def write(self, pin: str, state: bool) -> None:
         if not self.__is_online():
@@ -120,7 +117,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
     def __is_online(self) -> bool:
         return (
             self.__proc.is_alive()
-            and self.__channel is not None
+            and self.__ch is not None
         )
 
     def __serial_worker(self) -> None:
@@ -129,24 +126,23 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
             try:
                 with self.__get_serial() as tty:
                     data = b""
-                    self.__channel_q.put_nowait(-1)
+                    self.__ch_q.put_nowait(-1)
 
                     # Wait for first port heartbeat to set correct channel (~2 sec max).
                     # Only for the classic switch with protocol version 1.
 
                     while not self.__stop_event.is_set():
-                        (channel, data) = self.__recv_channel(tty, data)
-                        if channel is not None:
-                            self.__channel_q.put_nowait(channel)
+                        (ch, data) = self.__recv_channel(tty, data)
+                        if ch is not None:
+                            self.__ch_q.put_nowait(ch)
 
-                        (got, channel) = self.__ctl_q.fetch_last(0.1)
+                        (got, ch) = self.__ctl_q.fetch_last(0.1)
                         if got:
-                            assert channel is not None
-                            self.__send_channel(tty, channel)
-                            
+                            assert ch is not None
+                            self.__send_channel(tty, ch)
 
             except Exception as ex:
-                self.__channel_q.put_nowait(None)
+                self.__ch_q.put_nowait(None)
                 if isinstance(ex, serial.SerialException) and ex.errno == errno.ENOENT:  # pylint: disable=no-member
                     logger.error("Missing %s serial device: %s", self, self.__device_path)
                 else:
@@ -157,29 +153,28 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return serial.Serial(self.__device_path, self.__speed, timeout=self.__read_timeout)
 
     def __recv_channel(self, tty: serial.Serial, data: bytes) -> tuple[(int | None), bytes]:
-        channel: (int | None) = None
+        ch: (int | None) = None
         if tty.in_waiting:
             data += tty.read_all()
-            get_logger(0).debug('Driver %s received serial data" %s', self._instance_name, data)
+            get_logger(0).debug("Driver %s received serial data %r", self, data)
             if len(data) != 1:
-                get_logger(0).warning('Driver %s received invalid data: "%s" .', self._instance_name, data)
+                get_logger(0).warning("Driver %s received invalid data: %r", self, data)
             else:
-                response = int.from_bytes(data, 'little', signed=False)
-                if response < Plugin.MIN_CHANNEL + 1 or response > Plugin.MAX_CHANNEL + 1:
-                    get_logger(0).warning('Driver %s received invalid serial data: "%s" .', self._instance_name, data)
-                else:
-                    channel = response - 1
+                ch = data[0]
+                if not (self.__CH_MIN <= ch <= self.__CH_MAX):
+                    ch = None
+                    get_logger(0).warning("Driver %s received invalid serial data: %r", self, data)
             data = b""
-        return (channel, data)
+        return (ch, data)
 
-    def __send_channel(self, tty: serial.Serial, channel: int) -> None:
-        get_logger(0).info('Sending channel %s', channel)
-        assert 0 <= channel <= 3
-        channel += 1
-        channel_byte = 0x30 + channel
-        cmd = bytearray(b'\xfe\x00\x33')
-        cmd.append(channel_byte)
-        cmd.append(0xaa)
+    def __send_channel(self, tty: serial.Serial, ch: int) -> None:
+        get_logger(0).info("Sending channel %s", ch)
+        assert self.__CH_MIN <= ch <= self.__CH_MAX
+        ch += 1
+        ch_byte = 0x30 + ch
+        cmd = bytearray(b"\xfe\x00\x33")
+        cmd.append(ch_byte)
+        cmd.append(0xAA)
         tty.write(bytes(cmd))
         tty.flush()
 
