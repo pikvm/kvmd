@@ -43,8 +43,8 @@ from . import BaseNbdRemote
 # =====
 @dataclasses.dataclass(frozen=True)
 class _FileHandle:
-    file: smbc.File
-    rw:   bool
+    file:     smbc.File
+    writable: bool
 
 
 class NbdSmbRemote(BaseNbdRemote):
@@ -107,11 +107,11 @@ class NbdSmbRemote(BaseNbdRemote):
             ctx.functionAuthData = cb  # noqa vulture-ignore
         try:
             file = await asyncio.to_thread(ctx.open, self.__url.raw, os.O_RDWR)
-            rw = True
+            writable = True
         except smbc.PermissionError:  # pylint: disable=no-member
             file = await asyncio.to_thread(ctx.open, self.__url.raw, os.O_RDONLY)
-            rw = False
-        return _FileHandle(file, rw)
+            writable = False
+        return _FileHandle(file, writable)
 
     async def __probe(self, fh: _FileHandle) -> NbdImage:
         st = await asyncio.to_thread(fh.file.fstat)
@@ -121,7 +121,7 @@ class NbdSmbRemote(BaseNbdRemote):
             name=self.__url.name,
             size=st[6],
             mod_ts=float(st[8]),
-            rw=fh.rw,
+            writable=fh.writable,
         )
 
     async def _on_read(self, offset: int, size: int) -> bytes:

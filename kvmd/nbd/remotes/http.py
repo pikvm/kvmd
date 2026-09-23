@@ -123,7 +123,7 @@ class NbdHttpRemote(BaseNbdRemote):
                 name=name,
                 size=cl,
                 mod_ts=mod_ts,
-                rw=False,
+                writable=False,
             )
 
     async def _on_read(self, offset: int, size: int) -> bytes:

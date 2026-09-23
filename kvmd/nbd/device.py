@@ -177,8 +177,8 @@ class NbdDevice:
 
         blocks = self.__get_blocks(image.size)
 
-        logger.info("Preparing %s: bytes=%s, bs=%s, blocks=%s, rw=%s ...",
-                    self.__path, image.size, self.__BLOCK, blocks, image.rw)
+        logger.info("Preparing %s: bytes=%s, bs=%s, blocks=%s, writable=%s ...",
+                    self.__path, image.size, self.__BLOCK, blocks, image.writable)
 
         _ioctl(fd, _NBD_SET_BLKSIZE, self.__BLOCK)
         _ioctl(fd, _NBD_SET_SIZE_BLOCKS, blocks)
@@ -186,12 +186,12 @@ class NbdDevice:
         _ioctl(fd, _NBD_CLEAR_SOCK)
 
         flags = _NBD_FLAG_HAS_FLAGS
-        if not image.rw:
+        if not image.writable:
             flags |= _NBD_FLAG_READ_ONLY
         _ioctl(fd, _NBD_SET_FLAGS, flags)
 
         if self.__use_blkroset:
-            ro_bytes = int(not image.rw).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
+            ro_bytes = int(not image.writable).to_bytes(byteorder=sys.byteorder, length=4)  # Kinda ptr
             _ioctl(fd, _BLKROSET, ro_bytes)  # XXX: PiKVM kernel sets BLKROSET with NBD_SET_FLAGS
 
         _ioctl(fd, _NBD_SET_TIMEOUT, math.ceil(self.__TIMEOUT))

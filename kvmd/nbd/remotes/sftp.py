@@ -45,10 +45,10 @@ from . import BaseNbdRemote
 # =====
 @dataclasses.dataclass(frozen=True)
 class _FileHandle:
-    ssh:  paramiko.SSHClient
-    sftp: paramiko.SFTPClient
-    file: paramiko.SFTPFile
-    rw:   bool
+    ssh:      paramiko.SSHClient
+    sftp:     paramiko.SFTPClient
+    file:     paramiko.SFTPFile
+    writable: bool
 
 
 def _close(
@@ -142,15 +142,15 @@ class NbdSftpRemote(BaseNbdRemote):
             sftp = await asyncio.to_thread(ssh.open_sftp)
             try:
                 file = await asyncio.to_thread(sftp.file, self.__url.path, "r+")
-                rw = True
+                writable = True
             except OSError:  # Without a correct errno, sigh
                 file = await asyncio.to_thread(sftp.file, self.__url.path, "r")
-                rw = False
+                writable = False
         except Exception:
             await asyncio.to_thread(_close, ssh, sftp, file)
             raise
 
-        return _FileHandle(ssh, sftp, file, rw)
+        return _FileHandle(ssh, sftp, file, writable)
 
     async def __probe(self, fh: _FileHandle) -> NbdImage:
         st = await asyncio.to_thread(fh.file.stat)
@@ -162,7 +162,7 @@ class NbdSftpRemote(BaseNbdRemote):
             name=self.__url.name,
             size=st.st_size,
             mod_ts=float(st.st_mtime or 0),
-            rw=fh.rw,
+            writable=fh.writable,
         )
 
     async def _on_read(self, offset: int, size: int) -> bytes:

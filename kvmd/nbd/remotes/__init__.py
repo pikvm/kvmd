@@ -255,7 +255,7 @@ class BaseNbdRemote:
         assert offset >= 0
         assert self.__image
 
-        if not self.__image.rw:
+        if not self.__image.writable:
             return errno.EPERM
         if offset >= self.__image.size:
             return errno.ENOSPC
@@ -278,7 +278,7 @@ class BaseNbdRemote:
         try:
             if not self.__opened:
                 image = await self._do_ensure()
-                if self.__image.rw is True and not image.rw:
+                if self.__image.writable is True and not image.writable:
                     raise NbdRemoteError("The source permissions changed: RW -> RO")
                 if self.__image.size != image.size:
                     raise NbdRemoteError(f"The source file has a new size: {self.__image.size} -> {image.size}")
