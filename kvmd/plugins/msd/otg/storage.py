@@ -43,41 +43,41 @@ from . import fs
 
 # =====
 @dataclasses.dataclass(frozen=True)
-class _ImageDc:  # pylint: disable=too-many-instance-attributes
-    name:       str
+class _FileImageDc:  # pylint: disable=too-many-instance-attributes
     path:       str
-    in_storage: bool  = dataclasses.field(default=False, compare=False)
+    name:       str
+    in_storage: bool  = dataclasses.field(compare=False)
     # For _reload():
-    complete:   bool  = dataclasses.field(default=False, compare=False)
-    removable:  bool  = dataclasses.field(default=False, compare=False)
+    size:       int   = dataclasses.field(default=0,     compare=False)
+    mod_ts:     float = dataclasses.field(default=0.0,   compare=False)
     writable:   bool  = dataclasses.field(default=False, compare=False)
-    size:       int   = dataclasses.field(default=False, compare=False)
-    mod_ts:     float = dataclasses.field(default=False, compare=False)
+    removable:  bool  = dataclasses.field(default=False, compare=False)
+    complete:   bool  = dataclasses.field(default=False, compare=False)
 
 
-class Image(_ImageDc):
-    def __init__(self, name: str, path: str, in_storage: bool, adopted: bool) -> None:
+class FileImage(_FileImageDc):
+    def __init__(self, path: str, name: str, in_storage: bool, adopted: bool) -> None:
         tools.check_abs(path)
         path = os.path.normpath(path)
         if not in_storage:
             assert not adopted
 
-        super().__init__(name, path, in_storage)
+        super().__init__(path, name, in_storage)
 
         self.__adopted = adopted
         (self.__dir_path, file_name) = os.path.split(path)
         self.__incomplete_path = os.path.join(self.__dir_path, f".__{file_name}.incomplete")
 
     async def _reload(self) -> None:
-        complete = await self.__is_complete()
-        removable = await self.__is_removable()
-        writable = await self.__is_writable()
         (size, mod_ts) = await self.__get_stat()
-        object.__setattr__(self, "complete", complete)
-        object.__setattr__(self, "removable", removable)
-        object.__setattr__(self, "writable", writable)
+        writable = await self.__is_writable()
+        removable = await self.__is_removable()
+        complete = await self.__is_complete()
         object.__setattr__(self, "size", size)
         object.__setattr__(self, "mod_ts", mod_ts)
+        object.__setattr__(self, "writable", writable)
+        object.__setattr__(self, "removable", removable)
+        object.__setattr__(self, "complete", complete)
 
     async def __is_complete(self) -> bool:
         if not self.in_storage:
@@ -140,8 +140,8 @@ class Image(_ImageDc):
         await self._reload()
 
 
-async def _make_image(name: str, path: str, in_storage: bool, adopted: bool) -> Image:
-    image = Image(name, path, in_storage, adopted)
+async def _make_image(path: str, name: str, in_storage: bool, adopted: bool) -> FileImage:
+    image = FileImage(path, name, in_storage, adopted)
     await image._reload()  # pylint: disable=protected-access
     return image
 
@@ -200,15 +200,15 @@ class Storage:
         self.__remount_cmd = remount_cmd
 
         self.__root_path: (str | None) = None
-        self.__images: (dict[str, Image] | None) = None
+        self.__images: (dict[str, FileImage] | None) = None
         self.__parts: (dict[str, _Part] | None) = None
 
-    def __get_root_path(self) -> str:  # Only for Image()
+    def __get_root_path(self) -> str:  # Only for FileImage()
         if self.__root_path is None:
             raise MsdOfflineError()
         return self.__root_path
 
-    def __get_images(self) -> dict[str, Image]:
+    def __get_images(self) -> dict[str, FileImage]:
         if self.__images is None:
             raise MsdOfflineError()
         return dict(self.__images)
@@ -229,8 +229,8 @@ class Storage:
         images: dict = self.__get_images()
         for name in list(images):
             images[name] = dataclasses.asdict(images[name])
-            del images[name]["name"]
             del images[name]["path"]
+            del images[name]["name"]
             del images[name]["in_storage"]
         parts: dict = self.__get_parts()
         for name in list(parts):
@@ -244,7 +244,7 @@ class Storage:
         self.__parts = None
 
         root_path = fstab.find_msd().root_path
-        images: dict[str, Image] = {}
+        images: dict[str, FileImage] = {}
         parts: dict[str, _Part] = {}
 
         async for (dir_path, files) in fs.walk_storage(root_path):
@@ -256,7 +256,7 @@ class Storage:
             for file_path in files:
                 name = os.path.relpath(file_path, root_path)
                 _check_image_name(name)
-                images[name] = await _make_image(name, file_path, True, (mnt_path != root_path))
+                images[name] = await _make_image(file_path, name, True, (mnt_path != root_path))
 
             if dir_path != root_path and os.path.ismount(dir_path):
                 name = os.path.relpath(dir_path, root_path)
@@ -277,23 +277,23 @@ class Storage:
 
     # =====
 
-    async def remove_image(self, image: Image, fatal: bool) -> None:
+    async def remove_image(self, image: FileImage, fatal: bool) -> None:
         assert image.in_storage
         assert image.removable
         if image.name in self.__get_images():
             await image._remove(fatal)  # pylint: disable=protected-access
 
-    async def make_image(self, name: str) -> Image:
+    async def make_image(self, name: str) -> FileImage:
         _check_image_name(name)
         root_path = self.__get_root_path()
         path = os.path.join(root_path, name)
         mnt_path = await fs.find_closest_mountpoint(path)
-        image = await _make_image(name, path, True, (mnt_path != root_path))
+        image = await _make_image(path, name, True, (mnt_path != root_path))
         if image.name in self.__get_images() or (await image.exists()):
             raise MsdImageExistsError()
         return image
 
-    async def get_image_by_name(self, name: str) -> Image:
+    async def get_image_by_name(self, name: str) -> FileImage:
         _check_image_name(name)
         image = self.__get_images().get(name)
         if image is None or not (await image.exists()):
@@ -301,18 +301,18 @@ class Storage:
         assert image.in_storage
         return image
 
-    async def get_image_by_path(self, path: str) -> Image:
+    async def get_image_by_path(self, path: str) -> FileImage:
         tools.check_abs(path)
         path = os.path.normpath(path)
         for image in self.__get_images().values():
             if image.path == path:
                 return image
         name = os.path.basename(path)
-        return (await _make_image(name, path, False, False))
+        return (await _make_image(path, name, False, False))
 
     # =====
 
-    async def remount_rw(self, image: Image) -> None:
+    async def remount_rw(self, image: FileImage) -> None:
         assert image.in_storage
         root_path = self.__get_root_path()
         mnt_path = await fs.find_closest_mountpoint(image.path)

@@ -134,7 +134,8 @@ class BaseMsdWriter:
 class BaseMsd(BasePlugin):
     def __init__(self, c: Section, nbd: NbdClient) -> None:
         super().__init__(c)
-        _ = nbd
+        self._nbd = nbd
+        _ = self._nbd
 
     async def get_state(self) -> dict:
         raise NotImplementedError()

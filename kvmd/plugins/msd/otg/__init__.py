@@ -54,7 +54,7 @@ from .. import BaseMsd
 from .. import MsdFileReader
 from .. import MsdFileWriter
 
-from .storage import Image
+from .storage import FileImage
 from .storage import Storage
 from .drive import Drive
 
@@ -62,7 +62,7 @@ from .drive import Drive
 # =====
 @dataclasses.dataclass
 class _VirtualDrive:
-    image:     (Image | None)
+    image:     (FileImage | None)
     connected: bool
     cdrom:     bool
     rw:        bool
@@ -330,7 +330,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         remove_incomplete: bool,
     ) -> AsyncGenerator[MsdFileWriter]:
 
-        image: (Image | None) = None
+        image: (FileImage | None) = None
         complete = False
 
         async def finish_writing() -> None:
@@ -482,7 +482,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     async def __unsafe_get_real_vd(self) -> _VirtualDrive:
         path = self.__drive.get_image_path()
-        image: (Image | None) = None
+        image: (FileImage | None) = None
         if path:
             image = await self.__storage.get_image_by_path(path)
         return _VirtualDrive(

@@ -20,8 +20,6 @@
 # ========================================================================== #
 
 
-from typing import Final
-
 from .. import tools
 
 from ..errors import OperationError
@@ -30,7 +28,7 @@ from ..errors import IsBusyError
 
 # =====
 class NbdError(Exception):
-    _DEFAULT_MSG: Final[str] = ""
+    _DEFAULT_MSG = ""
 
     def __init__(self, msg: str="", ex: (Exception | None)=None) -> None:
         if not msg:
@@ -47,7 +45,7 @@ class NbdOperationError(NbdError, OperationError):
 
 
 class NbdIsBusyError(NbdError, IsBusyError):
-    _DEFAULT_MSG: Final[str] = "Performing another NBD operation, please try again later"
+    _DEFAULT_MSG = "Performing another NBD operation, please try again later"
 
 
 # =====
