@@ -70,6 +70,9 @@ class NbdProcess:
         self.__proc = aiomulti.AioMpProcess("nbd", self.__subprocess)
         self.__ready_nr = aiomulti.AioMpNotifier()
 
+    def get_timeout(self) -> float:
+        return (self.__remote.get_timeout() + self.__REACT_TIMEOUT)
+
     def get_binding(self) -> tuple[str, NbdImage]:
         return (self.__binding_id, self.__image)
 

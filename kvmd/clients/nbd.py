@@ -31,7 +31,8 @@ from ..nbd.types import NbdStoppedEvent
 from ..nbd.types import NbdStateBinding
 from ..nbd.types import NbdState
 
-from ..nbd.errors import NbdBoundError
+from ..nbd.errors import NbdIsBusyError
+from ..nbd.errors import NbdBindError
 from ..nbd.errors import NbdProbeError
 
 from ..validators import ValidatorError
@@ -67,12 +68,14 @@ class NbdClient:
                 return remotes
 
     async def explore(self, url: str, **params: Any) -> NbdImage:
-        return (await self.__explore_or_bind("/explore", url, **params))
+        result = await self.__explore_or_bind("/explore", url, **params)
+        return NbdImage(**result["image"])
 
-    async def bind(self, url: str, **params: Any) -> NbdImage:
-        return (await self.__explore_or_bind("/bind", url, **params))
+    async def bind(self, url: str, **params: Any) -> NbdState:
+        result = await self.__explore_or_bind("/bind", url, **params)
+        return self.__parse_state(result)
 
-    async def __explore_or_bind(self, handle: str, url: str, **params: Any) -> NbdImage:
+    async def __explore_or_bind(self, handle: str, url: str, **params: Any) -> dict:
         async with self.__make_session() as session:
             data: dict[str, str] = {}
             for key in ["passwd"]:
@@ -85,8 +88,32 @@ class NbdClient:
                 data=(data or None),
             ) as resp:
 
-                result = await self.__parse_response(resp)
-                return NbdImage(**result["image"])
+                await htclient.raise_known_not_200(
+                    resp,
+                    NbdIsBusyError,
+                    NbdBindError,
+                    NbdProbeError,
+                    ValidatorError,
+                )
+                return (await resp.json())["result"]
+
+    def __parse_state(self, result: dict) -> NbdState:
+        binding: (NbdStateBinding | None) = None
+        if result["binding"] is not None:
+            rb = result["binding"]
+            info: (NbdRunningEvent | NbdStoppedEvent | None) = None
+            match rb["status"]:
+                case "running":
+                    info = NbdRunningEvent(**rb["info"])
+                case "stopped":
+                    info = NbdStoppedEvent(**rb["info"])
+            binding = NbdStateBinding(
+                id=rb["id"],
+                image=NbdImage(**rb["image"]),
+                status=rb["status"],
+                info=info,
+            )
+        return NbdState(result["device"], binding)
 
     async def unbind(self) -> None:
         async with self.__make_session() as session:
@@ -101,26 +128,7 @@ class NbdClient:
                         raise NbdClientError(f"Unexpected message type: {msg!r}")
                     (event_type, event) = htserver.parse_ws_event(msg.data)
                     if event_type == "nbd":
-                        binding: (NbdStateBinding | None) = None
-                        if event["binding"] is not None:
-                            eb = event["binding"]
-                            info: (NbdRunningEvent | NbdStoppedEvent | None) = None
-                            match eb["status"]:
-                                case "running":
-                                    info = NbdRunningEvent(**eb["info"])
-                                case "stopped":
-                                    info = NbdStoppedEvent(**eb["info"])
-                            binding = NbdStateBinding(
-                                id=eb["id"],
-                                image=NbdImage(**eb["image"]),
-                                status=eb["status"],
-                                info=info,
-                            )
-                        yield NbdState(event["device"], binding)
-
-    async def __parse_response(self, resp: aiohttp.ClientResponse) -> dict:
-        await htclient.raise_known_not_200(resp, NbdBoundError, NbdProbeError, ValidatorError)
-        return (await resp.json())["result"]
+                        yield self.__parse_state(event)
 
     def __make_session(self) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(

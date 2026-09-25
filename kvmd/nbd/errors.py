@@ -20,25 +20,42 @@
 # ========================================================================== #
 
 
+from typing import Final
+
 from .. import tools
 
 from ..errors import OperationError
+from ..errors import IsBusyError
 
 
 # =====
-class NbdError(OperationError):
-    def __init__(self, msg: str, ex: (Exception | None)=None) -> None:
+class NbdError(Exception):
+    _DEFAULT_MSG: Final[str] = ""
+
+    def __init__(self, msg: str="", ex: (Exception | None)=None) -> None:
+        if not msg:
+            msg = self._DEFAULT_MSG
         if ex:
-            msg += ": " + tools.efmt(ex)
+            if msg:
+                msg += ": "
+            msg += tools.efmt(ex)
         super().__init__(msg)
 
 
-# =====
-class NbdControllerError(NbdError):
+class NbdOperationError(NbdError, OperationError):
     pass
 
 
-class NbdBoundError(NbdControllerError):
+class NbdIsBusyError(NbdError, IsBusyError):
+    _DEFAULT_MSG: Final[str] = "Performing another NBD operation, please try again later"
+
+
+# =====
+class NbdControllerError(NbdOperationError):
+    pass
+
+
+class NbdBindError(NbdControllerError):
     pass
 
 
@@ -47,12 +64,12 @@ class NbdProbeError(NbdControllerError):
 
 
 # =====
-class NbdDeviceError(NbdError):
+class NbdDeviceError(NbdOperationError):
     pass
 
 
 # =====
-class NbdIoError(NbdError):
+class NbdIoError(NbdOperationError):
     pass
 
 
@@ -65,5 +82,5 @@ class NbdIoProtocolError(NbdIoError):
 
 
 # =====
-class NbdRemoteError(NbdError):
+class NbdRemoteError(NbdOperationError):
     pass

@@ -21,6 +21,7 @@
 
 
 import asyncio
+import dataclasses
 import urllib.parse
 
 from typing import Final
@@ -37,7 +38,8 @@ from ..yamlconf import make_config
 from ..validators import ValidatorError
 
 from .errors import NbdError
-from .errors import NbdBoundError
+from .errors import NbdIsBusyError
+from .errors import NbdBindError
 from .errors import NbdProbeError
 
 from .types import NbdImage
@@ -58,6 +60,12 @@ from .remotes.sftp import NbdSftpRemote
 
 
 # =====
+@dataclasses.dataclass(frozen=True)
+class _Job:
+    proc:  NbdProcess
+    event: asyncio.Event
+
+
 class NbdController:
     __REMOTES: Final[dict[str, Type[BaseNbdRemote]]] = {
         scheme: cls
@@ -67,10 +75,12 @@ class NbdController:
 
     def __init__(self, path: str, use_blkroset: bool) -> None:
         self.__device = NbdDevice(path, use_blkroset)
-        self.__proc: (NbdProcess | None) = None
+
+        self.__region = aiotools.AioExclusiveRegion(NbdIsBusyError)
         self.__nr = aiotools.AioNotifier()
-        self.__lock = asyncio.Lock()
         self.__state = NbdState(path, None)
+
+        self.__job: (_Job | None) = None
 
     # =====
 
@@ -110,22 +120,40 @@ class NbdController:
         self.__device.check_image(image)
         return (remote, image)
 
-    async def bind(self, url: str, **params: Any) -> tuple[str, NbdImage]:
-        async with self.__lock:
+    async def bind(self, url: str, **params: Any) -> NbdState:
+        with self.__region:
             self.__device.check_readiness()
-            if self.__proc:
-                raise NbdBoundError("NBD is already bound")
+            if self.__job:
+                raise NbdBindError("NBD is already bound")
 
             (remote, image) = await self.__resolve("probe", url, **params)
 
-            assert self.__proc is None
+            assert self.__job is None
             self.__nr.notify()
-            self.__proc = NbdProcess(self.__device, remote, image)
-            return self.__proc.get_binding()
+            self.__job = _Job(
+                proc=NbdProcess(self.__device, remote, image),
+                event=asyncio.Event(),
+            )
+            proc = self.__job.proc
+            try:
+                try:
+                    await asyncio.wait_for(self.__job.event.wait(), timeout=proc.get_timeout())
+                except Exception as ex:
+                    raise NbdBindError("NBD can't bind an image in time (timeout)", ex)
+                if self.__state.binding is None:
+                    raise NbdBindError("No NBD binding found")
+                if self.__state.binding.id != proc.get_binding()[0]:
+                    raise NbdBindError("NBD binding ID mismatch")
+                if self.__state.binding.status not in ["running", "stopped"]:
+                    raise NbdBindError("NBD can't bind an image in time (bad status)")
+            except BaseException:
+                proc.stop()
+                raise
+            return self.__state
 
     async def unbind(self) -> None:
-        if self.__proc:
-            self.__proc.stop()
+        if self.__job:
+            self.__job.proc.stop()
 
     def get_state(self) -> NbdState:
         return self.__state
@@ -144,23 +172,27 @@ class NbdController:
                         self.__state.device,
                         NbdStateBinding(self.__state.binding.id, self.__state.binding.image, "running", event),
                     )
+                    if self.__job:
+                        self.__job.event.set()
                 case NbdStoppedEvent():
                     assert self.__state.binding is not None
                     self.__state = NbdState(
                         self.__state.device,
                         NbdStateBinding(self.__state.binding.id, self.__state.binding.image, "stopped", event),
                     )
+                    if self.__job:
+                        self.__job.event.set()
             yield (event, self.__state)
 
     async def __poll(self) -> AsyncGenerator[BaseNbdEvent]:
         while True:
             await self.__nr.wait()
-            if self.__proc:
-                yield NbdStartingEvent(*self.__proc.get_binding())
+            if self.__job:
+                yield NbdStartingEvent(*self.__job.proc.get_binding())
                 stop: (NbdStoppedEvent | None) = None
                 try:
-                    async with self.__proc.running():
-                        async for event in self.__proc.poll():
+                    async with self.__job.proc.running():
+                        async for event in self.__job.proc.poll():
                             if isinstance(event, NbdStoppedEvent):
                                 if stop is None:
                                     stop = event
@@ -171,7 +203,7 @@ class NbdController:
                 except Exception:
                     get_logger(0).exception("Unexpected error in NBD poller loop")
                 finally:
-                    self.__proc = None
+                    self.__job = None
                 await self.__device.force_disconnect()
                 if stop is None:
                     stop = NbdStoppedEvent("main", "Unknown stop reason", False)

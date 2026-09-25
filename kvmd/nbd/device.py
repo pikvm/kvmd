@@ -40,7 +40,7 @@ from .. import env
 from .. import tools
 from .. import aiotools
 
-from .errors import NbdBoundError
+from .errors import NbdBindError
 from .errors import NbdDeviceError
 from .types import NbdImage
 from .link import NbdLink
@@ -104,7 +104,7 @@ class NbdDevice:
         if not os.path.exists(self.__path):
             raise NbdDeviceError(f"Can't find NBD device: {self.__path}")
         if os.path.exists(aps.pid):
-            raise NbdBoundError("NBD is already bound")
+            raise NbdBindError("NBD is already bound")
 
     async def force_disconnect(self) -> None:
         aps = self.__get_attr_paths()
