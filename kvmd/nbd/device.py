@@ -93,6 +93,7 @@ class NbdDevice:
     def __init__(self, path: str, use_blkroset: bool) -> None:
         self.__path = path
         self.__use_blkroset = use_blkroset
+        self.__size = 0
 
     # =====
 
@@ -124,7 +125,17 @@ class NbdDevice:
             await asyncio.sleep(1)
 
     async def open_close(self) -> None:
+        # 1. Стандартный для NBD open/close, чтобы убедиться, что девайс стартанул.
+        # 2. Ядро не сразу обновляет размер блочного устройства, так что надо дождаться
+        #    изменения размера перед использованием. В dmesg это видно как:
+        #    ...  nbd15: detected capacity change from 0 to N
         fd = await asyncio.to_thread(os.open, self.__path, os.O_RDONLY)
+        while True:
+            size = await asyncio.to_thread(os.lseek, fd, 0, os.SEEK_END)
+            assert self.__size > 0
+            if size == self.__size:
+                break
+            await asyncio.sleep(0.1)
         await asyncio.to_thread(os.close, fd)
 
     def __get_attr_paths(self) -> _AttrPaths:
@@ -182,6 +193,7 @@ class NbdDevice:
 
         _ioctl(fd, _NBD_SET_BLKSIZE, self.__BLOCK)
         _ioctl(fd, _NBD_SET_SIZE_BLOCKS, blocks)
+        self.__size = blocks * self.__BLOCK
 
         _ioctl(fd, _NBD_CLEAR_SOCK)
 
