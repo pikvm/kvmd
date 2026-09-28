@@ -47,12 +47,12 @@
     </script>
   </head>
   <body>
-    <form action="javascript:void(0)" autocomplete="on">
+    <form method="post" action="#" autocomplete="on">
       <div id="login-box">
         <div id="login">
           <table>
             <tr>
-              <td><img class="svg-gray" id="login-logo" src="../share/svg/logo.svg" alt="&amp;pi;-kvm"></td>
+              <td><img class="svg-gray" id="login-logo" src="../share/svg/logo.svg" alt="&pi;-kvm"></td>
               <td></td>
             </tr>
             <tr>
@@ -61,21 +61,21 @@
               </td>
             </tr>
             <tr>
-              <td>Username:&nbsp;</td>
+              <td><label for="user-input">Username:&nbsp;</label></td>
               <td>
-                <input id="user-input" type="text" autocapitalize="off" autocomplete="username" required>
+                <input id="user-input" type="text" name="username" autocapitalize="off" autocomplete="username" required>
               </td>
             </tr>
             <tr>
-              <td>Password:&nbsp;</td>
+              <td><label for="passwd-input">Password:&nbsp;</label></td>
               <td>
-                <input id="passwd-input" type="password" autocapitalize="off" autocomplete="current-password">
+                <input id="passwd-input" type="password" name="password" autocapitalize="off" autocomplete="current-password">
               </td>
             </tr>
             <tr>
-              <td>2FA code:&nbsp;</td>
+              <td><label for="code-input">2FA code:&nbsp;</label></td>
               <td>
-                <input id="code-input" type="text" placeholder="if enabled" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6">
+                <input id="code-input" type="text" name="one-time-code" placeholder="if enabled" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" aria-label="One-time code">
               </td>
             </tr>
             <tr>
@@ -104,7 +104,7 @@
             <tr>
               <td></td>
               <td>
-                <button class="key" id="login-button">Login</button>
+                <button class="key" id="login-button" type="submit">Login</button>
               </td>
             </tr>
           </table>
