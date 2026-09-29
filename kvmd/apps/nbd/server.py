@@ -72,9 +72,9 @@ class NbdServer(HttpServer):
             "image": dataclasses.asdict(image),
         })
 
-    @exposed_http("POST", "/bind")
-    async def __bind_handler(self, req: Request) -> Response:
-        state = await self.__ctl.bind(**(await self.__get_params(req)))
+    @exposed_http("POST", "/plan")
+    async def __plan_handler(self, req: Request) -> Response:
+        state = await self.__ctl.plan(**(await self.__get_params(req)))
         return make_json_response(dataclasses.asdict(state))
 
     async def __get_params(self, req: Request) -> dict[str, Any]:
@@ -82,6 +82,16 @@ class NbdServer(HttpServer):
         params.update(dict(req.query))
         params.update(dict(await req.post()))
         return params
+
+    @exposed_http("POST", "/unplan")
+    async def __unplan_handler(self, _: Request) -> Response:
+        state = await self.__ctl.unplan()
+        return make_json_response(dataclasses.asdict(state))
+
+    @exposed_http("POST", "/bind")
+    async def __bind_handler(self, _: Request) -> Response:
+        state = await self.__ctl.bind()
+        return make_json_response(dataclasses.asdict(state))
 
     @exposed_http("POST", "/unbind")
     async def __unbind_handler(self, _: Request) -> Response:
@@ -123,7 +133,5 @@ class NbdServer(HttpServer):
     # ===== SYSTEM TASKS
 
     async def __controller(self) -> None:
-        logger = get_logger(0)
-        async for (event, state) in self.__ctl.poll_state():
-            logger.info("NBD-EVENT: %s", event)
+        async for state in self.__ctl.poll_state():
             await self._broadcast_ws_event(self.__EV_NBD, dataclasses.asdict(state))

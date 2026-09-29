@@ -60,6 +60,11 @@ class NbdStoppedEvent(BaseNbdEvent):
 
 # =====
 @dataclasses.dataclass(frozen=True)
+class NbdStateDevice:
+    path: str
+
+
+@dataclasses.dataclass(frozen=True)
 class NbdStateBinding:
     id:     str
     image:  NbdImage
@@ -69,5 +74,6 @@ class NbdStateBinding:
 
 @dataclasses.dataclass(frozen=True)
 class NbdState:
-    device:  str
+    ts:      float
+    device:  NbdStateDevice
     binding: (NbdStateBinding | None)

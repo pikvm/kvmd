@@ -23,6 +23,7 @@
 import asyncio
 import dataclasses
 import urllib.parse
+import time
 
 from typing import Final
 from typing import AsyncGenerator
@@ -39,6 +40,7 @@ from ..validators import ValidatorError
 
 from .errors import NbdError
 from .errors import NbdIsBusyError
+from .errors import NbdBoundError
 from .errors import NbdBindError
 from .errors import NbdProbeError
 
@@ -47,6 +49,7 @@ from .types import BaseNbdEvent
 from .types import NbdStartingEvent
 from .types import NbdRunningEvent
 from .types import NbdStoppedEvent
+from .types import NbdStateDevice
 from .types import NbdStateBinding
 from .types import NbdState
 
@@ -60,6 +63,12 @@ from .remotes.sftp import NbdSftpRemote
 
 
 # =====
+@dataclasses.dataclass(frozen=True)
+class _Plan:
+    url:    str
+    params: dict[str, Any]
+
+
 @dataclasses.dataclass(frozen=True)
 class _Job:
     proc:  NbdProcess
@@ -77,9 +86,10 @@ class NbdController:
         self.__device = NbdDevice(path, use_blkroset)
 
         self.__region = aiotools.AioExclusiveRegion(NbdIsBusyError)
+        self.__state = NbdState(time.monotonic(), NbdStateDevice(path), None)
         self.__nr = aiotools.AioNotifier()
-        self.__state = NbdState(path, None)
 
+        self.__plan: (_Plan | None) = None
         self.__job: (_Job | None) = None
 
     # =====
@@ -99,6 +109,25 @@ class NbdController:
     async def explore(self, url: str, **params: Any) -> NbdImage:
         (_, image) = await self.__resolve("explore", url, **params)
         return image
+
+    async def plan(self, url: str, **params: Any) -> NbdState:
+        with self.__region:
+            if self.__job:
+                raise NbdBoundError()
+            (_, image) = await self.__resolve("explore", url, **params)
+            self.__plan = _Plan(url, params)
+            self.__update_binding(NbdStateBinding("", image, "planned", None))
+            self.__nr.notify()
+            return self.__state
+
+    async def unplan(self) -> NbdState:
+        with self.__region:
+            if self.__job:
+                raise NbdBoundError()
+            self.__plan = None
+            self.__update_binding(None)
+            self.__nr.notify()
+            return self.__state
 
     async def __resolve(self, func: str, url: str, **params: Any) -> tuple[BaseNbdRemote, NbdImage]:
         scheme = urllib.parse.urlparse(url).scheme
@@ -120,13 +149,17 @@ class NbdController:
         self.__device.check_image(image)
         return (remote, image)
 
-    async def bind(self, url: str, **params: Any) -> NbdState:
+    async def bind(self) -> NbdState:
         with self.__region:
             self.__device.check_readiness()
             if self.__job:
-                raise NbdBindError("NBD is already bound")
+                raise NbdBoundError()
+            if self.__plan is None:
+                raise NbdBindError("No planned NBD bindings")
 
-            (remote, image) = await self.__resolve("probe", url, **params)
+            (remote, image) = await self.__resolve("probe", self.__plan.url, **self.__plan.params)
+            # if image != self.__plan.image:
+            #     raise NbdBindError("NBD planned and actual images mismatched")
 
             assert self.__job is None
             self.__nr.notify()
@@ -158,33 +191,43 @@ class NbdController:
     def get_state(self) -> NbdState:
         return self.__state
 
-    async def poll_state(self) -> AsyncGenerator[tuple[BaseNbdEvent, NbdState]]:
+    async def poll_state(self) -> AsyncGenerator[NbdState]:
+        logger = get_logger(0)
         async for event in self.__poll():
-            match event:
-                case NbdStartingEvent():
-                    self.__state = NbdState(
-                        self.__state.device,
-                        NbdStateBinding(event.binding_id, event.image, "starting", None),
-                    )
-                case NbdRunningEvent():
-                    assert self.__state.binding is not None
-                    self.__state = NbdState(
-                        self.__state.device,
-                        NbdStateBinding(self.__state.binding.id, self.__state.binding.image, "running", event),
-                    )
-                    if self.__job:
-                        self.__job.event.set()
-                case NbdStoppedEvent():
-                    assert self.__state.binding is not None
-                    self.__state = NbdState(
-                        self.__state.device,
-                        NbdStateBinding(self.__state.binding.id, self.__state.binding.image, "stopped", event),
-                    )
-                    if self.__job:
-                        self.__job.event.set()
-            yield (event, self.__state)
+            if event:
+                logger.info("NBD-EVENT: %s", event)
 
-    async def __poll(self) -> AsyncGenerator[BaseNbdEvent]:
+            match event:
+                case None:
+                    # Просто провернуться для plan/unplan
+                    assert self.__job is None
+
+                case NbdStartingEvent():
+                    assert self.__job
+                    self.__update_binding(NbdStateBinding(event.binding_id, event.image, "starting", None))
+
+                case NbdRunningEvent():
+                    assert self.__job
+                    assert self.__state.binding
+                    binding = self.__state.binding
+                    self.__update_binding(NbdStateBinding(binding.id, binding.image, "running", event))
+                    self.__job.event.set()
+
+                case NbdStoppedEvent():
+                    assert self.__job
+                    assert self.__state.binding
+                    binding = self.__state.binding
+                    self.__update_binding(NbdStateBinding(binding.id, binding.image, "stopped", event))
+                    self.__job.event.set()
+                    self.__job = None
+
+            yield self.__state
+
+    def __update_binding(self, binding: (NbdStateBinding | None)) -> None:
+        self.__state = NbdState(time.monotonic(), self.__state.device, binding)
+
+    async def __poll(self) -> AsyncGenerator[BaseNbdEvent | None]:
+        logger = get_logger(0)
         while True:
             await self.__nr.wait()
             if self.__job:
@@ -199,12 +242,12 @@ class NbdController:
                             else:
                                 yield event
                 except NbdError as ex:
-                    get_logger(0).error("%s", tools.efmt(ex))
+                    logger.error("%s", tools.efmt(ex))
                 except Exception:
-                    get_logger(0).exception("Unexpected error in NBD poller loop")
-                finally:
-                    self.__job = None
+                    logger.exception("Unexpected error in NBD poller loop")
                 await self.__device.force_disconnect()
                 if stop is None:
                     stop = NbdStoppedEvent("main", "Unknown stop reason", False)
                 yield stop
+            else:  # Просто провернуться для plan/unplan
+                yield None

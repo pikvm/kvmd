@@ -53,6 +53,10 @@ class NbdControllerError(NbdOperationError):
     pass
 
 
+class NbdBoundError(NbdControllerError):
+    _DEFAULT_NSG = "NBD is already bound"
+
+
 class NbdBindError(NbdControllerError):
     pass
 

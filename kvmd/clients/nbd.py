@@ -28,10 +28,12 @@ import aiohttp
 from ..nbd.types import NbdImage
 from ..nbd.types import NbdRunningEvent
 from ..nbd.types import NbdStoppedEvent
+from ..nbd.types import NbdStateDevice
 from ..nbd.types import NbdStateBinding
 from ..nbd.types import NbdState
 
 from ..nbd.errors import NbdIsBusyError
+from ..nbd.errors import NbdBoundError
 from ..nbd.errors import NbdBindError
 from ..nbd.errors import NbdProbeError
 
@@ -62,20 +64,26 @@ class NbdClient:
     async def get_remotes(self) -> dict[str, Any]:
         async with self.__make_session() as session:
             async with session.get("/remotes") as resp:
-                htclient.raise_not_200(resp)
-                remotes = (await resp.json())["result"]
+                remotes = await self.__get_result(resp)
                 assert isinstance(remotes, dict)
                 return remotes
 
-    async def explore(self, url: str, **params: Any) -> NbdImage:
-        result = await self.__explore_or_bind("/explore", url, **params)
+    async def explore(self, url: str, params: dict[str, Any]) -> NbdImage:
+        result = await self.__explore_or_plan("/explore", url, params)
         return NbdImage(**result["image"])
 
-    async def bind(self, url: str, **params: Any) -> NbdState:
-        result = await self.__explore_or_bind("/bind", url, **params)
+    async def plan(self, url: str, params: dict[str, Any]) -> NbdState:
+        result = await self.__explore_or_plan("/plan", url, params)
         return self.__parse_state(result)
 
-    async def __explore_or_bind(self, handle: str, url: str, **params: Any) -> dict:
+    async def __explore_or_plan(
+        self,
+        handle: str,
+        url: str,
+        params: dict[str, Any],
+    ) -> dict:
+
+        params = dict(params)
         async with self.__make_session() as session:
             data: dict[str, str] = {}
             for key in ["passwd"]:
@@ -88,14 +96,32 @@ class NbdClient:
                 data=(data or None),
             ) as resp:
 
-                await htclient.raise_known_not_200(
-                    resp,
-                    NbdIsBusyError,
-                    NbdBindError,
-                    NbdProbeError,
-                    ValidatorError,
-                )
-                return (await resp.json())["result"]
+                return (await self.__get_result(resp))
+
+    async def unplan(self) -> NbdState:
+        async with self.__make_session() as session:
+            async with session.post("/unplan") as resp:
+                return self.__parse_state(await self.__get_result(resp))
+
+    async def bind(self) -> NbdState:
+        async with self.__make_session() as session:
+            async with session.post("/bind") as resp:
+                return self.__parse_state(await self.__get_result(resp))
+
+    async def unbind(self) -> None:
+        async with self.__make_session() as session:
+            async with session.post("/unbind") as resp:
+                await self.__get_result(resp)
+
+    async def poll_state(self) -> AsyncGenerator[NbdState]:
+        async with self.__make_session() as session:
+            async with session.ws_connect("/ws") as ws:
+                async for msg in ws:
+                    if msg.type != aiohttp.WSMsgType.TEXT:
+                        raise NbdClientError(f"Unexpected message type: {msg!r}")
+                    (event_type, event) = htserver.parse_ws_event(msg.data)
+                    if event_type == "nbd":
+                        yield self.__parse_state(event)
 
     def __parse_state(self, result: dict) -> NbdState:
         binding: (NbdStateBinding | None) = None
@@ -113,22 +139,19 @@ class NbdClient:
                 status=rb["status"],
                 info=info,
             )
-        return NbdState(result["device"], binding)
+        device = NbdStateDevice(result["device"]["path"])
+        return NbdState(result["ts"], device, binding)
 
-    async def unbind(self) -> None:
-        async with self.__make_session() as session:
-            async with session.post("/unbind") as resp:
-                htclient.raise_not_200(resp)
-
-    async def poll_state(self) -> AsyncGenerator[NbdState]:
-        async with self.__make_session() as session:
-            async with session.ws_connect("/ws") as ws:
-                async for msg in ws:
-                    if msg.type != aiohttp.WSMsgType.TEXT:
-                        raise NbdClientError(f"Unexpected message type: {msg!r}")
-                    (event_type, event) = htserver.parse_ws_event(msg.data)
-                    if event_type == "nbd":
-                        yield self.__parse_state(event)
+    async def __get_result(self, resp: aiohttp.ClientResponse) -> dict:
+        await htclient.raise_known_not_200(
+            resp,
+            NbdIsBusyError,
+            NbdBoundError,
+            NbdBindError,
+            NbdProbeError,
+            ValidatorError,
+        )
+        return (await resp.json())["result"]
 
     def __make_session(self) -> aiohttp.ClientSession:
         return aiohttp.ClientSession(
