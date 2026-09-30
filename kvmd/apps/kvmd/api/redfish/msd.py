@@ -32,6 +32,7 @@ from .....htserver import make_json_response
 from .....plugins.msd import BaseMsd
 
 from .....validators.basic import valid_bool
+from .....validators.basic import valid_stripped_string
 from .....validators.kvm import valid_msd_image_name
 
 
@@ -84,10 +85,26 @@ class RedfishMsdApi:
         state = (await self.__msd.get_state())
 
         drive: (dict | None) = None
+        image: (dict | None) = None
         path: (str | None) = None
+        name: (str | None) = None
+        media_types = ["USBStick", "CD", "DVD"]
         if state["online"]:
             drive = state["drive"]
-            path = (drive and drive["image"] and drive["image"]["name"])  # type: ignore
+            if drive:
+                image = drive["image"]
+                if image:
+                    if image["proto"] == "file":
+                        path = image["name"]
+                        name = os.path.basename(path)
+                    else:
+                        path = image["url"]
+                        name = image["name"]
+                if drive["connected"]:
+                    if drive["cdrom"]:
+                        media_types = ["CD", "DVD"]
+                    else:
+                        media_types = ["USBStick"]
 
         return make_json_response({
             "@odata.id":      "/redfish/v1/Managers/BMC/VirtualMedia/MSD",
@@ -95,10 +112,12 @@ class RedfishMsdApi:
             "Id":             "MSD",
             "Name":           "Virtual CD/DVD/Flash Drive",
             "Description":    "PiKVM Virtual CD/DVD/Flash Drive",
-            "MediaTypes":     ["USBStick", "CD", "DVD"],
+            "MediaTypes":     media_types,
+            "TransferMethod": (image and ("Upload" if image["proto"] == "file" else "Stream")),
+            # "TransferProtocolType": ["CIFS", "HTTP", "HTTPS", "SFTP"],
             "Image":          path,
-            "ImageName":      (path and os.path.basename(path)),
-            "ConnectedVia":   (drive and ("Oem" if drive["image"] else "NotConnected")),
+            "ImageName":      name,
+            "ConnectedVia":   (drive and (("Oem" if image["proto"] == "file" else "URI") if image else "NotConnected")),
             "Inserted":       (drive and drive["connected"]),
             "WriteProtected": (drive and drive["rw"]),
             "Oem": {
@@ -125,20 +144,36 @@ class RedfishMsdApi:
     @exposed_http("POST", "/redfish/v1/Managers/BMC/VirtualMedia/MSD/Actions/VirtualMedia.InsertMedia")
     async def __msd_insert_handler(self, req: Request) -> Response:
         try:
-            params = await req.json()
+            query = await req.json()
         except Exception:
             raise HttpError("Invalid body", 400)
-        name = valid_msd_image_name(params.get("Image"))
-        cdrom = name.lower().startswith(".iso")
-        connect = valid_bool(params.get("Inserted", True))
-        rw = (not valid_bool(params.get("WriteProtected", True)))
+
+        params: dict = {
+            "rw":    valid_bool(query.get("WriteProtected", True)),
+            "cdrom": valid_bool(query.get("Oem", {}).get("PiKVM", {}).get("DriveOptical", False)),
+            "remote_params": {
+                # Standard options for NBD remotes
+                "user":   query.get("UserName", ""),
+                "passwd": query.get("Password", ""),
+                "verify": valid_bool(query.get("VerifyCertificate", True)),
+            },
+        }
+        image = valid_stripped_string(query.get("Image"), name="MSD image name or URL")
+        if self.__msd.is_remote_url(image):
+            # XXX: We don't validate a URL, it should be passed as-is to the lower level.
+            # remote_params are not validated too.
+            params["remote_url"] = image
+        else:
+            params["name"] = valid_msd_image_name(image, allow_eject=True)
+
+        connect = valid_bool(query.get("Inserted", True))
 
         state = await self.__msd.get_state()
         if state.get("drive", {}).get("connected"):
             await self.__msd.set_connected(False)
             await self.__msd.set_params(name="")
 
-        await self.__msd.set_params(name=name, cdrom=cdrom, rw=rw)
+        await self.__msd.set_params(**params)  # type: ignore
         if connect:
             await self.__msd.set_connected(True)
         return Response(body=None, status=204)
