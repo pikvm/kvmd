@@ -83,7 +83,7 @@ class NbdClient:
         params: dict[str, Any],
     ) -> dict:
 
-        params = dict(params)
+        params = {key: str(value) for (key, value) in params.items()}
         async with self.__make_session() as session:
             data: dict[str, str] = {}
             for key in ["passwd"]:
