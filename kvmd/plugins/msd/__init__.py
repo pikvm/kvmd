@@ -21,6 +21,7 @@
 
 
 import os
+import re
 import asyncio
 import contextlib
 import time
@@ -98,11 +99,6 @@ class MsdImageStaticError(MsdOperationError):
         super().__init__("This image can't be removed")
 
 
-class MsdRemoteDisabledError(MsdOperationError):
-    def __init__(self) -> None:
-        super().__init__("Remote images binding is disabled")
-
-
 # =====
 class BaseMsdReader:
     def get_state(self) -> dict:
@@ -134,8 +130,10 @@ class BaseMsdWriter:
 class BaseMsd(BasePlugin):
     def __init__(self, c: Section, nbd: NbdClient) -> None:
         super().__init__(c)
-        self._nbd = nbd
-        _ = self._nbd
+        _ = nbd
+
+    def is_remote_url(self, url: str) -> bool:
+        return bool(re.match(r"^[a-zA-Z][a-zA-Z0-9._+-]+[a-zA-Z]://[a-zA-Z0-9\[]", url))
 
     async def get_state(self) -> dict:
         raise NotImplementedError()

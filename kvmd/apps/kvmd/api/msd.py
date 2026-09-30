@@ -20,7 +20,6 @@
 # ========================================================================== #
 
 
-import re
 import asyncio
 import lzma
 import time
@@ -83,12 +82,12 @@ class MsdApi:
 
         if "__image__" in params:
             image = params.pop("__image__")
-            if re.match(r"^[a-zA-Z][a-zA-Z0-9._+-]+[a-zA-Z]://[a-zA-Z0-9\[]", image) is None:
-                params["name"] = valid_msd_image_name(image, allow_eject=True)
-            else:
+            if self.__msd.is_remote_url(image):
                 # XXX: We don't validate a URL, it should be passed as-is to the lower level.
                 # remote_params are not validated too.
                 params["remote_url"] = image
+            else:
+                params["name"] = valid_msd_image_name(image, allow_eject=True)
 
         await self.__msd.set_params(remote_params=query, **params)  # type: ignore
         return make_json_response()

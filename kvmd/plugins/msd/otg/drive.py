@@ -67,6 +67,10 @@ class Drive:
 
     # =====
 
+    def trigger_image_inotify(self) -> None:
+        with open(os.path.join(self.__lun_path, "file"), "r+"):
+            pass
+
     def set_image_path(self, path: str) -> None:
         if path:
             try:
