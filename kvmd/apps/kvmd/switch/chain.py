@@ -139,7 +139,7 @@ class _UnitContext:
 
     @property
     def changing_rid(self) -> int:
-        if self.__deadline_ts >= 0 and self.__deadline_ts < time.monotonic():
+        if 0 <= self.__deadline_ts < time.monotonic():
             self.__rid = -1
             self.__deadline_ts = -1
         return self.__rid
