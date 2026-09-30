@@ -41,6 +41,8 @@ from . import BaseNbdRemote
 
 # =====
 class NbdHttpRemote(BaseNbdRemote):
+    __PROTOS: Final[frozenset[str]] = frozenset(["http", "https"])
+
     def __init__(self, c: Section) -> None:
         super().__init__(c)
 
@@ -56,7 +58,7 @@ class NbdHttpRemote(BaseNbdRemote):
 
     @classmethod
     def get_schemes(cls) -> set[str]:
-        return set(["http", "https"])
+        return set(cls.__PROTOS)
 
     @classmethod
     def get_options(cls) -> dict[str, Option]:
@@ -105,7 +107,8 @@ class NbdHttpRemote(BaseNbdRemote):
         async with session.head(self.__url) as resp:
             htclient.raise_not_200(resp)
 
-            proto = resp.request_info.url.scheme.upper()
+            proto = resp.request_info.url.scheme.lower()
+            assert proto in self.__PROTOS
             name = htclient.get_filename(resp)
 
             cl = resp.content_length

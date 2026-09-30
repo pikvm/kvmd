@@ -69,6 +69,8 @@ def _close(
 
 
 class NbdSftpRemote(BaseNbdRemote):
+    __PROTO: Final[str] = "sftp"
+
     def __init__(self, c: Section) -> None:
         super().__init__(c)
 
@@ -83,7 +85,7 @@ class NbdSftpRemote(BaseNbdRemote):
 
     @classmethod
     def get_schemes(cls) -> set[str]:
-        return set(["sftp"])
+        return set([cls.__PROTO])
 
     @classmethod
     def get_options(cls) -> dict[str, Option]:
@@ -158,7 +160,7 @@ class NbdSftpRemote(BaseNbdRemote):
             raise NbdRemoteError("Can't fetch file size")
         return NbdImage(
             url=self.__url.raw,
-            proto="SFTP",
+            proto=self.__PROTO,
             name=self.__url.name,
             size=st.st_size,
             mod_ts=float(st.st_mtime or 0),

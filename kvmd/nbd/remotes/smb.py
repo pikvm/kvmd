@@ -48,6 +48,8 @@ class _FileHandle:
 
 
 class NbdSmbRemote(BaseNbdRemote):
+    __PROTO: Final[str] = "smb"
+
     def __init__(self, c: Section) -> None:
         super().__init__(c)
 
@@ -62,7 +64,7 @@ class NbdSmbRemote(BaseNbdRemote):
 
     @classmethod
     def get_schemes(cls) -> set[str]:
-        return set(["smb"])
+        return set([cls.__PROTO])
 
     @classmethod
     def get_options(cls) -> dict[str, Option]:
@@ -117,7 +119,7 @@ class NbdSmbRemote(BaseNbdRemote):
         st = await asyncio.to_thread(fh.file.fstat)
         return NbdImage(
             url=self.__url.raw,
-            proto="SMB",
+            proto=self.__PROTO,
             name=self.__url.name,
             size=st[6],
             mod_ts=float(st[8]),

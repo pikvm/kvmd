@@ -102,15 +102,18 @@ class NbdController:
             scheme: {
                 name: opt.default
                 for (name, opt) in cls.get_options().items()
+                if name != "url"
             }
             for (scheme, cls) in self.__REMOTES.items()
         }
 
     async def explore(self, url: str, **params: Any) -> NbdImage:
+        params.pop("url", None)
         (_, image) = await self.__resolve("explore", url, **params)
         return image
 
     async def plan(self, url: str, **params: Any) -> NbdState:
+        params.pop("url", None)
         with self.__region:
             if self.__job:
                 raise NbdBoundError()
@@ -135,6 +138,7 @@ class NbdController:
         if cls is None:
             raise ValidatorError("Unsupported remote URL scheme")
 
+        assert "url" not in params
         try:
             config = make_config({"url": url, **params}, {}, cls.get_options())
         except Exception as ex:
