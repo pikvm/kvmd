@@ -71,8 +71,9 @@ class _Plan:
 
 @dataclasses.dataclass(frozen=True)
 class _Job:
-    proc:  NbdProcess
-    event: asyncio.Event
+    proc:          NbdProcess
+    init_event:    asyncio.Event  # Running or stopped
+    stopped_event: asyncio.Event
 
 
 class NbdController:
@@ -169,12 +170,13 @@ class NbdController:
             self.__nr.notify()
             self.__job = _Job(
                 proc=NbdProcess(self.__device, remote, image),
-                event=asyncio.Event(),
+                init_event=asyncio.Event(),
+                stopped_event=asyncio.Event(),
             )
             proc = self.__job.proc
             try:
                 try:
-                    await asyncio.wait_for(self.__job.event.wait(), timeout=proc.get_timeout())
+                    await asyncio.wait_for(self.__job.init_event.wait(), timeout=proc.get_timeout())
                 except Exception as ex:
                     raise NbdBindError("NBD can't bind an image in time (timeout)", ex)
                 if self.__state.binding is None:
@@ -188,9 +190,15 @@ class NbdController:
                 raise
             return self.__state
 
-    async def unbind(self) -> None:
-        if self.__job:
-            self.__job.proc.stop()
+    async def unbind(self) -> NbdState:
+        job = self.__job
+        if job:
+            job.proc.stop()
+            try:
+                await asyncio.wait_for(job.stopped_event.wait(), timeout=job.proc.get_timeout())
+            except Exception as ex:
+                raise NbdBoundError("NBD can't unbind an image in time (timeout)", ex)
+        return self.__state
 
     def get_state(self) -> NbdState:
         return self.__state
@@ -215,14 +223,15 @@ class NbdController:
                     assert self.__state.binding
                     binding = self.__state.binding
                     self.__update_binding(NbdStateBinding(binding.id, binding.image, "running", event))
-                    self.__job.event.set()
+                    self.__job.init_event.set()
 
                 case NbdStoppedEvent():
                     assert self.__job
                     assert self.__state.binding
                     binding = self.__state.binding
                     self.__update_binding(NbdStateBinding(binding.id, binding.image, "stopped", event))
-                    self.__job.event.set()
+                    self.__job.init_event.set()
+                    self.__job.stopped_event.set()
                     self.__job = None
 
             yield self.__state

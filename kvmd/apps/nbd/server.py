@@ -95,8 +95,8 @@ class NbdServer(HttpServer):
 
     @exposed_http("POST", "/unbind")
     async def __unbind_handler(self, _: Request) -> Response:
-        await self.__ctl.unbind()
-        return make_json_response({})
+        state = await self.__ctl.unbind()
+        return make_json_response(dataclasses.asdict(state))
 
     # ===== WEBSOCKET
 

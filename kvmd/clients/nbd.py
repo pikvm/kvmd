@@ -108,10 +108,10 @@ class NbdClient:
             async with session.post("/bind") as resp:
                 return self.__parse_state(await self.__get_result(resp))
 
-    async def unbind(self) -> None:
+    async def unbind(self) -> NbdState:
         async with self.__make_session() as session:
             async with session.post("/unbind") as resp:
-                await self.__get_result(resp)
+                return self.__parse_state(await self.__get_result(resp))
 
     async def poll_state(self) -> AsyncGenerator[NbdState]:
         async with self.__make_session() as session:

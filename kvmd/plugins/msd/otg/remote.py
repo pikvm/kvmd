@@ -91,10 +91,10 @@ class Nbd:
         with self.__catch():
             return self.__update(await self.__client.bind())[0]
 
-    async def unbind(self) -> None:
+    async def unbind(self) -> NbdState:
         self.__check()
         with self.__catch():
-            await self.__client.unbind()
+            return self.__update(await self.__client.unbind())[0]
 
     def __check(self) -> None:
         if self.__state is None:
