@@ -175,7 +175,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 vd = dataclasses.asdict(self.__state.vd)
                 if vd["image"]:
                     vd["image"].pop("path", None)  # FileImage
-                    vd["image"].setdefault("proto", "file")  # FileImage
+                    vd["image"].setdefault("url", None)  # FileImage
                     vd["image"].setdefault("in_storage", False)  # NbdImage
                     vd["image"].setdefault("removable", False)  # NbdImage
                     vd["image"].setdefault("complete", True)  # NbdImage

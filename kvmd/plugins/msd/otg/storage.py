@@ -46,6 +46,7 @@ from . import fs
 class _FileImageDc:  # pylint: disable=too-many-instance-attributes
     path:       str
     name:       str
+    proto:      str   = dataclasses.field(compare=False)
     in_storage: bool  = dataclasses.field(compare=False)
     # For _reload():
     size:       int   = dataclasses.field(default=0,     compare=False)
@@ -61,8 +62,9 @@ class FileImage(_FileImageDc):
         path = os.path.normpath(path)
         if not in_storage:
             assert not adopted
+        proto = ("storage" if in_storage else "file")
 
-        super().__init__(path, name, in_storage)
+        super().__init__(path, name, proto, in_storage)
 
         self.__adopted = adopted
         (self.__dir_path, file_name) = os.path.split(path)
@@ -231,6 +233,7 @@ class Storage:
             images[name] = dataclasses.asdict(images[name])
             del images[name]["path"]
             del images[name]["name"]
+            del images[name]["proto"]
             del images[name]["in_storage"]
         parts: dict = self.__get_parts()
         for name in list(parts):
