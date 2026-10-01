@@ -232,7 +232,6 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     # =====
 
-    @aiotools.atomic_fg
     async def set_params(
         self,
         name: (str | None)=None,
@@ -257,6 +256,10 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
             async with self.__state.locked_only():
                 vd = self.__state.check_online_disconnected(self.__drive)
 
+                # Если где-то прилетит CancelledError - не страшно,
+                # настройка образа из хранилища идет первой операцией
+                # и зафейлится сразу всё.
+
                 if self.__nbd.image:
                     vd.image = self.__nbd.image
                 elif name is not None:
@@ -274,58 +277,59 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 if vd.rw and (vd.cdrom or (vd.image and not vd.image.writable)):
                     vd.rw = False
 
-    @aiotools.atomic_fg
     async def set_connected(self, connected: bool) -> None:
         with self.__state.busy_only():
-            if connected and self.__nbd.image and self.__nbd.asserted_ready_to_bind:
-                await self.__nbd.bind()
+            if connected:
+                if self.__nbd.image and self.__nbd.asserted_ready_to_bind:
+                    await self.__nbd.bind()
+                await self.__unsafe_connect()
+            else:
+                await self.__unsafe_disconnect()
 
-            async with self.__state.locked_only():
-                if connected:
-                    await self.__unsafe_connect()
-                else:
-                    await self.__unsafe_disconnect()
-
+    @aiotools.atomic_fg
     async def __unsafe_connect(self) -> None:
-        vd = self.__state.check_online_disconnected(self.__drive)
-        match vd.image:
-            case FileImage():
-                if not (await vd.image.exists()):
-                    raise MsdUnknownImageError()
-                if not vd.image.in_storage:
-                    # Машина состояний не должна допускать того, чтобы в виртуальной конфигурации
-                    # привода находился образ вне хранилища, но всё же перепроверим.
-                    raise MsdUnknownImageError()
-                if vd.rw:
-                    await self.__storage.remount_rw(vd.image)
-                path = vd.image.path
+        async with self.__state.locked_only():
+            vd = self.__state.check_online_disconnected(self.__drive)
+            match vd.image:
+                case FileImage():
+                    if not (await vd.image.exists()):
+                        raise MsdUnknownImageError()
+                    if not vd.image.in_storage:
+                        # Машина состояний не должна допускать того, чтобы в виртуальной конфигурации
+                        # привода находился образ вне хранилища, но всё же перепроверим.
+                        raise MsdUnknownImageError()
+                    if vd.rw:
+                        await self.__storage.remount_rw(vd.image)
+                    path = vd.image.path
 
-            case NbdImage():  # FIXME провалидировать результат между блокировками
-                if self.__nbd.image is None or not self.__nbd.asserted_running:
-                    # Рассинхрон, засинхронится само в __systask_nbd()
+                case NbdImage():
+                    if self.__nbd.image is None or not self.__nbd.asserted_running:
+                        # Рассинхрон, засинхронится само в __systask_nbd()
+                        raise MsdImageNotSelected()
+                    vd.image = self.__nbd.image
+                    path = self.__nbd.asserted_path
+
+                case _:  # None
                     raise MsdImageNotSelected()
-                vd.image = self.__nbd.image
-                path = self.__nbd.asserted_path
 
-            case _:  # None
-                raise MsdImageNotSelected()
+            self.__drive.set_rw_flag(vd.rw)
+            self.__drive.set_cdrom_flag(vd.cdrom)
+            self.__drive.set_image_path(path)
+            vd.connected = True
 
-        self.__drive.set_rw_flag(vd.rw)
-        self.__drive.set_cdrom_flag(vd.cdrom)
-        self.__drive.set_image_path(path)
-        vd.connected = True
-
+    @aiotools.atomic_fg
     async def __unsafe_disconnect(self) -> None:
-        vd = self.__state.check_online_connected(self.__drive)
-        self.__drive.set_image_path("")
-        vd.connected = False
-        try:
-            if isinstance(vd.image, FileImage):
-                await self.__storage.remount_ro()
-        finally:
-            # Не идеально, но сойдет
-            if self.__nbd.image and self.__nbd.asserted_running:
-                await self.__nbd.unbind()
+        async with self.__state.locked_only():
+            vd = self.__state.check_online_connected(self.__drive)
+            self.__drive.set_image_path("")
+            vd.connected = False
+            try:
+                if isinstance(vd.image, FileImage):
+                    await self.__storage.remount_ro()
+            finally:
+                # Не идеально, но сойдет
+                if self.__nbd.image and self.__nbd.asserted_running:
+                    await self.__nbd.unbind()
 
     @contextlib.asynccontextmanager
     async def read_image(self, name: str) -> AsyncGenerator[MsdFileReader]:
