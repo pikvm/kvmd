@@ -54,4 +54,12 @@ post_upgrade() {
 			systemctl enable kvmd-pm || true
 		fi
 	fi
+
+	if [[ "$(vercmp "$2" 4.218)" -lt 0 ]]; then
+		# shellcheck source=/dev/null
+		source /usr/lib/kvmd/platform
+		if [[ "$PIKVM_MODEL" =~ ^v[234].*$ ]]; then
+			systemctl enable kvmd-nbd || true
+		fi
+	fi
 }
