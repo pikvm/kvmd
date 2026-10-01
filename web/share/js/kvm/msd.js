@@ -130,14 +130,14 @@ export function Msd() {
 		tools.hidden.setVisible($("msd-message-offline"), (state && !state.online));
 		tools.hidden.setVisible($("msd-message-image-broken"), (o && d.image && !d.image.complete && !s.uploading));
 		tools.hidden.setVisible($("msd-message-too-big-for-dvd"), (o && d.cdrom && d.image && d.image.size >= 33957083136));
-		tools.hidden.setVisible($("msd-message-out-of-storage"), (o && d.image && !d.image.in_storage));
+		tools.hidden.setVisible($("msd-message-out-of-storage"), (o && d.image && (d.image.proto === "external")));
 		tools.hidden.setVisible($("msd-message-rw-enabled"), (o && d.rw));
 		tools.hidden.setVisible($("msd-message-another-user-uploads"), (o && s.uploading && !__http));
 		tools.hidden.setVisible($("msd-message-downloads"), (o && s.downloading));
 
 		tools.radio.setEnabled("msd-sorting-radio", (o && !d.connected && !busy));
 		tools.el.setEnabled($("msd-image-selector"), (o && !d.connected && !busy));
-		tools.el.setEnabled($("msd-download-button"), (o && d.image && !d.connected && !busy));
+		tools.el.setEnabled($("msd-download-button"), (o && !d.connected && !busy && d.image && d.image.in_storage));
 		tools.el.setEnabled($("msd-remove-button"), (o && d.image && d.image.removable && !d.connected && !busy));
 
 		tools.radio.setEnabled("msd-mode-radio", (o && !d.connected && !busy));
@@ -261,6 +261,9 @@ export function Msd() {
 			}
 		}
 		if (drive.image && !drive.image.in_storage) {
+			if (names.length > 0) {
+				tools.selector.addSeparator(el);
+			}
 			sel = ".__external__"; // Just some magic name
 			tools.selector.addOption(el, drive.image.name, sel);
 			tools.selector.addComment(el, __makeImageSelectorInfo(drive.image));
@@ -276,8 +279,16 @@ export function Msd() {
 		if (!image.complete) {
 			text += ", broken";
 		}
-		if (image.in_storage !== undefined && !image.in_storage) {
-			text += ", out of storage";
+		switch (image.proto) {
+			case undefined:
+			case "storage":
+				break;
+			case "file":
+				text += ", out of storage";
+				break;
+			default:
+				text += ", " + image.proto.toUpperCase();
+				break;
 		}
 		let ts = new Date(image.mod_ts * 1000);
 		ts = new Date(ts.getTime() - (ts.getTimezoneOffset() * 60000));
