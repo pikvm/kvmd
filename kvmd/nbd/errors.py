@@ -54,7 +54,7 @@ class NbdControllerError(NbdOperationError):
 
 
 class NbdBoundError(NbdControllerError):
-    _DEFAULT_NSG = "NBD is already bound"
+    _DEFAULT_MSG = "NBD is already bound"
 
 
 class NbdBindError(NbdControllerError):

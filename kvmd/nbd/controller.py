@@ -126,7 +126,7 @@ class NbdController:
     async def unplan(self) -> NbdState:
         with self.__region:
             if self.__job:
-                raise NbdBoundError()
+                raise NbdBoundError("NBD is still bound")
             self.__plan = None
             self.__update_binding(None)
             self.__nr.notify()
