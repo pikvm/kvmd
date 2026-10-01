@@ -39,10 +39,51 @@ class SystemdUnitInfo:
         self.__manager: (dbus_next.aio.proxy_object.ProxyInterface | None) = None
         self.__requested = False
 
+    async def __aenter__(self) -> Self:
+        assert self.__bus is None
+        self.__bus = await dbus_next.aio.MessageBus(bus_type=dbus_next.BusType.SYSTEM).connect()
+        try:
+            self.__intr = await self.__bus.introspect("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
+            systemd = self.__bus.get_proxy_object("org.freedesktop.systemd1", "/org/freedesktop/systemd1", self.__intr)
+            self.__manager = systemd.get_interface("org.freedesktop.systemd1.Manager")
+        except BaseException:
+            self.__disconnect()
+            raise
+        return self
+
+    def __disconnect(self) -> None:
+        bus = self.__bus
+        self.__requested = False
+        self.__manager = None
+        self.__intr = None
+        self.__bus = None
+        if bus:
+            bus.disconnect()
+
+    async def __aexit__(
+        self,
+        _exc_type: type[BaseException],
+        _exc: BaseException,
+        _tb: types.TracebackType,
+    ) -> None:
+
+        try:
+            if self.__bus:
+                try:
+                    # XXX: Workaround for dbus_next bug: https://github.com/pikvm/kvmd/pull/182
+                    if not self.__requested:
+                        await self.__manager.call_get_default_target()  # type: ignore
+                finally:
+                    bus = self.__bus
+                    self.__disconnect()
+                    await bus.wait_for_disconnect()
+        except Exception:
+            pass
+
     async def get_status(self, name: str) -> tuple[bool, bool]:
-        assert self.__bus is not None
-        assert self.__intr is not None
-        assert self.__manager is not None
+        assert self.__bus
+        assert self.__intr
+        assert self.__manager
 
         if not name.endswith(".service"):
             name += ".service"
@@ -65,38 +106,3 @@ class SystemdUnitInfo:
             "generated",
         ])
         return (enabled, started)
-
-    async def open(self) -> None:
-        self.__bus = await dbus_next.aio.MessageBus(bus_type=dbus_next.BusType.SYSTEM).connect()
-        self.__intr = await self.__bus.introspect("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
-        systemd = self.__bus.get_proxy_object("org.freedesktop.systemd1", "/org/freedesktop/systemd1", self.__intr)
-        self.__manager = systemd.get_interface("org.freedesktop.systemd1.Manager")
-
-    async def __aenter__(self) -> Self:
-        await self.open()
-        return self
-
-    async def close(self) -> None:
-        try:
-            if self.__bus is not None:
-                try:
-                    # XXX: Workaround for dbus_next bug: https://github.com/pikvm/kvmd/pull/182
-                    if not self.__requested:
-                        await self.__manager.call_get_default_target()  # type: ignore
-                finally:
-                    self.__bus.disconnect()
-                    await self.__bus.wait_for_disconnect()
-        except Exception:
-            pass
-        self.__manager = None
-        self.__intr = None
-        self.__bus = None
-
-    async def __aexit__(
-        self,
-        _exc_type: type[BaseException],
-        _exc: BaseException,
-        _tb: types.TracebackType,
-    ) -> None:
-
-        await self.close()

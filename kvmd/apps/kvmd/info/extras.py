@@ -47,26 +47,18 @@ class ExtrasInfoSubmanager(BaseInfoSubmanager):
 
     async def get_state(self) -> (dict | None):
         try:
-            sui = sysunit.SystemdUnitInfo()
-            await sui.open()
-        except Exception as ex:
-            get_logger(0).error("Can't open systemd bus to get extras state: %s", tools.efmt(ex))
-            sui = None
-        try:
-            extras: dict[str, dict] = {}
-            for extra in (await asyncio.gather(*[
-                self.__read_extra(sui, name)
-                for name in os.listdir(self.__get_extras_path())
-                if name[0] != "." and os.path.isdir(self.__get_extras_path(name))
-            ])):
-                extras.update(extra)
-            return extras
+            async with sysunit.SystemdUnitInfo() as sui:
+                extras: dict[str, dict] = {}
+                for extra in (await asyncio.gather(*[
+                    self.__read_extra(sui, name)
+                    for name in os.listdir(self.__get_extras_path())
+                    if name[0] != "." and os.path.isdir(self.__get_extras_path(name))
+                ])):
+                    extras.update(extra)
+                return extras
         except Exception:
             get_logger(0).exception("Can't read extras")
             return None
-        finally:
-            if sui is not None:
-                await aiotools.shield_fg(sui.close())
 
     async def trigger_state(self) -> None:
         self.__notifier.notify()
