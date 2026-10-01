@@ -29,7 +29,6 @@ from typing import AsyncGenerator
 
 import aiohttp
 
-from .. import aiotools
 from .. import htclient
 from .. import htserver
 
@@ -177,12 +176,7 @@ class KvmdClientWs:
                     case _:
                         raise RuntimeError(f"Unhandled WS message type: {msg!r}")
         finally:
-            try:
-                await aiotools.shield_fg(self.__ws.close())
-            except Exception:
-                pass
-            finally:
-                self.__communicated = False
+            self.__communicated = False
 
     async def send_key_event(self, key: int, state: bool) -> None:
         mask = (0b10000000 | int(bool(state)))
