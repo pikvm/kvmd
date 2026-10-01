@@ -149,8 +149,8 @@ class RedfishMsdApi:
             raise HttpError("Invalid body", 400)
 
         params: dict = {
+            "guess": True,  # "cdrom" has a priority over "guess" and "rw"
             "rw":    valid_bool(query.get("WriteProtected", True)),
-            "cdrom": valid_bool(query.get("Oem", {}).get("PiKVM", {}).get("DriveOptical", False)),
             "remote_params": {
                 # Standard options for NBD remotes
                 "user":   query.get("UserName", ""),
@@ -158,6 +158,11 @@ class RedfishMsdApi:
                 "verify": valid_bool(query.get("VerifyCertificate", True)),
             },
         }
+
+        has_optical = ("DriveOptical" in query.get("Oem", {}).get("PiKVM", {}))
+        if has_optical:
+            params["cdrom"] = valid_bool(query["Oem"]["PiKVM"]["DriveOptical"])
+
         image = valid_stripped_string(query.get("Image"), name="MSD image name or URL")
         if self.__msd.is_remote_url(image):
             # XXX: We don't validate a URL, it should be passed as-is to the lower level.

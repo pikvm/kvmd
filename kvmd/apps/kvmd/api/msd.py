@@ -74,6 +74,7 @@ class MsdApi:
             key: validator(query.pop(param))  # type: ignore
             for (param, key, validator) in [
                 ("image", "__image__", valid_stripped_string.mk(name="MSD image name or URL")),
+                ("guess", "guess",     valid_bool),
                 ("cdrom", "cdrom",     valid_bool),
                 ("rw",    "rw",        valid_bool),
             ]

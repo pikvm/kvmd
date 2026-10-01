@@ -235,6 +235,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
     async def set_params(
         self,
         name: (str | None)=None,
+        guess: (bool | None)=None,
         cdrom: (bool | None)=None,
         rw: (bool | None)=None,
         remote_url: (str | None)=None,
@@ -267,6 +268,9 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                         vd.image = await self.__storage.get_image_by_name(name)
                     else:
                         vd.image = None
+
+                if guess is not None and cdrom is None and vd.image:
+                    vd.cdrom = vd.image.name.lower().endswith(".iso")
 
                 if cdrom is not None:
                     vd.cdrom = cdrom
