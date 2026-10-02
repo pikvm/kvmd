@@ -535,17 +535,24 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 rw = self.__state.vd.rw
             if self.__nbd.image:
                 image = self.__nbd.image
+            elif isinstance(image, NbdImage):
+                # Если был запланирован NBD, но KVMD-NBD рестартнули
+                image = None
 
         self.__state.vd = _VirtualDrive(image, bool(path), cdrom, rw)
         self.__nr.notify()
 
     async def __systask_nbd(self) -> None:
+        # Мы игнорируем /bind на KVMD-NBD, но реагируем на остальные действия. Так проще.
         logger = get_logger(0)
         ok = True
         while True:
             try:
+                was_bound = False
                 try:
                     async for _ in self.__nbd.poll_for_changes():
+                        path = self.__drive.get_image_path()
+                        was_bound = (self.__nbd.image and path == self.__nbd.asserted_path)
                         if self.__nbd.image and not self.__nbd.asserted_running:
                             self.__drive.set_image_path("")
                         else:
@@ -555,7 +562,10 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                             ok = True
                 except Exception:
                     if ok:
-                        self.__drive.trigger_image_inotify()
+                        if was_bound:
+                            self.__drive.set_image_path("")
+                        else:
+                            self.__drive.trigger_image_inotify()
                     raise
             except Exception as ex:
                 if ok:
