@@ -323,14 +323,18 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
     @aiotools.atomic_fg
     async def __unsafe_disconnect(self) -> None:
-        async with self.__state.locked_only():
-            vd = self.__state.check_online_connected(self.__drive)
-            self.__drive.set_image_path("")
-            vd.connected = False
-            try:
+        disconnected = False
+        try:
+            async with self.__state.locked_only():
+                vd = self.__state.check_online_connected(self.__drive)
+                self.__drive.set_image_path("")
+                vd.connected = False
+                disconnected = True
                 if isinstance(vd.image, FileImage):
                     await self.__storage.remount_ro()
-            finally:
+        finally:
+            # Не под блокировкой, чтобы не get_state() не подвис в ожидании unbind()
+            if disconnected:
                 # Не идеально, но сойдет
                 if self.__nbd.image and self.__nbd.asserted_running:
                     await self.__nbd.unbind()
