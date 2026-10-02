@@ -556,7 +556,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                 try:
                     async for _ in self.__nbd.poll_for_changes():
                         path = self.__drive.get_image_path()
-                        was_bound = (self.__nbd.image and path == self.__nbd.asserted_path)
+                        was_bound = (self.__nbd.image is not None and path == self.__nbd.asserted_path)
                         if self.__nbd.image and not self.__nbd.asserted_running:
                             self.__drive.set_image_path("")
                         else:
