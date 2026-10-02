@@ -302,14 +302,14 @@ class _GadgetConfig:
         func = f"mass_storage.usb{self.__msd_instance}"
         func_path = self.__create_function(func)
         _write(join(func_path, "stall"), int(stall))  # https://github.com/raspberrypi/linux/issues/7452
-        if image_path:
-            _write(join(func_path, "lun.0/file"), image_path)
         _write(join(func_path, "lun.0/cdrom"), int(cdrom))
         _write(join(func_path, "lun.0/ro"), int(not rw))
         _write(join(func_path, "lun.0/removable"), int(removable))
         _write(join(func_path, "lun.0/nofua"), int(not fua))
         _write(join(func_path, "lun.0/inquiry_string_cdrom"), inquiry_string_cdrom)
         _write(join(func_path, "lun.0/inquiry_string"), inquiry_string_flash)
+        if image_path:
+            _write(join(func_path, "lun.0/file"), image_path)
         if user != "root":
             _chown(join(func_path, "lun.0/cdrom"), user)
             _chown(join(func_path, "lun.0/ro"), user)
