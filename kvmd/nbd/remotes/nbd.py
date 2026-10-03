@@ -143,12 +143,14 @@ class _Link(BaseNbdLink):
         self.__sock = writer.transport.get_extra_info("socket")
 
         try:
-            self.__sock.settimeout(self.__timeout)
             (size, writable) = await _do_handshake(self.__url, reader, writer)
 
             # Нужно остановить вычитывание чего-либо питоном перед тем, как отдавать сокет ядру.
             # У _SelectorSocketTransport() есть такой метод.
             writer.transport.pause_reading()  # type: ignore
+
+            # Теперь можно поставить таймаут на реальный сокет, а не обертку TransportSocket
+            self.__sock._sock.settimeout(self.__timeout)  # type: ignore  # pylint: disable=protected-access
 
             self.__image = _make_image(self.__url, size, writable)
             yield self
