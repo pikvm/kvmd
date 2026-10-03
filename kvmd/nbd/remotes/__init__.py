@@ -74,14 +74,19 @@ class NbdUrl:
             raise NbdRemoteError("Invalid port in URL")
         object.__setattr__(self, "port", port)
 
-        name = os.path.basename(parsed.path)
+        object.__setattr__(self, "name", self._make_name(parsed.path))
+        object.__setattr__(self, "path", self._make_path(parsed.path))
+
+    def _make_name(self, path: str) -> str:
+        name = os.path.basename(path)
         if not name:
             raise NbdRemoteError("Empty filename in URL")
-        object.__setattr__(self, "name", name)
+        return name
 
-        if not parsed.path:
+    def _make_path(self, path: str) -> str:
+        if not path:
             raise NbdRemoteError("Empty file path in URL")
-        object.__setattr__(self, "path", parsed.path)
+        return path
 
 
 # =====

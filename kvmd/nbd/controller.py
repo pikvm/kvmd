@@ -60,6 +60,7 @@ from .remotes import BaseNbdRemote
 from .remotes.http import NbdHttpRemote
 from .remotes.smb import NbdSmbRemote
 from .remotes.sftp import NbdSftpRemote
+from .remotes.nbd import NbdKernelRemote
 
 
 # =====
@@ -79,7 +80,7 @@ class _Job:
 class NbdController:
     __REMOTES: Final[dict[str, Type[BaseNbdRemote]]] = {
         scheme: cls
-        for cls in [NbdHttpRemote, NbdSmbRemote, NbdSftpRemote]
+        for cls in [NbdHttpRemote, NbdSmbRemote, NbdSftpRemote, NbdKernelRemote]
         for scheme in cls.get_schemes()
     }
 
