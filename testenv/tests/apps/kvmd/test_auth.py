@@ -91,6 +91,8 @@ async def _get_configured_manager(
         force_int_users=(force_int_users or []),
 
         totp_secret_path="",
+
+        flows={},
     )
 
     await manager.sysprep()
@@ -344,6 +346,8 @@ async def test_ok__disabled() -> None:
             force_int_users=[],
 
             totp_secret_path="",
+
+            flows={},
         )
         await manager.sysprep()
 

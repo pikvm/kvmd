@@ -1,8 +1,8 @@
-/*****************************************************************************
+# ========================================================================== #
 #                                                                            #
 #    KVMD - The main PiKVM daemon.                                           #
 #                                                                            #
-#    Copyright (C) 2018-2024  Maxim Devaev <mdevaev@gmail.com>               #
+#    Copyright (C) 2025 Ivan Shapovalov <intelfx@intelfx.name>               #
 #                                                                            #
 #    This program is free software: you can redistribute it and/or modify    #
 #    it under the terms of the GNU General Public License as published by    #
@@ -17,46 +17,36 @@
 #    You should have received a copy of the GNU General Public License       #
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  #
 #                                                                            #
-*****************************************************************************/
+# ========================================================================== #
 
 
-div#login-box {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	text-align: center;
-	min-height: 100vh;
-}
+from typing import Any
+from typing import TYPE_CHECKING
 
-div#login {
-	text-align: left;
-	outline: none;
-	word-wrap: break-word;
-	max-width: 400px;
-	border: var(--border-window-default-thin);
-	border-radius: 8px;
-	box-sizing: border-box;
-	box-shadow: var(--shadow-big);
-	background-color: var(--cs-window-default-bg);
-	padding: 15px;
-}
+from aiohttp.web import Request
+from aiohttp.web import Response
 
-img#login-logo {
-	height: 30px;
-}
+from .. import BasePlugin
+from .. import get_plugin_class
 
-button.login-button {
-    width: 100%;
-}
+if TYPE_CHECKING:
+    from ...apps.kvmd import AuthManager
 
-button.login-button-secondary {
-    width: 100%;
-}
 
-input[type="text"]#user-input,
-input[type="password"]#passwd-input,
-input[type="text"]#code-input {
-	text-align: center;
-	border: thin;
-}
+# =====
+# FIXME: perhaps we want to have a BaseRouterPlugin (see dispatch() and its impl in oauth.Plugin)?
+class BaseAuthFlowService(BasePlugin):
+    # FIXME: should be able to use a Protocol here instead of declaring a ctor that does nothing
+    #        and only exists to define the proper signature of descendant constructors,
+    #        but you can't express "type that both implements a protocol A and is a subclass of B"
+    # pylint: disable=super-init-not-called,unused-argument
+    def __init__(self, *, manager: "AuthManager", **_: Any) -> None:
+        pass
+
+    async def dispatch(self, req: Request, subpath: str | None = None) -> Response:
+        raise NotImplementedError
+
+
+# =====
+def get_auth_flow_service_class(name: str) -> type[BaseAuthFlowService]:
+    return get_plugin_class("flows", name)  # type: ignore
