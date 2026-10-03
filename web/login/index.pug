@@ -20,7 +20,7 @@ append vars
 
 
 block body
-	form(action="javascript:void(0)" autocomplete="on")
+	form(method="post" action="#" autocomplete="on")
 		#login-box
 			#login
 				table
@@ -30,14 +30,14 @@ block body
 					tr
 						td(colspan=2) #[hr]
 					tr
-						td Username:&nbsp;
-						td #[input#user-input(type="text" autocapitalize="off" autocomplete="username" required)]
+						td #[label(for="user-input") Username:&nbsp;]
+						td #[input#user-input(type="text" name="username" autocapitalize="off" autocomplete="username" required)]
 					tr
-						td Password:&nbsp;
-						td #[input#passwd-input(type="password" autocapitalize="off" autocomplete="current-password")]
+						td #[label(for="passwd-input") Password:&nbsp;]
+						td #[input#passwd-input(type="password" name="password" autocapitalize="off" autocomplete="current-password")]
 					tr
-						td 2FA code:&nbsp;
-						td #[input#code-input(type="text" placeholder="if enabled" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6")]
+						td #[label(for="code-input") 2FA code:&nbsp;]
+						td #[input#code-input(type="text" name="one-time-code" placeholder="if enabled" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" aria-label="One-time code")]
 					tr
 						td(colspan=2) #[hr]
 					tr
@@ -52,7 +52,7 @@ block body
 						td(colspan=2) #[hr]
 					tr
 						td
-						td #[button.key#login-button Login]
+						td #[button.key#login-button(type="submit") Login]
 
 	ul.footer
 		li.left
