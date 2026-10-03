@@ -48,7 +48,8 @@ from ..types import NbdImage
 from ..types import BaseNbdEvent
 from ..types import NbdRunningEvent
 
-from ..link import NbdLink
+from ..link import BaseNbdLink
+from ..link import NbdUserLink
 
 
 # =====
@@ -85,6 +86,48 @@ class NbdUrl:
 
 # =====
 class BaseNbdRemote:
+    def __init__(self, c: Section) -> None:
+        _ = c
+
+    # =====
+
+    @classmethod
+    def get_schemes(cls) -> set[str]:
+        raise NotImplementedError
+
+    @classmethod
+    def get_options(cls) -> dict[str, Option]:
+        raise NotImplementedError
+
+    # =====
+
+    def get_timeout(self) -> float:
+        raise NotImplementedError
+
+    # =====
+
+    async def explore(self) -> NbdImage:
+        raise NotImplementedError
+
+    async def probe(self) -> NbdImage:  # noqa vulture-ignore
+        raise NotImplementedError
+
+    def make_link(self) -> BaseNbdLink:
+        raise NotImplementedError
+
+    async def serve(
+        self,
+        link: BaseNbdLink,
+        events_q: aiomulti.AioMpQueue[BaseNbdEvent],
+    ) -> None:
+
+        raise NotImplementedError
+
+    async def cleanup(self) -> None:
+        raise NotImplementedError
+
+
+class BaseNbdUserRemote(BaseNbdRemote):
     # https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md
     # https://github.com/NetworkBlockDevice/nbd/blob/master/nbd-client.c
     # https://github.com/mirror/busybox/blob/master/networking/nbd-client.c
@@ -98,6 +141,8 @@ class BaseNbdRemote:
     __OP_STOP:  Final[int] = 2
 
     def __init__(self, c: Section) -> None:
+        super().__init__(c)
+
         self.__retries_delay: Final[float] = c.retries_delay
 
         self.__recv_st = struct.Struct(">IHHQQI")
@@ -149,9 +194,12 @@ class BaseNbdRemote:
         self.__image = await self._do_probe()
         return self.__image
 
+    def make_link(self) -> NbdUserLink:
+        return NbdUserLink()
+
     async def serve(
         self,
-        link: NbdLink,
+        link: NbdUserLink,  # type: ignore
         events_q: aiomulti.AioMpQueue[BaseNbdEvent],
     ) -> None:
 

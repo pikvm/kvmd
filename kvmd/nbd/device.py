@@ -43,7 +43,7 @@ from .. import aiotools
 from .errors import NbdBoundError
 from .errors import NbdDeviceError
 from .types import NbdImage
-from .link import NbdLink
+from .link import BaseNbdLink
 
 
 # =====
@@ -151,7 +151,7 @@ class NbdDevice:
     # =====
 
     @contextlib.asynccontextmanager
-    async def open_prepared(self, link: NbdLink, image: NbdImage) -> AsyncGenerator[int]:
+    async def open_prepared(self, link: BaseNbdLink, image: NbdImage) -> AsyncGenerator[int]:
         self.check_image(image)
         self.check_readiness()
         with _wrap_exceptions():

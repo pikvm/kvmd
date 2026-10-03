@@ -36,11 +36,11 @@ from ...validators.net import valid_url
 from ..errors import NbdRemoteError
 from ..types import NbdImage
 
-from . import BaseNbdRemote
+from . import BaseNbdUserRemote
 
 
 # =====
-class NbdHttpRemote(BaseNbdRemote):
+class NbdHttpRemote(BaseNbdUserRemote):
     __PROTOS: Final[frozenset[str]] = frozenset(["http", "https"])
 
     def __init__(self, c: Section) -> None:
@@ -68,7 +68,7 @@ class NbdHttpRemote(BaseNbdRemote):
             "user":    Option(""),
             "passwd":  Option(""),
             "timeout": Option(3.0, type=valid_number.mk(min=1.0, max=30.0, type=float)),
-            **BaseNbdRemote.get_options(),
+            **BaseNbdUserRemote.get_options(),
         }
 
     # =====

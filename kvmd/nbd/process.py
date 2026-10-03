@@ -46,7 +46,7 @@ from .types import NbdStoppedEvent
 
 from .device import NbdDevice
 from .remotes import BaseNbdRemote
-from .link import NbdLink
+from .link import BaseNbdLink
 
 
 # =====
@@ -128,7 +128,7 @@ class NbdProcess:
             aiotools.run(self.__subprocess_loop())
 
     async def __subprocess_loop(self) -> None:
-        async with NbdLink.opened() as link:
+        async with self.__remote.make_link().opened() as link:
             tasks: list[asyncio.Task] = []
 
             def stop() -> None:
@@ -153,14 +153,14 @@ class NbdProcess:
                 tasks=tasks,
             )
 
-    async def __sub_device_server(self, link: NbdLink, prepared: aiotools.AioStage) -> None:
+    async def __sub_device_server(self, link: BaseNbdLink, prepared: aiotools.AioStage) -> None:
         with self.__catch_exceptions("device", log=self.__device.__module__):
             with link.shutdown_at_end():
                 async with self.__device.open_prepared(link, self.__image) as fd:
                     prepared.set_passed()
                     await self.__device.do_it(fd)
 
-    async def __sub_remote_server(self, link: NbdLink) -> None:
+    async def __sub_remote_server(self, link: BaseNbdLink) -> None:
         try:
             with self.__catch_exceptions("remote", log=self.__remote.__module__):
                 with link.shutdown_at_end():
@@ -172,7 +172,7 @@ class NbdProcess:
         finally:
             await self.__remote.cleanup()
 
-    async def __sub_checker(self, link: NbdLink, prepared: aiotools.AioStage) -> None:
+    async def __sub_checker(self, link: BaseNbdLink, prepared: aiotools.AioStage) -> None:
         logger = get_logger(0)
         with self.__catch_exceptions("checker"):
             with link.shutdown_at_end():

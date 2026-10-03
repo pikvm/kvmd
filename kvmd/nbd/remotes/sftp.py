@@ -39,7 +39,7 @@ from ..errors import NbdRemoteError
 from ..types import NbdImage
 
 from . import NbdUrl
-from . import BaseNbdRemote
+from . import BaseNbdUserRemote
 
 
 # =====
@@ -68,7 +68,7 @@ def _close(
             ssh.close()
 
 
-class NbdSftpRemote(BaseNbdRemote):
+class NbdSftpRemote(BaseNbdUserRemote):
     __PROTO: Final[str] = "sftp"
 
     def __init__(self, c: Section) -> None:
@@ -94,7 +94,7 @@ class NbdSftpRemote(BaseNbdRemote):
             "user":    Option("",   type=valid_stripped_string_not_empty),
             "passwd":  Option(None, type=str, if_none=None),
             "timeout": Option(5.0,  type=valid_number.mk(min=1.0, max=30.0, type=float)),
-            **BaseNbdRemote.get_options(),
+            **BaseNbdUserRemote.get_options(),
         }
 
     # =====
