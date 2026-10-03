@@ -105,11 +105,7 @@ class Nbd:
         try:
             yield
         except (aiohttp.ClientError, NbdError) as ex:
-            self.__state = None
             raise MsdRemoteError(tools.efmt(ex))
-        except BaseException:
-            self.__state = None
-            raise
 
     async def poll_for_changes(self) -> AsyncGenerator[None]:
         try:
