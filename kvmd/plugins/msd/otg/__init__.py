@@ -310,8 +310,9 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                     if self.__nbd.image is None or not self.__nbd.asserted_running:
                         # Рассинхрон, засинхронится само в __systask_nbd()
                         raise MsdImageNotSelected()
+                    assert self.__nbd.last_known_path
                     vd.image = self.__nbd.image
-                    path = self.__nbd.asserted_path
+                    path = self.__nbd.last_known_path
 
                 case _:  # None
                     raise MsdImageNotSelected()
@@ -528,7 +529,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
         image: (FileImage | NbdImage | None) = None
         if path:
-            if self.__nbd.image and path == self.__nbd.asserted_path:  # Это тоже realpath
+            if self.__nbd.image and path == self.__nbd.last_known_path:  # Это тоже realpath
                 image = self.__nbd.image
             else:
                 image = await self.__storage.get_image_by_path(path)
@@ -552,24 +553,15 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         ok = True
         while True:
             try:
-                was_bound = False
                 try:
                     async for _ in self.__nbd.poll_for_changes():
-                        path = self.__drive.get_image_path()
-                        was_bound = (self.__nbd.image is not None and path == self.__nbd.asserted_path)
-                        if self.__nbd.image and not self.__nbd.asserted_running:
-                            self.__drive.set_image_path("")
-                        else:
-                            self.__drive.trigger_image_inotify()
+                        self.__poke_drive_for_nbd()
                         if not ok:
                             logger.info("NBD online")
                             ok = True
                 except Exception:
                     if ok:
-                        if was_bound:
-                            self.__drive.set_image_path("")
-                        else:
-                            self.__drive.trigger_image_inotify()
+                        self.__poke_drive_for_nbd()
                     raise
             except Exception as ex:
                 if ok:
@@ -579,3 +571,12 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                         logger.exception("Unexpected NBD watcher error; disabling remote for now")
                     ok = False
                 await asyncio.sleep(1)
+
+    def __poke_drive_for_nbd(self) -> None:
+        if (
+            self.__drive.get_image_path() == self.__nbd.last_known_path
+            or (self.__nbd.image and not self.__nbd.asserted_running)
+        ):
+            self.__drive.set_image_path("")
+        else:
+            self.__drive.trigger_image_inotify()

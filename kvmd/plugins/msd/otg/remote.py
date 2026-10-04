@@ -49,6 +49,7 @@ class Nbd:
     def __init__(self, client: NbdClient) -> None:
         self.__client = client
         self.__state: (NbdState | None) = None
+        self.__last_known_path: (str | None) = None
 
     @property
     def image(self) -> (NbdImage | None):
@@ -72,9 +73,8 @@ class Nbd:
         return False
 
     @property
-    def asserted_path(self) -> str:
-        assert self.__state
-        return os.path.realpath(self.__state.device.path)
+    def last_known_path(self) -> (str | None):
+        return self.__last_known_path
 
     async def plan(self, url: str, params: (dict[str, Any] | None)) -> NbdState:
         self.__check()
@@ -119,6 +119,8 @@ class Nbd:
     def __update(self, state: NbdState) -> tuple[NbdState, bool]:
         changed = False
         if bool(self.__state) ^ bool(state) or (self.__state and state and state.ts > self.__state.ts):
+            self.__last_known_path = os.path.realpath(state.device.path)
+            assert self.__last_known_path
             self.__state = state
             changed = True
         assert self.__state
