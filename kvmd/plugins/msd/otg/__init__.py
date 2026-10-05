@@ -536,7 +536,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         else:
             if self.__state.vd:
                 image = self.__state.vd.image
-                cdrom = self.__state.vd.rw
+                cdrom = self.__state.vd.cdrom
                 rw = self.__state.vd.rw
             if self.__nbd.image:
                 image = self.__nbd.image
