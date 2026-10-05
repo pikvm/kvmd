@@ -87,17 +87,8 @@ li.right#system-dropdown
 						{title: "Direct<br>H.264", value: "media"},
 						{title: "Legacy<br>MJPEG", value: "mjpeg", checked: true},
 					])
-			tr.feature-disabled#stream-orient
-				td Orientation:
-				td
-					+menu_radio("stream-orient-radio", [
-						{title: "Default", value: "0", checked: true},
-						{title: "90&deg;", value: "90"},
-						{title: "180&deg;", value: "180"},
-						{title: "270&deg;", value: "270"},
-					])
 
-		+menu_spoiler("Video quality settings")
+		+menu_spoiler("Video settings")
 			table.kv
 				tr
 					td FPS limit:
@@ -111,6 +102,15 @@ li.right#system-dropdown
 				tr.feature-disabled#stream-h264-gop
 					td #[a(target="_blank" href="https://docs.pikvm.org/video#settings") H.264 gop]:
 					td.slider #[+menu_slider("stream-h264-gop-slider", "stream-h264-gop-value", false)]
+				tr.feature-disabled#stream-orient
+					td Orientation:
+					td
+						+menu_radio("stream-orient-radio", [
+							{title: "Default", value: "0", checked: true},
+							{title: "90&deg;", value: "90"},
+							{title: "180&deg;", value: "180"},
+							{title: "270&deg;", value: "270"},
+						])
 
 		.feature-disabled#stream-multimedia
 			hr
