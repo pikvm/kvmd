@@ -42,13 +42,19 @@ export function Msd() {
 		tools.radio.clickValue("msd-sorting-radio", tools.storage.get("msd.sorting", "name"));
 		tools.radio.setOnClick("msd-sorting-radio", function() {
 			tools.storage.set("msd.sorting", tools.radio.getValue("msd-sorting-radio"));
-			if (__state && __state.drive && __state.storage && __state.storage.images !== undefined) {
+			if (__state?.drive && __state?.storage && __state?.storage?.images !== undefined) {
 				__updateImageSelector(__state.drive, __state.storage.images);
 			}
 		}, false);
 
 		tools.selector.addOption($("msd-image-selector"), "\u2500 Not selected \u2500", "");
-		$("msd-image-selector").onchange = __selectImage;
+
+		$("msd-image-selector").onchange = function() {
+			tools.el.setEnabled($("msd-image-selector"), false);
+			tools.el.setEnabled($("msd-download-button"), false);
+			tools.el.setEnabled($("msd-remove-button"), false);
+			__sendParam("image", $("msd-image-selector").value);
+		};
 
 		tools.el.setOnClick($("msd-download-button"), __clickDownloadButton);
 		tools.el.setOnClick($("msd-remove-button"), __clickRemoveButton);
@@ -56,13 +62,45 @@ export function Msd() {
 		tools.radio.setOnClick("msd-mode-radio", () => __sendParam("cdrom", tools.radio.getValue("msd-mode-radio")));
 		tools.el.setOnClick($("msd-rw-switch"), () => __sendParam("rw", $("msd-rw-switch").checked));
 
-		tools.el.setOnClick($("msd-select-new-button"), __toggleSelectSub);
-		$("msd-new-file").onchange = __selectNewFile;
-		$("msd-new-url").oninput = __selectNewUrl;
-		$("msd-new-part-selector").onchange = __selectNewFile;
+		tools.el.setOnClick($("msd-new-select-button"), function() {
+			tools.hidden.setVisible($("msd-new-sub"), true);
+			tools.hidden.setVisible($("msd-insert-buttons"), false);
+			$("msd-new-file").value = "";
+			$("msd-new-url").value = "";
+			__refreshControls();
+		});
+		tools.el.setOnClick($("msd-new-hide-button"), function() {
+			tools.hidden.setVisible($("msd-new-sub"), false);
+			tools.hidden.setVisible($("msd-insert-buttons"), true);
+			__refreshControls();
+		});
 
-		tools.el.setOnClick($("msd-upload-new-button"), __clickUploadNewButton);
-		tools.el.setOnClick($("msd-abort-new-button"), __clickAbortNewButton);
+		$("msd-new-url").oninput = function() {
+			if ($("msd-new-url").value.length > 0) {
+				$("msd-new-file").value = "";
+			}
+			__refreshControls();
+		};
+
+		$("msd-new-file").onchange = $("msd-new-part-selector").onchange = function() {
+			let el = $("msd-new-file");
+			let file = tools.input.getFile(el);
+			if (file) {
+				$("msd-new-url").value = "";
+				if (__state?.storage?.parts) {
+					let part = __state.storage.parts[$("msd-new-part-selector").value];
+					if (part && (file.size > part.size)) {
+						let e_size = tools.escape(tools.formatSize(part.size));
+						wm.error(`The new image is too big for the storage partition.<br>Maximum: ${e_size}`);
+						el.value = "";
+					}
+				}
+			}
+			__refreshControls();
+		};
+
+		tools.el.setOnClick($("msd-new-upload-button"), __clickUploadNewButton);
+		tools.el.setOnClick($("msd-new-abort-button"), __clickAbortNewButton);
 
 		tools.el.setOnClick($("msd-connect-button"), () => __clickConnectButton(true));
 		tools.el.setOnClick($("msd-disconnect-button"), () => __clickConnectButton(false));
@@ -140,6 +178,20 @@ export function Msd() {
 		tools.el.setEnabled($("msd-download-button"), (o && !d.connected && !busy && d.image && d.image.in_storage));
 		tools.el.setEnabled($("msd-remove-button"), (o && d.image && d.image.removable && !d.connected && !busy));
 
+		$("msd-image-size").innerText = (o && d.image ? tools.formatSize(d.image.size) : "N/A");
+		if (o && d.image) {
+			let proto = d.image.proto.toUpperCase();
+			if (d.image.url) {
+				let e_url = encodeURI(d.image.url);
+				let e_proto = tools.escape(proto);
+				$("msd-image-proto").innerHTML = `<a target="_blank" href="${e_url}">${e_proto}</a> streaming`;
+			} else {
+				$("msd-image-proto").innerText = proto;
+			}
+		} else {
+			 $("msd-image-proto").innerText = "N/A";
+		}
+
 		tools.radio.setEnabled("msd-mode-radio", (o && !d.connected && !busy));
 		tools.radio.setValue("msd-mode-radio", `${Number(o && d.cdrom)}`);
 
@@ -153,10 +205,11 @@ export function Msd() {
 			tools.hidden.setVisible($("msd-disconnect-button"), d.connected);
 		}
 
-		tools.el.setEnabled($("msd-select-new-button"), (o && !d.connected && !__http && !busy));
-		tools.el.setEnabled($("msd-upload-new-button"),
+		tools.el.setEnabled($("msd-new-select-button"), (o && !d.connected && !__http && !busy));
+		tools.el.setEnabled($("msd-new-hide-button"), (o && !d.connected && !__http && !busy));
+		tools.el.setEnabled($("msd-new-upload-button"),
 			(o && !d.connected && (tools.input.getFile($("msd-new-file")) || $("msd-new-url").value.length > 0) && !busy));
-		tools.el.setEnabled($("msd-abort-new-button"), (o && __http));
+		tools.el.setEnabled($("msd-new-abort-button"), (o && __http));
 
 		tools.el.setEnabled($("msd-reset-button"), (state && state.enabled && !busy));
 
@@ -166,6 +219,7 @@ export function Msd() {
 
 		if (o && s.uploading) {
 			tools.hidden.setVisible($("msd-new-sub"), false);
+			tools.hidden.setVisible($("msd-insert-buttons"), true);
 			$("msd-new-file").value = "";
 			$("msd-new-url").value = "";
 		}
@@ -252,6 +306,12 @@ export function Msd() {
 			names = names.sort();
 		}
 
+		if (drive.image && !drive.image.in_storage) {
+			tools.selector.addSeparator(el);
+			sel = ".__external__"; // Just some magic name
+			tools.selector.addOption(el, drive.image.name, sel);
+			tools.selector.addComment(el, __makeImageSelectorInfo(drive.image));
+		}
 		for (let name of names) {
 			tools.selector.addSeparator(el);
 			tools.selector.addOption(el, name, name);
@@ -259,14 +319,6 @@ export function Msd() {
 			if (drive.image && drive.image.name === name && drive.image.in_storage) {
 				sel = name;
 			}
-		}
-		if (drive.image && !drive.image.in_storage) {
-			if (names.length > 0) {
-				tools.selector.addSeparator(el);
-			}
-			sel = ".__external__"; // Just some magic name
-			tools.selector.addOption(el, drive.image.name, sel);
-			tools.selector.addComment(el, __makeImageSelectorInfo(drive.image));
 		}
 		el.value = sel;
 	};
@@ -294,13 +346,6 @@ export function Msd() {
 		ts = new Date(ts.getTime() - (ts.getTimezoneOffset() * 60000));
 		ts = ts.toISOString().slice(0, -8).replaceAll("-", ".").replace("T", "-");
 		return `${text} \u2500 ${ts}`;
-	};
-
-	var __selectImage = function() {
-		tools.el.setEnabled($("msd-image-selector"), false);
-		tools.el.setEnabled($("msd-download-button"), false);
-		tools.el.setEnabled($("msd-remove-button"), false);
-		__sendParam("image", $("msd-image-selector").value);
 	};
 
 	var __clickDownloadButton = function() {
@@ -380,6 +425,7 @@ export function Msd() {
 			}
 		}
 		tools.hidden.setVisible($("msd-new-sub"), false);
+		tools.hidden.setVisible($("msd-insert-buttons"), true);
 		$("msd-new-file").value = "";
 		$("msd-new-url").value = "";
 		__http = null;
@@ -392,6 +438,7 @@ export function Msd() {
 		__http = null;
 		__refreshControls();
 		tools.hidden.setVisible($("msd-new-sub"), true);
+		tools.hidden.setVisible($("msd-insert-buttons"), false);
 	};
 
 	var __clickConnectButton = function(connected) {
@@ -415,44 +462,6 @@ export function Msd() {
 				});
 			}
 		});
-	};
-
-	var __toggleSelectSub = function() {
-		let el_sub = $("msd-new-sub");
-		let visible = tools.hidden.isVisible(el_sub);
-		tools.hidden.setVisible(el_sub, !visible);
-		if (visible) {
-			$("msd-select-new-button").innerText = "Upload new";
-			$("msd-new-file").value = "";
-			$("msd-new-url").value = "";
-		} else {
-			$("msd-select-new-button").innerText = "Hide upload menu";
-		}
-		__refreshControls();
-	};
-
-	var __selectNewFile = function() {
-		let el = $("msd-new-file");
-		let file = tools.input.getFile(el);
-		if (file) {
-			$("msd-new-url").value = "";
-			if (__state && __state.storage && __state.storage.parts) {
-				let part = __state.storage.parts[$("msd-new-part-selector").value];
-				if (part && (file.size > part.size)) {
-					let e_size = tools.escape(tools.formatSize(part.size));
-					wm.error(`The new image is too big for the Mass Storage partition.<br>Maximum: ${e_size}`);
-					el.value = "";
-				}
-			}
-		}
-		__refreshControls();
-	};
-
-	var __selectNewUrl = function() {
-		if ($("msd-new-url").value.length > 0) {
-			$("msd-new-file").value = "";
-		}
-		__refreshControls();
 	};
 
 	__init__();

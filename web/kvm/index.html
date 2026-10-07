@@ -797,8 +797,7 @@
           <table class="kv">
             <tr>
               <td></td>
-              <td style="width: 100%;"></td>
-              <td colspan="10">
+              <td style="width: 100%;" colspan="7">
                 <div class="radio-box" style="justify-content: right;">
                       <input type="radio" id="msd-sorting-radio-name" name="msd-sorting-radio" value="name" checked>
                       <label for="msd-sorting-radio-name">Sort by name</label>
@@ -809,16 +808,9 @@
             </tr>
             <tr>
               <td>Image:</td>
-              <td style="width: 100%;" colspan="4">
+              <td style="width: 100%;" colspan="5">
                 <select id="msd-image-selector" disabled></select>
               </td>
-            </tr>
-            <tr>
-              <td></td>
-              <td>
-                <button class="small" id="msd-select-new-button" disabled>Upload new</button>
-              </td>
-              <td style="width: 100%;"></td>
               <td>
                 <button class="small" id="msd-download-button" disabled title="Download selected image"><b>&#x21E9;</b></button>
               </td>
@@ -826,8 +818,32 @@
                 <button class="small" id="msd-remove-button" disabled title="Remove selected image"><b>&#10005;</b></button>
               </td>
             </tr>
+            <tr>
+              <td></td>
+              <td>Size:</td>
+              <td class="value" id="msd-image-size"></td>
+              <td>Source:</td>
+              <td class="value" id="msd-image-proto"></td>
+              <td style="width: 100%;"></td>
+            </tr>
+          </table>
+          <table class="kv" id="msd-insert-buttons">
+            <tr>
+              <td style="width: 100%;"></td>
+              <td>
+                <button class="small" id="msd-new-select-button" disabled>Upload new image</button>
+              </td>
+            </tr>
           </table>
           <div class="hidden" id="msd-new-sub">
+            <table class="kv">
+              <tr>
+                <td style="width: 100%;"></td>
+                <td>
+                  <button class="small" id="msd-new-hide-button" disabled>Hide upload menu</button>
+                </td>
+              </tr>
+            </table>
             <table class="kv">
               <tr>
                 <td></td>
@@ -844,7 +860,7 @@
               <tr>
                 <td><b>Or</b> specify a URL:</td>
                 <td>
-                  <input id="msd-new-url" type="text" style="width: 100%">
+                  <input id="msd-new-url" type="text" style="width: 100%" placeholder="http | https">
                 </td>
               </tr>
               <tr class="hidden" id="msd-new-part">
@@ -857,7 +873,7 @@
             <table class="kv">
               <tr>
                 <td>
-                  <button id="msd-upload-new-button" disabled>Start uploading</button>
+                  <button id="msd-new-upload-button" disabled>Start uploading</button>
                 </td>
               </tr>
             </table>
@@ -889,7 +905,7 @@
             <table class="kv">
               <tr>
                 <td>
-                  <button id="msd-abort-new-button" disabled>Abort uploading</button>
+                  <button id="msd-new-abort-button" disabled>Abort uploading</button>
                 </td>
               </tr>
             </table>

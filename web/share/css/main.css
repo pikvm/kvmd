@@ -205,7 +205,8 @@ select:not([size]) option.comment {
 	font-style: italic;
 }
 
-input[type=text], input[type=password] {
+input[type=text],
+input[type=password] {
 	overflow-x: auto;
 	font-family: monospace;
 	box-sizing: border-box;
@@ -214,7 +215,13 @@ input[type=text], input[type=password] {
 	color: var(--cs-code-default-fg);
 	background-color: var(--cs-code-default-bg);
 	padding: 2px;
+	padding-left: 0.5em;
 	height: 30px;
+}
+
+input[type=text]::-moz-placeholder,
+input[type=text]::-webkit-input-placeholder {
+	text-align: center;
 }
 
 textarea {

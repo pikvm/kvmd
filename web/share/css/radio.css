@@ -69,11 +69,11 @@ div.radio-box input[type=radio] + label {
 div.radio-box input[type=radio]:checked:disabled + label {
 	cursor: default;
 	border: var(--border-default-2px);
-	color: var(--cs-control-default-fg);
+	color: var(--cs-code-comment-fg);
 	background-color: var(--cs-control-default-bg);
 }
 div.radio-box input[type=radio]:not(:checked):disabled + label {
 	cursor: default;
-	color: var(--cs-control-disabled-fg);
+	color: var(--cs-control-radio-disabled-fg);
 	background-color: var(--cs-thumb-disabled-bg);
 }

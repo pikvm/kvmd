@@ -46,8 +46,7 @@ li.right.feature-disabled#msd-dropdown
 		table.kv
 			tr
 				td
-				td(style="width: 100%;")
-				td(colspan="10")
+				td(style="width: 100%;" colspan="7")
 					.radio-box(style="justify-content: right;")
 						+menu_radio_items("msd-sorting-radio", [
 							{title: "Sort by name", value: "name", checked: true},
@@ -55,15 +54,28 @@ li.right.feature-disabled#msd-dropdown
 						])
 			tr
 				td Image:
-				td(style="width: 100%;" colspan="4") #[select#msd-image-selector(disabled)]
-			tr
-				td
-				td #[button.small#msd-select-new-button(disabled) Upload new]
-				td(style="width: 100%;")
+				td(style="width: 100%;" colspan="5") #[select#msd-image-selector(disabled)]
 				td #[button.small#msd-download-button(disabled title="Download selected image") #[b &#x21E9;]]
 				td #[button.small#msd-remove-button(disabled title="Remove selected image") #[b &#10005;]]
+			tr
+				td
+				td Size:
+				td.value(id="msd-image-size")
+				td Source:
+				td.value(id="msd-image-proto")
+				td(style="width: 100%;")
+
+
+		table.kv#msd-insert-buttons
+			tr
+				td(style="width: 100%;")
+				td #[button.small#msd-new-select-button(disabled) Upload new image]
 
 		.hidden#msd-new-sub
+			table.kv
+				tr
+					td(style="width: 100%;")
+					td #[button.small#msd-new-hide-button(disabled) Hide upload menu]
 			table.kv
 				tr
 					td
@@ -73,13 +85,13 @@ li.right.feature-disabled#msd-dropdown
 					td #[input.small#msd-new-file(type="file")]
 				tr
 					td #[b Or] specify a URL:
-					td #[input#msd-new-url(type="text" style="width: 100%")]
+					td #[input#msd-new-url(type="text" style="width: 100%" placeholder="http | https")]
 				tr.hidden#msd-new-part
 					td Upload partition:
 					td(width="100%") #[select#msd-new-part-selector]
 			table.kv
 				tr
-					td #[button#msd-upload-new-button(disabled) Start uploading]
+					td #[button#msd-new-upload-button(disabled) Start uploading]
 			+menu_message("info")
 				| Don't close the browser page until the upload is complete.<br>
 				| To speed up the process, you can close the stream window.
@@ -94,7 +106,7 @@ li.right.feature-disabled#msd-dropdown
 					td.value#msd-uploading-size
 			table.kv
 				tr
-					td #[button#msd-abort-new-button(disabled) Abort uploading]
+					td #[button#msd-new-abort-button(disabled) Abort uploading]
 			.text
 				.progress#msd-uploading-progress
 					span.progress-value#msd-uploading-progress-value
