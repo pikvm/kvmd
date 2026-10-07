@@ -4,10 +4,14 @@ li.right.feature-disabled#msd-dropdown
 		span Drive
 
 	.hidden.menu#msd-menu
-		.text
-			b Mass Storage Drive: 
-			span#msd-status
-			br
+		table.kv
+			tr
+				td.value Mass Storage Drive:
+				td #[span#msd-status]
+				td(style="width: 100%;")
+				td
+					button.small#msd-reset-button Reset
+
 		hr
 
 		.hidden#msd-message-offline
@@ -35,9 +39,14 @@ li.right.feature-disabled#msd-dropdown
 			+menu_message("info", "The image is being downloaded from PiKVM")
 				| Please wait
 			hr
+		.hidden#msd-message-another-user-uploads
+			+menu_message("info", "Another user uploading an image")
+			hr
 
 		table.kv
 			tr
+				td
+				td(style="width: 100%;")
 				td(colspan="10")
 					.radio-box(style="justify-content: right;")
 						+menu_radio_items("msd-sorting-radio", [
@@ -46,57 +55,36 @@ li.right.feature-disabled#msd-dropdown
 						])
 			tr
 				td Image:
-				td(width="100%" colspan="4") #[select#msd-image-selector(disabled)]
-				td #[button#msd-remove-button(disabled title="Remove image") #[b &nbsp;&nbsp;&#10005;&nbsp;&nbsp;]]
+				td(style="width: 100%;" colspan="4") #[select#msd-image-selector(disabled)]
 			tr
-				td #[a(target="_blank" href="https://docs.pikvm.org/msd") Mode]:
 				td
-					+menu_radio("msd-mode-radio", [
-						{title: "CD/DVD", value: "1", checked: true},
-						{title: "Flash", value: "0"},
-					])
-				td Writable:
-				td #[+menu_switch("msd-rw-switch", false, false)]
+				td #[button.small#msd-select-new-button(disabled) Upload new]
 				td(style="width: 100%;")
-				td #[button#msd-download-button(disabled title="Download image") #[b &nbsp;&nbsp;&#x21E9;&nbsp;&nbsp;]]
-		hr
-
-		#msd-storages
-
-		.buttons.buttons-row
-			button.row50#msd-connect-button Connect drive
-			button.row50.hidden#msd-disconnect-button Disconnect drive
-			button.row25#msd-select-new-button(disabled) Upload
-			button.row25#msd-reset-button Reset
-
-		.hidden#msd-message-another-user-uploads
-			+menu_message("info", "Another user uploading an image")
-			hr
+				td #[button.small#msd-download-button(disabled title="Download selected image") #[b &#x21E9;]]
+				td #[button.small#msd-remove-button(disabled title="Remove selected image") #[b &#10005;]]
 
 		.hidden#msd-new-sub
-			+menu_message("info", "Specify a new image and start uploading")
-				| Don't close the browser page until the upload is complete.<br>
-				| To speed up the process, you can close the stream window.
-			hr
 			table.kv
 				tr
-					td Local file:
-					td #[input#msd-new-file(type="file")]
+					td
+					td(style="width: 100%;") #[hr]
 				tr
-					td #[b Or] remote URL:
+					td Choose a local file:
+					td #[input.small#msd-new-file(type="file")]
+				tr
+					td #[b Or] specify a URL:
 					td #[input#msd-new-url(type="text" style="width: 100%")]
 				tr.hidden#msd-new-part
 					td Upload partition:
 					td(width="100%") #[select#msd-new-part-selector]
+			table.kv
 				tr
-					td
 					td #[button#msd-upload-new-button(disabled) Start uploading]
-			hr
+			+menu_message("info")
+				| Don't close the browser page until the upload is complete.<br>
+				| To speed up the process, you can close the stream window.
 
 		.hidden#msd-uploading-sub
-			.text
-				.progress#msd-uploading-progress
-					span.progress-value#msd-uploading-progress-value
 			table.kv
 				tr
 					td New image:
@@ -104,6 +92,28 @@ li.right.feature-disabled#msd-dropdown
 				tr
 					td Upload size:
 					td.value#msd-uploading-size
+			table.kv
 				tr
-					td
 					td #[button#msd-abort-new-button(disabled) Abort uploading]
+			.text
+				.progress#msd-uploading-progress
+					span.progress-value#msd-uploading-progress-value
+
+		#msd-storages
+
+		hr
+
+		table.kv
+			tr
+				td
+					button#msd-connect-button Connect drive
+					button.hidden#msd-disconnect-button Disconnect drive
+				td(style="width: 100%;")
+				td #[a(target="_blank" href="https://docs.pikvm.org/msd") Mode]:
+				td
+					+menu_radio("msd-mode-radio", [
+						{title: "CD/DVD", value: "1", checked: true},
+						{title: "Flash", value: "0"},
+					])
+				td RW:
+				td #[+menu_switch("msd-rw-switch", false, false)]

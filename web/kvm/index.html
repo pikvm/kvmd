@@ -170,6 +170,7 @@
           <table class="kv">
             <tr>
               <td class="value">Runtime preferences &amp; tools</td>
+              <td style="width: 100%;"></td>
               <td class="feature-disabled" id="system-tool-webterm">
                 <button class="small" data-wm-menu-force-hide data-wm-window-show="webterm-window">&bull; Term</button>
               </td>
@@ -184,6 +185,7 @@
               </td>
             </tr>
           </table>
+          <hr>
               <details>
                 <summary>Web interface settings</summary>
                 <div class="spoiler">
@@ -687,7 +689,16 @@
         <div class="menu-item menu-button" href="#"><img class="led-gray" id="msd-led" src="../share/svg/led-msd.svg"><span>Drive</span>
         </div>
         <div class="hidden menu" id="msd-menu">
-          <div class="text"><b>Mass Storage Drive: </b><span id="msd-status"></span><br></div>
+          <table class="kv">
+            <tr>
+              <td class="value">Mass Storage Drive:</td>
+              <td><span id="msd-status"></span></td>
+              <td style="width: 100%;"></td>
+              <td>
+                <button class="small" id="msd-reset-button">Reset</button>
+              </td>
+            </tr>
+          </table>
           <hr>
           <div class="hidden" id="msd-message-offline">
                 <div class="text">
@@ -772,57 +783,6 @@
                 </div>
             <hr>
           </div>
-          <table class="kv">
-            <tr>
-              <td colspan="10">
-                <div class="radio-box" style="justify-content: right;">
-                      <input type="radio" id="msd-sorting-radio-name" name="msd-sorting-radio" value="name" checked>
-                      <label for="msd-sorting-radio-name">Sort by name</label>
-                      <input type="radio" id="msd-sorting-radio-mtime" name="msd-sorting-radio" value="mtime">
-                      <label for="msd-sorting-radio-mtime">Newest first</label>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>Image:</td>
-              <td width="100%" colspan="4">
-                <select id="msd-image-selector" disabled></select>
-              </td>
-              <td>
-                <button id="msd-remove-button" disabled title="Remove image"><b>&nbsp;&nbsp;&#10005;&nbsp;&nbsp;</b></button>
-              </td>
-            </tr>
-            <tr>
-              <td><a target="_blank" href="https://docs.pikvm.org/msd">Mode</a>:</td>
-              <td>
-                    <div class="radio-box">
-                          <input type="radio" id="msd-mode-radio-1" name="msd-mode-radio" value="1" checked>
-                          <label for="msd-mode-radio-1">CD/DVD</label>
-                          <input type="radio" id="msd-mode-radio-0" name="msd-mode-radio" value="0">
-                          <label for="msd-mode-radio-0">Flash</label>
-                    </div>
-              </td>
-              <td>Writable:</td>
-              <td>
-                    <div class="switch-box">
-                      <input disabled type="checkbox" id="msd-rw-switch">
-                      <label for="msd-rw-switch"><span class="switch-inner"></span><span class="switch"></span></label>
-                    </div>
-              </td>
-              <td style="width: 100%;"></td>
-              <td>
-                <button id="msd-download-button" disabled title="Download image"><b>&nbsp;&nbsp;&#x21E9;&nbsp;&nbsp;</b></button>
-              </td>
-            </tr>
-          </table>
-          <hr>
-          <div id="msd-storages"></div>
-          <div class="buttons buttons-row">
-            <button class="row50" id="msd-connect-button">Connect drive</button>
-            <button class="row50 hidden" id="msd-disconnect-button">Disconnect drive</button>
-            <button class="row25" id="msd-select-new-button" disabled>Upload</button>
-            <button class="row25" id="msd-reset-button">Reset</button>
-          </div>
           <div class="hidden" id="msd-message-another-user-uploads">
                 <div class="text">
                   <table>
@@ -834,30 +794,55 @@
                 </div>
             <hr>
           </div>
-          <div class="hidden" id="msd-new-sub">
-                <div class="text">
-                  <table>
-                    <tr>
-                      <td rowspan="2"><img class="sign " src="../share/svg/info.svg"></td>
-                      <td style="line-height:1.5"><b>Specify a new image and start uploading</b></td>
-                    </tr>
-                    <tr>
-                      <td><sup style="line-height:1">
-                          Don't close the browser page until the upload is complete.<br>
-                          To speed up the process, you can close the stream window.</sup></td>
-                    </tr>
-                  </table>
+          <table class="kv">
+            <tr>
+              <td></td>
+              <td style="width: 100%;"></td>
+              <td colspan="10">
+                <div class="radio-box" style="justify-content: right;">
+                      <input type="radio" id="msd-sorting-radio-name" name="msd-sorting-radio" value="name" checked>
+                      <label for="msd-sorting-radio-name">Sort by name</label>
+                      <input type="radio" id="msd-sorting-radio-mtime" name="msd-sorting-radio" value="mtime">
+                      <label for="msd-sorting-radio-mtime">Newest first</label>
                 </div>
-            <hr>
+              </td>
+            </tr>
+            <tr>
+              <td>Image:</td>
+              <td style="width: 100%;" colspan="4">
+                <select id="msd-image-selector" disabled></select>
+              </td>
+            </tr>
+            <tr>
+              <td></td>
+              <td>
+                <button class="small" id="msd-select-new-button" disabled>Upload new</button>
+              </td>
+              <td style="width: 100%;"></td>
+              <td>
+                <button class="small" id="msd-download-button" disabled title="Download selected image"><b>&#x21E9;</b></button>
+              </td>
+              <td>
+                <button class="small" id="msd-remove-button" disabled title="Remove selected image"><b>&#10005;</b></button>
+              </td>
+            </tr>
+          </table>
+          <div class="hidden" id="msd-new-sub">
             <table class="kv">
               <tr>
-                <td>Local file:</td>
-                <td>
-                  <input id="msd-new-file" type="file">
+                <td></td>
+                <td style="width: 100%;">
+                  <hr>
                 </td>
               </tr>
               <tr>
-                <td><b>Or</b> remote URL:</td>
+                <td>Choose a local file:</td>
+                <td>
+                  <input class="small" id="msd-new-file" type="file">
+                </td>
+              </tr>
+              <tr>
+                <td><b>Or</b> specify a URL:</td>
                 <td>
                   <input id="msd-new-url" type="text" style="width: 100%">
                 </td>
@@ -868,19 +853,29 @@
                   <select id="msd-new-part-selector"></select>
                 </td>
               </tr>
+            </table>
+            <table class="kv">
               <tr>
-                <td></td>
                 <td>
                   <button id="msd-upload-new-button" disabled>Start uploading</button>
                 </td>
               </tr>
             </table>
-            <hr>
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="../share/svg/info.svg"></td>
+                      <td style="line-height:1.5"><b></b></td>
+                    </tr>
+                    <tr>
+                      <td><sup style="line-height:1">
+                          Don't close the browser page until the upload is complete.<br>
+                          To speed up the process, you can close the stream window.</sup></td>
+                    </tr>
+                  </table>
+                </div>
           </div>
           <div class="hidden" id="msd-uploading-sub">
-            <div class="text">
-              <div class="progress" id="msd-uploading-progress"><span class="progress-value" id="msd-uploading-progress-value"></span></div>
-            </div>
             <table class="kv">
               <tr>
                 <td>New image:</td>
@@ -890,14 +885,45 @@
                 <td>Upload size:</td>
                 <td class="value" id="msd-uploading-size"></td>
               </tr>
+            </table>
+            <table class="kv">
               <tr>
-                <td></td>
                 <td>
                   <button id="msd-abort-new-button" disabled>Abort uploading</button>
                 </td>
               </tr>
             </table>
+            <div class="text">
+              <div class="progress" id="msd-uploading-progress"><span class="progress-value" id="msd-uploading-progress-value"></span></div>
+            </div>
           </div>
+          <div id="msd-storages"></div>
+          <hr>
+          <table class="kv">
+            <tr>
+              <td>
+                <button id="msd-connect-button">Connect drive</button>
+                <button class="hidden" id="msd-disconnect-button">Disconnect drive</button>
+              </td>
+              <td style="width: 100%;"></td>
+              <td><a target="_blank" href="https://docs.pikvm.org/msd">Mode</a>:</td>
+              <td>
+                    <div class="radio-box">
+                          <input type="radio" id="msd-mode-radio-1" name="msd-mode-radio" value="1" checked>
+                          <label for="msd-mode-radio-1">CD/DVD</label>
+                          <input type="radio" id="msd-mode-radio-0" name="msd-mode-radio" value="0">
+                          <label for="msd-mode-radio-0">Flash</label>
+                    </div>
+              </td>
+              <td>RW:</td>
+              <td>
+                    <div class="switch-box">
+                      <input disabled type="checkbox" id="msd-rw-switch">
+                      <label for="msd-rw-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                    </div>
+              </td>
+            </tr>
+          </table>
         </div>
       </li>
       <li class="right" id="macro-dropdown">
@@ -958,7 +984,7 @@
               </td>
               <td>using a host keymap</td>
               <td>
-                <select id="hid-pak-keymap-selector"></select>
+                <select id="hid-pak-keymap-selector" style="max-width: 100px"></select>
               </td>
             </tr>
           </table>

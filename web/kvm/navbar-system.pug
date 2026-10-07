@@ -11,6 +11,7 @@ li.right#system-dropdown
 			tr
 				td.value
 					| Runtime preferences &amp; tools
+				td(style="width: 100%;")
 				td.feature-disabled#system-tool-webterm
 					button.small(data-wm-menu-force-hide data-wm-window-show="webterm-window") &bull; Term
 				td#system-tool-about
@@ -24,6 +25,8 @@ li.right#system-dropdown
 						data-gpio-channel="__wol__"
 						data-gpio-confirm="Are you sure to send Wake-on-LAN packet to the host?"
 					) &bull; WoL
+
+		hr
 
 		+menu_spoiler("Web interface settings")
 			table.kv

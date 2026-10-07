@@ -121,6 +121,8 @@ input[type=color] {
 	font-size: 16px;
 	outline: none;
 	cursor: pointer;
+	padding-left: 1em;
+	padding-right: 1em;
 }
 input[type=color] {
 	height: 20px;
@@ -155,7 +157,9 @@ select:not([size]) {
 	padding: 4px 25px 4px 8px;
 }
 button.small,
-select.small {
+select.small,
+input[type=file]::-webkit-file-selector-button,
+input[type=file]::file-selector-button {
 	font-size: 12px;
 	height: 26px;
 }

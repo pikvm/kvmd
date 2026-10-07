@@ -422,8 +422,11 @@ export function Msd() {
 		let visible = tools.hidden.isVisible(el_sub);
 		tools.hidden.setVisible(el_sub, !visible);
 		if (visible) {
+			$("msd-select-new-button").innerText = "Upload new";
 			$("msd-new-file").value = "";
 			$("msd-new-url").value = "";
+		} else {
+			$("msd-select-new-button").innerText = "Hide upload menu";
 		}
 		__refreshControls();
 	};
