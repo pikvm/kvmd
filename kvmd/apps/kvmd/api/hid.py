@@ -301,7 +301,8 @@ class HidApi:
             finish = valid_bool(req.query.get("finish", False))
             self.__hid.send_key_event(key, state, finish)
         else:
-            self.__hid.send_key_event(key, True, True)
+            self.__hid.send_key_event(key, True, False)
+            self.__hid.send_key_event(key, False, False)
         return make_json_response()
 
     @exposed_http("POST", "/hid/events/send_mouse_button")
