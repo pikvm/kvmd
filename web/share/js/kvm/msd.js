@@ -63,15 +63,11 @@ export function Msd() {
 		tools.el.setOnClick($("msd-rw-switch"), () => __sendParam("rw", $("msd-rw-switch").checked));
 
 		tools.el.setOnClick($("msd-new-select-button"), function() {
-			tools.hidden.setVisible($("msd-new-sub"), true);
-			tools.hidden.setVisible($("msd-insert-buttons"), false);
-			$("msd-new-file").value = "";
-			$("msd-new-url").value = "";
+			__setNewSubVisible(true);
 			__refreshControls();
 		});
 		tools.el.setOnClick($("msd-new-hide-button"), function() {
-			tools.hidden.setVisible($("msd-new-sub"), false);
-			tools.hidden.setVisible($("msd-insert-buttons"), true);
+			__setNewSubVisible(false);
 			__refreshControls();
 		});
 
@@ -218,12 +214,11 @@ export function Msd() {
 		tools.el.setEnabled($("msd-new-part-selector"), (o && !d.connected && !__http && !busy));
 
 		if (o && s.uploading) {
-			tools.hidden.setVisible($("msd-new-sub"), false);
-			tools.hidden.setVisible($("msd-insert-buttons"), true);
-			$("msd-new-file").value = "";
-			$("msd-new-url").value = "";
+			__setNewSubVisible(false);
+			tools.hidden.setVisible($("msd-uploading-sub"), true);
+		} else {
+			tools.hidden.setVisible($("msd-uploading-sub"), false);
 		}
-		tools.hidden.setVisible($("msd-uploading-sub"), (o && s.uploading));
 
 		let led_cls = "led-gray";
 		let msg = "Unavailable";
@@ -348,6 +343,13 @@ export function Msd() {
 		return `${text} \u2500 ${ts}`;
 	};
 
+	var __setNewSubVisible = function(visible) {
+		tools.hidden.setVisible($("msd-new-sub"), visible);
+		tools.hidden.setVisible($("msd-insert-buttons"), !visible);
+		$("msd-new-file").value = "";
+		$("msd-new-url").value = "";
+	};
+
 	var __clickDownloadButton = function() {
 		let e_image = encodeURIComponent($("msd-image-selector").value);
 		tools.windowOpen(`api/msd/read?image=${e_image}`);
@@ -387,30 +389,32 @@ export function Msd() {
 			__http.open("POST", `${ROOT_PREFIX}api/msd/write_remote?prefix=${e_prefix}&url=${e_url}&remove_incomplete=1`, true);
 		}
 		__http.upload.timeout = 7 * 24 * 3600;
-		__http.onreadystatechange = __uploadStateChange;
+		let from_url = !!file;
+		__http.onreadystatechange = () => __uploadStateChange(from_url);
 		__http.send(file);
 		__refreshControls();
 	};
 
-	var __uploadStateChange = function() {
+	var __uploadStateChange = function(from_url) {
 		if (__http.readyState !== 4) {
 			return;
 		}
 		if (__http.status !== 200) {
 			wm.error("Can't upload image", __http.responseText);
-		} else if ($("msd-new-url").value.length > 0) {
+		} else if (from_url) {
 			let html = "";
 			let msg = "";
 			try {
-				let end = __http.responseText.lastIndexOf("\r\n");
+				let resp = __http.responseText;
+				let end = resp.lastIndexOf("\r\n");
 				if (end < 0) {
-					end = __http.responseText.length;
+					end = resp.length;
 				}
-				let begin = __http.responseText.lastIndexOf("\r\n", end - 2);
+				let begin = resp.lastIndexOf("\r\n", end - 2);
 				if (begin < 0) {
 					end = 0;
 				}
-				let result_str = __http.responseText.slice(begin, end);
+				let result_str = resp.slice(begin, end);
 				let result = JSON.parse(result_str);
 				if (!result.ok) {
 					html = "Can't upload image";
@@ -424,11 +428,8 @@ export function Msd() {
 				wm.error(html, msg);
 			}
 		}
-		tools.hidden.setVisible($("msd-new-sub"), false);
-		tools.hidden.setVisible($("msd-insert-buttons"), true);
-		$("msd-new-file").value = "";
-		$("msd-new-url").value = "";
 		__http = null;
+		__setNewSubVisible(false);
 		__refreshControls();
 	};
 
@@ -436,9 +437,8 @@ export function Msd() {
 		__http.onreadystatechange = null;
 		__http.abort();
 		__http = null;
+		__setNewSubVisible(true);
 		__refreshControls();
-		tools.hidden.setVisible($("msd-new-sub"), true);
-		tools.hidden.setVisible($("msd-insert-buttons"), false);
 	};
 
 	var __clickConnectButton = function(connected) {
