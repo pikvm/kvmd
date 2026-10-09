@@ -56,9 +56,9 @@ export function Keyboard(__recordWsEvent) {
 			window.addEventListener(what, __syncCapsOnMouse);
 		}
 
-		tools.storage.bindSimpleSwitch($("hid-keyboard-bad-link-switch"), "hid.keyboard.bad_link", false);
-		tools.storage.bindSimpleSwitch($("hid-keyboard-swap-cc-switch"), "hid.keyboard.swap_cc", false);
-		tools.storage.bindSimpleSwitch($("hid-keyboard-sync-caps-switch"), "hid.keyboard.sync_caps", false);
+		tools.config.bindSimpleSwitch($("hid-keyboard-bad-link-switch"), "hid.keyboard.bad_link", "kvm--", false);
+		tools.config.bindSimpleSwitch($("hid-keyboard-swap-cc-switch"), "hid.keyboard.swap_cc", "kvm--", false);
+		tools.config.bindSimpleSwitch($("hid-keyboard-sync-caps-switch"), "hid.keyboard.sync_caps", "kvm--", false);
 
 		__el_magic = $("hid-keyboard-magic-selector");
 		let alt = (tools.browser.is_apple ? "Option" : "Alt");

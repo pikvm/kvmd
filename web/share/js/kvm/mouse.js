@@ -85,12 +85,12 @@ export function Mouse(__getGeometry, __recordWsEvent) {
 		$("stream-box").addEventListener("touchmove", __streamTouchMoveHandler);
 		$("stream-box").addEventListener("touchend", __streamTouchEndHandler);
 
-		tools.storage.bindSimpleSwitch($("hid-mouse-squash-switch"), "hid.mouse.squash", true);
-		tools.storage.bindSimpleSwitch($("hid-mouse-reverse-scrolling-y-switch"), "hid.mouse.reverse_scrolling", false);
-		tools.storage.bindSimpleSwitch($("hid-mouse-reverse-scrolling-x-switch"), "hid.mouse.reverse_panning", false);
+		tools.config.bindSimpleSwitch($("hid-mouse-squash-switch"), "hid.mouse.squash", "kvm--", true);
+		tools.config.bindSimpleSwitch($("hid-mouse-reverse-scrolling-y-switch"), "hid.mouse.reverse_scrolling", "kvm--", false);
+		tools.config.bindSimpleSwitch($("hid-mouse-reverse-scrolling-x-switch"), "hid.mouse.reverse_panning", "kvm--", false);
 		let cumulative_scrolling = !(tools.browser.is_firefox && !tools.browser.is_mac);
-		tools.storage.bindSimpleSwitch($("hid-mouse-cumulative-scrolling-switch"), "hid.mouse.cumulative_scrolling", cumulative_scrolling);
-		tools.storage.bindSimpleSwitch($("hid-mouse-dot-switch"), "hid.mouse.dot", true, __updateOnlineLeds);
+		tools.config.bindSimpleSwitch($("hid-mouse-cumulative-scrolling-switch"), "hid.mouse.cumulative_scrolling", "kvm--", cumulative_scrolling);
+		tools.config.bindSimpleSwitch($("hid-mouse-dot-switch"), "hid.mouse.dot", "kvm--", true, __updateOnlineLeds);
 
 		__updateOnlineLeds();
 	};

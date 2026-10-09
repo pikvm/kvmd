@@ -39,9 +39,9 @@ export function Paste(__recorder) {
 			}
 		});
 
-		tools.storage.bindSimpleSwitch($("hid-pak-ask-switch"), "hid.pak.ask", true);
+		tools.config.bindSimpleSwitch($("hid-pak-ask-switch"), "hid.pak.ask", "kvm--", true);
 
-		tools.storage.bindSimpleSwitch($("hid-pak-secure-switch"), "hid.pak.secure", false, function(value) {
+		tools.config.bindSimpleSwitch($("hid-pak-secure-switch"), "hid.pak.secure", "kvm--", false, function(value) {
 			$("hid-pak-text").style.setProperty("-webkit-text-security", (value ? "disc" : "none"));
 		});
 

@@ -94,10 +94,10 @@ export function Streamer() {
 
 		tools.storage.bindSimpleSlider($("stream-audio-volume-slider"), "stream.audio", 0, 100, 1, 100, __applyAudioVolume);
 
-		tools.storage.bindSimpleSwitch($("stream-mic-raw-switch"), "stream.mic.raw", false, __applyMicEnabled);
+		tools.config.bindSimpleSwitch($("stream-mic-raw-switch"), "stream.mic.raw", "kvm--", false, __applyMicEnabled);
 
 		for (let [input, apply_cb] of [["mic", __applyMicEnabled], ["camera", __applyCameraEnabled]]) {
-			tools.storage.bindSimpleSwitch($(`stream-${input}-switch`), `stream.${input}`, false, apply_cb);
+			tools.config.bindSimpleSwitch($(`stream-${input}-switch`), `stream.${input}`, "kvm--", false, apply_cb);
 
 			let el = $(`stream-${input}-selector`);
 			tools.selector.addOption(el, `\u2500 Default ${input} \u2500`, ".__default__");
@@ -114,7 +114,7 @@ export function Streamer() {
 		tools.el.setOnClick($("stream-screenshot-button"), __clickScreenshotButton);
 		tools.el.setOnClick($("stream-reset-button"), __clickResetButton);
 
-		tools.storage.bindSimpleSwitch($("stream-suspend-switch"), "stream.suspend", false, __visibilityHook);
+		tools.config.bindSimpleSwitch($("stream-suspend-switch"), "stream.suspend", "kvm--", false, __visibilityHook);
 
 		$("stream-window").show_hook = __visibilityHook;
 		$("stream-window").close_hook = __visibilityHook;

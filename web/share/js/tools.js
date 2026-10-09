@@ -445,6 +445,19 @@ export var tools = new function() {
 				return (value || def);
 			},
 			"getBool": (key, def) => !!parseInt(self.config.get(key, (def ? "1" : "0"))),
+
+			"bindSimpleSwitch": function(el, key, conf, def, cb=null) {
+				if (conf.length) {
+					if (conf.endsWith("-")) {
+						if (!conf.endsWith("--")) {
+							conf += "-";
+						}
+						conf += key.replace(/[^a-zA-Z0-9]/g, "-");
+					}
+					def = self.config.getBool(conf, def);
+				}
+				self.storage.bindSimpleSwitch(el, key, def, cb);
+			},
 		};
 	};
 

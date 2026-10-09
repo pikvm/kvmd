@@ -45,7 +45,7 @@ export function main() {
 		}
 	}, false);
 
-	tools.storage.bindSimpleSwitch($("page-close-ask-switch"), "page.close.ask", true, function(value) {
+	tools.config.bindSimpleSwitch($("page-close-ask-switch"), "page.close.ask", "kvm--", true, function(value) {
 		if (value) {
 			window.onbeforeunload = function(ev) {
 				let text = "Are you sure you want to close PiKVM session?";
@@ -63,10 +63,7 @@ export function main() {
 
 	tools.el.setOnClick($("open-log-button"), () => tools.windowOpen("api/log?seek=3600&follow=1"));
 
-	tools.storage.bindSimpleSwitch(
-		$("page-full-tab-stream-switch"),
-		"page.full_tab_stream",
-		tools.config.getBool("kvm--full-tab-stream", false));
+	tools.config.bindSimpleSwitch($("page-full-tab-stream-switch"), "page.full_tab_stream", "kvm--full-tab-stream", false);
 	if ($("page-full-tab-stream-switch").checked) {
 		wm.setFullTabWindow($("stream-window"), true);
 	}

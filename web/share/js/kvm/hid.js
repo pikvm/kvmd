@@ -75,7 +75,7 @@ export function Hid(__getGeometry, __recorder) {
 			});
 		}
 
-		tools.storage.bindSimpleSwitch($("hid-sysrq-ask-switch"), "hid.sysrq.ask", true);
+		tools.config.bindSimpleSwitch($("hid-sysrq-ask-switch"), "hid.sysrq.ask", "kvm--", true);
 
 		tools.el.setOnClick($("hid-jiggler-switch"), __clickJigglerSwitch);
 	};
