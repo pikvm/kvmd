@@ -45,8 +45,7 @@ from ..types import BaseNbdEvent
 
 from ..link import BaseNbdLink
 
-from ..errors import NbdIoConnectionError
-from ..errors import NbdIoProtocolError
+from ..errors import NbdRemoteError
 
 from . import NbdUrl
 from . import BaseNbdRemote
@@ -103,9 +102,9 @@ async def _do_handshake(
                 (size, flags, _) = st.unpack(await reader.readexactly(st.size))
 
             case _:
-                raise NbdIoProtocolError("Invalid server header")
+                raise NbdRemoteError("Invalid server header")
     except (ConnectionError, asyncio.IncompleteReadError):
-        raise NbdIoProtocolError("Server refused this request (probably export is wrong)")
+        raise NbdRemoteError("Server refused this request (probably export is wrong)")
 
     writable = (not (flags & 0x02))
     return (size, writable)
@@ -245,7 +244,7 @@ class NbdKernelRemote(BaseNbdRemote):
         _ = events_q
         assert self.__image
         if self.__image != link.image:
-            raise NbdIoConnectionError("Probed image mismatch")
+            raise NbdRemoteError("Probed image mismatch")
         await aiotools.wait_infinite()
 
     async def cleanup(self) -> None:
