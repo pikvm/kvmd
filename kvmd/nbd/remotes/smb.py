@@ -35,8 +35,8 @@ from ...validators.basic import valid_number
 from ...validators.net import valid_url
 
 from ..types import NbdImage
+from ..url import NbdUrl
 
-from . import NbdUrl
 from . import BaseNbdUserRemote
 
 

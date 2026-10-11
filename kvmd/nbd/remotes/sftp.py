@@ -37,8 +37,8 @@ from ...validators.net import valid_url
 
 from ..errors import NbdRemoteError
 from ..types import NbdImage
+from ..url import NbdUrl
 
-from . import NbdUrl
 from . import BaseNbdUserRemote
 
 

@@ -47,7 +47,8 @@ from ..link import BaseNbdLink
 
 from ..errors import NbdRemoteError
 
-from . import NbdUrl
+from ..url import NbdUrl
+
 from . import BaseNbdRemote
 
 
