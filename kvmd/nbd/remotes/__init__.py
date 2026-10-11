@@ -131,6 +131,23 @@ class BaseNbdRemote:
     async def cleanup(self) -> None:
         raise NotImplementedError
 
+    # =====
+
+    def _send_running(
+        self,
+        events_q: aiomulti.AioMpQueue[BaseNbdEvent],
+        online: bool=True,
+        msg: str="",
+    ) -> None:
+
+        if online and not msg:
+            msg = "Online"
+
+        try:
+            events_q.put_nowait(NbdRunningEvent(online, msg))
+        except Exception as ex:
+            raise NbdRemoteError(f"Can't send event: {tools.efmt(ex)}")
+
 
 class BaseNbdUserRemote(BaseNbdRemote):
     # https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md
@@ -154,7 +171,7 @@ class BaseNbdUserRemote(BaseNbdRemote):
         self.__send_st = struct.Struct(">IIQ")
 
         self.__image: (NbdImage | None) = None
-        self.__opened: (bool | None) = None
+        self.__opened = False
         self.__events_q: (aiomulti.AioMpQueue[BaseNbdEvent] | None) = None
 
     # =====
@@ -212,7 +229,7 @@ class BaseNbdUserRemote(BaseNbdRemote):
         assert self.__events_q is None
         self.__events_q = events_q
 
-        async with self.__ensured_for_io("VALIDATE", False):
+        async with self.__ensured_for_io("VALIDATE", True):
             pass  # Validate NbdImage after first probing
 
         while True:
@@ -328,6 +345,7 @@ class BaseNbdUserRemote(BaseNbdRemote):
     @contextlib.asynccontextmanager
     async def __ensured_for_io(self, action: str, send_event: bool) -> AsyncGenerator[None]:
         assert self.__image
+        assert self.__events_q
         try:
             if not self.__opened:
                 image = await self._do_ensure()
@@ -344,16 +362,9 @@ class BaseNbdUserRemote(BaseNbdRemote):
                 pass
             if send_event and not isinstance(ex, NbdError):
                 msg = f"{action}: {tools.efmt(ex)}; Retrying ..."
-                await self.__send_event(NbdRunningEvent(False, msg))
+                self._send_running(self.__events_q, False, msg)
             raise
         else:
-            if send_event and self.__opened is False:  # Ignore for None
-                await self.__send_event(NbdRunningEvent(True, "Online"))
+            if send_event and not self.__opened:
+                self._send_running(self.__events_q)
             self.__opened = True
-
-    async def __send_event(self, event: BaseNbdEvent) -> None:
-        assert self.__events_q is not None
-        try:
-            self.__events_q.put_nowait(event)
-        except Exception as ex:
-            raise NbdRemoteError(f"Can't send event: {tools.efmt(ex)}")

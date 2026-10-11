@@ -41,7 +41,6 @@ from .errors import NbdIoConnectionError
 
 from .types import NbdImage
 from .types import BaseNbdEvent
-from .types import NbdRunningEvent
 from .types import NbdStoppedEvent
 
 from .device import NbdDevice
@@ -188,7 +187,6 @@ class NbdProcess:
                     if isinstance(ex, TimeoutError):
                         raise NbdError("Can't open+close device in time")
                     raise
-                self.__events_q.put_nowait(NbdRunningEvent(True, "Online"))
                 self.__ready_nr.notify(1)
                 await aiotools.wait_infinite()
 

@@ -241,10 +241,10 @@ class NbdKernelRemote(BaseNbdRemote):
         events_q: aiomulti.AioMpQueue[BaseNbdEvent],
     ) -> None:
 
-        _ = events_q
         assert self.__image
         if self.__image != link.image:
             raise NbdRemoteError("Probed image mismatch")
+        self._send_running(events_q)
         await aiotools.wait_infinite()
 
     async def cleanup(self) -> None:
