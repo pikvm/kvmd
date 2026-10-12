@@ -39,12 +39,12 @@ export function Msd() {
 	var __init__ = function() {
 		$("msd-led").title = "Unknown state";
 
+		$("msd-filter-input").oninput = __updateImageSelectorForFilters;
+
 		tools.radio.clickValue("msd-sorting-radio", tools.storage.get("msd.sorting", "name"));
 		tools.radio.setOnClick("msd-sorting-radio", function() {
 			tools.storage.set("msd.sorting", tools.radio.getValue("msd-sorting-radio"));
-			if (__state?.drive && __state?.storage && __state?.storage?.images !== undefined) {
-				__updateImageSelector(__state.drive, __state.storage.images);
-			}
+			__updateImageSelectorForFilters();
 		}, false);
 
 		tools.selector.addOption($("msd-image-selector"), "\u2500 Not selected \u2500", "");
@@ -169,6 +169,7 @@ export function Msd() {
 		tools.hidden.setVisible($("msd-message-another-user-uploads"), (o && s.uploading && !__http));
 		tools.hidden.setVisible($("msd-message-downloads"), (o && s.downloading));
 
+		tools.el.setEnabled($("msd-filter-input"), (o && !d.connected && !busy));
 		tools.radio.setEnabled("msd-sorting-radio", (o && !d.connected && !busy));
 		tools.el.setEnabled($("msd-image-selector"), (o && !d.connected && !busy));
 		tools.el.setEnabled($("msd-download-button"), (o && !d.connected && !busy && d.image && d.image.in_storage));
@@ -301,6 +302,11 @@ export function Msd() {
 			names = names.sort();
 		}
 
+		let filter = $("msd-filter-input").value.toLowerCase();
+		if (filter.length) {
+			names = names.filter((name) => name.toLowerCase().indexOf(filter) >= 0);
+		}
+
 		if (drive.image && !drive.image.in_storage) {
 			tools.selector.addSeparator(el);
 			sel = ".__external__"; // Just some magic name
@@ -316,6 +322,12 @@ export function Msd() {
 			}
 		}
 		el.value = sel;
+	};
+
+	var __updateImageSelectorForFilters = function() {
+		if (__state?.drive && __state?.storage && __state?.storage?.images !== undefined) {
+			__updateImageSelector(__state.drive, __state.storage.images);
+		}
 	};
 
 	var __makeImageSelectorInfo = function(image) {

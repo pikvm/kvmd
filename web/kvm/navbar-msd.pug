@@ -46,12 +46,17 @@ li.right.feature-disabled#msd-dropdown
 		table.kv
 			tr
 				td
-				td(style="width: 100%;" colspan="7")
-					.radio-box(style="justify-content: right;")
-						+menu_radio_items("msd-sorting-radio", [
-							{title: "Sort by name", value: "name", checked: true},
-							{title: "Newest first", value: "mtime"},
-						])
+				td(style="padding: 0;" colspan="7")
+					table(style="width: 100%;")
+						tr
+							td(style="width: 100%; padding: 0;")
+								input.small#msd-filter-input(type="text" placeholder="type to filter")
+							td(style="padding: 0;")
+								.radio-box
+									+menu_radio_items("msd-sorting-radio", [
+										{title: "Sort by name", value: "name", checked: true},
+										{title: "Newest first", value: "mtime"},
+									])
 			tr
 				td Image:
 				td(style="width: 100%;" colspan="5") #[select#msd-image-selector(disabled)]

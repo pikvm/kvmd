@@ -797,13 +797,22 @@
           <table class="kv">
             <tr>
               <td></td>
-              <td style="width: 100%;" colspan="7">
-                <div class="radio-box" style="justify-content: right;">
-                      <input type="radio" id="msd-sorting-radio-name" name="msd-sorting-radio" value="name" checked>
-                      <label for="msd-sorting-radio-name">Sort by name</label>
-                      <input type="radio" id="msd-sorting-radio-mtime" name="msd-sorting-radio" value="mtime">
-                      <label for="msd-sorting-radio-mtime">Newest first</label>
-                </div>
+              <td style="padding: 0;" colspan="7">
+                <table style="width: 100%;">
+                  <tr>
+                    <td style="width: 100%; padding: 0;">
+                      <input class="small" id="msd-filter-input" type="text" placeholder="type to filter">
+                    </td>
+                    <td style="padding: 0;">
+                      <div class="radio-box">
+                            <input type="radio" id="msd-sorting-radio-name" name="msd-sorting-radio" value="name" checked>
+                            <label for="msd-sorting-radio-name">Sort by name</label>
+                            <input type="radio" id="msd-sorting-radio-mtime" name="msd-sorting-radio" value="mtime">
+                            <label for="msd-sorting-radio-mtime">Newest first</label>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
