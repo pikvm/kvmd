@@ -401,7 +401,7 @@ export function Msd() {
 			__http.open("POST", `${ROOT_PREFIX}api/msd/write_remote?prefix=${e_prefix}&url=${e_url}&remove_incomplete=1`, true);
 		}
 		__http.upload.timeout = 7 * 24 * 3600;
-		let from_url = !!file;
+		let from_url = !!!file;
 		__http.onreadystatechange = () => __uploadStateChange(from_url);
 		__http.send(file);
 		__refreshControls();
