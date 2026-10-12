@@ -169,7 +169,10 @@ class MsdApi:
     @exposed_http("POST", "/msd/write_remote")
     async def __write_remote_handler(self, req: Request) -> (Response | StreamResponse):  # pylint: disable=too-many-locals
         url = valid_url(req.query.get("url"))
+
         insecure = valid_bool(req.query.get("insecure", False))
+        verify = valid_bool(req.query.get("verify", (not insecure)))
+
         timeout = valid_float_f01(req.query.get("timeout", 10.0))
         remove_incomplete = valid_bool(req.query.get("remove_incomplete", False))
 
@@ -184,7 +187,7 @@ class MsdApi:
         try:
             async with downloader.download(
                 url=url,
-                verify=(not insecure),
+                verify=verify,
                 timeout=timeout,
                 read_timeout=(7 * 24 * 3600),
             ) as file:
