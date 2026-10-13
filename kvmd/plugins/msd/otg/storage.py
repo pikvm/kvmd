@@ -38,6 +38,8 @@ from .. import MsdOfflineError
 from .. import MsdUnknownImageError
 from .. import MsdImageExistsError
 
+from .drive import is_cdromable
+
 from . import fs
 
 
@@ -52,6 +54,7 @@ class _FileImageDc:  # pylint: disable=too-many-instance-attributes
     size:       int   = dataclasses.field(default=0,     compare=False)
     mod_ts:     float = dataclasses.field(default=0.0,   compare=False)
     writable:   bool  = dataclasses.field(default=False, compare=False)
+    cdromable:  bool  = dataclasses.field(default=False, compare=False)  # noqa vulture-ignore
     removable:  bool  = dataclasses.field(default=False, compare=False)
     complete:   bool  = dataclasses.field(default=False, compare=False)
 
@@ -78,6 +81,7 @@ class FileImage(_FileImageDc):
         object.__setattr__(self, "size", size)
         object.__setattr__(self, "mod_ts", mod_ts)
         object.__setattr__(self, "writable", writable)
+        object.__setattr__(self, "cdromable", is_cdromable(size))
         object.__setattr__(self, "removable", removable)
         object.__setattr__(self, "complete", complete)
 

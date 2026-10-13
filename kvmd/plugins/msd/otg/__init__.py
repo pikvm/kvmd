@@ -62,6 +62,7 @@ from .storage import Storage
 
 from .remote import Nbd
 
+from .drive import is_cdromable
 from .drive import Drive
 
 
@@ -177,6 +178,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                     vd["image"].pop("path", None)  # FileImage
                     vd["image"].setdefault("url", None)  # FileImage
                     vd["image"].setdefault("in_storage", False)  # NbdImage
+                    vd["image"].setdefault("cdromable", is_cdromable(vd["image"]["size"]))  # NbdImage
                     vd["image"].setdefault("removable", False)  # NbdImage
                     vd["image"].setdefault("complete", True)  # NbdImage
 
@@ -277,6 +279,9 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
 
                 if rw is not None:
                     vd.rw = rw
+
+                if vd.cdrom and vd.image and not is_cdromable(vd.image.size):
+                    vd.cdrom = False
 
                 if vd.rw and (vd.cdrom or (vd.image and not vd.image.writable)):
                     vd.rw = False

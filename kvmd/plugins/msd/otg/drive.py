@@ -45,6 +45,11 @@ class MsdLockedError(MsdOperationError):
 
 
 # =====
+def is_cdromable(size: int) -> bool:
+    return (size < 33_957_083_136)
+
+
+# =====
 class Drive:
     def __init__(self, instance: int, lun: int) -> None:
         func = f"mass_storage.usb{instance}"
