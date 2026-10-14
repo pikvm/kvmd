@@ -26,6 +26,7 @@ import asyncio
 import contextlib
 import time
 
+import typing
 from typing import Final
 from typing import Self
 from typing import AsyncGenerator
@@ -42,7 +43,9 @@ from ...errors import IsBusyError
 
 from ...yamlconf import Section
 
-from ...clients.nbd import NbdClient
+if typing.TYPE_CHECKING:
+    # This import is too heavy because of aiohttp
+    from ...clients.nbd import NbdClient
 
 from ... import aiotools
 

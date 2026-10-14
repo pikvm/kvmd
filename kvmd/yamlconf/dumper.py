@@ -36,10 +36,6 @@ from ruamel.yaml.nodes import MappingNode
 from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml.representer import RoundTripRepresenter
 
-import pygments
-import pygments.lexers.data
-import pygments.formatters
-
 from .. import tools
 
 from . import ConfigError
@@ -182,7 +178,12 @@ def dump_yaml(data: Any, only_changed: bool=False, colored: bool=False) -> str:
     handler.Representer = _ConfigRepresenter  # noqa vulture-ignore
     handler.representer.only_changed = only_changed
     text = handler.dump_as_string(data)
+
     if colored:
+        import pygments  # pylint: disable=import-outside-toplevel
+        import pygments.lexers.data  # pylint: disable=import-outside-toplevel
+        import pygments.formatters  # pylint: disable=import-outside-toplevel
+
         text = pygments.highlight(
             text,
             pygments.lexers.data.YamlLexer(),
