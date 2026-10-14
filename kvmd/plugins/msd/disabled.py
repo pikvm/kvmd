@@ -97,6 +97,7 @@ class Plugin(BaseMsd):
         self,
         name: str,
         size: int,
+        activate: bool,
         remove_incomplete: bool,
     ) -> AsyncGenerator[BaseMsdWriter]:
 

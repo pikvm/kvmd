@@ -370,6 +370,7 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
         self,
         name: str,
         size: int,
+        activate: bool,
         remove_incomplete: bool,
     ) -> AsyncGenerator[MsdFileWriter]:
 
@@ -391,6 +392,8 @@ class Plugin(BaseMsd):  # pylint: disable=too-many-instance-attributes
                             try:
                                 if remove_incomplete and not complete:
                                     await self.__storage.remove_image(image, fatal=False)
+                                elif activate:
+                                    self.__state.vd.image = image
                             finally:
                                 await self.__storage.remount_ro()
 

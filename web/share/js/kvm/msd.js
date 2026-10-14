@@ -393,12 +393,15 @@ export function Msd() {
 		let file = tools.input.getFile($("msd-new-file"));
 		__http = new XMLHttpRequest();
 		let e_prefix = encodeURIComponent($("msd-new-part-selector").value);
+		let e_query = `prefix=${e_prefix}&activate=1&remove_incomplete=1`;
 		if (file) {
 			let e_image = encodeURIComponent(file.name);
-			__http.open("POST", `${ROOT_PREFIX}api/msd/write?prefix=${e_prefix}&image=${e_image}&remove_incomplete=1`, true);
+			e_query += `&image=${e_image}`;
+			__http.open("POST", `${ROOT_PREFIX}api/msd/write?${e_query}`, true);
 		} else {
 			let e_url = encodeURIComponent($("msd-new-url").value);
-			__http.open("POST", `${ROOT_PREFIX}api/msd/write_remote?prefix=${e_prefix}&url=${e_url}&remove_incomplete=1`, true);
+			e_query += `&url=${e_url}`;
+			__http.open("POST", `${ROOT_PREFIX}api/msd/write_remote?${e_query}`, true);
 		}
 		__http.upload.timeout = 7 * 24 * 3600;
 		let from_url = !!!file;

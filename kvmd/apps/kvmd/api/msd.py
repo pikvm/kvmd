@@ -154,10 +154,11 @@ class MsdApi:
         name = valid_msd_image_name(unsafe_prefix + req.query.get("image", ""))
 
         size = valid_int_f0(req.content_length)
+        activate = valid_bool(req.query.get("activate", False))
         remove_incomplete = valid_bool(req.query.get("remove_incomplete", False))
 
         written = 0
-        async with self.__msd.write_image(name, size, remove_incomplete) as writer:
+        async with self.__msd.write_image(name, size, activate, remove_incomplete) as writer:
             chunk_size = writer.get_chunk_size()
             while True:
                 chunk = await req.content.read(chunk_size)
@@ -174,6 +175,8 @@ class MsdApi:
         verify = valid_bool(req.query.get("verify", (not insecure)))
 
         timeout = valid_float_f01(req.query.get("timeout", 10.0))
+
+        activate = valid_bool(req.query.get("activate", False))
         remove_incomplete = valid_bool(req.query.get("remove_incomplete", False))
 
         resp: (StreamResponse | None) = None
@@ -197,7 +200,7 @@ class MsdApi:
 
                 get_logger(0).info("Downloading image %r as %r to MSD ...", url, name)
 
-                async with self.__msd.write_image(name, file.size, remove_incomplete) as writer:
+                async with self.__msd.write_image(name, file.size, activate, remove_incomplete) as writer:
                     size = file.size
                     resp = await start_streaming(req, "application/x-ndjson")
                     await stream_write_info()

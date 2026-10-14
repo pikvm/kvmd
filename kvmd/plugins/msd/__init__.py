@@ -193,11 +193,13 @@ class BaseMsd(BasePlugin):
         self,
         name: str,
         size: int,
+        activate: bool,
         remove_incomplete: bool,
     ) -> AsyncGenerator[BaseMsdWriter]:
 
         _ = name
         _ = size
+        _ = activate
         _ = remove_incomplete
 
         if self is not None:  # XXX: Vulture and pylint hack
