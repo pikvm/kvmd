@@ -30,6 +30,7 @@ from kvmd.validators.hw import valid_gpio_pin
 from kvmd.validators.hw import valid_gpio_pin_optional
 from kvmd.validators.hw import valid_otg_id
 from kvmd.validators.hw import valid_otg_ethernet
+from kvmd.validators.hw import valid_otg_camera_resolution
 
 
 # =====
@@ -98,3 +99,15 @@ def test_ok__valid_otg_ethernet(arg: Any) -> None:
 def test_fail__valid_otg_ethernet(arg: Any) -> None:
     with pytest.raises(ValidatorError):
         print(valid_otg_ethernet(arg))
+
+
+# =====
+@pytest.mark.parametrize("arg", ["1920x1080", " 1280x720", "1280X720 ", "320x180"])
+def test_ok__valid_otg_camera_resolution(arg: Any) -> None:
+    assert valid_otg_camera_resolution(arg) == arg.strip().lower()
+
+
+@pytest.mark.parametrize("arg", ["test", "", None, "1280x721", "1280 x 720", "864x480", "3840x2160"])
+def test_fail__valid_otg_camera_resolution(arg: Any) -> None:
+    with pytest.raises(ValidatorError):
+        print(valid_otg_camera_resolution(arg))
