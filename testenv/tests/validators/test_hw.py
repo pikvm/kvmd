@@ -30,6 +30,7 @@ from kvmd.validators.hw import valid_gpio_pin
 from kvmd.validators.hw import valid_gpio_pin_optional
 from kvmd.validators.hw import valid_otg_id
 from kvmd.validators.hw import valid_otg_ethernet
+from kvmd.validators.hw import valid_otg_serial
 
 
 # =====
@@ -98,3 +99,15 @@ def test_ok__valid_otg_ethernet(arg: Any) -> None:
 def test_fail__valid_otg_ethernet(arg: Any) -> None:
     with pytest.raises(ValidatorError):
         print(valid_otg_ethernet(arg))
+
+
+# =====
+@pytest.mark.parametrize("arg", ["ACM ", "Acm ", " gser", "GSER"])
+def test_ok__valid_otg_serial(arg: Any) -> None:
+    assert valid_otg_serial(arg) == arg.strip().lower()
+
+
+@pytest.mark.parametrize("arg", ["test", "", None])
+def test_fail__valid_otg_serial(arg: Any) -> None:
+    with pytest.raises(ValidatorError):
+        print(valid_otg_serial(arg))

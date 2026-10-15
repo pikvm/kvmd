@@ -231,10 +231,14 @@ class _GadgetConfig:
             _write(join(func_path, "p_chmask"), 0)
         self.__setup_function(func, "+".join(desc), len(desc) + 1, starter, start)
 
-    def add_serial(self, starter: list[str], start: bool) -> None:
-        func = "acm.usb0"
+    def add_serial(self, starter: list[str], start: bool, driver: str) -> None:
+        func = f"{driver}.usb0"
         self.__create_function(func)
-        self.__setup_function(func, "Serial Port", 3, starter, start)
+        # ACM adds a notification interrupt endpoint on top of the two bulk ones,
+        # while the generic serial function uses just the two bulk endpoints.
+        # See drivers/usb/gadget/function/f_acm.c and f_serial.c
+        eps = 2 if driver == "gser" else 3
+        self.__setup_function(func, "Serial Port", eps, starter, start)
 
     def add_ethernet(self, starter: list[str], start: bool, driver: str, host_mac: str, kvm_mac: str) -> None:
         if host_mac and kvm_mac and host_mac == kvm_mac:
@@ -463,7 +467,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     if cod.serial.enabled:
         logger.info("===== Serial =====")
-        gc.add_serial(["serial"], cod.serial.start)
+        gc.add_serial(["serial"], cod.serial.start, cod.serial.driver)
 
     if cod.audio.enabled and (cod.audio.speakers.enabled or cod.audio.mic.enabled):
         logger.info("===== Audio =====")

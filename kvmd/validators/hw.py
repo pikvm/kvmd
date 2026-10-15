@@ -55,3 +55,8 @@ def valid_otg_id(arg: Any) -> int:
 @add_validator_magic(16)
 def valid_otg_ethernet(arg: Any) -> str:
     return check_string_in_list(arg, "OTG Ethernet driver", ["ecm", "eem", "ncm", "rndis", "rndis5"])
+
+
+@add_validator_magic(16)
+def valid_otg_serial(arg: Any) -> str:
+    return check_string_in_list(arg, "OTG Serial driver", ["acm", "gser"])

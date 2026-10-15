@@ -87,6 +87,7 @@ from ..validators.ugpio import valid_ugpio_mode
 from ..validators.hw import valid_tty_speed
 from ..validators.hw import valid_otg_id
 from ..validators.hw import valid_otg_ethernet
+from ..validators.hw import valid_otg_serial
 
 
 # =====
@@ -564,6 +565,7 @@ def make_config_scheme() -> dict:
                 "serial": {
                     "enabled": Option(False, type=valid_bool),
                     "start":   Option(True,  type=valid_bool),
+                    "driver":  Option("acm", type=valid_otg_serial),
                 },
 
                 "ethernet": {
