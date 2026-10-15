@@ -237,7 +237,7 @@ class _GadgetConfig:
         # ACM adds a notification interrupt endpoint on top of the two bulk ones,
         # while the generic serial function uses just the two bulk endpoints.
         # See drivers/usb/gadget/function/f_acm.c and f_serial.c
-        eps = 2 if driver == "gser" else 3
+        eps = (2 if driver == "gser" else 3)
         self.__setup_function(func, "Serial Port", eps, starter, start)
 
     def add_ethernet(self, starter: list[str], start: bool, driver: str, host_mac: str, kvm_mac: str) -> None:
