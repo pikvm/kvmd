@@ -399,6 +399,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         logger.info("Nothing to do")
         return
 
+    co = config.otg
     cod = config.otg.devices
 
     gadget_path = usb.get_gadget_path()
@@ -406,64 +407,64 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         logger.info("Already started/prepared, nothing to do")
         return
 
-    udc = usb.find_udc(config.otg.udc)
+    udc = usb.find_udc(co.udc)
     logger.info("Using UDC %s", udc)
 
     logger.info("Creating the gadget: %s ...", gadget_path)
     _mkdir(gadget_path)
 
-    _write(join(gadget_path, "idVendor"), f"0x{config.otg.vendor_id:04X}")
-    _write(join(gadget_path, "idProduct"), f"0x{config.otg.product_id:04X}")
-    _write(join(gadget_path, "bcdUSB"), f"0x{config.otg.usb_version:04X}")
+    _write(join(gadget_path, "idVendor"), f"0x{co.vendor_id:04X}")
+    _write(join(gadget_path, "idProduct"), f"0x{co.product_id:04X}")
+    _write(join(gadget_path, "bcdUSB"), f"0x{co.usb_version:04X}")
 
     # bcdDevice should be incremented any time there are breaking changes
     # to this script so that the host OS sees it as a new device
     # and re-enumerates everything rather than relying on cached values.
-    device_version = config.otg.device_version
+    device_version = co.device_version
     if device_version < 0:
         device_version = 0x0100
-        if config.otg.devices.ethernet.enabled:
-            if config.otg.devices.ethernet.driver == "ncm":
+        if cod.ethernet.enabled:
+            if cod.ethernet.driver == "ncm":
                 device_version = 0x0102
-            elif config.otg.devices.ethernet.driver == "rndis":
+            elif cod.ethernet.driver == "rndis":
                 device_version = 0x0101
     _write(join(gadget_path, "bcdDevice"), f"0x{device_version:04X}")
 
     lang_path = join(gadget_path, "strings/0x409")
     _mkdir(lang_path)
-    _write(join(lang_path, "manufacturer"), config.otg.manufacturer)
-    _write(join(lang_path, "product"), config.otg.product)
-    if config.otg.serial is not None:
-        _write(join(lang_path, "serialnumber"), config.otg.serial)
+    _write(join(lang_path, "manufacturer"), co.manufacturer)
+    _write(join(lang_path, "product"), co.product)
+    if co.serial is not None:
+        _write(join(lang_path, "serialnumber"), co.serial)
 
     profile_path = join(gadget_path, usb.G_PROFILE)
     _mkdir(profile_path)
-    if config.otg.config is not None:
+    if co.config is not None:
         _mkdir(join(profile_path, "strings/0x409"))
-        _write(join(profile_path, "strings/0x409/configuration"), config.otg.config)
-    _write(join(profile_path, "MaxPower"), config.otg.max_power)
-    if config.otg.remote_wakeup:
+        _write(join(profile_path, "strings/0x409/configuration"), co.config)
+    _write(join(profile_path, "MaxPower"), co.max_power)
+    if co.remote_wakeup:
         # XXX: Should we use MaxPower=100 with Remote Wakeup?
         _write(join(profile_path, "bmAttributes"), "0xA0")
 
-    gc = _GadgetConfig(gadget_path, profile_path, config.otg.meta, config.otg.endpoints)
+    gc = _GadgetConfig(gadget_path, profile_path, co.meta, co.endpoints)
 
     if config.kvmd.hid.type == "otg":
         logger.info("===== HID-Keyboard =====")
-        gc.add_keyboard(["hid", "keyboard"], cod.hid.keyboard.start, config.otg.remote_wakeup)
+        gc.add_keyboard(["hid", "keyboard"], cod.hid.keyboard.start, co.remote_wakeup)
         logger.info("===== HID-Mouse =====")
         ckhm = config.kvmd.hid.mouse
         gc.add_mouse(["hid", "mouse"], cod.hid.mouse.start,
-                     config.otg.remote_wakeup, ckhm.absolute, ckhm.horizontal_wheel)
+                     co.remote_wakeup, ckhm.absolute, ckhm.horizontal_wheel)
         if config.kvmd.hid.mouse_alt.device:
             logger.info("===== HID-Mouse-Alt =====")
             gc.add_mouse(["hid", "mouse_alt"], cod.hid.mouse_alt.start,
-                         config.otg.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
+                         co.remote_wakeup, (not ckhm.absolute), ckhm.horizontal_wheel)
 
     def make_inquiry_string(isc: Section) -> str:
         kwargs = isc._unpack()
         if kwargs["vendor"] is None:
-            kwargs["vendor"] = config.otg.manufacturer
+            kwargs["vendor"] = co.manufacturer
         return usb.make_inquiry_string(**kwargs)
 
     if config.kvmd.msd.type == "otg":
@@ -471,7 +472,7 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         gc.add_msd(
             starter=["msd"],
             start=cod.msd.start,
-            user=config.otg.user,
+            user=co.user,
             inquiry_string_cdrom=make_inquiry_string(cod.msd.default.inquiry_string.cdrom),
             inquiry_string_flash=make_inquiry_string(cod.msd.default.inquiry_string.flash),
             **cod.msd.default._unpack(ignore="inquiry_string"),
@@ -515,9 +516,9 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
 
     logger.info("Enabling the gadget ...")
     _write(join(gadget_path, "UDC"), udc)
-    time.sleep(config.otg.init_delay)
-    _chown(join(gadget_path, "UDC"), config.otg.user)
-    _chown(profile_path, config.otg.user)
+    time.sleep(co.init_delay)
+    _chown(join(gadget_path, "UDC"), co.user)
+    _chown(profile_path, co.user)
 
     logger.info("Ready to work")
 
