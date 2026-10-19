@@ -97,26 +97,6 @@ def _write_bytes(path: str, data: bytes) -> None:
 
 
 # =====
-_CAMERA_FRAMES = [
-    (1920, 1080, [30, 24, 20, 15, 10, 5]),
-    (1280, 720,  [30, 24, 20, 15, 10, 5]),
-    (1024, 768,  [30, 24, 20, 15, 10, 5]),
-    (1024, 576,  [30, 24, 20, 15, 10, 5]),
-    (960,  720,  [30, 24, 20, 15, 10, 5]),
-    # (864,  480,  [30, 24, 20, 15, 10, 5]),
-    (800,  600,  [30, 24, 20, 15, 10, 5]),
-    # (800,  448,  [30, 24, 20, 15, 10, 5]),
-    (640,  480,  [30, 24, 20, 15, 10, 5]),
-    (640,  360,  [30, 24, 20, 15, 10, 5]),
-    (320,  240,  [30, 24, 20, 15, 10, 5]),
-    (320,  180,  [30, 24, 20, 15, 10, 5]),
-    # (176,  144,  [30, 24, 20, 15, 10, 5]),
-    # (160,  120,  [30, 24, 20, 15, 10, 5]),
-    # (160,  90,   [30, 24, 20, 15, 10, 5]),
-]
-
-
-# =====
 class _GadgetConfig:
     # https://www.kernel.org/doc/Documentation/usb/gadget_configfs.txt
 
@@ -143,10 +123,10 @@ class _GadgetConfig:
         self,
         starter: list[str],
         start: bool,
-        safe: bool,
-        resolution: str,
-        streaming_maxpacket: int,
-        streaming_interval: int,
+        res_max: str,
+        res_default: str,
+        max_packet: int,
+        interval: int,
         ct_mask: int,
         pu_mask: int,
     ) -> None:
@@ -178,40 +158,56 @@ class _GadgetConfig:
         D21: Region of Interest
         """
 
+        def make_interval(fps: int) -> int:
+            return math.floor(1 / fps * 10_000_000)  # 30 -> 333333, 100ns units
+
+        (max_width, max_height) = map(int, res_max.split("x"))
+
         func = "uvc.usb0"
         func_path = self.__create_function(func)
 
-        def interval(fps: int) -> int:
-            return math.floor(1 / fps * 10_000_000)  # 30 -> 333333, 100ns units
-
+        default_index = 1  # Numbering starts from 1
+        index = 1
         _mkdir(join(func_path, "streaming/mjpeg/m"))
-        (max_width, max_height) = map(int, resolution.split("x"))
-        index = 0
-        default_index = 0
-        for (width, height, framerates) in _CAMERA_FRAMES:
-            if not framerates or (safe and width > 640):
+        for (width, height, framerates) in [
+            (1920, 1080, [30, 24, 20, 15, 10, 5]),
+            (1280, 720,  [30, 24, 20, 15, 10, 5]),
+            (1024, 768,  [30, 24, 20, 15, 10, 5]),
+            (1024, 576,  [30, 24, 20, 15, 10, 5]),
+            (960,  720,  [30, 24, 20, 15, 10, 5]),
+            # (864,  480,  [30, 24, 20, 15, 10, 5]),
+            (800,  600,  [30, 24, 20, 15, 10, 5]),
+            # (800,  448,  [30, 24, 20, 15, 10, 5]),
+            (640,  480,  [30, 24, 20, 15, 10, 5]),
+            (640,  360,  [30, 24, 20, 15, 10, 5]),
+            (320,  240,  [30, 24, 20, 15, 10, 5]),
+            (320,  180,  [30, 24, 20, 15, 10, 5]),
+            # (176,  144,  [30, 24, 20, 15, 10, 5]),
+            # (160,  120,  [30, 24, 20, 15, 10, 5]),
+            # (160,  90,   [30, 24, 20, 15, 10, 5]),
+        ]:
+            if (width > max_width) or (height > max_height):
                 continue
-            if width * height > max_width * max_height:
-                continue  # The configured resolution is both the default and the largest one
-            index += 1
-            if (width, height) == (max_width, max_height):
-                default_index = index
+
             fmt_path = join(func_path, f"streaming/mjpeg/m/{width}x{height}")
             _mkdir(fmt_path)
+
             _write(join(fmt_path, "wWidth"), width)
             _write(join(fmt_path, "wHeight"), height)
             _write(join(fmt_path, "dwMaxVideoFrameBufferSize"), width * height)  # Should be fine
-            _write(join(fmt_path, "dwFrameInterval"), "\n".join(
-                str(interval(fps))
-                for fps in framerates
-            ))
+            _write(join(fmt_path, "dwFrameInterval"), "\n".join(map(str, map(make_interval, framerates))))
+
             # Without these the kernel keeps its own defaults, which describe
             # a 640x360 frame at 15 FPS no matter what we have configured
-            _write(join(fmt_path, "dwDefaultFrameInterval"), interval(max(framerates)))
-            _write(join(fmt_path, "dwMinBitRate"), width * height * min(framerates))  # ~1 bit per pixel
-            _write(join(fmt_path, "dwMaxBitRate"), width * height * max(framerates) * 2)
-        if default_index > 0:  # The safe mode may drop the requested resolution, keep the kernel's default then
-            _write(join(func_path, "streaming/mjpeg/m/bDefaultFrameIndex"), default_index)
+            _write(join(fmt_path, "dwDefaultFrameInterval"), make_interval(max(framerates)))
+            _write(join(fmt_path, "dwMinBitRate"), width * height * 80)  # It was taken from some Logitech cam
+            _write(join(fmt_path, "dwMaxBitRate"), width * height * 480)  # Same
+
+            if f"{width}x{height}" == res_default:
+                default_index = index
+            index += 1
+
+        _write(join(func_path, "streaming/mjpeg/m/bDefaultFrameIndex"), default_index)
 
         path = join(func_path, "streaming/header/h")
         _mkdir(path)
@@ -236,8 +232,8 @@ class _GadgetConfig:
         # the endpoint every single microframe. Packets above 1024 bytes are not offered:
         # they need several transactions per microframe, the kernel forces interval 1 for them,
         # and 3072 does not even fit the TX FIFO of the Pi.
-        _write(join(func_path, "streaming_maxpacket"), streaming_maxpacket)
-        _write(join(func_path, "streaming_interval"), streaming_interval)
+        _write(join(func_path, "streaming_maxpacket"), max_packet)
+        _write(join(func_path, "streaming_interval"), interval)
 
         self.__setup_function(func, "Camera", 2, starter, start)  # TODO: Check eps number
 
@@ -404,10 +400,6 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
         return
 
     cod = config.otg.devices
-    if cod.camera.enabled:
-        # Checked before anything is created, so a typo leaves no half-built gadget behind
-        if tuple(map(int, cod.camera.resolution.split("x"))) not in [(w, h) for (w, h, _) in _CAMERA_FRAMES]:
-            raise ValidatorError(f"Unknown OTG camera resolution: {cod.camera.resolution}")
 
     gadget_path = usb.get_gadget_path()
     if os.path.exists(gadget_path):
@@ -512,8 +504,10 @@ def _cmd_start(config: Section) -> None:  # pylint: disable=too-many-statements,
     if cod.camera.enabled:
         logger.info("===== Camera =====")
         gc.add_camera(
-            ["camera"], cod.camera.start, cod.camera.safe, cod.camera.resolution,
-            cod.camera.streaming.maxpacket, cod.camera.streaming.interval,
+            ["camera"], cod.camera.start,
+            ("640x480" if cod.camera.safe else cod.camera.resolution.max),
+            ("640x480" if cod.camera.safe else cod.camera.resolution.default),
+            cod.camera.streaming.max_packet, cod.camera.streaming.interval,
             cod.camera.controls.ct_mask, cod.camera.controls.pu_mask,
         )
 
