@@ -71,7 +71,7 @@ class ExportApi:
                 if not channel.startswith("__"):  # Hide special GPIOs
                     channel = re.sub(r"[^\w]", "_", channel)
                     for key in ["online", "state"]:
-                        self.__append_prometheus_rows(rows, ch_state["state"], f"pikvm_gpio_{mode}_{key}_{channel}")
+                        self.__append_prometheus_rows(rows, ch_state[key], f"pikvm_gpio_{mode}_{key}_{channel}")
 
         self.__append_prometheus_rows(rows, info_state["health"], "pikvm_hw")  # type: ignore
         self.__append_prometheus_rows(rows, info_state["fan"], "pikvm_fan")
