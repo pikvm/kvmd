@@ -114,10 +114,10 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
     async def write(self, pin: str, state: bool) -> None:
         # Switch input source command uses 1-based numbering (0x01->PC1...0x10->PC16)
-        channel = int(pin) + 1
-        assert 1 <= channel <= 16
+        ch = int(pin) + 1
+        assert 1 <= ch <= 16
         if state:
-            await self.__send_command("{:c}{:c}".format(1, channel).encode())
+            await self.__send_command("{:c}{:c}".format(1, ch).encode())
             await asyncio.sleep(self.__switch_delay)  # Slowdown
             self.__update_notifier.notify()
 
