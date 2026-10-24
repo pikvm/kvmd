@@ -71,7 +71,7 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
 
         self.__reader: (asyncio.StreamReader | None) = None
         self.__writer: (asyncio.StreamWriter | None) = None
-        self.__active: int = -1
+        self.__active: (int | None) = -1
         self.__update_notifier = aiotools.AioNotifier()
 
     @classmethod
@@ -93,13 +93,13 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         return valid_number.mk(min=0, max=15, name="TESmart channel")
 
     async def run(self) -> None:
-        prev_active = -2
+        prev_active: (int | None) = -100  # Just "no previous state"
         while True:
             try:
                 # Current active port command uses 0-based numbering (0x00->PC1...0x0F->PC16)
                 self.__active = int(await self.__send_command(b"\x10\x00"))
             except Exception:
-                pass
+                self.__active = None
             if self.__active != prev_active:
                 self._notifier.notify()
                 prev_active = self.__active
@@ -110,6 +110,8 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         self.__active = -1
 
     async def read(self, pin: str) -> bool:
+        if self.__active is None:
+            raise GpioDriverOfflineError(self)
         return (self.__active == int(pin))
 
     async def write(self, pin: str, state: bool) -> None:
@@ -141,8 +143,8 @@ class Plugin(BaseUserGpioDriver):  # pylint: disable=too-many-instance-attribute
         except Exception as ex:
             get_logger(0).error("Can't send command to TESmart KVM [%s]:%d: %s",
                                 self.__host, self.__port, tools.efmt(ex))
+            self.__active = None
             await self.__close_device()
-            self.__active = -1
             raise GpioDriverOfflineError(self)
         finally:
             await self.__close_device()
