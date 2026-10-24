@@ -62,8 +62,10 @@ class PstClient:
     async def writable(self) -> AsyncGenerator[str]:
         async with self.__inner_writable() as path:
             path = os.path.join(path, self.__subdir)
-            if not os.path.exists(path):
+            try:
                 os.mkdir(path)
+            except FileExistsError:
+                pass
             yield path
 
     @contextlib.asynccontextmanager
