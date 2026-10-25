@@ -70,7 +70,7 @@ li.right.feature-disabled#msd-dropdown
 		.hidden#msd-remote-sub
 			table.kv
 				tr
-					td Remote URL:
+					td #[a(target="_blank" href="https://docs.pikvm.org/msd/#binding-remote-images") Remote URL]:
 					td(colspan="3") #[input#msd-remote-url-input(type="text" style="width: 100%" placeholder="http | https | smb | sftp | nbd")]
 				tr
 					td Username:
@@ -133,7 +133,7 @@ li.right.feature-disabled#msd-dropdown
 					button#msd-connect-button Connect drive
 					button.hidden#msd-disconnect-button Disconnect drive
 				td(style="width: 100%")
-				td #[a(target="_blank" href="https://docs.pikvm.org/msd") Mode]:
+				td #[a(target="_blank" href="https://docs.pikvm.org/msd/#switching-between-cddvd-and-flash") Mode]:
 				td
 					+menu_radio("msd-mode-radio", [
 						{title: "CD/DVD", value: "1", checked: true},
