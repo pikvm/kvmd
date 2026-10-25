@@ -104,7 +104,11 @@ class NbdHttpRemote(BaseNbdUserRemote):
         )
 
     async def __probe(self, session: aiohttp.ClientSession) -> NbdImage:
-        async with session.head(self.__url) as resp:
+        async with session.head(
+            url=self.__url,
+            allow_redirects=True,
+        ) as resp:
+
             htclient.raise_not_200(resp)
 
             proto = resp.request_info.url.scheme.lower()
@@ -136,6 +140,7 @@ class NbdHttpRemote(BaseNbdUserRemote):
 
         async with self.__session.get(
             url=self.__url,
+            allow_redirects=True,
             # HTTP Range включает края: bytes=0-499 запрашивает 500 байт.
             #  - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Range
             headers={aiohttp.hdrs.RANGE: f"bytes={offset}-{offset + size - 1}"},
