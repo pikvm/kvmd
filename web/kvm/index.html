@@ -693,7 +693,7 @@
             <tr>
               <td class="value">Mass Storage Drive:</td>
               <td><span id="msd-status"></span></td>
-              <td style="width: 100%;"></td>
+              <td style="width: 100%"></td>
               <td>
                 <button class="small" id="msd-reset-button">Reset</button>
               </td>
@@ -725,20 +725,6 @@
                 </div>
             <hr>
           </div>
-          <div class="hidden" id="msd-message-too-big-for-dvd">
-                <div class="text">
-                  <table>
-                    <tr>
-                      <td rowspan="2"><img class="sign " src="../share/svg/warning.svg"></td>
-                      <td style="line-height:1.5"><b>Current image is too big for DVD!</b></td>
-                    </tr>
-                    <tr>
-                      <td><sup style="line-height:1">The maximum is 31.6GiB. Please switch to the Flash mode.</sup></td>
-                    </tr>
-                  </table>
-                </div>
-            <hr>
-          </div>
           <div class="hidden" id="msd-message-out-of-storage">
                 <div class="text">
                   <table>
@@ -748,22 +734,6 @@
                     </tr>
                     <tr>
                       <td><sup style="line-height:1">This image was connected manually using <b>kvmd-otgmsd</b></sup></td>
-                    </tr>
-                  </table>
-                </div>
-            <hr>
-          </div>
-          <div class="hidden" id="msd-message-rw-enabled">
-                <div class="text">
-                  <table>
-                    <tr>
-                      <td rowspan="2"><img class="sign " src="../share/svg/warning.svg"></td>
-                      <td style="line-height:1.5"><b>Read-write mode is enabled</b></td>
-                    </tr>
-                    <tr>
-                      <td><sup style="line-height:1">Do not turn off PiKVM while this is active to prevent<br>
-                          filesystem corruption. Use read-only mode where possible,<br>
-                          as writing to SD card often can reduce its lifespan.</sup></td>
                     </tr>
                   </table>
                 </div>
@@ -797,13 +767,13 @@
           <table class="kv">
             <tr>
               <td></td>
-              <td style="padding: 0;" colspan="7">
-                <table style="width: 100%;">
+              <td style="padding: 0" colspan="7">
+                <table style="width: 100%">
                   <tr>
                     <td style="width: 100%; padding: 0;">
                       <input class="small" id="msd-filter-input" type="text" placeholder="type to filter">
                     </td>
-                    <td style="padding: 0;">
+                    <td style="padding: 0">
                       <div class="radio-box">
                             <input type="radio" id="msd-sorting-radio-name" name="msd-sorting-radio" value="name" checked>
                             <label for="msd-sorting-radio-name">Sort by name</label>
@@ -817,7 +787,7 @@
             </tr>
             <tr>
               <td>Image:</td>
-              <td style="width: 100%;" colspan="5">
+              <td style="width: 100%" colspan="5">
                 <select id="msd-image-selector" disabled></select>
               </td>
               <td>
@@ -833,33 +803,61 @@
               <td class="value" id="msd-image-size"></td>
               <td>Source:</td>
               <td class="value" id="msd-image-proto"></td>
-              <td style="width: 100%;"></td>
+              <td style="width: 100%"></td>
             </tr>
           </table>
-          <table class="kv" id="msd-insert-buttons">
+          <table class="kv">
             <tr>
-              <td style="width: 100%;"></td>
+              <td style="width: 100%">
+                <hr class="hidden" id="msd-insert-hr" style="margin-left: -50px">
+              </td>
+              <td>
+                <button class="small" id="msd-remote-select-button" disabled>Bind remote image</button>
+              </td>
               <td>
                 <button class="small" id="msd-new-select-button" disabled>Upload new image</button>
               </td>
             </tr>
           </table>
-          <div class="hidden" id="msd-new-sub">
+          <div class="hidden" id="msd-remote-sub">
             <table class="kv">
               <tr>
-                <td style="width: 100%;"></td>
+                <td>Remote URL:</td>
+                <td colspan="3">
+                  <input id="msd-remote-url-input" type="text" style="width: 100%" placeholder="http | https | smb | sftp | nbd">
+                </td>
+              </tr>
+              <tr>
+                <td>Username:</td>
                 <td>
-                  <button class="small" id="msd-new-hide-button" disabled>Hide upload menu</button>
+                  <input id="msd-remote-user-input" type="text" style="width: 100%" autocapitalize="off">
+                </td>
+                <td>Password:</td>
+                <td>
+                  <input id="msd-remote-passwd-input" type="password" style="width: 100%" autocapitalize="off">
+                </td>
+              </tr>
+              <tr>
+                <td>Verify host:</td>
+                <td>
+                      <div class="switch-box">
+                        <input checked type="checkbox" id="msd-remote-verify-switch">
+                        <label for="msd-remote-verify-switch"><span class="switch-inner"></span><span class="switch"></span></label>
+                      </div>
                 </td>
               </tr>
             </table>
             <table class="kv">
               <tr>
-                <td></td>
-                <td style="width: 100%;">
-                  <hr>
+                <td>
+                  <button id="msd-remote-bind-button" disabled>Bind the remote image</button>
                 </td>
               </tr>
+            </table>
+            <hr>
+          </div>
+          <div class="hidden" id="msd-new-sub">
+            <table class="kv">
               <tr>
                 <td>Choose a local file:</td>
                 <td>
@@ -868,7 +866,7 @@
               </tr>
               <tr>
                 <td><b>Or</b> specify a URL:</td>
-                <td>
+                <td style="width: 100%">
                   <input id="msd-new-url" type="text" style="width: 100%" placeholder="http | https">
                 </td>
               </tr>
@@ -899,6 +897,7 @@
                     </tr>
                   </table>
                 </div>
+            <hr>
           </div>
           <div class="hidden" id="msd-uploading-sub">
             <table class="kv">
@@ -934,6 +933,7 @@
                     </tr>
                   </table>
                 </div>
+            <hr>
           </div>
           <div id="msd-storages"></div>
           <hr>
@@ -943,7 +943,7 @@
                 <button id="msd-connect-button">Connect drive</button>
                 <button class="hidden" id="msd-disconnect-button">Disconnect drive</button>
               </td>
-              <td style="width: 100%;"></td>
+              <td style="width: 100%"></td>
               <td><a target="_blank" href="https://docs.pikvm.org/msd">Mode</a>:</td>
               <td>
                     <div class="radio-box">
@@ -962,6 +962,36 @@
               </td>
             </tr>
           </table>
+          <div class="hidden" id="msd-message-too-big-for-dvd">
+            <hr>
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="../share/svg/info.svg"></td>
+                      <td style="line-height:1.5"><b>Current image is too big for CD/DVD</b></td>
+                    </tr>
+                    <tr>
+                      <td><sup style="line-height:1">The mode is forced to Flash</sup></td>
+                    </tr>
+                  </table>
+                </div>
+          </div>
+          <div class="hidden" id="msd-message-rw-enabled">
+            <hr>
+                <div class="text">
+                  <table>
+                    <tr>
+                      <td rowspan="2"><img class="sign " src="../share/svg/warning.svg"></td>
+                      <td style="line-height:1.5"><b>Read-write mode is enabled</b></td>
+                    </tr>
+                    <tr>
+                      <td><sup style="line-height:1">Do not turn off PiKVM while this is active to prevent<br>
+                          filesystem corruption. Use read-only mode where possible,<br>
+                          as writing to SD card often can reduce its lifespan.</sup></td>
+                    </tr>
+                  </table>
+                </div>
+          </div>
         </div>
       </li>
       <li class="right" id="macro-dropdown">

@@ -8,7 +8,7 @@ li.right.feature-disabled#msd-dropdown
 			tr
 				td.value Mass Storage Drive:
 				td #[span#msd-status]
-				td(style="width: 100%;")
+				td(style="width: 100%")
 				td
 					button.small#msd-reset-button Reset
 
@@ -21,19 +21,9 @@ li.right.feature-disabled#msd-dropdown
 			+menu_message("warning", "Current image is broken!")
 				| Perhaps uploading was interrupted
 			hr
-		.hidden#msd-message-too-big-for-dvd
-			+menu_message("warning", "Current image is too big for DVD!")
-				| The maximum is 31.6GiB. Please switch to the Flash mode.
-			hr
 		.hidden#msd-message-out-of-storage
 			+menu_message("warning", "Current image is out of storage")
 				| This image was connected manually using #[b kvmd-otgmsd]
-			hr
-		.hidden#msd-message-rw-enabled
-			+menu_message("warning", "Read-write mode is enabled")
-				| Do not turn off PiKVM while this is active to prevent#[br]
-				| filesystem corruption. Use read-only mode where possible,#[br]
-				| as writing to SD card often can reduce its lifespan.
 			hr
 		.hidden#msd-message-downloads
 			+menu_message("info", "The image is being downloaded from PiKVM")
@@ -46,12 +36,12 @@ li.right.feature-disabled#msd-dropdown
 		table.kv
 			tr
 				td
-				td(style="padding: 0;" colspan="7")
-					table(style="width: 100%;")
+				td(style="padding: 0" colspan="7")
+					table(style="width: 100%")
 						tr
 							td(style="width: 100%; padding: 0;")
 								input.small#msd-filter-input(type="text" placeholder="type to filter")
-							td(style="padding: 0;")
+							td(style="padding: 0")
 								.radio-box
 									+menu_radio_items("msd-sorting-radio", [
 										{title: "Sort by name", value: "name", checked: true},
@@ -59,7 +49,7 @@ li.right.feature-disabled#msd-dropdown
 									])
 			tr
 				td Image:
-				td(style="width: 100%;" colspan="5") #[select#msd-image-selector(disabled)]
+				td(style="width: 100%" colspan="5") #[select#msd-image-selector(disabled)]
 				td #[button.small#msd-download-button(disabled title="Download selected image") #[b &#x21E9;]]
 				td #[button.small#msd-remove-button(disabled title="Remove selected image") #[b &#10005;]]
 			tr
@@ -68,29 +58,41 @@ li.right.feature-disabled#msd-dropdown
 				td.value(id="msd-image-size")
 				td Source:
 				td.value(id="msd-image-proto")
-				td(style="width: 100%;")
+				td(style="width: 100%")
 
 
-		table.kv#msd-insert-buttons
+		table.kv
 			tr
-				td(style="width: 100%;")
+				td(style="width: 100%") #[hr.hidden#msd-insert-hr(style="margin-left: -50px")]
+				td #[button.small#msd-remote-select-button(disabled) Bind remote image]
 				td #[button.small#msd-new-select-button(disabled) Upload new image]
+
+		.hidden#msd-remote-sub
+			table.kv
+				tr
+					td Remote URL:
+					td(colspan="3") #[input#msd-remote-url-input(type="text" style="width: 100%" placeholder="http | https | smb | sftp | nbd")]
+				tr
+					td Username:
+					td #[input#msd-remote-user-input(type="text" style="width: 100%" autocapitalize="off")]
+					td Password:
+					td #[input#msd-remote-passwd-input(type="password" style="width: 100%" autocapitalize="off")]
+				tr
+					td Verify host:
+					td #[+menu_switch("msd-remote-verify-switch", true, true)]
+			table.kv
+				tr
+					td #[button#msd-remote-bind-button(disabled) Bind the remote image]
+			hr
 
 		.hidden#msd-new-sub
 			table.kv
-				tr
-					td(style="width: 100%;")
-					td #[button.small#msd-new-hide-button(disabled) Hide upload menu]
-			table.kv
-				tr
-					td
-					td(style="width: 100%;") #[hr]
 				tr
 					td Choose a local file:
 					td #[input.small#msd-new-file(type="file")]
 				tr
 					td #[b Or] specify a URL:
-					td #[input#msd-new-url(type="text" style="width: 100%" placeholder="http | https")]
+					td(style="width: 100%") #[input#msd-new-url(type="text" style="width: 100%" placeholder="http | https")]
 				tr.hidden#msd-new-part
 					td Upload partition:
 					td(width="100%") #[select#msd-new-part-selector]
@@ -100,6 +102,7 @@ li.right.feature-disabled#msd-dropdown
 			+menu_message("info")
 				| Don't close the browser page until the upload is complete.<br>
 				| To speed up the process, you can close the stream window.
+			hr
 
 		.hidden#msd-uploading-sub
 			table.kv
@@ -118,6 +121,7 @@ li.right.feature-disabled#msd-dropdown
 			+menu_message("info")
 				| Don't close the browser page until the upload is complete.<br>
 				| To speed up the process, you can close the stream window.
+			hr
 
 		#msd-storages
 
@@ -128,7 +132,7 @@ li.right.feature-disabled#msd-dropdown
 				td
 					button#msd-connect-button Connect drive
 					button.hidden#msd-disconnect-button Disconnect drive
-				td(style="width: 100%;")
+				td(style="width: 100%")
 				td #[a(target="_blank" href="https://docs.pikvm.org/msd") Mode]:
 				td
 					+menu_radio("msd-mode-radio", [
@@ -137,3 +141,14 @@ li.right.feature-disabled#msd-dropdown
 					])
 				td RW:
 				td #[+menu_switch("msd-rw-switch", false, false)]
+
+		.hidden#msd-message-too-big-for-dvd
+			hr
+			+menu_message("info", "Current image is too big for CD/DVD")
+				| The mode is forced to Flash
+		.hidden#msd-message-rw-enabled
+			hr
+			+menu_message("warning", "Read-write mode is enabled")
+				| Do not turn off PiKVM while this is active to prevent#[br]
+				| filesystem corruption. Use read-only mode where possible,#[br]
+				| as writing to SD card often can reduce its lifespan.
