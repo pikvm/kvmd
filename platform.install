@@ -62,4 +62,17 @@ post_upgrade() {
 			systemctl enable kvmd-nbd || true
 		fi
 	fi
+
+	if [[ -n "$2" ]]; then  # Only on update
+		# shellcheck source=/dev/null
+		source /usr/lib/kvmd/platform
+		donate_file="/var/lib/kvmd/pst/__alerts__/donate@event.json"
+		if [[ ! -f "$donate_file" && "$(systemctl is-active kvmd-pst || true)" = active ]]; then
+			if [[ "$PIKVM_MODEL" =~ ^v[012].*$ ]] || ! grep -q pcf8563 /sys/class/rtc/rtc0/name; then
+				# donate_ts="$(date +%s -d '+ 3 days')"
+				donate_ts="$(date +%s)"
+				kvmd-pstrun -- bash -c "echo '{\"start_ts\": $donate_ts}' > $donate_file" || true
+			fi
+		fi
+	fi
 }

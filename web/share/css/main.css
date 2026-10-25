@@ -47,7 +47,7 @@ hr {
 p.text {
 	text-align: justify;
 }
-p:not(:first-child).text {
+p:first-child.text {
 	margin-top: 0;
 }
 p:last-child.text {

@@ -67,6 +67,7 @@ from .streamer import Streamer
 from .snapshoter import Snapshoter
 from .ocr import Ocr
 from .switch import Switch
+from .alerts import Alerts
 
 from .api.auth import AuthApi
 from .api.auth import check_request_auth
@@ -79,6 +80,7 @@ from .api.atx import AtxApi
 from .api.msd import MsdApi
 from .api.streamer import StreamerApi
 from .api.switch import SwitchApi
+from .api.alerts import AlertsApi
 from .api.export import ExportApi
 from .api.redfish.root import RedfishRootApi
 from .api.redfish.atx import RedfishAtxApi
@@ -142,6 +144,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
     __EV_OCR_STATE = "ocr"
     __EV_INFO_STATE = "info"
     __EV_SWITCH_STATE = "switch"
+    __EV_ALERTS_STATE = "alerts"
     __EV_CLIENTS_STATE = "clients"  # FIXME
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
@@ -152,6 +155,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
         ugpio: UserGpio,
         ocr: Ocr,
         switch: Switch,
+        alerts: Alerts,
 
         hid: BaseHid,
         atx: BaseAtx,
@@ -187,6 +191,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
             MsdApi(msd),
             StreamerApi(streamer, ocr),
             SwitchApi(switch),
+            AlertsApi(alerts),
             ExportApi(im, atx, ugpio),
             RedfishRootApi(),
             RedfishAtxApi(im, atx, switch),
@@ -202,6 +207,7 @@ class KvmdServer(HttpServer):  # pylint: disable=too-many-arguments,too-many-ins
             _Subsystem.make(ocr,      "OCR",      self.__EV_OCR_STATE),
             _Subsystem.make(im,       "Info",     self.__EV_INFO_STATE),
             _Subsystem.make(switch,   "Switch",   self.__EV_SWITCH_STATE),
+            _Subsystem.make(alerts,   "Alerts",   self.__EV_ALERTS_STATE),
         ]
 
         self.__streamer_notifier = aiotools.AioNotifier()

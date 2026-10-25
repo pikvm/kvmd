@@ -25,6 +25,7 @@ from typing import Any
 from . import add_validator_magic
 from . import raise_error
 from . import check_string_in_list
+from . import check_re_match
 
 from .basic import valid_stripped_string
 from .basic import valid_stripped_string_not_empty
@@ -68,6 +69,11 @@ def valid_info_fields(arg: Any, variants: set[str]) -> set[str]:
         subval=(lambda field: check_string_in_list(field, "info field", variants)),
         name="info fields list",
     ))
+
+
+@add_validator_magic(128)
+def valid_alert(arg: Any) -> str:
+    return check_re_match(arg, "alert", r"^[a-z_][a-z0-9_-]*$")
 
 
 @add_validator_magic(16)

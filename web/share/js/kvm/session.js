@@ -23,6 +23,7 @@
 "use strict";
 
 
+import {ROOT_PREFIX} from "../vars.js";
 import {tools, $} from "../tools.js";
 import {wm} from "../wm.js";
 
@@ -122,6 +123,12 @@ export function Session() {
 			case "atx": __atx.setState(ev); break;
 			case "streamer": __streamer.setState(ev); break;
 			case "ocr": __ocr.setState(ev); break;
+
+			case "alerts":
+				if (ev.active.donate) {
+					__showDonate();
+				}
+				break;
 
 			case "msd":
 				if (ev.online === false) {
@@ -229,6 +236,56 @@ export function Session() {
 			data[1] = (ev.squash ? 1 : 0);
 			ws.send(data);
 		}
+	};
+
+	var __donate_fired = false;
+
+	var __showDonate = function() {
+		if (__donate_fired) {
+			return;
+		}
+		__donate_fired = true;
+
+		let create_content = function(el_parent) {
+			let make_li = (url, text) => `<li style="margin: 8px"><a target="_blank" href="${url}">${text}</a></li>`;
+			el_parent.innerHTML = `
+				<table>
+					<tr>
+						<td class="logo" style="vertical-align: top; padding-right: 10px">
+							<img src="${ROOT_PREFIX}share/svg/heart.svg" height="60"/>
+						</td>
+						<td><p class="text">
+							This humble message won't take up much of your time :)<br>
+							<br>
+							PiKVM is created by open-source enthusiasts, and we hope you like it.
+							After all, our goal is to make professional KVM available to everyone.<br>
+							<br>
+							If you find your DIY PiKVM useful, or if it saved you from a long trip<br>
+							to a dead server, you can support our work by purchasing one of our<br>
+							official devices (solid as a rock!) or by making some donation.<br>
+							<br>
+							Your contribution will help us keep PiKVM open and continue<br>
+							improving it.<br>
+							<ul>
+								${make_li("https://pikvm.org/products", "Check out our ready-made devices")}
+								${make_li("https://ko-fi.com/pikvm", "One-time or monthly donation on Ko-Fi")}
+								${make_li("https://www.patreon.com/pikvm", "Monthly support on Patreon")}
+							</ul>
+						</p></td>
+					</tr>
+				</table>
+			`;
+		};
+
+		wm.modal("Hello!", create_content, "Don't show this again", "Remind me later").then(function(ok) {
+			if (ok) {
+				tools.httpPost("api/alerts/ack", {"alerts": "donate"}, function(http) {
+					if (http.status !== 200) {
+						wm.error("Can't save alert state", http.responseText);
+					}
+				});
+			}
+		});
 	};
 
 	__init__();

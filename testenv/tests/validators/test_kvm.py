@@ -29,6 +29,7 @@ from kvmd.validators.kvm import valid_atx_power_action
 from kvmd.validators.kvm import valid_atx_button
 from kvmd.validators.kvm import valid_msd_image_name
 from kvmd.validators.kvm import valid_info_fields
+from kvmd.validators.kvm import valid_alert
 from kvmd.validators.kvm import valid_log_seek
 from kvmd.validators.kvm import valid_stream_quality
 from kvmd.validators.kvm import valid_stream_fps
@@ -134,6 +135,35 @@ def test_ok__valid_info_fields(arg: Any) -> None:
 def test_fail__valid_info_fields(arg: Any) -> None:
     with pytest.raises(ValidatorError):
         print(valid_info_fields(arg, set(["foo", "bar"])))
+
+
+# =====
+@pytest.mark.parametrize("arg", [
+    "test-",
+    "glados",
+    "test",
+    "_",
+    "_foo_bar_",
+    " aix",
+])
+def test_ok__valid_alert(arg: Any) -> None:
+    assert valid_alert(arg) == arg.strip()
+
+
+@pytest.mark.parametrize("arg", [
+    "тест",
+    "-molestia",
+    "te~st",
+    "-",
+    "-foo_bar",
+    "foo bar",
+    "  ",
+    "",
+    None,
+])
+def test_fail__valid_alert(arg: Any) -> None:
+    with pytest.raises(ValidatorError):
+        print(valid_alert(arg))
 
 
 # =====

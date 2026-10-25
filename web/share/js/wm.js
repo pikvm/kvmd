@@ -231,10 +231,12 @@ function __WindowManager() {
 		inner += "<div class=\"modal-buttons buttons-row\">";
 		let bt_cls = ((ok && cancel) ? "row50": "row100");
 		if (cancel) {
-			inner += `<button data-x-wm-modal-cancel class="${bt_cls}">Cancel</button>`;
+			let cancel_text = ((typeof cancel === "string") ? cancel : "Cancel");
+			inner += `<button data-x-wm-modal-cancel class="${bt_cls}">${cancel_text}</button>`;
 		}
 		if (ok) {
-			inner += `<button data-x-wm-modal-ok class="${bt_cls}">OK</button>`;
+			let ok_text = ((typeof ok === "string") ? ok : "OK");
+			inner += `<button data-x-wm-modal-ok class="${bt_cls}">${ok_text}</button>`;
 		}
 		inner += "</div></div>";
 

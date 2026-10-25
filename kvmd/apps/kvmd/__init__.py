@@ -34,6 +34,7 @@ from .streamer import Streamer
 from .snapshoter import Snapshoter
 from .ocr import Ocr
 from .switch import Switch
+from .alerts import Alerts
 from .server import KvmdServer
 
 
@@ -89,6 +90,10 @@ def main() -> None:
             default_edid_path=config.switch.default_edid,
             ignore_hpd_on_top=config.switch.ignore_hpd_on_top,
             pst=ia.make_pst_client("__switch__", "KVMD"),
+        ),
+
+        alerts=Alerts(
+            pst=ia.make_pst_client("__alerts__", "KVMD"),
         ),
 
         hid=hid,
