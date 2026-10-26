@@ -40,7 +40,7 @@ li.right.feature-disabled#msd-dropdown
 					table(style="width: 100%")
 						tr
 							td(style="width: 100%; padding: 0;")
-								input.small#msd-filter-input(type="text" placeholder="type to filter")
+								input.small#msd-filter-input(type="text" placeholder="Type to filter")
 							td(style="padding: 0")
 								.radio-box
 									+menu_radio_items("msd-sorting-radio", [
@@ -71,7 +71,11 @@ li.right.feature-disabled#msd-dropdown
 			table.kv
 				tr
 					td #[a(target="_blank" href="https://docs.pikvm.org/msd/#binding-remote-images") Remote URL]:
-					td(colspan="3") #[input#msd-remote-url-input(type="text" style="width: 100%" placeholder="http | https | smb | sftp | nbd")]
+					td(colspan="3")
+						input#msd-remote-url-input(
+							type="text" style="width: 100%"
+							placeholder="http | https | smb | nfs | sftp | nbd"
+						)
 				tr
 					td Username:
 					td #[input#msd-remote-user-input(type="text" style="width: 100%" autocapitalize="off")]

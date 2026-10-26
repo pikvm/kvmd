@@ -72,6 +72,7 @@ RUN \
 		python-pysmbc \
 		python-paramiko \
 		python-zstandard \
+		libnfs \
 		libgpiod \
 		freetype2 \
 		nginx-mainline \

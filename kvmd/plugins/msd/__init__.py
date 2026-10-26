@@ -136,7 +136,7 @@ class BaseMsd(BasePlugin):
         _ = nbd
 
     def is_remote_url(self, url: str) -> bool:
-        return bool(re.match(r"^[a-zA-Z][a-zA-Z0-9._+-]+[a-zA-Z]://[a-zA-Z0-9\[]", url))
+        return bool(re.match(r"^[a-zA-Z][a-zA-Z0-9._+-]+[a-zA-Z0-9]://[a-zA-Z0-9\[]", url))
 
     async def get_state(self) -> dict:
         raise NotImplementedError()

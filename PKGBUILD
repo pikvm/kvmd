@@ -86,6 +86,7 @@ depends=(
 	python-pyudev
 	python-evdev
 	"libgpiod>=2.1"
+	libnfs
 	freetype2
 	"v4l-utils>=1.22.1-1"
 	"nginx-mainline>=1.25.1"
