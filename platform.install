@@ -69,8 +69,7 @@ post_upgrade() {
 		donate_file="/var/lib/kvmd/pst/__alerts__/donate@event.json"
 		if [[ ! -f "$donate_file" && "$(systemctl is-active kvmd-pst || true)" = active ]]; then
 			if [[ "$PIKVM_MODEL" =~ ^v[012].*$ ]] || ! grep -q pcf8563 /sys/class/rtc/rtc0/name; then
-				# donate_ts="$(date +%s -d '+ 3 days')"
-				donate_ts="$(date +%s)"
+				donate_ts="$(date +%s -d '+ 3 days')"
 				kvmd-pstrun -- bash -c "echo '{\"start_ts\": $donate_ts}' > $donate_file" || true
 			fi
 		fi
