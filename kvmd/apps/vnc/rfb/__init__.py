@@ -212,19 +212,23 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
         self.__fb_notifier.notify()
 
     async def _send_fb_jpeg(self, data: bytes) -> None:
-        assert self._encodings.has_tight
-        assert self._encodings.tight_jpeg_quality > 0
-        assert len(data) <= 4194303, len(data)
+        assert self._encodings.jpeg_quality > 0
         async with self.__lock:
-            await self._write_fb_update("JPEG FBUR", self._width, self._height, RfbEncodings.TIGHT, drain=False)
-            length = len(data)
-            if length <= 127:
-                length_bytes = bytes([0b10011111, length & 0x7F])
-            elif length <= 16383:
-                length_bytes = bytes([0b10011111, length & 0x7F | 0x80, length >> 7 & 0x7F])
+            if self._encodings.has_jpeg:
+                await self._write_fb_update("Just JPEG FBUR", self._width, self._height, RfbEncodings.JPEG, drain=False)
+                await self._write_struct("Just JPEG data", "", data)
             else:
-                length_bytes = bytes([0b10011111, length & 0x7F | 0x80, length >> 7 & 0x7F | 0x80, length >> 14 & 0xFF])
-            await self._write_struct("JPEG length + data", "", length_bytes, data)
+                assert self._encodings.has_tight
+                assert len(data) <= 4194303, len(data)
+                await self._write_fb_update("Tight JPEG FBUR", self._width, self._height, RfbEncodings.TIGHT, drain=False)
+                length = len(data)
+                if length <= 127:
+                    length_bytes = bytes([0b10011111, length & 0x7F])
+                elif length <= 16383:
+                    length_bytes = bytes([0b10011111, length & 0x7F | 0x80, length >> 7 & 0x7F])
+                else:
+                    length_bytes = bytes([0b10011111, length & 0x7F | 0x80, length >> 7 & 0x7F | 0x80, length >> 14 & 0xFF])
+                await self._write_struct("Tight JPEG length + data", "", length_bytes, data)
             self.__fb_reset_h264 = True
             if self.__fb_cont_updates:
                 self.__fb_notifier.notify()
@@ -522,8 +526,10 @@ class RfbClient(RfbClientStream):  # pylint: disable=too-many-instance-attribute
         # a quality level using the JPEG Quality Level Pseudo-encoding
         if len(self._encodings.encodings) == 0:
             raise RfbError("The client did not send SetEncodings")
-        if not self._encodings.has_tight or self._encodings.tight_jpeg_quality == 0:
-            raise RfbError("Tight JPEG encoding is not supported by client")
+        if not (self._encodings.has_jpeg or self._encodings.has_tight):
+            raise RfbError("[Tight-]JPEG is not supported by client")
+        if self._encodings.jpeg_quality == 0:
+            raise RfbError("JPEG quality control is not supported by client")
 
     async def __handle_key_event(self) -> None:
         (state, code) = await self._read_struct("key event", "? xx L")

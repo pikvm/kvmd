@@ -278,7 +278,7 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
 
     async def __make_text_frame(self, text: str) -> dict:
         return {
-            "data": (await make_text_jpeg(self._width, self._height, self._encodings.tight_jpeg_quality, text)),
+            "data": (await make_text_jpeg(self._width, self._height, self._encodings.jpeg_quality, text)),
             "width": self._width,
             "height": self._height,
             "format": StreamerFormats.JPEG,
@@ -436,7 +436,7 @@ class _Client(RfbClient):  # pylint: disable=too-many-instance-attributes
         self.__stage2_encodings_accepted.set_passed(multi=True)
 
         has_quality = (await self.__kvmd_session.streamer.get_state())["features"]["quality"]
-        quality = (self._encodings.tight_jpeg_quality if has_quality else None)
+        quality = (self._encodings.jpeg_quality if has_quality else None)
         get_logger(0).info("%s [main]: Applying streamer params: jpeg_quality=%s; desired_fps=%d ...",
                            self._remote, quality, self.__desired_fps)
         await self.__kvmd_session.streamer.set_params(quality, self.__desired_fps)

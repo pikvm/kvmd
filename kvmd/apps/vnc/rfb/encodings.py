@@ -34,13 +34,14 @@ class RfbEncodings:
     EXT_MOUSE = -316  # ExtendedMouseButtons Pseudo-encoding
     CONT_UPDATES = -313  # ContinuousUpdates Pseudo-encoding
 
-    TIGHT = 7
-    TIGHT_JPEG_QUALITIES = dict(zip(  # JPEG Quality Level Pseudo-encoding
+    TIGHT = 7  # Tight encoding for Tight-JPEG
+    JPEG = 21  # JPEG Encoding
+    H264 = 50  # Open H.264 Encoding
+
+    JPEG_QUALITIES = dict(zip(  # JPEG Quality Level Pseudo-encoding
         [-32, -31, -30, -29, -28, -27, -26, -25, -24, -23],
         [10,   20,  30,  40,  50,  60,  70,  80,  90, 100],
     ))
-
-    H264 = 50  # Open H.264 Encoding
 
 
 def _make_meta(variants: (int | frozenset[int])) -> dict:
@@ -59,9 +60,10 @@ class RfbClientEncodings:  # pylint: disable=too-many-instance-attributes
     has_cont_updates: bool  = dataclasses.field(default=False, metadata=_make_meta(RfbEncodings.CONT_UPDATES))  # noqa: E224
 
     has_tight: bool         = dataclasses.field(default=False, metadata=_make_meta(RfbEncodings.TIGHT))  # noqa: E224
-    tight_jpeg_quality: int = dataclasses.field(default=0,     metadata=_make_meta(frozenset(RfbEncodings.TIGHT_JPEG_QUALITIES)))  # noqa: E224
-
+    has_jpeg: bool          = dataclasses.field(default=False, metadata=_make_meta(RfbEncodings.JPEG))  # noqa: E224
     has_h264: bool          = dataclasses.field(default=False, metadata=_make_meta(RfbEncodings.H264))  # noqa: E224
+
+    jpeg_quality: int       = dataclasses.field(default=0,     metadata=_make_meta(frozenset(RfbEncodings.JPEG_QUALITIES)))  # noqa: E224
 
     def get_summary(self) -> list[str]:
         summary: list[str] = [f"encodings -- {sorted(self.encodings)}"]
@@ -75,7 +77,7 @@ class RfbClientEncodings:  # pylint: disable=too-many-instance-attributes
         for field in dataclasses.fields(self):
             if field.name != "encodings":
                 self.__set_value(field.name, bool(self.__get_found(field)))
-        self.__set_value("tight_jpeg_quality", self.__get_tight_jpeg_quality())
+        self.__set_value("jpeg_quality", self.__get_tight_jpeg_quality())
 
     def __set_value(self, key: str, value: Any) -> None:
         object.__setattr__(self, key, value)
@@ -85,7 +87,7 @@ class RfbClientEncodings:  # pylint: disable=too-many-instance-attributes
 
     def __get_tight_jpeg_quality(self) -> int:
         if self.has_tight:
-            qualities = self.encodings.intersection(RfbEncodings.TIGHT_JPEG_QUALITIES)
+            qualities = self.encodings.intersection(RfbEncodings.JPEG_QUALITIES)
             if qualities:
-                return RfbEncodings.TIGHT_JPEG_QUALITIES[max(qualities)]
+                return RfbEncodings.JPEG_QUALITIES[max(qualities)]
         return 0
