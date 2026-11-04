@@ -83,7 +83,7 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
     def process_wheel(self, delta_x: int, delta_y: int) -> bytes:
         _ = delta_x
         assert MouseDelta.MIN <= delta_y <= MouseDelta.MAX
-        self.__wheel_y = (1 if delta_y > 0 else 255)
+        self.__wheel_y = ((1 if delta_y > 0 else 255) if delta_y else 0)
         if not self.__absolute:
             return self.__make_relative_cmd()
         else:
@@ -105,14 +105,18 @@ class Mouse:  # pylint: disable=too-many-instance-attributes
         ])
 
     def __make_relative_cmd(self) -> bytes:
-        return bytes([
+        cmd = bytes([
             0, 0x05, 0x05, 0x01,
             self.__buttons,
             self.__delta_x, self.__delta_y,
             self.__wheel_y,
         ])
+        # The movement must be sent only once, the button and wheel reports must not repeat it
+        self.__delta_x = 0
+        self.__delta_y = 0
+        return cmd
 
     def __fix_relative(self, value: int) -> int:
         assert MouseDelta.MIN <= value <= MouseDelta.MAX
-        value = math.ceil(value / 3)
-        return (value if value >= 0 else (255 + value))
+        value = (math.ceil(value / 3) if value >= 0 else -math.ceil(-value / 3))
+        return (value & 0xFF)
