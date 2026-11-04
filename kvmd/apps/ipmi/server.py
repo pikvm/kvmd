@@ -27,6 +27,8 @@ import threading
 import functools
 import queue
 
+from typing import Callable
+
 import aiohttp
 import serial
 
@@ -43,6 +45,68 @@ from ... import aiomulti
 from ... import network
 
 from .auth import IpmiAuthManager
+
+
+# =====
+def _sol_pump(
+    console: IpmiConsole,
+    tty: serial.Serial,
+    user_q: aiomulti.AioMpQueue[bytes],
+    select_timeout: float,
+    should_stop: Callable[[], bool],
+) -> None:
+
+    # pyghmi's ServerConsole.send_data() is a blocking, stop-and-wait SOL sender: it
+    # transmits a single (<=maxoutcount bytes) SOL packet and then waits for the client's
+    # ACK before returning. Calling it inline in the read loop stalls serial reads for the
+    # whole ACK round-trip, so the kernel serial buffer fills up and console output arrives
+    # in bursts separated by pauses while keystrokes lag (pikvm/pikvm#899).
+    #
+    # Decouple reading from sending: a dedicated sender thread owns every (blocking)
+    # send_data() call, while this thread keeps draining the serial port and forwarding
+    # user input without interruption. Only the sender thread ever touches the console, so
+    # pyghmi's session pump is still driven by exactly one extra thread (as before) and its
+    # output lock is never contended.
+
+    out_buf = bytearray()
+    out_lock = threading.Lock()
+    out_wake = threading.Event()
+
+    def sender() -> None:
+        while not should_stop():
+            out_wake.wait(select_timeout)
+            out_wake.clear()
+            with out_lock:
+                if not out_buf:
+                    continue
+                chunk = bytes(out_buf)
+                out_buf.clear()
+            console.send_data(chunk)  # Blocks until the client ACKs; only this thread sends
+
+    sender_thread = threading.Thread(target=sender, daemon=True)
+    sender_thread.start()
+    try:
+        qr = user_q.get_reader()
+        while not should_stop():
+            ready = select.select([qr, tty], [], [], select_timeout)[0]
+            if qr in ready:
+                data = b""
+                for _ in range(user_q.qsize()):  # Don't hold on this with [not empty()]
+                    try:
+                        data += user_q.get_nowait()
+                    except queue.Empty:
+                        break
+                if data:
+                    tty.write(data)
+            if tty in ready:
+                data = tty.read_all()
+                if data:
+                    with out_lock:
+                        out_buf += data
+                    out_wake.set()  # Hand the new data to the sender
+    finally:
+        out_wake.set()  # Wake the sender so it observes should_stop() and exits
+        sender_thread.join()
 
 
 # =====
@@ -63,6 +127,7 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
         sol_speed: int,
         sol_select_timeout: float,
         sol_proxy_port: int,
+        sol_max_packet: int,
     ) -> None:
 
         host = network.get_listen_host(host)
@@ -79,6 +144,7 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
         self.__sol_speed = sol_speed
         self.__sol_select_timeout = sol_select_timeout
         self.__sol_proxy_port = (sol_proxy_port or port)
+        self.__sol_max_packet = sol_max_packet
 
         self.__sol_lock = threading.Lock()
         self.__sol_console: (IpmiConsole | None) = None
@@ -214,6 +280,11 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
         assert self.__sol_thread is None
         user_q: aiomulti.AioMpQueue[bytes] = aiomulti.AioMpQueue()  # Only for select()
         self.__sol_console = IpmiConsole(session, user_q.put_nowait)
+        # pyghmi hard-codes the per-packet SOL payload cap to 256 bytes and never negotiates it.
+        # Each packet costs one blocking stop-and-wait ACK round-trip, so a larger cap means
+        # fewer round-trips for the same data. Configurable because some clients may reject
+        # oversized SOL payloads; the default (256) preserves pyghmi's original behavior.
+        self.__sol_console.maxoutcount = self.__sol_max_packet
         self.__sol_thread = threading.Thread(target=self.__sol_worker, args=(user_q,), daemon=True)
         self.__sol_thread.start()
 
@@ -239,21 +310,12 @@ class IpmiServer(BaseIpmiServer):  # pylint: disable=too-many-instance-attribute
             assert self.__sol_console is not None
             with serial.Serial(self.__sol_device_path, self.__sol_speed) as tty:
                 logger.info("Opened SOL port %s at speed=%d", self.__sol_device_path, self.__sol_speed)
-                qr = user_q.get_reader()
                 try:
-                    while not self.__sol_stop:
-                        ready = select.select([qr, tty], [], [], self.__sol_select_timeout)[0]
-                        if qr in ready:
-                            data = b""
-                            for _ in range(user_q.qsize()):  # Don't hold on this with [not empty()]
-                                try:
-                                    data += user_q.get_nowait()
-                                except queue.Empty:
-                                    break
-                            if data:
-                                tty.write(data)
-                        if tty in ready:
-                            self.__sol_console.send_data(tty.read_all())
+                    _sol_pump(
+                        self.__sol_console, tty, user_q,
+                        self.__sol_select_timeout,
+                        (lambda: self.__sol_stop),
+                    )
                 finally:
                     logger.info("Closed SOL port %s", self.__sol_device_path)
         except Exception:
