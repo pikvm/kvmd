@@ -201,6 +201,10 @@ export function Streamer() {
 	self.ensureDeps = function(cb) {
 		JanusStreamer.ensure_janus(function(avail) {
 			__janus_imported = avail;
+			if (__state) {
+				// The state may have come from the session before the import finished
+				__visibilityHook();
+			}
 			cb();
 		});
 	};
@@ -235,6 +239,10 @@ export function Streamer() {
 			if (state.features !== undefined) {
 				__state.features = state.features;
 				__state.limits = state.limits; // Following together with features
+			}
+			if (state.applied !== undefined) {
+				// "applied" isn't present in every event, keep the last one for the replay
+				__state.applied = Object.assign((__state.applied || {}), state.applied);
 			}
 			if (__state.features !== undefined && state.streamer !== undefined) {
 				__state.streamer = state.streamer;
