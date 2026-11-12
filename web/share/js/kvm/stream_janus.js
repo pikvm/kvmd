@@ -45,6 +45,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __retry_ensure_timeout = null;
 	var __retry_emsg_timeout = null;
 	var __info_interval = null;
+	var __key_kick_timeout = null;
 
 	var __state = null;
 	var __ice = null;
@@ -313,6 +314,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		}
 		__stopRetryEmsgInterval();
 		__stopInfoInterval();
+		__stopKeyKick();
 		if (__handle) {
 			__logInfo("uStreamer detaching ...:", __handle.getPlugin(), __handle.getId());
 			__handle.detach();
@@ -403,9 +405,14 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 			"webrtcState": function(up) {
 				__logInfo("Janus says our WebRTC PeerConnection is", (up ? "up" : "down"), "now");
-				/*if (up) {
-					__sendKeyRequired();
-				}*/
+				if (up) {
+					// The PeerConnection is up only now, so any keyframe the encoder
+					// produced during negotiation was not delivered to us. Without
+					// a fresh one the video stays black (gop=0 means no periodic IDR).
+					__startKeyKick();
+				} else {
+					__stopKeyKick();
+				}
 			},
 
 			"onmessage": function(msg, jsep) {
@@ -618,6 +625,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			"oncleanup": function() {
 				__logInfo("Got a cleanup notification");
 				__stopInfoInterval();
+				__stopKeyKick();
 			},
 		});
 	};
@@ -634,6 +642,63 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			clearInterval(__info_interval);
 		}
 		__info_interval = null;
+	};
+
+	var __getDecodedFrames = function() {
+		// https://wiki.whatwg.org/wiki/Video_Metrics
+		let el = $("stream-video");
+		if (el.webkitDecodedFrameCount !== undefined) {
+			return el.webkitDecodedFrameCount;
+		} else if (el.mozPaintedFrames !== undefined) {
+			return el.mozPaintedFrames;
+		} else if (el.getVideoPlaybackQuality) {
+			return el.getVideoPlaybackQuality().totalVideoFrames;
+		}
+		return null;
+	};
+
+	var __startKeyKick = function() {
+		// Fast, bounded keyframe requests until the first frame is decoded.
+		// Don't rely on browser PLI (broken in Chromium 147, pikvm/pikvm#1656)
+		// or on the 1s bitrate-based fallback in __updateInfo() which needs
+		// a couple of seconds of stats before it kicks in.
+		__stopKeyKick();
+		const delays = [250, 250, 500, 500, 1000]; // Then give up, __updateInfo() takes over
+		let base = __getDecodedFrames();
+		let attempt = 0;
+		let isShown = function() {
+			let frames = __getDecodedFrames();
+			if (frames !== null && base !== null && frames < base) {
+				base = frames; // The element was reset (new srcObject)
+			}
+			return (
+				(frames !== null && base !== null && frames > base)
+				|| $("stream-video").readyState >= 2 // HAVE_CURRENT_DATA
+			);
+		};
+		let kick = function() {
+			__key_kick_timeout = null;
+			if (__handle === null || isShown()) {
+				__logInfo("Keyframe kick finished after", attempt, "request(s)");
+				return;
+			}
+			if (attempt === 0) {
+				__logInfo("Requesting keyframe until the first video frame ...");
+			}
+			__handle.send({"message": {"request": "key_required"}});
+			if (attempt < delays.length) {
+				__key_kick_timeout = setTimeout(kick, delays[attempt]);
+			}
+			++attempt;
+		};
+		kick();
+	};
+
+	var __stopKeyKick = function() {
+		if (__key_kick_timeout !== null) {
+			clearTimeout(__key_kick_timeout);
+		}
+		__key_kick_timeout = null;
 	};
 
 	var __stopRetryEmsgInterval = function() {
@@ -667,14 +732,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 					}
 				}
 
-				// https://wiki.whatwg.org/wiki/Video_Metrics
-				let frames = null;
-				let el = $("stream-video");
-				if (el.webkitDecodedFrameCount !== undefined) {
-					frames = el.webkitDecodedFrameCount;
-				} else if (el.mozPaintedFrames !== undefined) {
-					frames = el.mozPaintedFrames;
-				}
+				let frames = __getDecodedFrames();
 				if (frames !== null) {
 					let fps = Math.max(0, frames - __frames);
 					info += ` / ${fps} dyn.fps`;
@@ -732,6 +790,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	var __sendStop = function() {
 		__stopInfoInterval();
+		__stopKeyKick();
 		if (__handle) {
 			__logInfo("Sending STOP ...");
 			__handle.send({"message": {"request": "stop"}});
