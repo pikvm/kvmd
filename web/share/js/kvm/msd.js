@@ -421,7 +421,7 @@ export function Msd() {
 				ok_cb();
 			}
 			__refreshControls();
-		}, body);
+		}, body, "application/x-www-form-urlencoded");
 	};
 
 	var __clickBindRemoteButton = function() {

@@ -69,6 +69,7 @@ class MsdApi:
     @exposed_http("POST", "/msd/set_params")
     async def __set_params_handler(self, req: Request) -> Response:
         query = dict(req.query)
+        query.update(dict(await req.post()))
 
         params = {
             key: validator(query.pop(param))  # type: ignore
