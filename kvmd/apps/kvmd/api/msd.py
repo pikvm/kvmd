@@ -25,6 +25,7 @@ import lzma
 import time
 
 from typing import AsyncGenerator
+from typing import Any
 
 import aiohttp
 import zstandard
@@ -68,7 +69,8 @@ class MsdApi:
 
     @exposed_http("POST", "/msd/set_params")
     async def __set_params_handler(self, req: Request) -> Response:
-        query = dict(req.query)
+        query: dict[str, Any] = {}
+        query.update(dict(req.query))
         query.update(dict(await req.post()))
 
         params = {
