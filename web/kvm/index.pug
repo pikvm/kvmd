@@ -18,6 +18,10 @@ append vars
 block head
 	link(rel="preload" href=`${svg_dir}/stream-mouse-cursor.svg` as="image")
 	link(rel="preload" href=`${pic_dir}/blank-stream.webp` as="image")
+	//- Flatten the ES-module import waterfall (5 levels deep) and fetch Janus + adapter
+	//- (dynamically imported by stream_janus.js) in parallel with the HTML parse.
+	each name in ["vars", "tools", "bb", "wm", "keypad", "kvm/main", "kvm/session", "kvm/info", "kvm/recorder", "kvm/hid", "kvm/paste", "kvm/atx", "kvm/msd", "kvm/stream", "kvm/gpio", "kvm/ocr", "kvm/switch", "kvm/keyboard", "kvm/mouse", "kvm/clipboard", "kvm/stream_janus", "kvm/stream_media", "kvm/stream_mjpeg", "kvm/vu", "kvm/janus", "kvm/adapter"]
+		link(rel="modulepreload" href=`${js_dir}/${name}.js`)
 
 
 block body

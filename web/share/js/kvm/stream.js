@@ -168,7 +168,13 @@ export function Streamer() {
 	};
 
 	var __first_watch = true;
-	var __watchHook = function() {
+	var __watchHook = function(send=null, has_mm=true) {
+		// Returns true if the hook took over send(): it calls it now or later.
+		// An older stream_janus.js passes nothing and sends WATCH by itself.
+		if (!send) {
+			send = (() => {});
+		}
+		let held = false;
 		if (__first_watch) {
 			__first_watch = false;
 			let el = $("stream-multimedia-switch");
@@ -180,27 +186,57 @@ export function Streamer() {
 					+ "Due to browser limitations, this requires explicit confirmation."
 					+ "<ul><li><b>OK</b> - continue with multimedia.</li><li><b>Cancel</b> - forget about it.</li></ul>"
 				);
+				// The first WATCH is held until the answer. Otherwise it goes out without
+				// multimedia and the stream is renegotiated right after OK.
+				// If nobody answers soon, start the video anyway (OK will restart it).
+				// There is nothing to wait for if this PiKVM has no multimedia at all.
+				let sent = false;
+				let send_once = function() {
+					if (!sent) {
+						sent = true;
+						send();
+					}
+				};
+				let hold = null;
+				if (has_mm) {
+					held = true;
+					hold = setTimeout(send_once, 5000);
+				} else {
+					sent = true; // Sent right below, the answer can't change the tracks
+				}
 				wm.confirm(text).then(function(ok) {
-					if (ok) {
-						if (!el.checked) {
-							el.click();
-						}
-						setTimeout(function() {
+					try {
+						if (ok) {
+							if (!el.checked) {
+								el.click(); // The onclick handler applies the switches
+							}
 							__applyAudioVolume();
 							__applyMicEnabled();
 							__applyCameraEnabled();
-						}, 100);
-					} else {
-						tools.storage.setBool("stream.multimedia", false);
+						} else {
+							tools.storage.setBool("stream.multimedia", false);
+						}
+					} finally {
+						// Never leave the stream without a WATCH if something above throws
+						clearTimeout(hold);
+						send_once();
 					}
 				});
 			}
 		}
+		if (!held) {
+			send();
+		}
+		return true;
 	};
 
 	self.ensureDeps = function(cb) {
 		JanusStreamer.ensure_janus(function(avail) {
 			__janus_imported = avail;
+			if (__state) {
+				// The state may have come from the session before the import finished
+				__visibilityHook();
+			}
 			cb();
 		});
 	};
@@ -235,6 +271,10 @@ export function Streamer() {
 			if (state.features !== undefined) {
 				__state.features = state.features;
 				__state.limits = state.limits; // Following together with features
+			}
+			if (state.applied !== undefined) {
+				// "applied" isn't present in every event, keep the last one for the replay
+				__state.applied = Object.assign((__state.applied || {}), state.applied);
 			}
 			if (__state.features !== undefined && state.streamer !== undefined) {
 				__state.streamer = state.streamer;
