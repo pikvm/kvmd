@@ -135,3 +135,12 @@ def valid_string_list(
     except Exception:
         raise ValidatorError(f"Failed sub-validator on one of the item of {arg!r}")
     return arg
+
+
+@add_validator_magic
+def valid_dict(arg: Any, name: str="") -> dict[str, Any]:
+    if not name:
+        name = "dict"
+    if not isinstance(arg, dict):
+        raise_error(arg, name)
+    return arg
