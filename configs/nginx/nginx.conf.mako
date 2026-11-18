@@ -58,7 +58,7 @@ http {
 		% if ipv6_enabled:
 		listen [${https_ipv6}]:${https_port} ssl;
 		% endif
-		http2 on;
+		http2 off; // https://nginx2root.com/
 		include /etc/kvmd/nginx/ssl.conf;
 		include /etc/kvmd/nginx/kvmd.ctx-server.conf;
 		include /usr/share/kvmd/extras/*/nginx.ctx-server.conf;
