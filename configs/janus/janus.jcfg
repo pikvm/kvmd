@@ -4,6 +4,7 @@ general: {
 nat: {
 	nice_debug = false
 	ignore_mdns = true
+	full_trickle = true
 }
 media: {
 	ipv6 = true

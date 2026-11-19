@@ -61,7 +61,10 @@ export function Session() {
 	var __switch = new Switch();
 
 	var __init__ = function() {
-		__streamer.ensureDeps(() => __startSession());
+		// Don't serialize api/auth/check + api/ws behind the Janus import:
+		// the streamer replays its last state once deps are ready.
+		__streamer.ensureDeps(() => null);
+		__startSession();
 	};
 
 	/************************************************************************/

@@ -45,6 +45,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	var __retry_ensure_timeout = null;
 	var __retry_emsg_timeout = null;
 	var __info_interval = null;
+	var __key_kick_timeout = null;
 
 	var __state = null;
 	var __ice = null;
@@ -60,7 +61,14 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	var __has_camera = false;
 	var __use_camera = null;
-	var __camera_req = null;
+	var __camera_feat_req = null; // What uStreamer offers in FEATURES
+	var __camera_req = null; // What we've requested in WATCH
+
+	var __watching = false; // WATCH was sent for the current session
+	var __camera_dirty = false; // Camera state changed while WATCH was held
+
+	var __pending_refills = 0; // Device lookups that may still correct __use_mic/__use_camera
+	var __after_refills = [];
 
 	var __orient = 0;
 
@@ -87,12 +95,20 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		}
 	};
 
+	var __restartIfWatching = function() {
+		// Until WATCH is sent the choice is just remembered: it will be sent
+		// with the WATCH itself, so there is nothing to renegotiate yet.
+		if (__watching) {
+			__destroyJanus();
+		}
+	};
+
 	self.setAudioVolume = function(volume) {
 		let prev = !!__use_audio;
 		__use_audio = volume;
 		$("stream-video").volume = volume / 100;
 		if (__has_audio && (prev !== !!__use_audio)) {
-			__destroyJanus();
+			__restartIfWatching();
 		}
 	};
 
@@ -115,35 +131,76 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		let av = (input === "mic" ? "audio" : "video");
 		let turn = (el.__janus_turn || 0) + 1; // Drop previous parallel results
 		el.__janus_turn = turn;
+		// A specific device may be gone (unplugged, IDs rotated), and only this lookup
+		// can tell. Hold the WATCH until it's done, so a stale ID never gets into
+		// the offer constraints (OverconstrainedError).
+		let pending = (id !== ".__default__");
+		if (pending) {
+			++__pending_refills;
+		}
 		_Janus.listDevices(function(devices) {
-			if (turn >= el.__janus_turn) {
-				el.options.length = 1;
-				let found = false;
-				for (let dev of devices) {
-					if (dev.kind === av + "input") {
-						tools.selector.addOption(el, dev.label, dev.deviceId);
-						if (dev.deviceId === id) {
-							found = true;
+			try {
+				if (turn >= el.__janus_turn) {
+					el.options.length = 1;
+					let found = false;
+					for (let dev of devices) {
+						if (dev.kind === av + "input") {
+							tools.selector.addOption(el, dev.label, dev.deviceId);
+							if (dev.deviceId === id) {
+								found = true;
+							}
 						}
 					}
+					if (!found && id !== ".__default__") {
+						id = ".__default__";
+						found = true;
+					}
+					if (found) {
+						__setDevice(el, input, id);
+						apply_cb(id);
+					}
 				}
-				if (!found && id !== ".__default__") {
-					id = ".__default__";
-					found = true;
-				}
-				if (found) {
-					__setDevice(el, input, id);
-					apply_cb(id);
+			} finally {
+				if (pending) {
+					__refillDone();
 				}
 			}
 		}, {[av]: true});
+	};
+
+	var __refillDone = function() {
+		__pending_refills = Math.max(0, __pending_refills - 1);
+		if (__pending_refills === 0) {
+			let cbs = __after_refills;
+			__after_refills = [];
+			for (let cb of cbs) {
+				cb();
+			}
+		}
+	};
+
+	var __whenDevicesKnown = function(cb) {
+		if (__pending_refills === 0) {
+			cb();
+			return;
+		}
+		// listDevices() doesn't call back while a permission prompt is pending
+		let called = false;
+		let once = function() {
+			if (!called) {
+				called = true;
+				cb();
+			}
+		};
+		__after_refills.push(once);
+		setTimeout(once, 3000);
 	};
 
 	self.setMicRaw = function(raw) {
 		if (__use_mic_raw !== !!raw) {
 			__use_mic_raw = !!raw;
 			if (__has_mic && __use_mic) {
-				__destroyJanus(); // The constraints are negotiated with the offer
+				__restartIfWatching(); // The constraints are negotiated with the offer
 			}
 		}
 	};
@@ -151,41 +208,45 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 	self.setMicDevice = function(mic, reload=false) {
 		// The choice is remembered even before the features are known: this happens
 		// right after switching the video mode, when the UI applies its state to the
-		// fresh streamer. Only the restart needs the working session
+		// fresh streamer. Only the restart needs the working session.
+		// The requested ID is taken right away, so the next WATCH carries it;
+		// the WATCH waits for listDevices(), which corrects it if the device has gone.
 		if (__use_mic !== mic) {
+			__use_mic = (mic || null);
 			if (mic) {
 				__refillDevices("mic", mic, function(id) {
-					__use_mic = id;
-					if (__has_mic) {
-						__destroyJanus();
+					if (__use_mic !== null && __use_mic !== id) {
+						__use_mic = id;
+						if (__has_mic) {
+							__restartIfWatching();
+						}
 					}
 				});
-			} else {
-				__use_mic = null;
 			}
 			reload = true;
 		}
 		if (reload && __has_mic) {
-			__destroyJanus();
+			__restartIfWatching();
 		}
 	};
 
 	self.setCameraDevice = function(camera, reload=false) {
 		if (__use_camera !== camera) {
+			__use_camera = (camera || null);
 			if (camera) {
 				__refillDevices("camera", camera, function(id) {
-					__use_camera = id;
-					if (__has_camera) {
-						__destroyJanus();
+					if (__use_camera !== null && __use_camera !== id) {
+						__use_camera = id;
+						if (__has_camera) {
+							__restartIfWatching();
+						}
 					}
 				});
-			} else {
-				__use_camera = null;
 			}
 			reload = true;
 		}
 		if (reload && __has_camera) {
-			__destroyJanus();
+			__restartIfWatching();
 		}
 	};
 
@@ -313,6 +374,9 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 		}
 		__stopRetryEmsgInterval();
 		__stopInfoInterval();
+		__stopKeyKick();
+		__watching = false;
+		__camera_dirty = false;
 		if (__handle) {
 			__logInfo("uStreamer detaching ...:", __handle.getPlugin(), __handle.getId());
 			__handle.detach();
@@ -403,9 +467,14 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 			"webrtcState": function(up) {
 				__logInfo("Janus says our WebRTC PeerConnection is", (up ? "up" : "down"), "now");
-				/*if (up) {
-					__sendKeyRequired();
-				}*/
+				if (up) {
+					// The PeerConnection is up only now, so any keyframe the encoder
+					// produced during negotiation was not delivered to us. Without
+					// a fresh one the video stays black (gop=0 means no periodic IDR).
+					__startKeyKick();
+				} else {
+					__stopKeyKick();
+				}
 			},
 
 			"onmessage": function(msg, jsep) {
@@ -427,10 +496,13 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 						tools.feature.setEnabled($("stream-camera"), (__has_camera = (f.camera && f.camera.enabled)));
 						tools.feature.setEnabled($("stream-multimedia"), (__has_audio || __has_mic || __has_camera));
 						__ice = f.ice;
-						__camera_req = ((__has_camera && __use_camera && f.camera.request) ? f.camera.request : null);
+						__camera_feat_req = ((__has_camera && f.camera.request) ? f.camera.request : null);
+						__camera_dirty = false; // This is the fresh state
 						__sendWatch();
 					} else if (msg.result.status === "camera") {
-						if (__has_camera && __use_camera) {
+						if (!__watching) {
+							__camera_dirty = __has_camera; // FEATURES camera.request is stale now
+						} else if (__has_camera && __use_camera) {
 							let action = msg.result.camera.action;
 							if (action === "online" && __camera_req === null) {
 								__destroyJanus();
@@ -618,6 +690,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			"oncleanup": function() {
 				__logInfo("Got a cleanup notification");
 				__stopInfoInterval();
+				__stopKeyKick();
 			},
 		});
 	};
@@ -634,6 +707,63 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 			clearInterval(__info_interval);
 		}
 		__info_interval = null;
+	};
+
+	var __getDecodedFrames = function() {
+		// https://wiki.whatwg.org/wiki/Video_Metrics
+		let el = $("stream-video");
+		if (el.webkitDecodedFrameCount !== undefined) {
+			return el.webkitDecodedFrameCount;
+		} else if (el.mozPaintedFrames !== undefined) {
+			return el.mozPaintedFrames;
+		} else if (el.getVideoPlaybackQuality) {
+			return el.getVideoPlaybackQuality().totalVideoFrames;
+		}
+		return null;
+	};
+
+	var __startKeyKick = function() {
+		// Fast, bounded keyframe requests until the first frame is decoded.
+		// Don't rely on browser PLI (broken in Chromium 147, pikvm/pikvm#1656)
+		// or on the 1s bitrate-based fallback in __updateInfo() which needs
+		// a couple of seconds of stats before it kicks in.
+		__stopKeyKick();
+		const delays = [250, 250, 500, 500, 1000]; // Then give up, __updateInfo() takes over
+		let base = __getDecodedFrames();
+		let attempt = 0;
+		let isShown = function() {
+			let frames = __getDecodedFrames();
+			if (frames !== null && base !== null && frames < base) {
+				base = frames; // The element was reset (new srcObject)
+			}
+			return (
+				(frames !== null && base !== null && frames > base)
+				|| $("stream-video").readyState >= 2 // HAVE_CURRENT_DATA
+			);
+		};
+		let kick = function() {
+			__key_kick_timeout = null;
+			if (__handle === null || isShown()) {
+				__logInfo("Keyframe kick finished after", attempt, "request(s)");
+				return;
+			}
+			if (attempt === 0) {
+				__logInfo("Requesting keyframe until the first video frame ...");
+			}
+			__handle.send({"message": {"request": "key_required"}});
+			if (attempt < delays.length) {
+				__key_kick_timeout = setTimeout(kick, delays[attempt]);
+			}
+			++attempt;
+		};
+		kick();
+	};
+
+	var __stopKeyKick = function() {
+		if (__key_kick_timeout !== null) {
+			clearTimeout(__key_kick_timeout);
+		}
+		__key_kick_timeout = null;
 	};
 
 	var __stopRetryEmsgInterval = function() {
@@ -667,14 +797,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 					}
 				}
 
-				// https://wiki.whatwg.org/wiki/Video_Metrics
-				let frames = null;
-				let el = $("stream-video");
-				if (el.webkitDecodedFrameCount !== undefined) {
-					frames = el.webkitDecodedFrameCount;
-				} else if (el.mozPaintedFrames !== undefined) {
-					frames = el.mozPaintedFrames;
-				}
+				let frames = __getDecodedFrames();
 				if (frames !== null) {
 					let fps = Math.max(0, frames - __frames);
 					info += ` / ${fps} dyn.fps`;
@@ -703,16 +826,38 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	var __sendWatch = function() {
 		if (__handle) {
-			let audio = (__has_audio && !!__use_audio);
-			let mic = (__has_mic && __use_mic ? __use_mic : null);
-			__logInfo(`Sending WATCH(orient=${__orient}, audio=${audio}, mic=${mic}, camera=${__camera_req}) ...`);
-			__handle.send({"message": {"request": "watch", "params": {
-				"orientation": __orient,
-				"audio": audio,
-				"mic": !!mic,
-				"camera": !!__camera_req,
-			}}});
-			__watchHook();
+			let handle = __handle;
+			// The hook may hold the first WATCH until the UI knows the final multimedia
+			// choice (the "continue with multimedia?" confirmation). The params are read
+			// only then, so the stream is negotiated once with the right tracks.
+			let do_send = function() {
+				if (__handle !== handle) {
+					return; // The session was replaced while waiting
+				}
+				if (__camera_dirty) {
+					// Refresh camera.request; FEATURES will call __sendWatch() again
+					__camera_dirty = false;
+					__logInfo("Camera changed while waiting, sending FEATURES again ...");
+					__handle.send({"message": {"request": "features"}});
+					return;
+				}
+				let audio = (__has_audio && !!__use_audio);
+				let mic = (__has_mic && __use_mic ? __use_mic : null);
+				__camera_req = ((__has_camera && __use_camera && __camera_feat_req) ? __camera_feat_req : null);
+				__logInfo(`Sending WATCH(orient=${__orient}, audio=${audio}, mic=${mic}, camera=${__camera_req}) ...`);
+				__watching = true;
+				__handle.send({"message": {"request": "watch", "params": {
+					"orientation": __orient,
+					"audio": audio,
+					"mic": !!mic,
+					"camera": !!__camera_req,
+				}}});
+			};
+			let send = () => __whenDevicesKnown(do_send);
+			let has_mm = (__has_audio || __has_mic || __has_camera);
+			if (!__watchHook(send, has_mm)) {
+				send(); // A stale stream.js from the browser cache
+			}
 		}
 	};
 
@@ -732,6 +877,7 @@ export function JanusStreamer(__setActive, __setInactive, __setInfo, __watchHook
 
 	var __sendStop = function() {
 		__stopInfoInterval();
+		__stopKeyKick();
 		if (__handle) {
 			__logInfo("Sending STOP ...");
 			__handle.send({"message": {"request": "stop"}});

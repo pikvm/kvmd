@@ -25,6 +25,13 @@ http {
 	tcp_nodelay on;
 	tcp_nopush on;
 	keepalive_timeout 10;
+
+	gzip on;
+	gzip_comp_level 5;
+	gzip_min_length 1024;
+	gzip_vary on;
+	gzip_types text/css application/javascript text/javascript image/svg+xml application/manifest+json;
+
 	client_max_body_size 4k;
 
 	client_body_temp_path	/tmp/kvmd-nginx/client_body_temp;
