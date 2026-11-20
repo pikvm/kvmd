@@ -40,7 +40,7 @@ class _FakeLineRequest:
         self.__values = dict(initial)
         self.__loop = asyncio.get_running_loop()
         self.__initial_wait = True
-        self.__pending: queue.Queue[list[SimpleNamespace] | asyncio.Event] = queue.Queue()
+        self.__pending: queue.Queue[list[SimpleNamespace] | asyncio.Event | threading.Event] = queue.Queue()
         self.__events: list[SimpleNamespace] = []
         self.thread_id = 0
 
@@ -60,6 +60,12 @@ class _FakeLineRequest:
         self.__pending.put(done)
         await asyncio.wait_for(done.wait(), timeout=1)
 
+    def flush_blocking(self) -> None:
+        # Wait for the worker to submit callbacks while holding the event loop.
+        done = threading.Event()
+        self.__pending.put(done)
+        assert done.wait(2)
+
     def wait_edge_events(self, timeout: float) -> bool:
         self.thread_id = threading.get_ident()
         if self.__initial_wait:
@@ -72,6 +78,8 @@ class _FakeLineRequest:
                 return False
             if isinstance(item, asyncio.Event):
                 self.__loop.call_soon_threadsafe(item.set)
+            elif isinstance(item, threading.Event):
+                item.set()
             else:
                 self.__events = item
                 return True

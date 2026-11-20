@@ -22,6 +22,7 @@
 
 import asyncio
 import json
+import threading
 
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -30,6 +31,7 @@ from unittest.mock import AsyncMock
 from unittest.mock import Mock
 from unittest.mock import call
 
+import gpiod
 import pytest
 
 from aiohttp.test_utils import make_mocked_request
@@ -174,3 +176,98 @@ async def test_ok__gpio_history_matches_state(monkeypatch: pytest.MonkeyPatch, i
                 assert result["history"]["power"][29] == result["leds"]["power"]
         finally:
             await states.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("inverted", [False, True])
+async def test_ok__gpio_history_during_startup(monkeypatch: pytest.MonkeyPatch, inverted: bool) -> None:
+    line_req = _patch_request(monkeypatch, {24: True, 22: False})
+    monkeypatch.setattr(gpio, "time", SimpleNamespace(monotonic_ns=lambda: 1_000_000_000_000_000_037))
+    atx = _make_plugin(inverted)
+    reader = getattr(atx, "_Plugin__reader")
+    allow_initial_read = threading.Event()
+    get_values = line_req.get_values
+    get = reader.get
+
+    def gated_get_values(pins: list[int]) -> list[gpiod.line.Value]:
+        assert allow_initial_read.wait(2)
+        return get_values(pins)
+
+    def read(pin: int) -> bool:
+        value = get(pin)
+        if pin == 24 and not allow_initial_read.is_set():
+            # Finish GPIO initialization while the request is still building its response.
+            allow_initial_read.set()
+            line_req.flush_blocking()
+        return value
+
+    monkeypatch.setattr(line_req, "get_values", gated_get_values)
+    monkeypatch.setattr(reader, "get", read)
+    handler = _state_handler(atx)
+    request = make_mocked_request("GET", "/atx?history=1")
+    async with _run_plugin(atx, line_req):
+        await asyncio.sleep(0)
+        response = await handler(request)
+        assert response.status == 200
+        result = json.loads(response.text or "")["result"]
+        assert result["leds"]["power"] is inverted
+        history = result["history"]
+        assert history["power"] == [None] * 30
+        assert history["transitions"] == []
+        assert history["complete"] is False
+
+        await _wait_until(lambda: reader.get_changes(24) == 0)
+        response = await handler(request)
+        assert response.status == 200
+        result = json.loads(response.text or "")["result"]
+        assert result["leds"]["power"] is (not inverted)
+        history = result["history"]
+        assert history["power"] == [None] * 29 + [int(not inverted)]
+        assert history["transitions"] == []
+        assert history["complete"] is False
+
+
+@pytest.mark.asyncio
+async def test_ok__gpio_history_with_pending_edge(monkeypatch: pytest.MonkeyPatch) -> None:
+    line_req = _patch_request(monkeypatch, {24: False, 22: False})
+    now = 1_000_000_000_000_000_037
+    monkeypatch.setattr(gpio, "time", SimpleNamespace(monotonic_ns=lambda: now))
+    atx = _make_plugin()
+    reader = getattr(atx, "_Plugin__reader")
+    handler = _state_handler(atx)
+    request = make_mocked_request("GET", "/atx?history=1")
+    get = reader.get
+    queued = False
+
+    def read(pin: int) -> bool:
+        nonlocal queued
+        value = get(pin)
+        if pin == 24 and not queued:
+            queued = True
+            line_req.push((pin, True))
+            # Wait for the GPIO thread to queue the edge while the event loop is in the handler.
+            line_req.flush_blocking()
+        return value
+
+    async with _run_plugin(atx, line_req):
+        await line_req.flush()
+        assert reader.get_changes(24) == 0
+        now += 3_000_000_000
+        monkeypatch.setattr(reader, "get", read)
+
+        response = await handler(request)
+        assert response.status == 200
+        result = json.loads(response.text or "")["result"]
+        assert result["leds"]["power"] is False
+        assert result["history"]["power"] == [0] * 30
+        assert result["history"]["transitions"] == []
+        assert result["history"]["complete"] is True
+
+        await _wait_until(lambda: reader.get_changes(24) == 1)
+        response = await handler(request)
+        assert response.status == 200
+        result = json.loads(response.text or "")["result"]
+        assert result["leds"]["power"] is True
+        assert result["history"]["power"] == [0] * 29 + [1]
+        assert result["history"]["transitions"] == [[0.0, True]]
+        assert result["history"]["complete"] is True

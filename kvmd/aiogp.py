@@ -60,6 +60,7 @@ class AioReader:  # pylint: disable=too-many-instance-attributes
         self.__on_change = on_change
         self.__on_change_failures = 0
         self.__on_change_logged = 0.0
+        self.__initial_reported = False
 
         self.__values: (dict[int, _DebouncedValue] | None) = None
 
@@ -73,7 +74,11 @@ class AioReader:  # pylint: disable=too-many-instance-attributes
         return (value ^ self.__pins[pin].inverted)
 
     def get_changes(self, pin: int) -> (int | None):
-        return (self.__values[pin].get_changes() if self.__values is not None else None)
+        # With on_change, expose the counter only after the initial values were reported
+        # on the event loop, so a reader can't see them before the callback has.
+        if self.__values is None or (self.__on_change is not None and not self.__initial_reported):
+            return None
+        return self.__values[pin].get_changes()
 
     async def poll(self) -> None:
         if not self.__pins:
@@ -135,6 +140,7 @@ class AioReader:  # pylint: disable=too-many-instance-attributes
 
     def __report_initial(self) -> None:
         assert self.__values is not None
+        self.__initial_reported = True
         for (pin, value) in sorted(self.__values.items()):
             self.__call_on_change(pin, value.get(), value.get_changes())
 
