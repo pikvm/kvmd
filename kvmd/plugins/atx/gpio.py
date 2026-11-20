@@ -21,7 +21,9 @@
 
 
 import asyncio
+import collections
 import copy
+import time
 
 from typing import Final
 from typing import AsyncGenerator
@@ -47,6 +49,90 @@ from . import BaseAtx
 
 
 # =====
+_HISTORY_WINDOW_NS = 3_000_000_000
+_HISTORY_INTERVAL_NS = 100_000_000
+_HISTORY_SAMPLES = 30
+_HISTORY_MAX_TRANSITIONS = 64
+
+
+class _LedHistory:  # pylint: disable=too-many-instance-attributes
+    def __init__(self) -> None:
+        self.__started: (int | None) = None
+        self.__base: (tuple[int, bool] | None) = None
+        self.__transitions: collections.deque[tuple[int, bool]] = collections.deque()
+        self.__last: (bool | None) = None
+        self.__seen: (int | None) = None
+        self.__gaps = 0
+        self.__gap_logged = 0
+
+    def record(self, value: bool, changes: int, now: int) -> None:
+        if self.__seen is None or changes != self.__seen + 1 or value == self.__last:
+            self.__restart(value, changes, now)
+            return
+        self.__prune(now)
+        if len(self.__transitions) >= _HISTORY_MAX_TRANSITIONS:
+            self.__base = self.__transitions.popleft()
+        self.__transitions.append((now, value))
+        self.__last = value
+        # Commit the counter last so a partial failure is detected on the next call or read.
+        self.__seen = changes
+
+    def make_report(self, now: int, current: bool, changes: (int | None)) -> dict:
+        if (
+            changes is not None
+            and (self.__seen is None or self.__seen != changes or self.__last != current)
+        ):
+            self.__gaps += 1
+            if self.__gaps == 1:
+                get_logger(0).error("ATX power LED history has a gap; restarting it")
+                self.__gap_logged = now
+            elif now - self.__gap_logged >= 60_000_000_000:
+                get_logger(0).error("ATX power LED history has had %d gaps; restarting it", self.__gaps)
+                self.__gap_logged = now
+            self.__restart(current, changes, now)
+        self.__prune(now)
+        begin = now - _HISTORY_WINDOW_NS
+        if self.__base is None:
+            return self.__report(False, [None] * _HISTORY_SAMPLES, now)
+        items = [self.__base, *self.__transitions]
+        power: list[int | None] = []
+        index = 0
+        for sample in range(_HISTORY_SAMPLES):
+            ts = begin + (sample + 1) * _HISTORY_INTERVAL_NS
+            if ts < self.__base[0]:
+                power.append(None)
+                continue
+            while index + 1 < len(items) and items[index + 1][0] <= ts:
+                index += 1
+            power.append(int(items[index][1]))
+        return self.__report((self.__base[0] <= begin), power, now)
+
+    def __report(self, complete: bool, power: list[int | None], now: int) -> dict:
+        return {
+            "interval_ms": _HISTORY_INTERVAL_NS // 1_000_000,
+            "complete": complete,
+            "power": power,
+            "transitions": [
+                [-((now - ts) // 1_000_000) / 1000, value]
+                for (ts, value) in self.__transitions
+            ],
+        }
+
+    def __prune(self, now: int) -> None:
+        limit = now - _HISTORY_WINDOW_NS
+        while self.__transitions and self.__transitions[0][0] <= limit:
+            self.__base = self.__transitions.popleft()
+
+    def __restart(self, value: bool, changes: int, now: int) -> None:
+        if self.__started is None:
+            self.__started = now
+        self.__base = (now, value)
+        self.__transitions.clear()
+        self.__last = value
+        self.__seen = changes
+
+
+# =====
 class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
     def __init__(self, c: Section) -> None:
         super().__init__(c)
@@ -67,6 +153,7 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
 
         self.__line_req: (gpiod.LineRequest | None) = None
 
+        self.__power_history = _LedHistory()
         self.__reader = aiogp.AioReader(
             path=self.__device_path,
             consumer="kvmd::atx",
@@ -75,6 +162,7 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
                 c.hdd_led_pin: aiogp.AioReaderPinParams(c.hdd_led_inverted, c.hdd_led_debounce),
             },
             notifier=self.__notifier,
+            on_change=self.__on_led_change,
         )
 
     @classmethod
@@ -124,6 +212,12 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
                 "hdd": self.__reader.get(self.__hdd_led_pin),
             },
         }
+
+    async def get_history(self) -> dict:
+        pin = self.__power_led_pin
+        return self.__power_history.make_report(
+            time.monotonic_ns(), self.__reader.get(pin), self.__reader.get_changes(pin),
+        )
 
     async def trigger_state(self) -> None:
         self.__notifier.notify(1)
@@ -178,6 +272,10 @@ class Plugin(BaseAtx):  # pylint: disable=too-many-instance-attributes
         await self.__click("reset", self.__reset_region, self.__reset_switch_pin, self.__click_delay, wait)
 
     # =====
+
+    def __on_led_change(self, pin: int, value: bool, changes: int) -> None:
+        if pin == self.__power_led_pin:
+            self.__power_history.record(value, changes, time.monotonic_ns())
 
     async def __get_power(self) -> bool:
         return (await self.get_state())["leds"]["power"]

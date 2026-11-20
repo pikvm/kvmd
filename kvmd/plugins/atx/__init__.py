@@ -48,6 +48,9 @@ class BaseAtx(BasePlugin):
     async def get_state(self) -> dict:
         raise NotImplementedError
 
+    async def get_history(self) -> dict:
+        return {}
+
     async def trigger_state(self) -> None:
         raise NotImplementedError
 

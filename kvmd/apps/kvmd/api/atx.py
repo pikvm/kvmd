@@ -41,8 +41,12 @@ class AtxApi:
     # =====
 
     @exposed_http("GET", "/atx")
-    async def __state_handler(self, _: Request) -> Response:
-        return make_json_response(await self.__atx.get_state())
+    async def __state_handler(self, req: Request) -> Response:
+        with_history = valid_bool(req.query.get("history", False))
+        state = await self.__atx.get_state()
+        if with_history:
+            state = {**state, "history": await self.__atx.get_history()}
+        return make_json_response(state)
 
     @exposed_http("POST", "/atx/power")
     async def __power_handler(self, req: Request) -> Response:
